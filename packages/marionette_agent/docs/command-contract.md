@@ -82,3 +82,14 @@ The daemon re-checks connection generation after `await`, preventing expired ope
 - [transport_test.dart](../test/transport_test.dart): protocol mismatch, retry suppression, 64MiB limit.
 
 Run `dart format .`, `dart analyze`, and `dart test` in package. For simulator verification, see [verification record](verification/a01-a06-2026-09-09.md).
+
+
+## Implemented A07/B01–B05 entry points
+
+The product parser and `coreCommands()` now register tap, fill, swipe, scroll, screenshot and logs. `swipeCommand(coordinates: false)` / `handleSwipe(..., coordinates: false)` implement scroll through the same gesture primitive; its result also identifies `command: scroll`. Tap/fill validate complete IPC arguments before entering CommandContext. Fill stores opaque input under `input`, so `--text` continues to mean a selector.
+
+Screenshot returns internal `images` through IPC; `runCli` then calls `saveScreenshots` to decode base64 and validate PNG with the image package. Only its PNG decoder is imported, avoiding the full codec/filter export graph on every CLI startup. The decoder internal API is isolated in artifact_writer.dart and image is pinned to 4.9.1; PNG contract tests must pass before upgrades. Public success contains only absolute `paths`. Multiple images use `name-1.png`, `name-2.png`; without an extension `.png` is appended for numbered outputs. An omitted path creates a private temporary directory. The writer reserves all output names exclusively and removes only its own files on failure. Missing parent directories are reported as IO_ERROR. It checks the original request deadline during saving; screenshot/logs never invalidate refs.
+
+Logs return `entries` plus nullable `configured`; unknown configuration includes a `limitation`. Binding logs are result data on stdout. Diagnostic logging remains separate on stderr.
+
+Simulator runners: `integration_test/features_smoke.dart` and `integration_test/two_apps_smoke.dart`. See the [B01–B06/A08 verification record](verification/b01-b06-a08-2026-09-09.md) for their environment and results.

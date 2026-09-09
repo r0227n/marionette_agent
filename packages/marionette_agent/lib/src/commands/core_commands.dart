@@ -1,9 +1,24 @@
 import '../protocol/protocol.dart';
 import 'registry.dart';
+import 'swipe.dart';
+import 'actions.dart';
+import 'observations.dart';
 
-/// Registers A01-A06 commands. Register additional features explicitly in the same registry.
-CommandRegistry coreCommands() =>
-    CommandRegistry()..register('snapshot', (context, params) {
-      if (params.isNotEmpty) invalid('Usage: snapshot');
-      return context.snapshot();
-    });
+/// Registers the initial product command set.
+CommandRegistry coreCommands() => CommandRegistry()
+  ..register('swipe', handleSwipe)
+  ..register('tap', handleTap)
+  ..register('fill', handleFill)
+  ..register(
+    'scroll',
+    (context, params) async => {
+      ...await handleSwipe(context, params, coordinates: false),
+      'command': 'scroll',
+    },
+  )
+  ..register('screenshot', handleScreenshot)
+  ..register('logs', handleLogs)
+  ..register('snapshot', (context, params) {
+    if (params.isNotEmpty) invalid('Usage: snapshot');
+    return context.snapshot();
+  });

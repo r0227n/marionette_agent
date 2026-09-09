@@ -1,6 +1,9 @@
 import 'package:args/args.dart';
 
 import '../protocol/protocol.dart';
+import '../commands/swipe.dart';
+import '../commands/actions.dart';
+import '../commands/observations.dart';
 
 /// Register ArgParser grammar and conversion from validated args to protocol params.
 class CliCommand {
@@ -29,6 +32,12 @@ class CliParser {
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
     ..addFlag('version', negatable: false, help: 'Show version');
   final definitions = <String, CliCommand>{
+    'tap': actionCommand(),
+    'fill': actionCommand(fill: true),
+    'scroll': swipeCommand(coordinates: false),
+    'screenshot': screenshotCommand(),
+    'logs': CliCommand(ArgParser(), noArguments),
+    'swipe': swipeCommand(),
     'connect': CliCommand(ArgParser(), (args) {
       if (args.rest.length != 1) invalid('Usage: connect <uri>');
       return {'uri': args.rest.single};
@@ -57,6 +66,14 @@ class CliParser {
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
       'connect <uri> | session list | session show | close | snapshot\n'
+      'swipe <ref|selector> <left|right|up|down> [--distance <n>]\n'
+      'swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>\n'
+      'Directions describe finger movement; verify the result with snapshot.\n'
+      'tap <ref|selector> | tap --x <n> --y <n> | fill <ref|selector> <text>\n'
+      'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
+      'scroll uses finger movement direction; reaching content is not guaranteed.\n'
+      'screenshot [path] | logs\n'
+      'Selectors: --key <value> | --identifier <value> | --text <value> | --type <value>\n'
       'Common options work before or after commands. Use -- for literal arguments.';
 
   Invocation parse(

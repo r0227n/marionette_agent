@@ -1,0 +1,1871 @@
+[
+  {
+    "command": "connect <VM_URI>",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "name": "sim",
+        "state": "connected",
+        "uri": "ws://127.0.0.1:63535/%3Credacted%3E",
+        "snapshotValid": false,
+        "connectionGeneration": 1
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "snapshot",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "generation": 1,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 118.0,
+              "width": 440.0,
+              "height": 838.0
+            },
+            "visible": true,
+            "ref": "@e1"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 150.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e2"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 186.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e3"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 200.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e4"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 282.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e5"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 318.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e6"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 382.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e7"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 450.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e8"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 486.0,
+              "width": 376.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e9"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 181.568359375,
+              "y": 538.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e10"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 167.443359375,
+              "y": 634.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e11"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 702.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e12"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e13"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 754.0,
+              "width": 296.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e14"
+          },
+          {
+            "type": "RichText",
+            "text": "\udb81\udd7a",
+            "bounds": {
+              "x": 360.0,
+              "y": 754.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e15"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e16"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 842.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 842.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e17"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e18"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 898.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 898.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e19"
+          },
+          {
+            "type": "Text",
+            "text": "Operation confirmation",
+            "bounds": {
+              "x": 114.29150390625,
+              "y": 76.0,
+              "width": 211.4169921875,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e20"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "snapshot",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "generation": 4,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 118.0,
+              "width": 440.0,
+              "height": 838.0
+            },
+            "visible": true,
+            "ref": "@e61"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 150.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e62"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 186.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e63"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 200.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e64"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 282.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e65"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 318.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e66"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 382.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e67"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 450.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e68"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 486.0,
+              "width": 376.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e69"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 181.568359375,
+              "y": 538.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e70"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 167.443359375,
+              "y": 634.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e71"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 702.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e72"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e73"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 754.0,
+              "width": 296.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e74"
+          },
+          {
+            "type": "RichText",
+            "text": "\udb81\udd7a",
+            "bounds": {
+              "x": 360.0,
+              "y": 754.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e75"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e76"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 842.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 842.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e77"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e78"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 898.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 898.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e79"
+          },
+          {
+            "type": "Text",
+            "text": "Operation confirmation",
+            "bounds": {
+              "x": 114.29150390625,
+              "y": 76.0,
+              "width": 211.4169921875,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e80"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "swipe @e69 left --distance 300",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "requiresSnapshot": true
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "swipe @e69 left",
+    "exitCode": 4,
+    "result": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "sim",
+      "data": null,
+      "error": {
+        "code": "STALE_REF",
+        "message": "Ref is not valid in this session",
+        "hint": "Run snapshot again",
+        "outcome": "not_sent"
+      }
+    }
+  },
+  {
+    "command": "snapshot",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "generation": 5,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 118.0,
+              "width": 440.0,
+              "height": 838.0
+            },
+            "visible": true,
+            "ref": "@e81"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 150.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e82"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 186.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e83"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 200.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e84"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 282.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e85"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 318.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e86"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 382.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e87"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 450.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e88"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 486.0,
+              "width": 376.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e89"
+          },
+          {
+            "type": "Text",
+            "text": "Page 2",
+            "bounds": {
+              "x": 179.8525390625,
+              "y": 538.0,
+              "width": 80.294921875,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e90"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 2",
+            "key": "page_result",
+            "bounds": {
+              "x": 166.4658203125,
+              "y": 634.0,
+              "width": 107.068359375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e91"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 702.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e92"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e93"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 754.0,
+              "width": 296.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e94"
+          },
+          {
+            "type": "RichText",
+            "text": "\udb81\udd7a",
+            "bounds": {
+              "x": 360.0,
+              "y": 754.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e95"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e96"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 842.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 842.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e97"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e98"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 898.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 898.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e99"
+          },
+          {
+            "type": "Text",
+            "text": "Operation confirmation",
+            "bounds": {
+              "x": 114.29150390625,
+              "y": 76.0,
+              "width": 211.4169921875,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e100"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "swipe --start-x 100 --start-y 556.0 --end-x 350 --end-y 556.0",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "requiresSnapshot": true
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "snapshot",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "generation": 6,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 118.0,
+              "width": 440.0,
+              "height": 838.0
+            },
+            "visible": true,
+            "ref": "@e101"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 150.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e102"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 186.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e103"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 200.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e104"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 282.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e105"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 318.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e106"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 382.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e107"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 450.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e108"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 486.0,
+              "width": 376.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e109"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 181.568359375,
+              "y": 538.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e110"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 167.443359375,
+              "y": 634.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e111"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 702.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e112"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e113"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 754.0,
+              "width": 296.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e114"
+          },
+          {
+            "type": "RichText",
+            "text": "\udb81\udd7a",
+            "bounds": {
+              "x": 360.0,
+              "y": 754.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e115"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e116"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 826.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 842.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 842.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e117"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e118"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 882.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 898.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 898.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e119"
+          },
+          {
+            "type": "Text",
+            "text": "Operation confirmation",
+            "bounds": {
+              "x": 114.29150390625,
+              "y": 76.0,
+              "width": 211.4169921875,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e120"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "swipe --key dismissible_item left --distance 200",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "requiresSnapshot": true
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "snapshot",
+    "exitCode": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "sim",
+      "data": {
+        "generation": 7,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 118.0,
+              "width": 440.0,
+              "height": 838.0
+            },
+            "visible": true,
+            "ref": "@e121"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 150.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e122"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 186.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e123"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 200.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e124"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 282.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e125"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 318.0,
+              "width": 376.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e126"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 382.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e127"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 450.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e128"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 486.0,
+              "width": 376.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e129"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 181.568359375,
+              "y": 538.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e130"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 167.443359375,
+              "y": 634.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e131"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 702.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e132"
+          },
+          {
+            "type": "Text",
+            "text": "Item dismissed",
+            "key": "dismiss_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 738.0,
+              "width": 102.4912109375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e133"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 790.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e134"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 790.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 790.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 806.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 806.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e135"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 846.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e136"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 846.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 846.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 862.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 862.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e137"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_3",
+            "bounds": {
+              "x": 16.0,
+              "y": 902.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e138"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 902.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 902.0,
+              "width": 408.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "\ue353",
+            "bounds": {
+              "x": 32.0,
+              "y": 918.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 3",
+            "bounds": {
+              "x": 72.0,
+              "y": 918.0,
+              "width": 328.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e139"
+          },
+          {
+            "type": "Text",
+            "text": "Operation confirmation",
+            "bounds": {
+              "x": 114.29150390625,
+              "y": 76.0,
+              "width": 211.4169921875,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e140"
+          }
+        ]
+      },
+      "error": null
+    }
+  }
+]

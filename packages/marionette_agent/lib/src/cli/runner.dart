@@ -5,6 +5,7 @@ import '../daemon/client.dart';
 import '../daemon/runtime.dart';
 import '../protocol/protocol.dart';
 import 'parser.dart';
+import 'artifact_writer.dart';
 import 'renderer.dart';
 
 /// Handles parsing, one-shot IPC, and final stdout response, then returns exit code.
@@ -43,6 +44,16 @@ Future<int> runCli(
           deadline: started.add(Duration(milliseconds: invocation.timeoutMs)),
         ),
       );
+      if (invocation.command == 'screenshot' && result.error == null) {
+        result = Result.success(
+          session,
+          await saveScreenshots(
+            result.data!,
+            invocation.params['path'] as String?,
+            started.add(Duration(milliseconds: invocation.timeoutMs)),
+          ),
+        );
+      }
     }
   } on AgentError catch (error) {
     result = Result.failure(session, error);
