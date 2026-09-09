@@ -7,12 +7,15 @@ import '../commands/command_context.dart';
 import '../snapshot/snapshot_service.dart';
 import '../protocol/protocol.dart';
 import 'session.dart';
+import '../recording/record_service.dart';
 import '../workflow/workflow_runner.dart';
 import '../workflow/model.dart';
 
 /// Manages URI ownership and session lifetime. I/O from different sessions can run concurrently.
 class SessionManager {
-  SessionManager(this.factory, this.commands);
+  SessionManager(this.factory, this.commands, {RecordService? recordings})
+    : recordings = recordings ?? RecordService();
+  final RecordService recordings;
   final BackendFactory factory;
   final CommandRegistry commands;
   final snapshots = SnapshotService();
@@ -77,7 +80,9 @@ class SessionManager {
         }
         return Result.success(request.session, {'closed': true});
       }
-      if (existing == null && request.command != 'connect') {
+      if (existing == null &&
+          request.command != 'connect' &&
+          request.command != 'record') {
         throw const AgentError(
           'NOT_CONNECTED',
           'Session is not connected',
@@ -94,6 +99,12 @@ class SessionManager {
           .run(() async {
             started = true;
             request.checkDeadline();
+            if (request.command == 'record') return recordings.handle(request);
+            Json? recording;
+            if (request.command == 'close') {
+              if (request.params.isNotEmpty) invalid();
+              recording = await recordings.close(request);
+            }
             if (request.command == 'workflow') {
               return WorkflowExecution(
                 request,
@@ -103,7 +114,8 @@ class SessionManager {
               ).run();
             }
             final execution = Execution(request, session);
-            return execution.bound(() => _execute(execution));
+            final data = await execution.bound(() => _execute(execution));
+            return {...data, 'recording': ?recording};
           })
           .whenComplete(() {
             session.pending--;
@@ -111,6 +123,7 @@ class SessionManager {
             // Keep the same queue while requests continue, and retain sessions that actually attempted connect for recovery.
             if ((session.closed || session.uri == null) &&
                 session.pending == 0 &&
+                !recordings.contains(session.name) &&
                 identical(sessions[session.name], session)) {
               sessions.remove(session.name);
               if (sessions.isEmpty) {
@@ -250,6 +263,7 @@ class SessionManager {
 
   Future<void> dispose() async {
     stopping = true;
+    await recordings.dispose();
     for (final session in sessions.values) {
       session.discard();
     }

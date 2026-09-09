@@ -6,7 +6,7 @@
 
 Dart製CLIから、Marionette対応FlutterアプリをAI Agentが観測・操作できるようにする。agent-browserのsession、snapshot、短い要素参照、構造化出力という操作体系を採用する。ブラウザー固有のコマンド互換性は目的に含めない。
 
-初版の実行ホストはmacOS、主な操作対象はiOS Simulator内の起動済みFlutterアプリ。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。Simulatorやアプリの起動・ビルド・インストールは利用者側で行う。
+初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイを対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。Simulatorやアプリの起動・ビルド・インストールは利用者側で行う。
 
 MCPサーバー／クライアントの提供は対象外。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。
 
@@ -58,7 +58,7 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | `connect <uri>` | 指定sessionで接続。HTTP(S)のVM Service URIもWS(S)へ正規化 |
 | `session list` | sessionの名前・接続状態を一覧表示。daemon不在時は空一覧 |
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
-| `close` | 選択sessionを切断・破棄。対象不在も成功。Flutterアプリは終了しない |
+| `close` | 録画があれば確定し、選択sessionを切断・破棄。対象不在も成功。Flutterアプリは終了しない |
 | `snapshot` | 観測を更新し、要素一覧とrefを返す |
 | `tap <ref>` / `tap <selector>` | 対象を1回タップ |
 | `tap --x <n> --y <n>` | 明示座標を1回タップ |
@@ -68,6 +68,8 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `screenshot [path]` | PNGを保存し絶対パスを返す。省略時は一時ファイル |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
+| `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
+| `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
 | `workflow schema [action]` | workflow全体またはaction別の同梱JSON Schemaを返す。daemon・接続は不要 |
 | `workflow validate <path>` | JSON／YAML workflowを読んで構文・schema・意味制約を検証。daemon・接続は不要 |
 | `workflow run <path>` | 接続済みsessionでworkflowを1要求として直列実行 |
@@ -86,7 +88,7 @@ workflow内の操作対象はselectorだけを受理し、refと座標操作は�
 
 ### sessionの寿命と競合
 
-- connectでdaemonを必要に応じて自動起動する。操作コマンドが未接続sessionを暗黙作成することはない。
+- connectまたはrecord startでdaemonを必要に応じて自動起動する。アプリ操作コマンドが未接続sessionを暗黙作成することはない。
 - 同一session・同一URIへのconnectは、接続が正常なら成功。別URIへの付け替えにはcloseを先に実行する。
 - sessionごとにコマンドを直列実行する。異なるsessionは独立する。同じ正規化URIを複数sessionで所有する要求は拒否する。URI別名による同一アプリの検出は保証しない。
 - 通信断でsessionはdisconnectedとなりrefを失効する。明示的なconnectで復旧する。操作の自動再送はしない。
@@ -161,4 +163,33 @@ screenshotのdataはpaths配列。複数画像は連番で保存し、通常利�
 
 ## 対象外・将来範囲
 
-Android／実機／他ホストOS、アプリ起動管理、録画、独自拡張、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
+record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実機録画、Web／Linux／Windows録画、アプリ起動管理、独自拡張、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
+
+## 端末画面録画
+
+`record`はFlutterの描画ではなく端末／ディスプレイ全体を収録する。VM ServiceやMarionette bindingに依存せず、releaseアプリやアプリ外の画面も対象にできる。OSが保護するコンテンツは保証しない。音声は収録しない。
+
+| platform | device | 形式・前提 |
+| --- | --- | --- |
+| ios | 起動済みiOS SimulatorのUDID | `.mp4`、macOSとXcode。iOS実機・`booted`のような曖昧な別名は未対応 |
+| android | オンライン・認証済みadb serial | `.mp4`、Android platform-tools。Emulator／実機の標準screenrecord |
+| macos | 1から始まるディスプレイ番号 | `.mov`、macOS標準screencaptureと実行元アプリの画面収録許可 |
+| web / linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
+
+- platform/device/pathは必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
+- 相対pathは呼出元CLIのcwdで絶対pathへ変換する。親directoryは既存かつ書込可能であること。既存file/directory/symlinkはIO_ERRORとして拒否し、自動上書きしない。
+- sessionごとに同時に1録画、同一daemon内の端末ごとに1録画。開始中・停止処理中も予約し、競合はSESSION_CONFLICT。同じsessionで停止後に新しい保存先へ録画を開始できる。
+- startはdaemonを必要に応じて起動し、録画所有者としてsessionを保持する。未接続の録画sessionの接続状態はdisconnected、URIはnull。録画開始が成功したsessionはcloseまで保持する。
+- startは開始確認後に返り、録画自体はsession queueを占有しない。iOSは最初のフレームの通知、Androidは出力headerの生成を確認する。macOS標準コマンドにはfirst-frame通知がないため起動後1秒の生存を確認し、実際の動画生成はstopで検証する。
+- `--timeout`は開始・停止要求の期限で、録画時間の上限ではない。開始のbackend待ちは最大30秒。停止要求が期限切れになっても有界な停止・回収は続き、statusで結果を確認する。TIMEOUTはoutcome:unknownとなる。UI操作や録画を自動再送しない。
+- Androidは180秒で自動停止し、ホストへ動画を回収して状態を更新する。分割・自動再開・結合は行わない。回転中の正しい収録は保証しない。
+- stopは録画プロセス終了・動画確定・必要な回収・保存まで待つ。重複stopは同じ結果を返す。録画がなければ`{recordingState: idle}`。daemonがないstatus/stopでは新daemonを起動しない。
+- recordの開始・停止・照会はrefを失効させず、VM Service接続を変更しない。hot restartや接続断でも端末録画は継続できる。
+- closeは録画を確定してから接続を破棄し、data.recordingに最終状態を含める。既に録画が失敗していてもcloseは所有者を解放し、recordingState:failedと失敗情報を返す。
+- daemon正常終了（SIGINT/SIGTERMを含む）は録画を確定する。SIGKILL、ホスト停止後の復元は対象外。
+
+成功dataはrecordingState（idle/starting/recording/stopping/stopped/failed）、platform、device、path、startedAt、elapsedMs、bytesを持つ。idleはrecordingStateのみ。startedAtは開始確認時のUTC日時、elapsedMsはそこから確定までの壁時計経過時間であり動画のメディアdurationではない。bytesは確定時の動画サイズ。失敗時のstatusにはfailureとrecoveryPathを含める。stopは失敗を非0終了で返す。
+
+保存は内部パッケージがdaemon内で担当し、動画はIPCで転送しない。出力先を排他的に予約して同じ親directoryのprivate stagingへ録画し、確定後に予約先へ書き込む。開始失敗時はこの要求の予約を回収し、確定失敗時はstagingを復旧用に保持する。予約後に別プロセスが意図的に保存先を差し替える競合までは保証しない。
+
+検証状況: iOS Simulator／Android Emulatorは製品CLIで確認する。macOSの実録画検証は利用者の指示で保留中。3環境すべての検証完了までは録画タスク全体を未完了として扱う。

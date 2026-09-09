@@ -81,7 +81,7 @@ marionette-agent session show --session demo --json
 
 ### `close`
 
-選択sessionを切断して破棄します。Flutterアプリ自体は終了しません。sessionが存在しない場合も成功します。
+選択sessionの録画があれば動画を確定し、接続を切断して破棄します。Flutterアプリ自体は終了しません。sessionが存在しない場合も成功します。録画があった場合はdata.recordingに最終状態を返します。
 
 ```bash
 marionette-agent --session demo close
@@ -338,3 +338,39 @@ marionette-agent --session demo snapshot --json
 ```
 
 詳細な製品契約は[製品仕様](../SPEC.md)、workflowファイル自体の形式は[workflowファイル実行機能 — 実装仕様 v1](workflow-file-spec.ja.md)を参照してください。
+
+## 端末画面の録画
+
+Flutterアプリだけでなく、キーボードやOS画面を含む端末／ディスプレイ全体を録画します。VM Serviceへのconnectは不要です。録画中でも同じsessionから通常の操作を実行でき、VM Serviceが切断されても録画は継続します。音声は収録せず、OSが保護するコンテンツの収録は保証しません。
+
+```sh
+# iOS Simulator: 起動済み端末のUDIDを明示
+marionette-agent --session demo record start ./ios.mp4 --platform ios --device <UDID>
+# Android: adb devicesに表示されたserialを明示
+marionette-agent --session demo record start ./android.mp4 --platform android --device emulator-5556
+# macOS: 1=メインディスプレイ（実録画検証は現在保留中）
+marionette-agent --session demo record start ./mac.mov --platform macos --device 1
+
+marionette-agent --session demo record status --json
+marionette-agent --session demo record stop --json
+marionette-agent --session demo close
+```
+
+上のstartは各環境の例です。同じsessionで同時に実行せず、先にstopしてください。iOSはmacOS/Xcode、Androidはplatform-tools、macOSは実行元アプリの画面収録許可が必要です。iOS実機は未対応です。ホストはmacOSを対象とします。
+
+- `start <path> --platform <platform> --device <id>`: 全引数必須。保存先の親directoryは作成済みである必要があります。相対pathは呼出元cwd基準。iOS/Androidは`.mp4`、macOSは`.mov`を指定します。既存file・directory・symlinkは上書きしません。
+- `status`: recordingStateと保存先、対象、開始日時、経過時間、確定後のbytesを返します。録画なしはidleです。停止後もcloseまでは最終状態を参照できます。
+- `stop`: 録画停止と動画の確定・回収まで待ちます。重複stopは同じ結果を返します。録画がない場合はidleとして成功します。
+- `close`: 録画を確定してsessionを破棄します。確定期限超過時はsessionを保持するため、statusで確認して再度closeできます。録画が失敗していても、最終状態をdata.recordingに含めてsessionを破棄します。
+
+同じdaemon内では1端末につき1録画、1sessionにつき1録画です。競合はSESSION_CONFLICT（終了コード3）。録画専用sessionはsession list/showで接続状態disconnectedとなりますが、録画状態はrecord statusで確認できます。recordはsnapshot/refを変更しません。
+
+`--timeout`はコマンド要求の期限であり録画時間ではありません。開始待ちは最大30秒、Androidは標準screenrecordを180秒で自動停止して回収します。自動再開・分割結合はしません。停止要求がTIMEOUT（終了コード5、outcome:unknown）でも動画確定処理は継続するため、record statusで確認してください。
+
+状態はstarting/recording/stopping/stopped/failed、録画なしはidleです。elapsedMsは開始確認から確定までの壁時計経過時間で、動画のメディアdurationではありません。failedにはfailureとrecoveryPathがあり、stagingの動画を復旧できます（破損・未生成の場合を除く）。stop自体は録画失敗を非0で返します。
+
+macOSの標準コマンドにはfirst-frame通知がないため、startは起動後1秒の生存を確認して返します。実際の動画生成はstopで検証します。iOSは最初のフレーム、Androidは動画headerの生成を開始確認に使います。macOS実録画は利用者の指示で検証保留中です。
+
+`--platform web` / `linux` / `windows` はUNSUPPORTED_CAPABILITY（終了コード6）です。未知のplatform名はINVALID_ARGUMENT（終了コード2）になります。未対応platformはdaemon起動前に拒否し、別方式へ自動fallbackしません。後続対応: [Web #16](https://github.com/r0227n/marionette_agent/issues/16)、[Linux #17](https://github.com/r0227n/marionette_agent/issues/17)、[Windows #18](https://github.com/r0227n/marionette_agent/issues/18)。
+
+録画データはdaemon内の内部パッケージが直接保存します。通常終了とSIGINT/SIGTERMは動画を確定しますが、SIGKILLやホスト停止後の自動復元はありません。Androidの画面回転を伴う録画は保証しません。

@@ -2,7 +2,7 @@
 
 本書は、`marionette_agent`へコマンドを追加・変更するときに守る実装契約を、現在のコードに基づいて説明します。利用者向けのCLI構文は[CLIリファレンス](cli-reference.ja.md)、製品全体の契約は[製品仕様](../SPEC.md)、構成と依存方向は[アーキテクチャ](../ARCHITECTURE.md)、workflow固有の契約は[workflow v1仕様](workflow-file-spec.ja.md)を参照してください。
 
-対象バージョンは`marionette_agent 0.0.1`、公開結果の`schemaVersion`は1、IPCの`protocolVersion`は2です。`marionette_mcp`は0.6.0に固定されています。
+対象バージョンは`marionette_agent 0.0.1`、公開結果の`schemaVersion`は1、IPCの`protocolVersion`は3です。`marionette_mcp`は0.6.0に固定されています。
 
 ## 実装境界
 
@@ -31,6 +31,8 @@ CLI引数
 | `image` 4.9.1 | CLI側でのPNG検証 |
 | `yaml` 3.1.4 | workflowのYAML解析 |
 | `dart:io` / `dart:convert` / `dart:async` | socket、file lock、UTF-8、JSON、deadline、queue |
+
+recordはVM Serviceに依存しない例外で、SessionManagerの共通session queueからRecordService→marionette_agent_utilへ委譲します。OS別の録画・終了シグナル処理はutilに集約し、refや接続世代は変更しません。
 
 ## コマンドの登録
 

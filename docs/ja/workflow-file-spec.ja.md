@@ -1,6 +1,6 @@
 # workflowファイル実行仕様 v1
 
-本書は、`marionette-agent`に実装されているworkflow v1の入力、検証、実行、出力を定義します。workflowのdocument schema versionは1、公開結果の`schemaVersion`は1、daemonとのIPC `protocolVersion`は2です。
+本書は、`marionette-agent`に実装されているworkflow v1の入力、検証、実行、出力を定義します。workflowのdocument schema versionは1、公開結果の`schemaVersion`は1、daemonとのIPC `protocolVersion`は3です。
 
 利用者向けのCLI全体は[CLIリファレンス](cli-reference.ja.md)、通常コマンドを含む製品契約は[製品仕様](../SPEC.md)、内部構成は[アーキテクチャ](../ARCHITECTURE.md)、コマンドhandlerの実装境界は[コマンド実装契約](command-contract.ja.md)を参照してください。
 
