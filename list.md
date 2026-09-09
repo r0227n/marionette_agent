@@ -1,10 +1,10 @@
-# agent-browser 由来の追加オプション候補
+# agent-browser 由来の追加コマンド・オプション候補
 
-調査日: 2026-09-09
+調査日: 2026-09-09（全コマンド再確認: 2026-09-10）
 
 ## 調査範囲と判断基準
 
-比較元は agent-browser の現行 README（ローカル参照コミット `72007a6788d863611b23bed0b59d0d659c638d8e`）に記載された [Snapshot Options](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#snapshot-options)、[Annotated Screenshots](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#annotated-screenshots)、[Options](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#options)、[Architecture](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#architecture) である。
+比較元は agent-browser の現行 README（ローカル参照コミット `72007a6788d863611b23bed0b59d0d659c638d8e`）に記載された [Get Info](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#get-info)、[Find Elements](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#find-elements-semantic-locators)、[Snapshot Options](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#snapshot-options)、[Annotated Screenshots](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#annotated-screenshots)、[Options](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#options)、[Architecture](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/README.md#architecture) である。
 
 marionette_agent 側は [製品仕様](docs/SPEC.md)、[アーキテクチャ](docs/ARCHITECTURE.md)、CLI parser、snapshot、renderer、screenshot 保存、daemon の現行実装を確認した。ブラウザー固有の互換性ではなく、Flutter アプリを AI Agent が安全かつ効率よく操作する目的に有効で、現在の Marionette backend でも実現可能なものを候補にした。
 
@@ -13,6 +13,136 @@ marionette_agent 側は [製品仕様](docs/SPEC.md)、[アーキテクチャ](d
 - P0: 安全性または常駐プロセス管理に効き、早期に導入する価値が高い
 - P1: AI Agent の観測効率やデバッグ効率を明確に改善する
 - P2: 利便性は上がるが、代替手段があるか利用頻度が限定的
+
+## 実装を推奨するコマンド
+
+### P0: 単独 `wait`
+
+`wait` は最優先で追加を推奨する。現状は workflow step として `state: exists|gone`、step timeout、poll interval を実装済みだが、単独コマンドでは使えない。AI Agent が `tap` 後の非同期な画面遷移を待ってから `snapshot` する基本フローで必要になる。
+
+最初の契約は、既存 workflow 実装を共通化して次に限定する。
+
+```text
+wait <selector> [--state exists|gone] [--poll-interval <ms>]
+```
+
+- `<selector>` は既存どおり `--key`、`--identifier`、`--text`、`--type` のいずれか一つとし、ref は受け付けない。待機中に対象が変化する用途で stale ref を持ち込まないためである。
+- `exists` は一意かつ `visible != false` を成功条件とし、複数一致は既存workflowと同じく `AMBIGUOUS_TARGET` にする。`gone` は一致なしを成功条件とし、一つ以上残っている間は件数にかかわらず待機を続ける。
+- コマンド全体の期限は共通 `--timeout` を使う。別の `--timeout` をコマンド内へ重複定義しない。
+- 観測だけを再試行し、tap/fill/swipe などの UI 操作は再送しない。
+- 成功しても snapshot/ref は新規発行しない。後続操作前に `snapshot` を実行する流れを案内する。
+
+agent-browser の `wait <ms>` は shell の待機で代替でき、session queue を理由なく占有するため優先度は低い。`--url`、`--load`、`--fn` は Web/DOM 固有なので不要である。`--text` は substring 検索として移植せず、まず既存の exact text selector を使う。
+
+### P1: `get`
+
+`get` は追加を推奨する。現行の `snapshot` に text、bounds、visible などは含まれるが、単一の確認にも全要素を再出力する。agent-browser の `get` と同様に対象と取得項目を明示できれば、出力量を抑えつつ操作結果を検証できる。
+
+最初に実装する価値があるのは、現行 `ElementInfo` だけで正確に返せる次の形式である。
+
+| コマンド案 | 用途 | 契約上の注意 |
+| --- | --- | --- |
+| `get text <ref|selector>` | 表示テキストを取得する | 対象は一意でなければならない。値が観測されていなければ空文字を捏造せず `value: null` とする。read-only なので ref を失効させない。 |
+| `get box <ref|selector>` | Flutter 論理座標の bounds を取得する | screenshot の物理 pixel と同じ座標だと主張しない。bounds がない場合を構造化して返す。 |
+| `get count <selector>` | selector に一致する要素数を取得する | このコマンドだけは 0 件・複数件を正常結果として扱う。曖昧性の調査に使うため ref は受け付けず、操作用の一意性検証を流用しない。 |
+| `get attr <ref|selector> <text|key|identifier|type|visible|bounds>` | snapshot が保持する既知属性を取得する | 任意の backend property 名ではなく allowlist に限定する。`get text` / `get box` と重複するため、統一APIとして採用する場合だけ追加する。 |
+
+`get value` は入力結果の検証に特に有用だが、固定している binding 0.6.0 の `getInteractiveElements()` と現行 `ElementInfo` は input value を text と別の属性として保証していない。text を value と見なさず、上流 capability と型付き `ElementInfo.value` を追加できた時点で実装する。`get html`、`get styles`、`get title`、`get url`、`get cdp-url` は Web/DOM/CDP 固有なので不要である。
+
+### P1（能力追加）: semantic `find`
+
+semantic find の能力は必要だが、agent-browser の構文を丸ごと移植することは推奨しない。
+
+現行の `tap`、`fill`、`swipe`、`scroll` は既に `--key`、`--identifier`、`--text`、`--type` で対象を指定できる。この範囲の `find text ... click/fill` を追加すると、同じ操作への二つ目の入口になり、target 解決と ref 失効の契約が重複する。代わりに Flutter Semantics / Marionette が信頼できる形で提供できる属性を `SelectorKind` に追加し、既存の全コマンドから共通利用できるようにする。
+
+追加を検討すべき selector は次のとおり。
+
+- Semantics の role 相当
+- label
+- hint / placeholder 相当
+- value（入力値を読み取る用途を含む）
+- tooltip
+
+`find` という独立コマンドを置く場合は、`find --label <value>` のような read-only の検索に限定し、一致した全要素と件数を返す。これは `snapshot` filter と統合してもよい。
+
+agent-browser の `find first`、`find last`、`find nth` による click/fill は追加しない。複数一致から位置で操作対象を選ぶ方式は、marionette_agent の「明示 selector でも一意性を確認し、曖昧な対象を拒否する」という安全契約を弱める。どうしても必要になった場合は selector の一部として明示的な index 契約をSPECで設計し、UI変化に対する stale 判定を用意してから導入する。
+
+### P1: `is visible`、条件付きで `is enabled|checked`
+
+状態確認は操作の前提条件や結果を小さいJSONで検証できるため追加価値がある。
+
+- `is visible <ref|selector>` は現行 `ElementInfo.visible` で実装できる。ただし backend が `null` を返した場合は `false` に丸めず、`known: false` を返す。
+- `is enabled` と `is checked` は現行 `ElementInfo` に情報がない。Marionette binding が Semantics の enabled/checked state を型付きで返せるようになってから追加する。
+- 0件や複数件を単純な `false` にせず、それぞれ `TARGET_NOT_FOUND`、`AMBIGUOUS_TARGET` とする。対象解決の問題と状態値を混同しない。
+
+### P1: `close --all`
+
+複数sessionを一括破棄し daemon を確実に終了する運用コマンドとして有用である。全sessionの新規受付を止め、各queueの実行中操作を途中で「未送信」と見なさず、安全に完了または期限切れにしてから切断する必要がある。部分失敗時の session ごとの結果をJSONで返す契約を先に決める。
+
+### P1（上流拡張後）: `scrollintoview`
+
+画面外要素を操作可能にするため重要であり、現在の方向付き `scroll` よりAgent向けである。ただし現行 snapshot は画面外を含む完全な Widget tree ではなく、backend に対象までスクロールする primitive もない。SPECで既に将来範囲とされているため、上流bindingで一意な対象解決とscroll-toを提供できた時点で実装する。探索中にUI操作を繰り返す実装にする場合も、各gestureの結果不明性と再送禁止を守る必要がある。
+
+### P1: `doctor`
+
+agent-browser の `doctor` と同様に、Agent自身が環境問題を切り分けられる診断コマンドは有用である。接続不要かつ原則read-onlyで、少なくとも次をJSON化する。
+
+- host OSとDart runtimeがサポート範囲内か
+- runtime directoryの所有者・permission・socket path長
+- 稼働daemonのprotocol versionと応答可否
+- 固定した `marionette_mcp` / binding versionと必要capability
+- 利用可能なiOS Simulatorと、指定された場合だけVM Service URIへの接続probe
+
+通常の `doctor` でsocket削除、daemon停止、package再導入を自動実行しない。修復操作が必要なら将来 `doctor --fix` として個別の実行内容を明示し、通常診断と分ける。認証付きURIは完全表示しない。
+
+### P1（上流拡張後）: `a11y audit`
+
+FlutterアプリをAgentが操作できることと、支援技術から正しく利用できることは別なので、Semanticsの欠落・曖昧なlabel・小さいtap target・無効なstate組み合わせを検出する監査は有用である。ただし現行 `inspect()` は完全なSemantics treeではない。必要属性と親子関係をbindingが返せるようにしてから、rule ID、severity、対象属性、refまたは安定selectorを構造化して返す。Webのaxe ruleを名前だけ流用しない。
+
+## 全コマンド群の棚卸し
+
+agent-browser README の Commands をカテゴリ単位で確認した結果は次のとおり。
+
+| agent-browser の機能 | 判定 | marionette_agent での扱い |
+| --- | --- | --- |
+| `open` / navigation | 不要 | Simulatorとアプリの起動管理は現行スコープ外。接続は `connect <uri>` が担当する。 |
+| `read` | 代替済み | アプリ内の観測は `snapshot` が担当する。URL fetch、Markdown、llms.txt はWeb固有。 |
+| `click` | 代替済み | `tap` が担当する。`--new-tab` は不要。 |
+| `fill` | 実装済み | 現行の置換入力を維持する。 |
+| `type` / `press` / `keyboard` / `keydown` / `keyup` / `focus` | 条件付き候補 | IME、submit、shortcut、focus遷移のテストには有用。ただし現行bindingは実キーイベントを保証せず、SPECでもキー入力は将来範囲。上流primitive追加後にP1として再検討する。 |
+| `dblclick` | 条件付き候補 | Flutterではdouble-tap相当。初版対象外でbackend primitiveもないためP2。long-pressも同じgesture拡張として設計する。 |
+| `hover` / mouse | 不要 | 初版のiOS Simulator操作はtouch中心。pointer/desktop対応を対象にするとき再検討する。 |
+| `select` / `check` / `uncheck` | 条件付き候補 | 現在は `tap` で操作できるが冪等ではない。selected/checked/enabled状態をbindingが返せるようになれば、状態確認付きの専用操作としてP2。 |
+| `scroll` | 実装済み | 方向付きgestureとして実装済み。到達保証はない。 |
+| `scrollintoview` | 推奨（上流待ち） | 画面外対象の操作に必要。前節のとおりP1。 |
+| `drag` | 条件付き候補 | reorder、slider、drag-and-dropのテストに有用。durationと移動経路を持つbackend primitiveが必要なためP2。 |
+| `upload` / `pdf` | 不要 | DOM file inputとWeb page PDF化に対応する概念がない。Flutter側のfile picker注入は別機能として設計する。 |
+| `screenshot` | 実装済み＋拡張推奨 | 保存は実装済み。annotate、directory、JPEG関連は下記オプション候補。 |
+| `snapshot` | 実装済み＋拡張推奨 | filterと出力制限を候補とする。tree前提のdepth/compactは不要。 |
+| `eval` | 不要 | 任意Dart/Flutterコード実行は安全性と配布契約を壊す。MCP/独自拡張も対象外。 |
+| `connect` / `close` | 実装済み＋拡張推奨 | VM Service向けに実装済み。`close --all` を候補とする。 |
+| `session list` / current session / info | 実装済み相当 | `session list` と `session show` が担当する。worktree由来の `session id` は環境変数fallback導入後に必要性を再評価する。 |
+| `get` | 推奨 | text、box、countをP1。valueは上流属性追加後。 |
+| `is` | 一部推奨 | visibleをP1。enabled/checkedは上流属性追加後。 |
+| `find` | 能力追加を推奨 | 重複コマンドより共通selector語彙を拡張する。位置指定actionは不採用。 |
+| `wait` | 推奨 | workflow専用実装を共通化し、単独コマンドをP0。 |
+| `batch` | 代替済み | `workflow run` が一括validation、同一queue、途中失敗progressを含む上位機能。別構文は追加しない。 |
+| `clipboard` | 条件付き候補 | system clipboardの読み書きは便利だが、秘密情報漏えいとSimulator境界の仕様が必要。アプリ操作の中核ではないためP2以下。 |
+| browser settings / cookies / storage / network | 不要 | Web/Chromium固有。位置情報、offline等のSimulator制御は将来、アプリ起動管理とは別のhost adapterとして検討する。 |
+| tabs / windows / frames | 不要 | 1 session = 1 Flutter app接続であり、DOM browsing contextは存在しない。複数アプリは既存sessionで分離する。 |
+| dialogs | 代替済み | Flutter dialogも通常のsnapshot要素として明示的に操作する。JavaScript dialogの自動処理は不要。 |
+| back / forward / reload / pushstate | 当面不要 | Web navigation操作は不要。Flutter Navigatorのbackやhot reload/restartは異なる機能で、後者は現SPECの対象外。アプリ内backが必要ならSemanticsでback buttonを明示操作する。 |
+| `diff snapshot` | 条件付き候補 | UI変化の要約に有用。ただしref番号を除いた正規化、属性順、消滅/追加/変更のschemaが必要。workflow結果検証の改善としてP2。 |
+| `diff screenshot` | 条件付き候補 | visual regressionには有用だが、CLI外の画像比較でも代替可能。閾値、scale、向きの正規化が必要なためP2。 |
+| trace / profiler / record | 当面不要 | Chrome traceは利用不可。Flutter DevTools/ETTraceや`simctl`録画との責務分担が必要で、録画は現SPECの対象外。 |
+| console / errors | 一部代替済み | `logs` が担当する。収集レベル、clear、例外分類はbinding capabilityが増えたら拡張する。 |
+| `highlight` | 条件付き候補 | 対象確認にはannotated screenshotの方が非侵襲的。アプリUIへoverlayを注入する必要があるため優先しない。 |
+| `a11y audit` | 推奨（上流待ち） | Flutter Semantics向けの独自ruleとしてP1。完全なSemantics属性・階層が必要。 |
+| install / upgrade | 不要 | Dart packageの導入・更新はpubや配布手段の責務。CLI自身からpackage managerを実行しない。 |
+| `doctor` | 推奨 | runtime、daemon、protocol、binding、Simulator、任意接続probeを診断するP1候補。 |
+| skills | 不要 | Codex等のAgent環境が管理する責務で、製品CLIに同梱する必然性がない。 |
+| state / auth / vault | 不要 | session永続復元は対象外。認証入力はworkflowのsensitive inputで扱い、保存機能は別途security designが必要。 |
+| stream / dashboard / chat / WebMCP / React / plugin | 不要 | browser固有、自然言語実行、MCP、拡張pluginは現プロジェクトの対象外。 |
 
 ## 実装を推奨するオプション
 
@@ -45,10 +175,15 @@ marionette_agent 側は [製品仕様](docs/SPEC.md)、[アーキテクチャ](d
 
 ## 推奨する導入順
 
-1. `--content-boundaries` と `--max-output` を同時に設計し、text/JSON 両形式の安全な出力契約を固める。
-2. `--idle-timeout` を daemon lifecycle と session/ref 失効ルールに組み込む。
-3. `--debug` と環境変数 fallback を追加し、運用時の診断と反復実行を改善する。
-4. screenshot の座標倍率を信頼できる形で取得できるか調査し、可能なら `--annotate` を実装する。
-5. screenshot directory / JPEG options と snapshot filter を利用シナリオに応じて追加する。
+1. workflowのwait loopを共通化し、単独 `wait` を追加する。
+2. `get text`、`get box`、`get count` と `is visible` のread-only契約を追加する。
+3. `--content-boundaries` と `--max-output` を同時に設計し、text/JSON両形式の安全な出力契約を固める。
+4. `--idle-timeout` と `close --all` をdaemon lifecycleとsession/ref失効ルールに組み込む。
+5. `--debug` と環境変数fallbackを追加し、運用時の診断と反復実行を改善する。
+6. read-onlyの `doctor` を追加し、環境・daemon・bindingの自己診断を可能にする。
+7. upstreamで取得可能なSemantics属性を調査し、selector語彙を増やす。独立した `find` はread-only filterが必要かを見て判断する。
+8. `scrollintoview` と `a11y audit` に必要な上流primitive・Semantics tree・安全契約を設計する。
+9. screenshotの座標倍率を信頼できる形で取得できるか調査し、可能なら `--annotate` を実装する。
+10. screenshot directory / JPEG options、snapshot filter、diffを利用シナリオに応じて追加する。
 
 いずれも CLI の入力・出力契約を変えるため、実装時は `docs/SPEC.md`、`docs/ARCHITECTURE.md`、日本語 CLI リファレンス、todo の対象タスクを同時に更新し、実アプリを iOS Simulator で検証する。
