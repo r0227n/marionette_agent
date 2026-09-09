@@ -50,7 +50,7 @@ packages:
     source: hosted
     version: "0.2.0"
   collection:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: collection
       sha256: "2f5709ae4d3d59dd8f7cd309b4e023046b57d8a6c82130785d2b0e5868084e76"
@@ -354,7 +354,7 @@ packages:
     source: hosted
     version: "1.4.0"
   vm_service:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: vm_service
       sha256: "5f37239c4851efcef929cea7824e76df7f2f0970aef85d66bbc430afa40e72f0"

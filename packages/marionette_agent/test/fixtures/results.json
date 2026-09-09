@@ -1,0 +1,6 @@
+{
+  "success": {"schemaVersion": 1, "ok": true, "session": "demo", "data": {"requiresSnapshot": true}, "error": null},
+  "stale": {"schemaVersion": 1, "ok": false, "session": "demo", "data": null, "error": {"code": "STALE_REF", "message": "Ref is not valid in this session", "hint": "Run snapshot again", "outcome": "not_sent"}},
+  "unknown": {"schemaVersion": 1, "ok": false, "session": "demo", "data": null, "error": {"code": "TIMEOUT", "message": "Request deadline exceeded", "hint": "Run connect, then snapshot; a sent operation may have completed", "outcome": "unknown"}},
+  "list": {"schemaVersion": 1, "ok": true, "session": null, "data": {"sessions": []}, "error": null}
+}
