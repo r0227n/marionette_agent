@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:image/image.dart' as image;
 import 'package:path/path.dart' as p;
 
-/// Run against a freshly launched operation_confirmation. No URI or fill input
+import 'support/evidence.dart';
+
+/// Run against a freshly launched example app. No URI or fill input
 /// is written to diagnostics or evidence. Each call is a separate product CLI.
 Future<void> main() async {
   final uri = File(Platform.environment['MARIONETTE_TEST_VM_URI_FILE']!)
@@ -15,8 +17,7 @@ Future<void> main() async {
     Platform.environment['MARIONETTE_TEST_EVIDENCE'] ??
         '/tmp/mra-features-results.json',
   );
-  final artifacts = Directory(p.join(p.dirname(output), 'feature-screens'))
-    ..createSync(recursive: true);
+  final artifacts = await createEvidenceDirectory(output, 'feature-screens');
   final cliPath = p.join(
     p.dirname(p.dirname(Platform.script.toFilePath())),
     'bin',
@@ -146,7 +147,12 @@ Future<void> main() async {
       row(s, 'tap_result')['text'] == 'Tap count: 3',
       'Read invalidated ref',
     );
-    final before = row(s, 'scroll_item_1')['bounds'] as Map;
+    check(
+      !((s['data'] as Map)['elements'] as List).cast<Map>().any(
+        (element) => element['key'] == 'scroll_result',
+      ),
+      'Bottom should not be visible before scrolling',
+    );
     await cli([
       'scroll',
       '--key',
@@ -158,10 +164,6 @@ Future<void> main() async {
     s = await cli(['snapshot']);
     final bottom = row(s, 'scroll_result');
     check(bottom['text'] == 'Bottom reached', 'Scroll did not reveal bottom');
-    check(
-      (bottom['bounds'] as Map)['y'] != before['y'],
-      'Scroll state unchanged',
-    );
     await cli(['tap', '--key', 'log_button']);
     final updatedLogs = await cli(['logs']);
     check(

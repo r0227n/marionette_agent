@@ -128,7 +128,7 @@ class DaemonClient {
       // Small transport grace lets the daemon return its authoritative timeout
       // outcome and retire the backend before the client closes its socket.
       if (!await connection.frames.moveNext().timeout(
-        request.remaining + const Duration(milliseconds: 250),
+        request.remaining + ipcResponseGrace,
       )) {
         throw const AgentError('CONNECTION_LOST', 'Daemon disconnected');
       }

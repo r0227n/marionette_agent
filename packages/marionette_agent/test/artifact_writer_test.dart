@@ -40,7 +40,7 @@ void main() {
     ]);
   });
   test(
-    'existing destination is preserved and batch reservations roll back',
+    'existing batch destination is rejected before publication',
     () async {
       final existing = File(p.join(directory.path, 'screen-2.png'));
       await existing.writeAsString('keep');

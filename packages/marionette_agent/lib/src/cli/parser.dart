@@ -93,12 +93,7 @@ class CliParser {
       args = parser.parse(arguments);
     } on ArgParserException catch (error) {
       onCommand?.call(error.commands.firstOrNull);
-      if (error.commands.firstOrNull == 'workflow') {
-        onOutput?.call(
-          error.commands.contains('run') ? 'default' : null,
-          arguments.takeWhile((arg) => arg != '--').contains('--json'),
-        );
-      }
+      _recoverOutput(arguments, error.commands, onOutput);
       invalid('Invalid command syntax');
     } on FormatException {
       invalid('Invalid command syntax');
@@ -126,6 +121,13 @@ class CliParser {
     if (timeout == null || timeout <= 0) {
       invalid('Timeout must be a positive integer');
     }
+    final duration = Duration(milliseconds: timeout);
+    if (duration.inMilliseconds != timeout) invalid('Timeout is out of range');
+    try {
+      DateTime.now().add(duration);
+    } on ArgumentError {
+      invalid('Timeout is out of range');
+    }
     if (args.flag('help') && args.flag('version')) {
       invalid('Choose help or version');
     }
@@ -145,6 +147,58 @@ class CliParser {
       timeout,
       command.name!,
       definitions[command.name]!.decode(command),
+    );
+  }
+
+  // Recover only output metadata, never an executable invocation. Consume
+  // values using the known grammar so a literal --json/--session is not
+  // mistaken for an option when another token caused parsing to fail.
+  void _recoverOutput(
+    List<String> arguments,
+    List<String> commands,
+    void Function(String?, bool)? output,
+  ) {
+    var grammar = parser;
+    String? session = 'default';
+    var json = false;
+    var independent =
+        (commands.firstOrNull == 'workflow' && !commands.contains('run')) ||
+        (commands.firstOrNull == 'session' && commands.contains('list'));
+    for (var i = 0; i < arguments.length; i++) {
+      final token = arguments[i];
+      if (token == '--') break;
+      if (grammar.commands[token] case final ArgParser child) {
+        grammar = child;
+        continue;
+      }
+      final split = token.indexOf('=');
+      final name = token.startsWith('--')
+          ? token.substring(2, split < 0 ? null : split)
+          : token == '-h'
+          ? 'help'
+          : null;
+      final option = grammar.options[name] ?? parser.options[name];
+      if (option == null) continue;
+      String? value;
+      if (!option.isFlag) {
+        value = split >= 0
+            ? token.substring(split + 1)
+            : i + 1 < arguments.length
+            ? arguments[++i]
+            : null;
+      }
+      if (!identical(option, parser.options[name])) continue;
+      if (name == 'session') session = value;
+      if (name == 'json' && split < 0) json = true;
+      if (name == 'help' || name == 'version') independent = true;
+    }
+    output?.call(
+      independent ||
+              session == null ||
+              !RegExp(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$').hasMatch(session)
+          ? null
+          : session,
+      json,
     );
   }
 

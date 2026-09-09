@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-/// Smoke test for independent CLI processes against a running operation_confirmation instance.
+/// Smoke test for independent CLI processes against a running example app instance.
 /// Read the VM URI from a file and do not print it to arguments, logs, or evidence.
 Future<void> main() async {
   final uriFile = Platform.environment['MARIONETTE_TEST_VM_URI_FILE'];

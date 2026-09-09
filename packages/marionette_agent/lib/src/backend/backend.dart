@@ -93,6 +93,11 @@ class ElementInfo {
     SelectorKind.text => textMatchable ? text : null,
     SelectorKind.type => type,
   };
+
+  /// Unknown text sources may still match upstream (for example RichText
+  /// subclasses). Count them as possible collisions, never as trusted targets.
+  String? candidateValue(SelectorKind kind) =>
+      kind == SelectorKind.text ? text : value(kind);
   Json toJson() => {
     if (type != null) 'type': type,
     if (text != null) 'text': text,

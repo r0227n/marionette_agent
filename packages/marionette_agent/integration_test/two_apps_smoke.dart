@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'support/evidence.dart';
+
 /// Two real Flutter instances; a TCP relay lets us cut only alpha's VM Service
 /// connection without terminating either app or replacing the real backend.
 Future<void> main() async {
@@ -44,8 +46,7 @@ Future<void> main() async {
     Platform.environment['MARIONETTE_TEST_EVIDENCE'] ??
         '/tmp/mra-two-apps-results.json',
   );
-  final artifacts = Directory(p.join(p.dirname(output), 'two-app-screens'))
-    ..createSync(recursive: true);
+  final artifacts = await createEvidenceDirectory(output, 'two-app-screens');
   final cliPath = p.join(
     p.dirname(p.dirname(Platform.script.toFilePath())),
     'bin',
@@ -169,7 +170,24 @@ Future<void> main() async {
       row(betaAfter, 'page_result')['text'] == 'Current page: 1',
       'Alpha swipe affected beta',
     );
-    row(betaAfter, 'dismissible_item');
+    // Smaller Simulators place Dismissible below the initial viewport.
+    await cli('beta', [
+      'scroll',
+      '--key',
+      'operation_scroll_area',
+      'up',
+      '--distance',
+      '200',
+    ]);
+    row(await cli('beta', ['snapshot']), 'dismissible_item');
+    await cli('beta', [
+      'scroll',
+      '--key',
+      'operation_scroll_area',
+      'down',
+      '--distance',
+      '600',
+    ]);
     final old = row(a, 'tap_button')['ref'] as String;
     await cli('alpha', ['close']);
     await cli('beta', ['tap', '--key', 'tap_button']);

@@ -137,7 +137,7 @@ class MarionetteBackend implements Backend {
       throw const AgentError('BACKEND_ERROR', 'Invalid element list');
     }
     return value.map((raw) {
-      final e = asJson(raw);
+      final e = _elementObject(raw);
       for (final key in ['type', 'text', 'key', 'identifier']) {
         if (e[key] != null && e[key] is! String) {
           throw const AgentError('BACKEND_ERROR', 'Invalid element attribute');
@@ -148,7 +148,7 @@ class MarionetteBackend implements Backend {
       }
       Json? bounds;
       if (e['bounds'] != null) {
-        final b = asJson(e['bounds']);
+        final b = _elementObject(e['bounds']);
         bounds = {};
         for (final key in ['x', 'y', 'width', 'height']) {
           final n = b[key];
@@ -167,9 +167,25 @@ class MarionetteBackend implements Backend {
         identifier: e['identifier'] as String?,
         bounds: bounds,
         visible: e['visible'] as bool?,
-        textMatchable: e['type'] != null && e['type'] != 'Semantics',
+        // The wire format does not identify Semantics subclasses or custom
+        // extractors. Only these exact types have a verified matcher source
+        // in binding 0.6.0. Other types can still use keys or unique types.
+        textMatchable: const {
+          'Text',
+          'RichText',
+          'EditableText',
+          'TextField',
+          'TextFormField',
+        }.contains(e['type']),
       );
     }).toList();
+  }
+
+  static Json _elementObject(Object? value) {
+    if (value is! Map || value.keys.any((key) => key is! String)) {
+      throw const AgentError('BACKEND_ERROR', 'Invalid element object');
+    }
+    return Map<String, Object?>.from(value);
   }
 
   Json _selector(Selector selector) {

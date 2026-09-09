@@ -9,7 +9,7 @@
 
 本書はworkflow v1の入力・実行・出力・検証の正本である。本書内のCLIコマンドは実装済みである。変更を担当する場合は本書とリポジトリのAGENTS.md、関連文書、todo.mdを読む。会話履歴や外部記事の再調査は作業の前提としない。
 
-対象は`packages/marionette_agent/`。Simulator検証用の`operation_confirmation/`は必要に応じて拡張する。隣接リポジトリの変更・path依存・MCP対応は不要。既存単独コマンドは現行契約を維持する。workflow追加に必要な共通基盤変更は本書のExecution設計に従い、Astra担当とする。
+対象は`packages/marionette_agent/`。Simulator検証用の`example/`は必要に応じて拡張する。隣接リポジトリの変更・path依存・MCP対応は不要。既存単独コマンドは現行契約を維持する。workflow追加に必要な共通基盤変更は本書のExecution設計に従い、Astra担当とする。
 
 仕様書作成の完了と機能実装の完了は分ける。実装時にはtodoへ担当モデル・状態・証跡を記録し、Simulator検証まで終わる前に機能をDONEにしない。
 
@@ -122,6 +122,8 @@ marionette-agent --session demo workflow run ./flows/fill-profile.json \
 `validate`と`run`は`<path>`を正確に1つ要求し、`--format json|yaml`、`--inputs <path>`、`--inputs-format json|yaml`を受理する。`--check-inputs`はvalidate専用。formatの明示指定は拡張子より優先する。inputs側のstdinまたは未知拡張子には`--inputs-format`を必須とする。両入力がstdinの要求、重複option、無関係なoptionを拒否する。
 
 相対pathはすべて呼出元cwd基準。URL、include、環境変数の自動展開は行わない。stdinはEOFまで期限付きで読み、端末からの対話入力は要求しない（stdinがTTYなら引数エラー）。読込中もサイズ上限を適用する。`run`は常にbinding検証し、inputs省略を空objectとして扱う。
+
+path入力は通常ファイルを対象とし、FIFO・socket・device等は開く前にINVALID_ARGUMENTとする。ストリームを渡す場合は`-`を使う。通常のテキスト出力でも、実行エラーには完了step数・失敗step ID/index・outcomeを表示し、配送失敗時は進捗不明を明示する。
 
 既存の`--json`は出力指定のまま。入力JSON文字列を受け付けるflagへ転用しない。session名、共通optionの前後配置・重複拒否、timeout既定30,000ms、help/versionの契約を継承する。schema/validateはRuntimeDirectory.prepareも呼ばず、daemon不在で成功する。
 
@@ -560,7 +562,7 @@ metadataのid/actionを個別handlerのparamsへ混ぜない。上流importはba
 
 ### Simulator test
 
-`operation_confirmation`を用いて次を実証し、実行コマンド、期待結果、実結果、画面をtodoの検証記録へ残す。
+`example`を用いて次を実証し、実行コマンド、期待結果、実結果、画面をtodoの検証記録へ残す。
 
 1. `connect`する。
 2. YAML workflowでタブ移動、PageViewまたはscroll、`wait exists`、最終snapshotまで実行する。
@@ -581,7 +583,7 @@ metadataのid/actionを個別handlerのparamsへ混ぜない。上流importはba
 | W02 | W01 | 同梱schema、schema/validate CLI、help、文書内例の検証。daemon起動0回 |
 | W03 | W01, A07, B01, B02, B03 | 親/step Execution分割、runner、wait、全件事前検証、queue/timeout/遅延応答テスト |
 | W04 | W02, W03 | run CLI、protocol 2、details往復、最終snapshot、配送失敗と秘匿範囲のテスト |
-| W05 | W04, B06 | operation_confirmationでJSON/YAML→snapshot→別CLI操作と異常停止を実証 |
+| W05 | W04, B06 | exampleでJSON/YAML→snapshot→別CLI操作と異常停止を実証 |
 | W06 | W05 | format/analyze/全test成功、同梱例・README・SPEC・ARCHITECTURE・実装契約・todoの整合 |
 
 基盤変更を含むため、担当区分はAstraが妥当である。特にsession queue、protocol error、SnapshotServiceの変更を別モデルの個別commandとして実装しない。
@@ -590,7 +592,7 @@ metadataのid/actionを個別handlerのparamsへ混ぜない。上流importはba
 
 v1の範囲は本書で確定し、座標操作とscreenshot/logsの組み込みは対象外とする。実装開始のための追加の製品判断は不要。
 
-パッケージにschemaと`examples/workflows/`のJSON/YAML等価なサンプル、inputs例を同梱する。検証では実fixtureのkeyを調べて例を作る。本書のprofile系keyは形式説明用であり、operation_confirmationに存在するとは仮定しない。
+パッケージにschemaと`examples/workflows/`のJSON/YAML等価なサンプル、inputs例を同梱する。検証では実fixtureのkeyを調べて例を作る。本書のprofile系keyは形式説明用であり、exampleに存在するとは仮定しない。
 
 利用ガイドには接続→schemaまたはtemplate validate→必要値のbinding検証→run→最終snapshot確認→別CLI操作の具体的なコマンドを掲載する。文字入力は既存fillによる置換であり、物理キーボードイベントの新規対応を含めない。
 

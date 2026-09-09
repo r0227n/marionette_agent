@@ -13,7 +13,7 @@
   "fill": {"type": "_extensionType", "method": "ext.flutter.marionette.enterText", "status": "Success", "message": "Entered text into element matching: {key: text_input}"},
   "swipe": {"type": "_extensionType", "method": "ext.flutter.marionette.swipe", "status": "Success", "message": "Swiped left on element matching: {key: page_view}"},
   "screenshots": {"type": "_extensionType", "method": "ext.flutter.marionette.takeScreenshots", "status": "Success", "screenshots": ["iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0ioAAAAASUVORK5CYII="]},
-  "logs": {"type": "_extensionType", "method": "ext.flutter.marionette.getLogs", "status": "Success", "logs": ["operation_confirmation started"], "count": 1},
+  "logs": {"type": "_extensionType", "method": "ext.flutter.marionette.getLogs", "status": "Success", "logs": ["example started"], "count": 1},
   "unsupported": {"code": -32601, "message": "Method not found"},
   "disconnected": {"code": -32000, "message": "Service connection disposed"},
   "malformed": {"message": "Success"}

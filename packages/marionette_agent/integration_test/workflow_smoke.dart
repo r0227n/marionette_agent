@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-/// Actual product CLI processes against operation_confirmation. URI is never evidence.
+import 'support/evidence.dart';
+
+/// Actual product CLI processes against the example app. URI is never evidence.
 Future<void> main() async {
   final uri = File(Platform.environment['MARIONETTE_TEST_VM_URI_FILE']!)
       .readAsStringSync()
@@ -14,8 +16,7 @@ Future<void> main() async {
     Platform.environment['MARIONETTE_TEST_EVIDENCE'] ??
         '/tmp/mra-workflow-results.json',
   );
-  final screenshots = Directory(p.join(p.dirname(output), 'workflow-screens'))
-    ..createSync(recursive: true);
+  final screenshots = await createEvidenceDirectory(output, 'workflow-screens');
   final records = <Object>[];
   Future<Map> cli(List<String> args, {int expected = 0}) async {
     final result = await Process.run(

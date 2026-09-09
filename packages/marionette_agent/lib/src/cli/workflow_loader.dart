@@ -35,6 +35,13 @@ Future<Object?> loadWorkflowFile(
     if (!deadline.isAfter(DateTime.now())) {
       throw const AgentError('TIMEOUT', 'Input deadline exceeded');
     }
+    if (file != '-') {
+      final type = await FileSystemEntity.type(file);
+      if (type != FileSystemEntityType.file &&
+          type != FileSystemEntityType.notFound) {
+        invalid('Workflow input must be a regular file; use - for stdin');
+      }
+    }
     final stream = file == '-' ? stdin : File(file).openRead();
     final bytes = <int>[];
     final chunks = StreamIterator(stream);

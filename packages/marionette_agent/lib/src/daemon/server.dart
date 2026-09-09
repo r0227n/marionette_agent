@@ -19,6 +19,7 @@ class DaemonServer {
   ServerSocket? _server;
   RandomAccessFile? _lock;
   Timer? _timer;
+  Timer? _shutdownTimer;
   Future<void>? _closeFuture;
   bool _closing = false;
   bool _probing = false;
@@ -95,8 +96,17 @@ class DaemonServer {
 
   Future<void> _serve(Socket client) async {
     _clients.add(client);
+    var expired = false;
+    var responseStarted = false;
+    void expire() {
+      expired = true;
+      client.destroy();
+    }
+
+    var expiry = Timer(const Duration(seconds: 30), expire);
     String? requestId;
     Request? receivedRequest;
+    var dispatched = false;
     try {
       client.add(
         encodeFrame({
@@ -112,24 +122,30 @@ class DaemonServer {
           : null;
       final request = Request.fromJson(json);
       receivedRequest = request;
+      expiry.cancel();
+      expiry = Timer(request.remaining + ipcResponseGrace, expire);
       final diagnostics = <DiagnosticEntry>[];
+      dispatched = true;
       final response = await captureDiagnostics(
         diagnostics,
         () => manager.handle(request),
       );
-      client.add(
-        encodeFrame({
-          'requestId': request.requestId,
-          'diagnostics': diagnostics.map((entry) => entry.toJson()).toList(),
-          ...response.toJson(),
-        }),
-      );
+      final frame = encodeFrame({
+        'requestId': request.requestId,
+        'diagnostics': diagnostics.map((entry) => entry.toJson()).toList(),
+        ...response.toJson(),
+      });
+      responseStarted = true;
+      client.add(frame);
       await client.flush();
     } catch (error) {
+      // After sending starts, another frame cannot repair a partial response.
+      if (responseStarted || expired || _closing) return;
       try {
         var safe = error is AgentError
             ? error
             : const AgentError('IO_ERROR', 'IPC request failed');
+        if (dispatched) safe = safe.withOutcome(Outcome.unknown);
         final request = receivedRequest;
         if (request?.command == 'workflow') {
           // The execution response was not deliverable. Do not imply that UI
@@ -151,9 +167,16 @@ class DaemonServer {
         /* Client may have already timed out. Never retry dispatch. */
       }
     } finally {
-      await client.close();
-      _clients.remove(client);
-      if (_closing && _clients.isEmpty && !_done.isCompleted) _done.complete();
+      try {
+        await client.close().timeout(ipcResponseGrace);
+      } catch (_) {
+        // A stalled or disconnected receiver must not retain the lifetime lock.
+      } finally {
+        expiry.cancel();
+        client.destroy();
+        _clients.remove(client);
+        _finishIfClosed();
+      }
     }
   }
 
@@ -175,6 +198,20 @@ class DaemonServer {
         /* Already absent. */
       }
     }
-    if (_clients.isEmpty && !_done.isCompleted) _done.complete();
+    if (_clients.isNotEmpty) {
+      _shutdownTimer = Timer(ipcResponseGrace, () {
+        for (final client in _clients.toList()) {
+          client.destroy();
+        }
+      });
+    }
+    _finishIfClosed();
+  }
+
+  void _finishIfClosed() {
+    if (_closing && _clients.isEmpty) {
+      _shutdownTimer?.cancel();
+      if (!_done.isCompleted) _done.complete();
+    }
   }
 }

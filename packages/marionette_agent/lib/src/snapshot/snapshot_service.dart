@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
 import '../session/session.dart';
@@ -55,7 +57,19 @@ class SnapshotService {
     final selectors = context.session.backend!.selectors;
     final refs = <String, _Reference>{};
     final rows = <Json>[];
-    for (final element in elements) {
+    final counts = {for (final kind in selectors) kind: <String, int>{}};
+    for (var i = 0; i < elements.length; i++) {
+      if (i % 256 == 0) await _yield(context);
+      for (final kind in selectors) {
+        final value = elements[i].candidateValue(kind);
+        if (value != null && value.isNotEmpty) {
+          counts[kind]!.update(value, (count) => count + 1, ifAbsent: () => 1);
+        }
+      }
+    }
+    for (var i = 0; i < elements.length; i++) {
+      if (i % 256 == 0) await _yield(context);
+      final element = elements[i];
       Selector? selected;
       if (element.visible != false) {
         for (final kind in SelectorKind.values) {
@@ -64,7 +78,7 @@ class SnapshotService {
             continue;
           }
           final candidate = Selector(kind, value);
-          if (_matches(elements, candidate).length == 1) {
+          if (counts[kind]![value] == 1) {
             selected = candidate;
             break;
           }
@@ -86,6 +100,12 @@ class SnapshotService {
     final observation = _Observation(++_generation, Map.unmodifiable(refs));
     context.session.observation = observation;
     return {'generation': observation.generation, 'elements': rows};
+  }
+
+  Future<void> _yield(Execution context) async {
+    context.check();
+    await Future<void>.delayed(Duration.zero);
+    context.check();
   }
 
   /// Re-match stored selector and validate attribute changes; do not issue a ref here.
@@ -131,17 +151,16 @@ class SnapshotService {
           hint: 'Run snapshot again',
         );
       }
-      if (selector.kind == SelectorKind.text &&
-          elements.any((e) => e.text == selector.value && !e.textMatchable)) {
-        throw const AgentError(
-          'UNRESOLVABLE_TARGET',
-          'Displayed text does not map to a backend text matcher',
-          hint: 'Use a key or a unique supported type',
-        );
-      }
       throw const AgentError('TARGET_NOT_FOUND', 'No element matches');
     }
     final element = matches.single;
+    if (selector.kind == SelectorKind.text && !element.textMatchable) {
+      throw const AgentError(
+        'UNRESOLVABLE_TARGET',
+        'Displayed text does not map to a verified backend text matcher',
+        hint: 'Use a key or a unique supported type',
+      );
+    }
     if (reference != null && !reference.element.sameAs(element)) {
       throw const AgentError(
         'STALE_REF',
@@ -157,6 +176,9 @@ class SnapshotService {
 
   List<ElementInfo> _matches(List<ElementInfo> elements, Selector selector) =>
       elements
-          .where((element) => element.value(selector.kind) == selector.value)
+          .where(
+            (element) =>
+                element.candidateValue(selector.kind) == selector.value,
+          )
           .toList();
 }

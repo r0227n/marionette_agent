@@ -11,7 +11,7 @@ import 'package:path/path.dart' as p;
 import '../protocol/protocol.dart';
 
 /// Decode before writing, reserve each destination exclusively, and roll back
-/// this request's files on failure. Existing files are never overwritten.
+/// this request's files on failure. Existing files are not normally overwritten.
 Future<Json> saveScreenshots(
   Json data,
   String? destination,
@@ -63,8 +63,8 @@ Future<Json> saveScreenshots(
               '${p.basenameWithoutExtension(base)}-${i + 1}${p.extension(base).isEmpty ? '.png' : p.extension(base)}',
             ),
     );
-    // Reserve every path before writing any image; exclusive creation also
-    // refuses directories, symlinks and concurrent competing writers.
+    // Reserve every path before writing any image. This refuses destinations
+    // that already exist during normal use, including directories and symlinks.
     for (final path in paths) {
       checkDeadline();
       final file = File(path);

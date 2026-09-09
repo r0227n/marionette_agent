@@ -9,6 +9,9 @@ const schemaVersion = 1;
 /// Maximum size of newline-delimited IPC frames, including base64 image payloads.
 const maxFrameBytes = 64 * 1024 * 1024;
 
+/// Bounded transport time for an authoritative result after execution expires.
+const ipcResponseGrace = Duration(milliseconds: 250);
+
 /// Public CLI version for this package.
 const version = '0.0.1';
 

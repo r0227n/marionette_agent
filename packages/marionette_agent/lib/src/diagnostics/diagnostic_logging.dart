@@ -66,8 +66,8 @@ StreamSubscription<LogRecord> configureDiagnosticLogging([
       _redact(record.message),
     );
     final collector = record.zone?[_collectorKey];
-    if (collector is List<DiagnosticEntry>) {
-      collector.add(entry);
+    if (collector is _DiagnosticCollector && collector.entries != null) {
+      collector.entries!.add(entry);
     } else {
       output(entry.format());
     }
@@ -78,7 +78,21 @@ StreamSubscription<LogRecord> configureDiagnosticLogging([
 Future<T> captureDiagnostics<T>(
   List<DiagnosticEntry> entries,
   Future<T> Function() action,
-) => runZoned(action, zoneValues: {_collectorKey: entries});
+) async {
+  final collector = _DiagnosticCollector(entries);
+  try {
+    return await runZoned(action, zoneValues: {_collectorKey: collector});
+  } finally {
+    // Long-lived listeners retain their registration Zone, not this request's
+    // completed buffer. Late records take the normal stderr path instead.
+    collector.entries = null;
+  }
+}
+
+class _DiagnosticCollector {
+  _DiagnosticCollector(this.entries);
+  List<DiagnosticEntry>? entries;
+}
 
 /// Re-emits daemon records in the CLI process so its stderr listener prints them.
 void replayDiagnostics(Object? value) {

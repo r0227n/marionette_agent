@@ -11,12 +11,12 @@ Future<Json> waitForTarget(CommandContext context, WorkflowStep step) async {
   while (true) {
     final elements = await context.read((backend) => backend.inspect());
     final matches = elements
-        .where((e) => e.value(selector.kind) == selector.value)
+        .where((e) => e.candidateValue(selector.kind) == selector.value)
         .toList();
     context.check();
-    if (matches.isEmpty &&
+    if (matches.length == 1 &&
         selector.kind == SelectorKind.text &&
-        elements.any((e) => e.text == selector.value && !e.textMatchable)) {
+        !matches.single.textMatchable) {
       throw const AgentError(
         'UNRESOLVABLE_TARGET',
         'Displayed text does not map to a backend text matcher',

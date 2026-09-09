@@ -1,6 +1,8 @@
 import 'package:args/args.dart';
 import 'package:marionette_agent/marionette_agent.dart';
 
+import 'arguments.dart';
+
 /// Shared grammar and primitive for swipe and region scroll.
 CliCommand swipeCommand({bool coordinates = true}) {
   final parser = ArgParser()
@@ -93,8 +95,11 @@ class _SwipeRequest {
       }
       return _SwipeRequest(
         gesture: CoordinateSwipe(
-          Point(_number(params['start-x']), _number(params['start-y'])),
-          Point(_number(params['end-x']), _number(params['end-y'])),
+          Point(
+            finiteNumber(params['start-x']),
+            finiteNumber(params['start-y']),
+          ),
+          Point(finiteNumber(params['end-x']), finiteNumber(params['end-y'])),
         ),
       );
     }
@@ -103,42 +108,13 @@ class _SwipeRequest {
         .firstOrNull;
     if (direction == null) invalid('Direction must be left, right, up or down');
     final distance = params.containsKey('distance')
-        ? _number(params['distance'])
+        ? finiteNumber(params['distance'])
         : 200.0;
     if (distance <= 0) invalid('Distance must be positive');
-    final selected = SelectorKind.values
-        .where((kind) => params.containsKey(kind.name))
-        .toList();
-    if ((params.containsKey('ref') ? 1 : 0) + selected.length != 1) {
-      invalid('Specify exactly one ref or selector');
-    }
-    final TargetQuery query;
-    if (params.containsKey('ref')) {
-      final ref = params['ref'];
-      if (ref is! String) invalid('Expected a ref');
-      query = RefQuery(ref);
-    } else {
-      final kind = selected.single;
-      final value = params[kind.name];
-      if (value is! String || value.isEmpty) {
-        invalid('Selector value must not be empty');
-      }
-      query = SelectorQuery(Selector(kind, value));
-    }
     return _SwipeRequest(
-      query: query,
+      query: decodeTarget(params),
       direction: direction,
       distance: distance,
     );
   }
-}
-
-double _number(Object? value) {
-  final number = value is num
-      ? value.toDouble()
-      : value is String
-      ? double.tryParse(value)
-      : null;
-  if (number == null || !number.isFinite) invalid('Expected a finite number');
-  return number;
 }

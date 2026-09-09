@@ -1,6 +1,8 @@
 import 'package:args/args.dart';
 import 'package:marionette_agent/marionette_agent.dart';
 
+import 'arguments.dart';
+
 /// Targeted tap/fill grammar; fill input remains an opaque string.
 CliCommand actionCommand({bool fill = false}) {
   final parser = ArgParser();
@@ -73,39 +75,10 @@ class _Action {
           !params.containsKey('y')) {
         invalid('Specify both x and y without a target');
       }
-      return _Action(point: Point(_number(params['x']), _number(params['y'])));
+      return _Action(
+        point: Point(finiteNumber(params['x']), finiteNumber(params['y'])),
+      );
     }
-    final selectors = SelectorKind.values
-        .where((k) => params.containsKey(k.name))
-        .toList();
-    if ((params.containsKey('ref') ? 1 : 0) + selectors.length != 1) {
-      invalid('Specify exactly one ref or selector');
-    }
-    final TargetQuery query;
-    if (params.containsKey('ref')) {
-      final ref = params['ref'];
-      if (ref is! String) invalid('Expected a ref');
-      query = RefQuery(ref);
-    } else {
-      final kind = selectors.single;
-      final value = params[kind.name];
-      if (value is! String || value.isEmpty) {
-        invalid('Selector value must not be empty');
-      }
-      query = SelectorQuery(Selector(kind, value));
-    }
-    return _Action(query: query, input: input as String?);
+    return _Action(query: decodeTarget(params), input: input as String?);
   }
-}
-
-double _number(Object? value) {
-  final number = value is num
-      ? value.toDouble()
-      : value is String
-      ? double.tryParse(value)
-      : null;
-  if (number == null || !number.isFinite) {
-    invalid('Expected a finite coordinate');
-  }
-  return number;
 }
