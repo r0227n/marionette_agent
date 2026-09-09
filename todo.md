@@ -1,5 +1,16 @@
 # 開発進捗
 
+## R02: 録画方式の再比較
+
+- 状態: 完了
+- 担当モデル: GPT-6 (Codex)
+- 依存: R01の実装とexample。iOS Simulatorで仮想キーボード表示を確認し、simctlとmarionette_mcpの動画を比較する。
+- 完了条件: 同じ画面操作を両方式で録画・復号・目視確認し、実装判断と証跡をPR #19のコメントへ追加する。
+- 結果: [比較記録](docs/recording-comparison.md)。simctlは仮想キーボードと変換候補を収録、上流record-videoは同領域が空白。入力結果は両方に映る。製品CLIのrecord_smokeも再成功し、仮想キーボードを含む動画を確認。現在のOS録画方式を維持する。
+- 証跡: [PR #19コメント](https://github.com/r0227n/marionette_agent/pull/19#issuecomment-5605923365)へ動画3本と抽出PNG2枚を投稿。
+- 制約: 同時録画のsimctl原本はffmpeg null muxerでDTS警告3件。画像復号は成功、根因は未確定。製品CLI単独録画2本と上流動画の全フレーム復号は警告なし。性能比較・OSダイアログ・PlatformViewは未実測。R01のmacOS保留は継続。
+- 変更は本記録と比較文書のみ。git diff --checkとリンク・仕様整合性を確認。
+
 ## R01: プラットフォーム処理の内部パッケージとrecord
 
 - 状態: 作業中
