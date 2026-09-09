@@ -12,6 +12,11 @@ String render(Result result, {required bool json}) {
   final data = result.data!;
   if (data['help'] case final String help) return help;
   if (data['version'] case final String version) return version;
+  if (data['completedSteps'] case final int count) {
+    final snapshot = data['finalSnapshot'];
+    return 'Workflow ${data['workflow']}: $count steps completed'
+        '${snapshot == null ? '\nRun snapshot to inspect the current UI.' : '\n${render(Result.success(result.session, asJson(snapshot)), json: false)}'}';
+  }
   if (data['elements'] case final List elements) {
     final lines = elements.map((value) {
       final element = asJson(value);

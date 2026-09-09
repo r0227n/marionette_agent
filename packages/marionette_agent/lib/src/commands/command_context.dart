@@ -18,6 +18,9 @@ class CommandContext {
   /// Session name targeted by the action. Never expose URI or input text in diagnostics.
   String get session => _execution.session.name;
 
+  /// Verify this step and its parent before publishing a computed read result.
+  void check() => _execution.check();
+
   /// Fetch a new public snapshot. This emits refs, unlike pre-observation.
   Future<Json> snapshot() => _snapshots.publish(_execution);
 

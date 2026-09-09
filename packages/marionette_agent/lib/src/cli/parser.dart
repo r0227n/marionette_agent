@@ -4,6 +4,7 @@ import '../protocol/protocol.dart';
 import '../commands/swipe.dart';
 import '../commands/actions.dart';
 import '../commands/observations.dart';
+import 'workflow_command.dart';
 
 /// Register ArgParser grammar and conversion from validated args to protocol params.
 class CliCommand {
@@ -32,6 +33,7 @@ class CliParser {
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
     ..addFlag('version', negatable: false, help: 'Show version');
   final definitions = <String, CliCommand>{
+    'workflow': workflowCommand(),
     'tap': actionCommand(),
     'fill': actionCommand(fill: true),
     'scroll': swipeCommand(coordinates: false),
@@ -73,23 +75,41 @@ class CliParser {
       'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'scroll uses finger movement direction; reaching content is not guaranteed.\n'
       'screenshot [path] | logs\n'
+      'workflow schema [action] | workflow validate <path> | workflow run <path>\n'
+      'workflow: --format json|yaml --inputs <path> --inputs-format json|yaml\n'
+      'validate --check-inputs checks bindings without connecting. stdin (-) requires format.\n'
+      'sensitive forbids defaults; snapshots may reveal values displayed by the app.\n'
+      'Workflow stops on failure; completed steps must not be replayed automatically.\n'
       'Selectors: --key <value> | --identifier <value> | --text <value> | --type <value>\n'
       'Common options work before or after commands. Use -- for literal arguments.';
 
   Invocation parse(
     List<String> arguments, {
     void Function(String? session, bool json)? onOutput,
+    void Function(String? command)? onCommand,
   }) {
     final ArgResults args;
     try {
       args = parser.parse(arguments);
+    } on ArgParserException catch (error) {
+      onCommand?.call(error.commands.firstOrNull);
+      if (error.commands.firstOrNull == 'workflow') {
+        onOutput?.call(
+          error.commands.contains('run') ? 'default' : null,
+          arguments.takeWhile((arg) => arg != '--').contains('--json'),
+        );
+      }
+      invalid('Invalid command syntax');
     } on FormatException {
       invalid('Invalid command syntax');
     }
+    onCommand?.call(args.command?.name);
     final parsedName = args.option('session')!;
     final independent =
         args.flag('help') ||
         args.flag('version') ||
+        (args.command?.name == 'workflow' &&
+            args.command?.command?.name != 'run') ||
         (args.command?.name == 'session' &&
             args.command?.command?.name == 'list');
     onOutput?.call(
@@ -178,6 +198,7 @@ class Invocation {
   String? get resultSession =>
       command == 'help' ||
           command == 'version' ||
+          (command == 'workflow' && params['action'] != 'run') ||
           (command == 'session' && params['action'] == 'list')
       ? null
       : session;

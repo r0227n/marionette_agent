@@ -7,6 +7,7 @@ import '../protocol/protocol.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import '../session/session_manager.dart';
 import 'runtime.dart';
+import '../workflow/model.dart';
 
 /// JSON line-delimited server with daemon lifetime protected by an OS lock.
 class DaemonServer {
@@ -95,6 +96,7 @@ class DaemonServer {
   Future<void> _serve(Socket client) async {
     _clients.add(client);
     String? requestId;
+    Request? receivedRequest;
     try {
       client.add(
         encodeFrame({
@@ -109,6 +111,7 @@ class DaemonServer {
           ? json['requestId'] as String
           : null;
       final request = Request.fromJson(json);
+      receivedRequest = request;
       final diagnostics = <DiagnosticEntry>[];
       final response = await captureDiagnostics(
         diagnostics,
@@ -124,13 +127,23 @@ class DaemonServer {
       await client.flush();
     } catch (error) {
       try {
-        final safe = error is AgentError
+        var safe = error is AgentError
             ? error
             : const AgentError('IO_ERROR', 'IPC request failed');
+        final request = receivedRequest;
+        if (request?.command == 'workflow') {
+          // The execution response was not deliverable. Do not imply that UI
+          // actions were never sent or reconstruct progress from a failed frame.
+          safe = workflowError(
+            safe.withOutcome(Outcome.unknown),
+            name: workflowNameFrom(request!.params['workflow']),
+            known: false,
+          );
+        }
         client.add(
           encodeFrame({
             'requestId': requestId,
-            ...Result.failure(null, safe).toJson(),
+            ...Result.failure(request?.session, safe).toJson(),
           }),
         );
         await client.flush();

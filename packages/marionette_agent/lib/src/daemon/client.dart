@@ -4,6 +4,7 @@ import 'dart:io';
 import '../protocol/protocol.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import 'runtime.dart';
+import '../workflow/model.dart';
 
 /// Send one request per handshake. Auto-start is only allowed for connect.
 class DaemonClient {
@@ -39,7 +40,7 @@ class DaemonClient {
       if (hello['protocolVersion'] != protocolVersion) {
         throw const AgentError(
           'IO_ERROR',
-          'Incompatible daemon protocol; close the old daemon first',
+          'Incompatible daemon protocol; use the old CLI to close sessions, then reconnect',
         );
       }
       if (hello['ready'] != true) {
@@ -63,6 +64,23 @@ class DaemonClient {
         ? null
         : request.session;
     var sent = false;
+    AgentError deliveryError(AgentError error) {
+      if (request.command != 'workflow') {
+        return sent ? error.withOutcome(Outcome.unknown) : error;
+      }
+      final doc = request.params['workflow'];
+      return workflowError(
+        AgentError(
+          sent && error.code != 'TIMEOUT' ? 'IO_ERROR' : error.code,
+          error.message,
+          hint: error.hint,
+          outcome: sent ? Outcome.unknown : Outcome.notSent,
+        ),
+        name: workflowNameFrom(doc),
+        known: !sent,
+      );
+    }
+
     _Connection? connection;
     try {
       connection = await _open(request);
@@ -123,24 +141,25 @@ class DaemonClient {
     } on TimeoutException {
       return Result.failure(
         resultSession,
-        AgentError(
-          'TIMEOUT',
-          'IPC deadline exceeded',
-          outcome: sent ? Outcome.unknown : Outcome.notSent,
+        deliveryError(
+          AgentError(
+            'TIMEOUT',
+            'IPC deadline exceeded',
+            outcome: sent ? Outcome.unknown : Outcome.notSent,
+          ),
         ),
       );
     } on AgentError catch (error) {
-      return Result.failure(
-        resultSession,
-        sent ? error.withOutcome(Outcome.unknown) : error,
-      );
+      return Result.failure(resultSession, deliveryError(error));
     } catch (_) {
       return Result.failure(
         resultSession,
-        AgentError(
-          'IO_ERROR',
-          'Local IPC failed',
-          outcome: sent ? Outcome.unknown : Outcome.notSent,
+        deliveryError(
+          AgentError(
+            'IO_ERROR',
+            'Local IPC failed',
+            outcome: sent ? Outcome.unknown : Outcome.notSent,
+          ),
         ),
       );
     } finally {

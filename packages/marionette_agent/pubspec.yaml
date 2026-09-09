@@ -10,6 +10,7 @@ environment:
 dependencies:
   # PNG decoder internal API is isolated in artifact_writer.dart.
   image: 4.9.1
+  yaml: 3.1.4
   args: ^2.7.0
   collection: ^1.19.1
   vm_service: ^15.3.0

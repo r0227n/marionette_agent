@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
-const protocolVersion = 1;
+const protocolVersion = 2;
 
 /// Version for result envelopes rendered to stdout.
 const schemaVersion = 1;
@@ -24,11 +24,13 @@ class AgentError implements Exception {
     this.code,
     this.message, {
     this.hint,
+    this.details,
     this.outcome = Outcome.notSent,
   });
   final String code;
   final String message;
   final String? hint;
+  final Json? details;
   final Outcome outcome;
   int get exitCode => switch (code) {
     'INVALID_ARGUMENT' => 2,
@@ -42,8 +44,9 @@ class AgentError implements Exception {
     _ => 1,
   };
   AgentError withOutcome(Outcome value) =>
-      AgentError(code, message, hint: hint, outcome: value);
+      AgentError(code, message, hint: hint, outcome: value, details: details);
   Json toJson() => {
+    if (details != null) 'details': details,
     'code': code,
     'message': message,
     'hint': hint,
@@ -59,6 +62,7 @@ class AgentError implements Exception {
       json['code'] as String,
       json['message'] as String,
       hint: json['hint'] as String?,
+      details: json['details'] == null ? null : asJson(json['details']),
       outcome: switch (json['outcome']) {
         'unknown' => Outcome.unknown,
         'failed' => Outcome.failed,

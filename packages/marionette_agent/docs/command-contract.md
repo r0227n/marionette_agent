@@ -93,3 +93,13 @@ Screenshot returns internal `images` through IPC; `runCli` then calls `saveScree
 Logs return `entries` plus nullable `configured`; unknown configuration includes a `limitation`. Binding logs are result data on stdout. Diagnostic logging remains separate on stderr.
 
 Simulator runners: `integration_test/features_smoke.dart` and `integration_test/two_apps_smoke.dart`. See the [B01–B06/A08 verification record](verification/b01-b06-a08-2026-09-09.md) for their environment and results.
+
+## Workflowの追加契約
+
+workflowはSessionManagerが特別扱いし、親WorkflowExecutionの中で各actionに新しいExecution/CommandContextを渡す。既存handlerが1つのExecutionで複数mutationを送ることは引き続き禁止。workflow runnerからSessionManager.handleを再帰呼出ししない。許可actionはsnapshot/tap/fill/swipe/scroll/waitのみ。
+
+CommandContext.checkは親停止状態・接続世代・step期限を確認する。awaitを挟まない計算後も結果を公開する前に確認する。waitの期限はstep timeoutと全体deadlineの早い方。stepの確定outcomeは親で変更せず、detailsにcompletedSteps・失敗stepを付加する。timeoutによるdiscardは開始epochだけへ適用し、遅延応答から再接続を破棄しない。
+
+AgentErrorには任意のJson detailsを追加し、toJson/fromJson/withOutcomeで保持する。旧単独コマンドでは省略する。IPC protocolVersionは2、公開schemaVersionは1。workflowのwire形状、結果、上限は[workflow仕様](workflow-file-spec.md)を参照。schemaの構造制約はWorkflowPlanと同じvalidatorで検証し、ID一意性・input参照・UTF-8上限は意味検証で補完する。
+
+workflowの最終応答がサイズ上限などで配送できない場合も、daemonのfallback応答はsessionを保持し、unknown/progressKnown:falseを返す。操作を未送信と報告したり、再実行したりしない。CLIのschema/validateも、入力parseと意味検証の完了後に絶対deadlineを確認する。

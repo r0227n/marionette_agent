@@ -7,6 +7,8 @@ import '../commands/command_context.dart';
 import '../snapshot/snapshot_service.dart';
 import '../protocol/protocol.dart';
 import 'session.dart';
+import '../workflow/workflow_runner.dart';
+import '../workflow/model.dart';
 
 /// Manages URI ownership and session lifetime. I/O from different sessions can run concurrently.
 class SessionManager {
@@ -92,6 +94,14 @@ class SessionManager {
           .run(() async {
             started = true;
             request.checkDeadline();
+            if (request.command == 'workflow') {
+              return WorkflowExecution(
+                request,
+                session,
+                snapshots,
+                commands,
+              ).run();
+            }
             final execution = Execution(request, session);
             return execution.bound(() => _execute(execution));
           })
@@ -122,7 +132,15 @@ class SessionManager {
         throw const AgentError('TIMEOUT', 'Request expired in queue');
       }
     } on AgentError catch (error) {
-      return Result.failure(resultSession, error);
+      return Result.failure(
+        resultSession,
+        request.command == 'workflow' && error.details == null
+            ? workflowError(
+                error,
+                name: workflowNameFrom(request.params['workflow']),
+              )
+            : error,
+      );
     } catch (_) {
       return Result.failure(
         resultSession,

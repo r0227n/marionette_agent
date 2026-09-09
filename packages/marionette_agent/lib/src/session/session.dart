@@ -46,15 +46,24 @@ class Session {
 
 /// Lifetime of one queue entry, including preflight and a single UI dispatch.
 class Execution {
-  Execution(this.request, this.session) : epoch = session.epoch;
+  Execution(
+    this.request,
+    this.session, {
+    int? initialEpoch,
+    this.parentCheck,
+    this.onRetire,
+  }) : epoch = initialEpoch ?? session.epoch;
+  final void Function()? parentCheck, onRetire;
   final Request request;
   final Session session;
   int epoch;
   bool cancelled = false;
   bool sent = false;
+  bool _finished = false;
   void check() {
+    parentCheck?.call();
     request.checkDeadline();
-    if (cancelled || session.epoch != epoch) {
+    if (cancelled || _finished || session.epoch != epoch) {
       throw const AgentError(
         'CONNECTION_LOST',
         'Connection generation retired',
@@ -95,14 +104,20 @@ class Execution {
     check();
   }
 
-  /// Watch execution deadline and do not report uncertain post-send outcomes as not executed.
+  /// Cancel this child and retire only its original connection generation.
+  void retire() {
+    cancelled = true;
+    onRetire?.call();
+    if (session.epoch == epoch) session.discard();
+  }
+
+  /// Watch the deadline and classify outcomes using only this step's dispatch.
   Future<T> bound<T>(Future<T> Function() operation) async {
-    request.checkDeadline();
+    check();
     try {
       return await Future.sync(operation).timeout(request.remaining);
     } on TimeoutException {
-      cancelled = true;
-      session.discard();
+      retire();
       throw AgentError(
         'TIMEOUT',
         'Request deadline exceeded',
@@ -112,19 +127,20 @@ class Execution {
     } on AgentError catch (error) {
       if (['CONNECTION_LOST', 'TIMEOUT'].contains(error.code) ||
           (sent && error.outcome == Outcome.unknown)) {
-        cancelled = true;
-        session.discard();
+        retire();
         throw error.withOutcome(sent ? Outcome.unknown : Outcome.notSent);
       }
       throw error.withOutcome(sent ? Outcome.failed : Outcome.notSent);
     } catch (_) {
       // Unknown transport/handler failure after dispatch cannot prove failure.
-      if (sent) session.discard();
+      if (sent) retire();
       throw AgentError(
         'INTERNAL_ERROR',
         'Command failed',
         outcome: sent ? Outcome.unknown : Outcome.notSent,
       );
+    } finally {
+      _finished = true;
     }
   }
 }
