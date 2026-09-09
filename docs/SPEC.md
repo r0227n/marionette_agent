@@ -1,6 +1,6 @@
 # marionette_agent — 製品仕様
 
-状態: 初版の設計合意済み。以下は実装予定の契約。現在の実装状況は [todo.md](todo.md) を参照する。
+状態: `marionette_agent 0.0.1` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法の詳細は[日本語CLIリファレンス](ja/cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.md)を参照する。
 
 ## 目的と対象
 
@@ -22,7 +22,7 @@ MCPサーバー／クライアントの提供は対象外。`marionette_mcp` の
 
 ## CLI契約
 
-実行名は `marionette-agent`。Dartパッケージ名は `marionette_agent` を維持し、実装時にexecutableを登録する。
+実行名は `marionette-agent`。Dartパッケージ名は `marionette_agent`。`pubspec.yaml` のexecutableとして登録する。
 
 ```sh
 marionette-agent --session demo connect 'ws://127.0.0.1:12345/token/ws'
@@ -44,12 +44,14 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | --- | --- |
 | `--session <name>` | 省略時は `default`。英数字で始まる英数字・`_`・`-`、最大64文字 |
 | `--json` | stdoutへ1つのJSONオブジェクトを出力 |
-| `--timeout <ms>` | 正の整数。既定30,000ms。待ち行列・接続・処理を含む期限 |
+| `--timeout <ms>` | DurationとDateTimeで表現可能な正の整数。既定30,000ms。待ち行列・接続・処理を含む期限。範囲外はINVALID_ARGUMENT |
 | `--help` / `--version` | 接続なしで利用可能 |
 
 共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。対話入力は要求しない。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
 
-### 初版コマンド
+構文エラーでも、有効に指定されたsessionとJSONモードを応答へ反映する。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
+
+### 実装済みコマンド
 
 | コマンド | 動作 |
 | --- | --- |
@@ -66,10 +68,21 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `screenshot [path]` | PNGを保存し絶対パスを返す。省略時は一時ファイル |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
+| `workflow schema [action]` | workflow全体またはaction別の同梱JSON Schemaを返す。daemon・接続は不要 |
+| `workflow validate <path>` | JSON／YAML workflowを読んで構文・schema・意味制約を検証。daemon・接続は不要 |
+| `workflow run <path>` | 接続済みsessionでworkflowを1要求として直列実行 |
 
-`<selector>` は `--key <value>`、`--identifier <value>`、`--text <value>`、`--type <value>` のいずれか1つ。例: `fill --key email 'a@example.com'`、`swipe --key pager left`。ref、selector、座標の混在はエラー。
+`<selector>` は `--key <value>`、`--identifier <value>`、`--text <value>`、`--type <value>` のいずれか1つ。例: `fill --key email 'a@example.com'`、`swipe --key pager left`。ref、selector、座標の混在はエラー。固定依存のbinding 0.6.0はidentifier matcherを提供しないため、identifier指定はUNSUPPORTED_CAPABILITYを返す。
 
 scrollは初版では指定領域を既存swipe機構で操作する。directionはswipeと同じく指の移動方向であり、コンテンツの移動先や到達保証ではない。画面外要素へのscroll-toは後続とする。
+
+### workflow v1
+
+workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
+
+workflow内の操作対象はselectorだけを受理し、refと座標操作は受理しない。入力値は型付き参照でbindingし、文字列展開、環境変数展開、shell実行は行わない。`--timeout`はworkflow／inputsの読込、検証、daemonへの配送、queue待ち、全stepを含む絶対期限である。
+
+成功時はworkflow名、完了step数、`requiresSnapshot`を返す。workflow内で最後に取得され、その後mutationされていないsnapshotがあれば`finalSnapshot`として返し、そのrefを後続CLIから利用できる。失敗時は`error.details`へ進捗の既知・未知、完了step数、失敗stepを付加する。詳細なfile schema、上限、waitの意味は[workflow v1仕様](ja/workflow-file-spec.ja.md)を正本とする。
 
 ### sessionの寿命と競合
 
@@ -91,6 +104,10 @@ ref番号はdaemonの生存期間を通して単調増加し、sessionをまた�
 操作直前に再観測し、保存したselectorが一意に一致し、type・識別属性・text・boundsが観測時から変化していないことを確認する。不一致はSTALE_REF、複数一致はAMBIGUOUS_TARGET。refから座標への自動フォールバックは行わない。明示selectorでも観測内の一致数を確認する。
 
 key、identifierを優先し、text・typeはバックエンドの照合との対応を確認できる場合に使う。表示用Semanticsテキストは照合用textと同義ではない。一意に操作できるselectorを構成できない要素は情報を表示するが、操作用refを付けず理由を返す。
+
+固定binding 0.6.0ではtextの由来を区別する属性がないため、text照合は確認済みの型名Text・RichText・EditableText・TextField・TextFormFieldに限定する。Semanticsの派生型やその他の独自型のtextは表示情報として扱い、操作にはkeyまたは一意なtypeを使用する。
+
+一意性の判定には由来未確認のtextも含める。同じtextを持つ未知の型が観測された場合、既知の型へのtext指定・text由来のref・wait existsもAMBIGUOUS_TARGETとして拒否する。snapshotは安全なkey/typeがあればそちらでrefを発行する。
 
 既存APIでは再観測と操作は原子的ではなく、観測に含まれない要素もある。その間の画面変化や同一属性の別要素への置き換えを完全には検出できない。初版はこの制約下で事前検証を行い、Flutter要素の永続IDを保証しない。
 
@@ -116,6 +133,8 @@ JSONは成功・失敗とも以下の包絡形式。schemaVersionは初版で1�
 
 outcomeはnot_sent・failed・unknown。送信後の通信断・タイムアウトを未実行として扱わない。
 
+通常のテキスト出力でも全エラーにoutcomeを表示する。daemonが要求を処理した後、応答のサイズ超過等で結果を配送できなかった場合は、通常コマンドもunknownを返し、not_sentへ戻さない。
+
 | 終了コード | エラー分類と代表code |
 | --- | --- |
 | 0 | 成功 |
@@ -126,17 +145,20 @@ outcomeはnot_sent・failed・unknown。送信後の通信断・タイムアウ�
 | 6 | 機能不足: UNSUPPORTED_CAPABILITY |
 | 1 | その他: BACKEND_ERROR、IO_ERROR、INTERNAL_ERROR |
 
-screenshotのdataはpaths配列。複数画像は連番で保存し、既存ファイルの上書きは拒否する。画像が空なら失敗。logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
+screenshotのdataはpaths配列。複数画像は連番で保存し、通常利用で既存ファイルの上書きを避けるため、全保存先を排他的に作成してから画像を書き込む。既存のファイル・ディレクトリ・symlinkは拒否する。意図的な競合プロセスによる、保存先の予約後の差し替えまでは保証しない。画像が空なら失敗。logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
 
-## 初版の完了条件
+## 検証基準
 
 1. macOSからiOS Simulatorに接続し、別々のCLIプロセスでsnapshot→tap／fill／swipe→snapshotが成立する。
 2. 2つのsessionの接続・ref・切断が分離され、同一sessionの並行要求が直列化される。
 3. 古いref、曖昧な対象、通信断、timeoutが規定のJSONと終了コードになり、操作が自動再送されない。
 4. PageViewの切替とDismissibleのdismissをswipeで確認し、座標方式もSimulatorで検証する。
-5. scroll、PNG保存、ログ取得が動作し、別モデルが共通基盤の契約を変更せず実装できる。
-6. 自動テストとSimulator検証の結果・環境をtodoに記録する。未検証項目を完了扱いにしない。
+5. scroll、PNG保存、ログ取得が共通のsession・deadline・エラー契約を通して動作する。
+6. workflowのJSON／YAML検証、binding、queue占有、wait、停止時の進捗、最終snapshot引き継ぎを自動テストとSimulatorで確認する。
+7. コード変更時は`packages/marionette_agent`でformat、analyze、関連testを実行する。CLI契約を変えた場合は`example/`をiOS Simulatorで起動し、製品CLIの結果と操作後の画面状態を確認する。
 
-## 後続範囲
+単体・IPC・契約テストは`packages/marionette_agent/test/`、Simulatorシナリオは`packages/marionette_agent/integration_test/`に置く。FakeBackendの成功だけをSimulator検証の代替にはしない。
 
-Android／実機／他ホストOS、アプリ起動管理、録画、独自拡張、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。MCP対応は今回の計画に含めない。
+## 対象外・将来範囲
+
+Android／実機／他ホストOS、アプリ起動管理、録画、独自拡張、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
