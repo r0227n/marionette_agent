@@ -1,0 +1,15 @@
+# Repository-level configuration for git-worktree-runner.
+# Executable hooks require a human to review them with `git gtr trust`.
+
+[defaults]
+    branch = develop
+    remote = origin
+    editor = vscode
+    ai = codex
+
+[hooks]
+    postCreate = cd packages/marionette_agent && dart pub get
+    postCreate = cd example && flutter pub get
+
+[sparse]
+    inherit = true

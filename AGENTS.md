@@ -4,9 +4,10 @@ Marionette対応Flutterアプリを操作するDart CLIを開発する。初版�
 
 ## 作業開始
 
-1. 機能の追加・変更では [SPEC.md](docs/SPEC.md) を読み、CLI契約と対象範囲を確認する。
-2. 実装では [ARCHITECTURE.md](docs/ARCHITECTURE.md) を読み、担当モジュールと依存方向を確認する。
-3. [todo.md](todo.md) で依存タスクが完了した担当可能な項目を選び、着手時に状態と実際の担当モデルを記録する。
+1. コード・文書・設定を変更するタスクでは [git gtr による並列開発](docs/agents/worktree-development.md) を読み、タスク専用worktreeを選択または作成する。
+2. 機能の追加・変更では [SPEC.md](docs/SPEC.md) を読み、CLI契約と対象範囲を確認する。
+3. 実装では [ARCHITECTURE.md](docs/ARCHITECTURE.md) を読み、担当モジュールと依存方向を確認する。
+4. [todo.md](todo.md) で依存タスクが完了した担当可能な項目を選び、着手時に状態と実際の担当モデルを記録する。
 
 SPECは製品仕様、ARCHITECTUREは構成と実装境界、todoは進捗の正本。GitHub Issuesは個別の議論・不具合・追加要求の追跡に使い、合意した変更を文書へ反映する。`docs/agents/issue-tracker.md` の「specsはIssues」という一般記述より、この役割分担を優先する。
 
