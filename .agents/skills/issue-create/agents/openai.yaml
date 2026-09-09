@@ -1,0 +1,6 @@
+interface:
+  display_name: "Issue Create"
+  short_description: "Create GitHub feature and bug tasks"
+  default_prompt: "Use $issue-create to draft and publish a GitHub Issue for this task."
+policy:
+  allow_implicit_invocation: true

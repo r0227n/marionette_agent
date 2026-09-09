@@ -1,0 +1,100 @@
+name: Bug
+description: 不具合の修正タスクを作成する
+title: ""
+labels:
+  - bug
+assignees: []
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+      description: 修正によって回復させる振る舞いと利用者への影響を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 不具合の概要
+      description: 何が壊れているかを簡潔に記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      description: 不具合を再現するための操作を順番に記載してください。
+      placeholder: |
+        1. 再現に必要な操作
+        2. 不具合が発生する操作
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+      description: 本来の振る舞いを記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+      description: 観測した振る舞い、エラー、再現頻度を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: work
+    attributes:
+      label: 作業内容
+      description: このIssueで修正する範囲を記載してください。原因が未確定なら断定しないでください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: completion-criteria
+    attributes:
+      label: 作業完了条件
+      description: 不具合の解消と再発防止を観測できる条件をチェックリストで記載してください。
+      placeholder: |
+        - [ ] 不具合が解消したことを確認できる条件
+        - [ ] 再発を検知するテストまたは実環境確認
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: 検証方法
+      description: 修正前の再現と修正後の期待結果を確認する方法を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境
+      description: OS、デバイス、バージョンなど再現に関係する情報を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: 対象外
+      description: 関連して見えるが、このIssueでは扱わない事項を記載してください。ない場合は「なし」と記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 補足
+      description: ログ、スクリーンショット、関連Issueなどがあれば記載してください。機密情報は含めないでください。
+    validations:
+      required: false

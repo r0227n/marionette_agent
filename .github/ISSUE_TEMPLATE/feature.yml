@@ -1,0 +1,65 @@
+name: Feature
+description: 新機能や既存機能の改善タスクを作成する
+title: ""
+labels:
+  - feature
+assignees: []
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+      description: 実現したい結果と利用者にとっての価値を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景
+      description: 現状、課題、この変更が必要な理由を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: work
+    attributes:
+      label: 作業内容
+      description: このIssueで扱う振る舞いと範囲を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: completion-criteria
+    attributes:
+      label: 作業完了条件
+      description: 利用者または実装者が観測できる条件をチェックリストで記載してください。
+      placeholder: |
+        - [ ] 完了を確認できる条件
+        - [ ] 必要なテスト、文書、実環境確認
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: 検証方法
+      description: 完了条件を確認するコマンド、操作、期待結果を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: 対象外
+      description: 関連して見えるが、このIssueでは扱わない事項を記載してください。ない場合は「なし」と記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 補足
+      description: 関連Issue、仕様、設計資料などがあれば記載してください。
+    validations:
+      required: false

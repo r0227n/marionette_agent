@@ -1,0 +1,24 @@
+---
+name: pr-create
+description: Create a new GitHub draft pull request with gh, repository-required verification, and relevant image or video evidence. Use when asked to create or open a PR; use a different workflow to modify an existing PR.
+---
+
+# PR Create
+
+Create one evidence-backed draft pull request whose body follows the repository template. Minimize questions by deriving the title, summary, verification, and evidence from the repository and current task.
+
+## Workflow
+
+1. Read the repository instructions and `.github/pull_request_template.md`. Treat the template headings as the required body contract. Stop if the template is missing or does not require `概要`, `動作確認方法`, and `エビデンス`.
+2. Inspect the current branch, `develop...HEAD` diff, commits, relevant specifications, and task history. Require a non-empty change on a non-`develop`, non-detached branch. Derive a concise title and substantive content for every template section; ask only for intent that cannot be established from those sources.
+3. Run every verification required by the repository instructions and the changed area. Record commands or manual steps, expected results, and actual results under `動作確認方法`. Stop before publishing when a required check fails or a required environment check cannot be completed.
+4. Resolve evidence before changing remote state:
+   - Evidence is required for UI or runtime behavior changes. Prefer paths supplied by the user, then media produced during the current task, then relevant image or video files in the worktree and task-related temporary output. Inspect candidate contents and attach every candidate that clearly demonstrates the post-change behavior, up to 50 files. Do not select by filename or modification time alone.
+   - Each attachment must exist, be a regular image or video file, and be converted to an absolute path. If no relevant candidate exists, stop and ask the user to provide an image or video path.
+   - Waive attachments only when the diff is documentation-only or image/video cannot meaningfully demonstrate the change. Difficulty alone is not grounds for a waiver. When applicability is uncertain, require evidence. For a waiver, write the concrete reason under `エビデンス`.
+5. Require a clean worktree before publishing. Untracked files selected solely as PR attachments are the only permitted exception. Show any other uncommitted paths and ask the user to resolve them; never commit them automatically.
+6. Check all PR states for an existing PR with the same head branch and base `develop`. If one exists, return its URL and do not create another. Fetch enough remote state to detect whether the branch can be pushed normally. Push it with `git push -u origin HEAD` when needed; stop on a remote-ahead or diverged branch and never force-push.
+7. Render a temporary body from `.github/pull_request_template.md`, replacing its prompts with the derived summary, verification, and evidence description or waiver. Confirm all three sections contain real content. Create the PR with `gh pr create --draft --base develop --title <title> --body-file <body-file>`. For an evidence-required PR, add one `--attach <absolute-path>` argument for every selected file; creating without all selected attachments is not allowed.
+8. Capture the URL immediately. Read the PR back with `gh pr view` and verify its base is `develop`, it is a draft, its body contains the three completed sections, and the attachments appear in the body when required. `gh pr create` can create a PR even when only some uploads succeed; on any non-zero or uncertain result, inspect the existing PR before retrying and report the URL plus missing evidence. Never create a replacement duplicate.
+
+Report the PR URL, attached evidence or waiver reason, verification performed, and any remaining limitation.
