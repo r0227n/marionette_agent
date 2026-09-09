@@ -1,0 +1,55 @@
+- name: P0
+  color: B60205
+  description: 最優先。安全性や基盤運用に関わり、先に対応する
+
+- name: P1
+  color: D93F0B
+  description: 優先度高。観測・操作・診断を明確に改善する
+
+- name: P2
+  color: FBCA04
+  description: 優先度中。代替手段がある利便性改善や利用頻度が限定的な機能
+
+- name: bug
+  color: D73A4A
+  description: Something isn't working
+
+- name: accessibility
+  color: F143AB
+  description: Barrier affecting people with disabilities
+
+- name: documentation
+  color: 0075CA
+  description: Improvements or additions to documentation
+
+- name: duplicate
+  color: CFD3D7
+  description: This issue or pull request already exists
+
+- name: enhancement
+  color: A2EEEF
+  description: New feature or request
+
+- name: feature
+  color: 1D76DB
+  description: New feature or improvement
+
+- name: good first issue
+  color: 7057FF
+  description: Good for newcomers
+
+- name: help wanted
+  color: 008672
+  description: Extra attention is needed
+
+- name: invalid
+  color: E4E669
+  description: This doesn't seem right
+
+- name: question
+  color: D876E3
+  description: Further information is requested
+
+- name: wontfix
+  color: FFFFFF
+  description: This will not be worked on

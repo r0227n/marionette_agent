@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Create"
+  short_description: "Create verified draft PRs with visual evidence"
+  default_prompt: "Use $pr-create to create a verified draft pull request with relevant evidence."
