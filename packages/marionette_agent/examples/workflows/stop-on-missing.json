@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "name": "stop-on-missing",
+  "steps": [
+    {
+      "id": "first-tap",
+      "action": "tap",
+      "target": {
+        "key": "tap_button"
+      }
+    },
+    {
+      "id": "missing",
+      "action": "tap",
+      "target": {
+        "key": "nonexistent_target"
+      }
+    },
+    {
+      "id": "never-tap",
+      "action": "tap",
+      "target": {
+        "key": "tap_button"
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "inspect": {
+    "type": "_extensionType",
+    "method": "ext.flutter.marionette.interactiveElements",
+    "status": "Success",
+    "elements": [
+      {"type": "FilledButton", "key": "tap_button", "text": "Tap me", "visible": true, "bounds": {"x": 32.0, "y": 190.0, "width": 100.0, "height": 48.0}},
+      {"type": "Semantics", "text": "Volume: 70%", "visible": true},
+      {"type": "Semantics", "text": "Read only", "visible": true}
+    ]
+  },
+  "tap": {"type": "_extensionType", "method": "ext.flutter.marionette.tap", "status": "Success", "message": "Tapped element matching: {key: tap_button}"},
+  "fill": {"type": "_extensionType", "method": "ext.flutter.marionette.enterText", "status": "Success", "message": "Entered text into element matching: {key: text_input}"},
+  "swipe": {"type": "_extensionType", "method": "ext.flutter.marionette.swipe", "status": "Success", "message": "Swiped left on element matching: {key: page_view}"},
+  "screenshots": {"type": "_extensionType", "method": "ext.flutter.marionette.takeScreenshots", "status": "Success", "screenshots": ["iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0ioAAAAASUVORK5CYII="]},
+  "logs": {"type": "_extensionType", "method": "ext.flutter.marionette.getLogs", "status": "Success", "logs": ["example started"], "count": 1},
+  "unsupported": {"code": -32601, "message": "Method not found"},
+  "disconnected": {"code": -32000, "message": "Service connection disposed"},
+  "malformed": {"message": "Success"}
+}
