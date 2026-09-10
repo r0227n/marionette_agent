@@ -1,3 +1,5 @@
+import 'package:marionette_agent/src/cli/common_options.dart';
+
 import 'dart:io';
 
 import 'package:args/args.dart';
@@ -13,7 +15,7 @@ import 'package:marionette_agent/src/session/session_manager.dart';
 
 Future<void> main(List<String> args) async {
   configureDiagnosticLogging();
-  if (args.length == 1 && args.single == '--internal-daemon') {
+  if (args.isNotEmpty && args.first == '--internal-daemon') {
     final registry = CommandRegistry();
     registry.register('count', (context, params) async {
       return context.read((backend) async {
@@ -32,6 +34,7 @@ Future<void> main(List<String> args) async {
     await DaemonServer(
       await RuntimeDirectory.prepare(),
       SessionManager(FakeBackend.new, registry),
+      idleTimeoutMs: CommonOptions.daemonIdle(args),
     ).run();
   } else {
     exitCode = await runCli(

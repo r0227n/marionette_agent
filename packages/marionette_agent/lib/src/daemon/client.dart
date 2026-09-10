@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import '../cli/common_options.dart';
 import '../protocol/protocol.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import 'runtime.dart';
@@ -8,9 +9,10 @@ import '../workflow/model.dart';
 
 /// Send one request per handshake. Auto-start is allowed for connect and record start.
 class DaemonClient {
-  DaemonClient(this.runtime, {List<String>? launchCommand})
+  DaemonClient(this.runtime, {List<String>? launchCommand, this.idleTimeoutMs})
     : launchCommand = launchCommand ?? defaultLaunchCommand();
   final RuntimeDirectory runtime;
+  final int? idleTimeoutMs;
   final List<String> launchCommand;
 
   /// Connect both Dart source execution and compiled execution to the same internal daemon mode.
@@ -46,6 +48,11 @@ class DaemonClient {
       if (hello['ready'] != true) {
         socket.destroy();
         return null;
+      }
+      if (idleTimeoutMs != null && hello['idleTimeoutMs'] != idleTimeoutMs) {
+        invalid(
+          'Idle timeout differs from the running daemon; close its sessions before changing it',
+        );
       }
       return _Connection(socket, frames);
     } on SocketException {
@@ -112,7 +119,11 @@ class DaemonClient {
           if (connection == null) {
             await Process.start(
               launchCommand.first,
-              [...launchCommand.skip(1), '--internal-daemon'],
+              [
+                ...launchCommand.skip(1),
+                '--internal-daemon',
+                '${idleTimeoutMs ?? CommonOptions.defaultIdleTimeoutMs}',
+              ],
               mode: ProcessStartMode.detached,
               environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
             );

@@ -45,11 +45,26 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | `--session <name>` | 省略時は `default`。英数字で始まる英数字・`_`・`-`、最大64文字 |
 | `--json` | stdoutへ1つのJSONオブジェクトを出力 |
 | `--timeout <ms>` | DurationとDateTimeで表現可能な正の整数。既定30,000ms。待ち行列・接続・処理を含む期限。範囲外はINVALID_ARGUMENT |
+| `--content-boundaries` | 値なしflag、既定無効。snapshot要素／logs entryを未信頼コンテンツとして識別 |
+| `--max-output <chars>` | 正の整数、既定無制限。snapshot／logsの項目列をUnicode code point数で制限 |
+| `--idle-timeout <duration>` | daemon全体のidle期限。既定1h、0で無効。整数msまたはms/s/m/h接尾辞 |
 | `--help` / `--version` | 接続なしで利用可能 |
 
 共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。対話入力は要求しない。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
 
 構文エラーでも、有効に指定されたsessionとJSONモードを応答へ反映する。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
+
+### 共通安全オプション
+
+共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。新しい3オプションもhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。
+
+`--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
+
+`--max-output`は公開観測・generation・全要素のref採番を確定してから、elements／entriesの先頭から収まる完全な項目だけを返す。textはsnapshot要素行またはJSON化したlog entry、JSONは各項目のcompact JSONをcode pointで数える。項目間の改行／commaは各1文字として含め、包絡、配列括弧、見出し、境界、件数metadataは含めない。最初の項目が収まらなければ空配列。設定時は同じdataに`truncated`（bool）、`originalCount`、`omittedCount`を常に追加する。省略したrefはsessionから削除し、番号の推測利用はSTALE_REF。次回snapshotでも採番を巻き戻さない。workflowのfinalSnapshotも同じ契約。画像base64、保存画像、stderr診断、IPCの64MiB上限には適用しない。
+
+idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`、`3m`、`1h`、`10000`（ms）、`10ms`を受理し、負数・小数・未知単位・Duration／DateTime範囲外はINVALID_ARGUMENT。省略した呼出しは稼働値を引き継ぐ。異なる値を明示したIPC呼出しはhandshakeで処理送信前にINVALID_ARGUMENT／not_sentとなる。同時起動も起動lockの取得後に再照合し、最初に確定した設定だけを使う。help/version、workflow schema/validateはローカルで完了しdaemonへ接触しない。
+
+全session queueと要求の配送がidleになってから計測し、実行中・queue待ち中の処理は中断しない。health probeは終了を妨げない範囲で待ち、利用者の無操作時間を更新しない。期限到達時は通常のshutdownで録画を確定し、全接続・refを破棄してsocket・寿命lockを解放する。録画だけが継続していても要求queueがidleなら終了対象。次のアプリ操作はNOT_CONNECTEDとなり、明示的なconnectと新snapshotが必要。Flutterアプリ自体は終了しない。
 
 ### 実装済みコマンド
 

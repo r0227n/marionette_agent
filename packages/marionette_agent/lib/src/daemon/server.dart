@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:marionette_agent_util/marionette_agent_util.dart';
 
+import '../cli/common_options.dart';
 import '../protocol/protocol.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import '../session/session_manager.dart';
@@ -13,7 +14,13 @@ import '../workflow/model.dart';
 
 /// JSON line-delimited server with daemon lifetime protected by an OS lock.
 class DaemonServer {
-  DaemonServer(this.runtime, this.manager);
+  DaemonServer(
+    this.runtime,
+    this.manager, {
+    this.idleTimeoutMs = CommonOptions.defaultIdleTimeoutMs,
+  });
+  final int idleTimeoutMs;
+  Timer? _idleTimer;
   final RuntimeDirectory runtime;
   final SessionManager manager;
   final _clients = <Socket>{};
@@ -66,9 +73,15 @@ class DaemonServer {
           'pid': pid,
           'protocolVersion': protocolVersion,
           'instance': instance,
+          'idleTimeoutMs': idleTimeoutMs,
         }),
       );
       await runtime.privateFile(runtime.metadata);
+      manager.onQueueIdle = () {
+        // Probes must not renew an existing user inactivity interval. They can
+        // finish draining the queue after the last client has disconnected.
+        if (_idleTimer?.isActive != true) _armIdle();
+      };
       manager.onEmpty = () {
         unawaited(close());
       };
@@ -89,6 +102,7 @@ class DaemonServer {
           _probing = false;
         }
       });
+      _armIdle();
       _termination = terminationRequests().listen((_) => unawaited(close()));
       await _done.future;
     } finally {
@@ -99,6 +113,7 @@ class DaemonServer {
   }
 
   Future<void> _serve(Socket client) async {
+    _idleTimer?.cancel();
     _clients.add(client);
     var expired = false;
     var responseStarted = false;
@@ -116,6 +131,7 @@ class DaemonServer {
         encodeFrame({
           'protocolVersion': protocolVersion,
           'instance': instance,
+          'idleTimeoutMs': idleTimeoutMs,
           'ready': !_closing,
         }),
       );
@@ -179,9 +195,30 @@ class DaemonServer {
         expiry.cancel();
         client.destroy();
         _clients.remove(client);
+        _armIdle();
         _finishIfClosed();
       }
     }
+  }
+
+  void _armIdle() {
+    _idleTimer?.cancel();
+    if (_closing ||
+        idleTimeoutMs == 0 ||
+        _clients.isNotEmpty ||
+        manager.hasPending) {
+      return;
+    }
+    _idleTimer = Timer(Duration(milliseconds: idleTimeoutMs), _expireIdle);
+  }
+
+  void _expireIdle() {
+    if (_closing || _clients.isNotEmpty) return;
+    if (manager.hasPending || _probing) {
+      _idleTimer = Timer(const Duration(milliseconds: 10), _expireIdle);
+      return;
+    }
+    unawaited(close());
   }
 
   /// Share the cleanup future and wait for file deletion completion even on re-entry.
@@ -192,6 +229,7 @@ class DaemonServer {
   Future<void> _close() async {
     _closing = true;
     _timer?.cancel();
+    _idleTimer?.cancel();
     await _termination?.cancel();
     await _server?.close();
     await manager.dispose();

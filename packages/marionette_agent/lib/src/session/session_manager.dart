@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../output/content.dart';
 import '../backend/backend.dart';
 import '../backend/marionette_backend.dart';
 import '../commands/registry.dart';
@@ -23,6 +24,8 @@ class SessionManager {
   final _owners = <String, String>{};
   bool stopping = false;
   void Function()? onEmpty;
+  void Function()? onQueueIdle;
+  bool get hasPending => sessions.values.any((session) => session.pending != 0);
 
   Json show(Session session) => {
     'name': session.name,
@@ -105,20 +108,27 @@ class SessionManager {
               if (request.params.isNotEmpty) invalid();
               recording = await recordings.close(request);
             }
+            Json data;
             if (request.command == 'workflow') {
-              return WorkflowExecution(
+              data = await WorkflowExecution(
                 request,
                 session,
                 snapshots,
                 commands,
               ).run();
+            } else {
+              final execution = Execution(request, session);
+              data = await execution.bound(() => _execute(execution));
             }
-            final execution = Execution(request, session);
-            final data = await execution.bound(() => _execute(execution));
+            data = limitContent(data, request.maxOutput, request.outputJson);
+            if (request.maxOutput != null) {
+              snapshots.retainPublished(session, data);
+            }
             return {...data, 'recording': ?recording};
           })
           .whenComplete(() {
             session.pending--;
+            if (!hasPending) onQueueIdle?.call();
             // Rejections before URI acquisition are temporary reservations, not active connections.
             // Keep the same queue while requests continue, and retain sessions that actually attempted connect for recovery.
             if ((session.closed || session.uri == null) &&

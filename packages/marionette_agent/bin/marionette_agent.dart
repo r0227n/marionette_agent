@@ -1,3 +1,5 @@
+import 'package:marionette_agent/src/cli/common_options.dart';
+
 import 'dart:io';
 
 import 'package:marionette_agent/src/backend/marionette_backend.dart';
@@ -10,11 +12,12 @@ import 'package:marionette_agent/src/session/session_manager.dart';
 
 Future<void> main(List<String> args) async {
   configureDiagnosticLogging();
-  if (args.length == 1 && args.single == '--internal-daemon') {
+  if (args.isNotEmpty && args.first == '--internal-daemon') {
     try {
       await DaemonServer(
         await RuntimeDirectory.prepare(),
         SessionManager(MarionetteBackend.new, coreCommands()),
+        idleTimeoutMs: CommonOptions.daemonIdle(args),
       ).run();
     } catch (_) {
       stderr.writeln('Daemon startup failed');
