@@ -26,7 +26,7 @@ mkdir -m 700 "$MRA_VERIFY_DIR/evidence"
 
 ## 起動・操作・取得
 
-1. 割当worktreeの `example/` で依存を用意し、そのコードをdebugで起動する。UDIDは実在する割当値を指定する。`--vmservice-out-file` でURIを私有ファイルへ出力し、起動成功を確認する。runnerのログには認証URIが含まれるため、rawログを公開・転記しない。
+1. 割当worktreeの `example/` で依存を用意し、そのコードをdebugで起動する。UDIDは実在する割当値を指定する。`--vmservice-out-file` でURIを私有ファイルへ出力し、起動成功を確認する。runnerは長時間動作するため、CLIを実行する別terminalまたはbackground processとして起動する。再現手順ではterminal間で必要な私有path・環境変数を明示的に引き継ぎ、URI fileは定義済みの変数をquoteして指定する。runnerのログには認証URIが含まれるため、rawログを公開・転記しない。
 2. 同じworktreeのDart entrypointからCLIを実行する。グローバルにインストール済みのCLIで代用しない。認証URIはファイルから変数へ読み、シェルトレースを無効にした状態でconnectへ渡す。表示・検証記録ではURIを取得する手順だけ残す。
 3. 操作前のsnapshotと状態を取得し、受入条件に対応する操作を実行する。成功応答だけで判定せず、操作後のsnapshotと画像で期待する変化を確かめる。エラー系ではexit code・error codeと、意図しない状態変化がないことを確認する。送信結果がunknownの操作は観測し直し、無条件に再送しない。
 4. 静止状態はCLIの `screenshot <absolute-path>`、遷移・ジェスチャ・録画機能は `record start <absolute-path> --platform ios --device <UDID>` と `record stop` で取得する。record自体が検証対象で正常保存できない場合は、利用可能なSimulatorの撮影手段も検討し、未達の受入条件を記録する。
