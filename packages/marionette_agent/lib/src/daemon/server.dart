@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:marionette_agent_util/marionette_agent_util.dart';
+
 import '../protocol/protocol.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import '../session/session_manager.dart';
@@ -19,6 +21,7 @@ class DaemonServer {
   ServerSocket? _server;
   RandomAccessFile? _lock;
   Timer? _timer;
+  StreamSubscription<void>? _termination;
   Timer? _shutdownTimer;
   Future<void>? _closeFuture;
   bool _closing = false;
@@ -86,6 +89,7 @@ class DaemonServer {
           _probing = false;
         }
       });
+      _termination = terminationRequests().listen((_) => unawaited(close()));
       await _done.future;
     } finally {
       await close();
@@ -188,6 +192,7 @@ class DaemonServer {
   Future<void> _close() async {
     _closing = true;
     _timer?.cancel();
+    await _termination?.cancel();
     await _server?.close();
     await manager.dispose();
     // Do not tear down the socket that is delivering the final close response.

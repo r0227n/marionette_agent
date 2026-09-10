@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
-const protocolVersion = 2;
+const protocolVersion = 3;
 
 /// Version for result envelopes rendered to stdout.
 const schemaVersion = 1;

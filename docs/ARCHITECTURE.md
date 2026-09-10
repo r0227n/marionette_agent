@@ -69,7 +69,7 @@ OSの排他ロックで起動を直列化し、取得後に稼働daemonを再確
 
 古いsocketは生存確認とロックのもとで回収し、PIDだけを根拠に別プロセスをkillしない。最後のcloseと新規connectは管理キューで直列化する。終了中へのconnectは送信前なら再接続できるが、送信後のUI操作は再送しない。
 
-IPCのサイズ上限は初版で1フレーム64MiB。画像はbase64としてdaemonからCLIへ返し、超過は明示エラー。ファイル保存は呼出元CLIが担い、相対パスは呼出元のcwdで解決する。
+IPCのサイズ上限は初版で1フレーム64MiB。画像はbase64としてdaemonからCLIへ返し、超過は明示エラー。screenshotのファイル保存は呼出元CLIが担い、相対パスは呼出元のcwdで解決する。recordは例外としてutilがdaemon内で保存し、CLIは絶対pathを渡す。
 
 応答配送の期限は要求deadline+250msとし、受信しないクライアントのsocketも切断する。最後のclose後も配送・切断を無期限に待たず、250msの猶予で残るクライアントを破棄してdaemonの寿命ロックを解放する。最終応答の送信開始後は別のエラーフレームを追加しない。
 
@@ -97,7 +97,7 @@ Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示�
 
 ## コマンド拡張境界
 
-通常コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
+通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはVM Service非依存のためSessionManagerの共通session queueでRecordServiceへ分岐する。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
 
 CommandContextにsession実行、対象解決、期限確認、ref失効、mutationの1回送信を集約する。handlerは独自のqueue、retry、session生成、ref保存、接続破棄を実装しない。共有型は`lib/marionette_agent.dart`から公開し、上流connectorやresponse mapをコマンド層へ漏らさない。
 
@@ -126,7 +126,7 @@ SessionManagerはworkflowを単独Execution.boundの外で分岐し、WorkflowEx
 
 waitはworkflow専用のread primitiveで、ElementInfo.candidateValueによる一致をinspectでpollし、単独のtext候補は由来の信頼性も確認する。CommandContext.checkで計算後の期限も確認し、公開refを生成しない。その他のstepは既存CommandRegistryを直接呼ぶ。SessionManagerへstep単位で再帰しない。最終snapshot候補は後続mutationで破棄し、失敗時は返さない。
 
-IPC protocolVersionは2。requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
+IPC protocolVersionは3（record追加）。requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
 
 workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/progressKnown:falseとsession名を保持する。CLIのローカル検証はparseと意味検証後も絶対deadlineを確認し、期限を過ぎた成功を返さない。
 
@@ -137,3 +137,24 @@ workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/pro
 - diagnosticsのZoneには終了可能なcollectorを入れ、要求完了時にListへの参照を外す。接続時に登録したlistenerの後発ログは通常のstderr経路へ戻す。
 - ref/selectorの排他・型・空文字と有限数の検証は`commands/arguments.dart`へ集約し、CLIのtarget parserとdaemonの操作handlerで共有する。
 - 通常コマンドを含む全エラーのテキスト出力にoutcomeを表示し、workflowには進捗既知性、完了step数、失敗stepも付加する。daemonは要求処理開始後の応答生成失敗をunknownへ分類する。
+
+## 内部プラットフォームサービス
+
+`packages/marionette_agent_util`は録画専用ではなく、marionette_agentで必要になるOS／端末別処理を集約する内部パッケージ。CLI/session/protocolやmarionette_mcpへの逆依存を持たない。今後の端末情報等も独立したサービスとして追加する。
+
+```text
+CLI parser → RecordService（共通引数検証・エラー変換）
+            → RecordingManager（owner・端末排他・保存・終了）
+              → ScreenRecorder / RecordingHandle
+                → iOS: simctl / Android: adb / macOS: screencapture
+```
+
+CLIは同一repo内の`../marionette_agent_util`へpath依存し、両パッケージはpublish_to:noneとする。配布は両パッケージを含むcheckoutからの起動またはCLIのコンパイル済みバイナリを使用する。隣接する参考リポジトリへのpath依存は導入しない。
+
+record startとconnectだけがdaemonを自動起動できる。sessionは録画だけでも予約・保持でき、後からVM Serviceを接続できる。recordのstart/stop/statusとcloseは既存session queueで直列化し、長時間のフレーム処理はqueue外で継続する。録画にはUI mutationのExecution.boundを使わず、utilが開始期限・停止後の有界cleanup・状態を管理する。VM Serviceのepoch破棄は録画へ波及しない。
+
+RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に返す。startのbackend待ちは要求期限と30秒上限で打ち切り、遅れて生成されたhandleの停止・予約回収は追跡付きcleanupとして継続する。start時の終了競合や停止失敗でも、handleの終了確認まではdevice予約を解放しない。stopの要求期限超過後も終了処理を保持し、終わるまで同じdeviceへ別録画を開始しない。Androidの自動終了も同じfinalizationへ合流する。closeでは録画を確定してから所有権を解放する。daemonのSIGINT/SIGTERMではRecordingManager.disposeが開始待ち・停止・保存・追跡cleanup全体を60秒に制限する。期限超過時はRecordingHandle.abortで所有プロセスを強制停止し、ファイル読込をキャンセルして出力を閉じる（追加待ちは最大5秒）。stagingと未確定の予約先を保持し、遅延完了で動画を公開しない。Androidは固有remote pathとPIDを照合して強制停止を試みるが、端末切断時の成功は保証しない。OSで進行中のI/Oは取り消しを保証できないため削除と競合させない。
+
+出力先予約、private staging、iOSのSIGINT、Androidの固有remote file名とcmdline照合付きPIDへのSIGINT、adb pull、macOSの起動生存確認・停止はutil内に閉じ込める。CLIのstdoutへ子プロセスの出力を流さず、失敗はPlatformException→AgentErrorへ変換する。未対応web/linux/windowsもutilでthrowし、CLI parserとdaemonの両方で共通検証する。
+
+単体テストは保存保護・端末排他・開始失敗・停止期限・異常終了・終了競合、CLIテストは未接続録画session・ref保持・通信断後の継続・close・未対応platformを検証する。`integration_test/record_smoke.dart`は製品CLIで開始→接続→操作→動画確定→重複stop→上書き拒否→close確定を確認する。実動画を復号して画面変化を確認する。

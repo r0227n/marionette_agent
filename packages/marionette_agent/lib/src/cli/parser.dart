@@ -5,6 +5,7 @@ import '../commands/swipe.dart';
 import '../commands/actions.dart';
 import '../commands/observations.dart';
 import 'workflow_command.dart';
+import 'record_command.dart';
 
 /// Register ArgParser grammar and conversion from validated args to protocol params.
 class CliCommand {
@@ -34,6 +35,7 @@ class CliParser {
     ..addFlag('version', negatable: false, help: 'Show version');
   final definitions = <String, CliCommand>{
     'workflow': workflowCommand(),
+    'record': recordCommand(),
     'tap': actionCommand(),
     'fill': actionCommand(fill: true),
     'scroll': swipeCommand(coordinates: false),
@@ -75,6 +77,8 @@ class CliParser {
       'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'scroll uses finger movement direction; reaching content is not guaranteed.\n'
       'screenshot [path] | logs\n'
+      'record start <path> --platform ios|android|macos --device <id>\n'
+      'record stop | record status (no connect required; close finalizes recording)\n'
       'workflow schema [action] | workflow validate <path> | workflow run <path>\n'
       'workflow: --format json|yaml --inputs <path> --inputs-format json|yaml\n'
       'validate --check-inputs checks bindings without connecting. stdin (-) requires format.\n'

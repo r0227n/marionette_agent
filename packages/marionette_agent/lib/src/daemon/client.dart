@@ -6,7 +6,7 @@ import '../diagnostics/diagnostic_logging.dart';
 import 'runtime.dart';
 import '../workflow/model.dart';
 
-/// Send one request per handshake. Auto-start is only allowed for connect.
+/// Send one request per handshake. Auto-start is allowed for connect and record start.
 class DaemonClient {
   DaemonClient(this.runtime, {List<String>? launchCommand})
     : launchCommand = launchCommand ?? defaultLaunchCommand();
@@ -85,7 +85,14 @@ class DaemonClient {
     try {
       connection = await _open(request);
       if (connection == null) {
-        if (request.command != 'connect') {
+        final startsRecording =
+            request.command == 'record' && request.params['action'] == 'start';
+        if (request.command != 'connect' && !startsRecording) {
+          if (request.command == 'record' &&
+              request.params.length == 1 &&
+              ['status', 'stop'].contains(request.params['action'])) {
+            return Result.success(request.session, {'recordingState': 'idle'});
+          }
           if (request.command == 'session' &&
               request.params['action'] == 'list') {
             return Result.success(null, {'sessions': []});
