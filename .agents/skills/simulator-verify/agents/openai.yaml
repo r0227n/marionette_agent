@@ -1,0 +1,4 @@
+interface:
+  display_name: "Simulator Verify"
+  short_description: "Verify CLI behavior and capture Simulator evidence"
+  default_prompt: "Use $simulator-verify to verify this CLI change against the example app and capture relevant screenshots or video."
