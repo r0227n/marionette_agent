@@ -365,7 +365,7 @@ marionette-agent --session demo close
 
 同じdaemon内では1端末につき1録画、1sessionにつき1録画です。競合はSESSION_CONFLICT（終了コード3）。録画専用sessionはsession list/showで接続状態disconnectedとなりますが、録画状態はrecord statusで確認できます。recordはsnapshot/refを変更しません。
 
-`--timeout`はコマンド要求の期限であり録画時間ではありません。開始待ちは最大30秒、Androidは標準screenrecordを180秒で自動停止して回収します。自動再開・分割結合はしません。停止要求がTIMEOUT（終了コード5、outcome:unknown）でも動画確定処理は継続するため、record statusで確認してください。
+`--timeout`はコマンド要求の期限であり録画時間ではありません。開始待ちは最大30秒です。開始がTIMEOUTになった場合も、遅れて生成された録画processの停止と予約回収を継続し、終了確認までは同じ端末で次の録画を開始できません。Androidは標準screenrecordを180秒で自動停止して回収します。自動再開・分割結合はしません。停止要求がTIMEOUT（終了コード5、outcome:unknown）でも動画確定処理は継続するため、record statusで確認してください。停止・保存の確定失敗はoutcome:failedです。
 
 状態はstarting/recording/stopping/stopped/failed、録画なしはidleです。elapsedMsは開始確認から確定までの壁時計経過時間で、動画のメディアdurationではありません。failedにはfailureとrecoveryPathがあり、stagingの動画を復旧できます（破損・未生成の場合を除く）。stop自体は録画失敗を非0で返します。
 

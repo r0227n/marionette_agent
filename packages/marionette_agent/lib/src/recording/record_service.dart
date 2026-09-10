@@ -9,34 +9,43 @@ class RecordService {
   final RecordingManager manager;
   bool contains(String session) => manager.contains(session);
 
-  Future<Json> handle(Request request) => _adapt(() async {
-    final params = request.params;
-    final action = params['action'];
-    if (action == 'start') {
-      final target = validateRecordStart(params);
-      return manager.start(
-        owner: request.session,
-        target: target,
-        path: params['path'] as String,
-        deadline: request.deadline,
-      );
-    }
-    if (params.length != 1) invalid('Unexpected recording arguments');
-    if (action == 'status') return manager.status(request.session);
-    if (action == 'stop') {
-      return manager.stop(request.session, request.deadline);
-    }
-    invalid('Usage: record start|stop|status');
-  });
+  Future<Json> handle(Request request) => _adapt(
+    () async {
+      final params = request.params;
+      final action = params['action'];
+      if (action == 'start') {
+        final target = validateRecordStart(params);
+        return manager.start(
+          owner: request.session,
+          target: target,
+          path: params['path'] as String,
+          deadline: request.deadline,
+        );
+      }
+      if (params.length != 1) invalid('Unexpected recording arguments');
+      if (action == 'status') return manager.status(request.session);
+      if (action == 'stop') {
+        return manager.stop(request.session, request.deadline);
+      }
+      invalid('Usage: record start|stop|status');
+    },
+    failureOutcome: request.params['action'] == 'stop'
+        ? Outcome.failed
+        : Outcome.notSent,
+  );
 
   Future<Json?> close(Request request) async {
     if (!contains(request.session)) return null;
     return _adapt(
       () async => (await manager.close(request.session, request.deadline))!,
+      failureOutcome: Outcome.failed,
     );
   }
 
-  Future<Json> _adapt(Future<Json> Function() operation) async {
+  Future<Json> _adapt(
+    Future<Json> Function() operation, {
+    required Outcome failureOutcome,
+  }) async {
     try {
       return await operation();
     } on PlatformException catch (error) {
@@ -44,7 +53,7 @@ class RecordService {
         error.code,
         error.message,
         hint: error.hint,
-        outcome: error.code == 'TIMEOUT' ? Outcome.unknown : Outcome.notSent,
+        outcome: error.code == 'TIMEOUT' ? Outcome.unknown : failureOutcome,
       );
     }
   }

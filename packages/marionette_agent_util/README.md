@@ -9,7 +9,7 @@ CLI解析・JSON envelope・session/ref・VM Service操作には依存しない�
 ## Screen recording
 
 - `RecordingManager`: owner/sessionごとの開始・状態・停止・close・dispose、端末排他、排他的な出力予約。
-- `ScreenRecorder` / `RecordingHandle`: backend境界。startはbackend固有の開始確認後に完了、stopは動画確定後に完了する。iOSは最初のフレーム、Androidは動画headerの生成を確認する。macOS標準コマンドにはfirst-frame通知がないため、起動後1秒間の生存を確認し、動画の生成はstopで検証する。
+- `ScreenRecorder` / `RecordingHandle`: backend境界。startはbackend固有の開始確認後に完了、stopは動画確定後に完了する。`isRunning`と`ended`でprocess終了を確認でき、終了未確認の端末予約は解放しない。iOSは最初のフレーム、Androidは動画headerの生成を確認する。macOS標準コマンドにはfirst-frame通知がないため、起動後1秒間の生存を確認し、動画の生成はstopで検証する。
 - `PlatformScreenRecorder`: iOS Simulator=`xcrun simctl`、Android=`adb shell screenrecord`、macOS=`/usr/sbin/screencapture`。
 - Web/Linux/Windowsの録画は`UNSUPPORTED_CAPABILITY`。未知のCLI platform名は`INVALID_ARGUMENT`。
 

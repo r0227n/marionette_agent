@@ -181,9 +181,9 @@ record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実�
 - sessionごとに同時に1録画、同一daemon内の端末ごとに1録画。開始中・停止処理中も予約し、競合はSESSION_CONFLICT。同じsessionで停止後に新しい保存先へ録画を開始できる。
 - startはdaemonを必要に応じて起動し、録画所有者としてsessionを保持する。未接続の録画sessionの接続状態はdisconnected、URIはnull。録画開始が成功したsessionはcloseまで保持する。
 - startは開始確認後に返り、録画自体はsession queueを占有しない。iOSは最初のフレームの通知、Androidは出力headerの生成を確認する。macOS標準コマンドにはfirst-frame通知がないため起動後1秒の生存を確認し、実際の動画生成はstopで検証する。
-- `--timeout`は開始・停止要求の期限で、録画時間の上限ではない。開始のbackend待ちは最大30秒。停止要求が期限切れになっても有界な停止・回収は続き、statusで結果を確認する。TIMEOUTはoutcome:unknownとなる。UI操作や録画を自動再送しない。
+- `--timeout`は開始・停止要求の期限で、録画時間の上限ではない。開始のbackend待ちは最大30秒。開始が期限切れになった場合も、遅れて生成されたhandleの停止・予約回収を継続し、終了確認までは同じ端末を再利用しない。停止要求が期限切れになっても有界な停止・回収は続き、statusで結果を確認する。TIMEOUTはoutcome:unknownとなる。UI操作や録画を自動再送しない。
 - Androidは180秒で自動停止し、ホストへ動画を回収して状態を更新する。分割・自動再開・結合は行わない。回転中の正しい収録は保証しない。
-- stopは録画プロセス終了・動画確定・必要な回収・保存まで待つ。重複stopは同じ結果を返す。録画がなければ`{recordingState: idle}`。daemonがないstatus/stopでは新daemonを起動しない。
+- stopは録画プロセス終了・動画確定・必要な回収・保存まで待つ。確定した停止・保存失敗はoutcome:failed、期限切れはoutcome:unknownとする。重複stopは同じ結果を返す。録画がなければ`{recordingState: idle}`。daemonがないstatus/stopでは新daemonを起動しない。
 - recordの開始・停止・照会はrefを失効させず、VM Service接続を変更しない。hot restartや接続断でも端末録画は継続できる。
 - closeは録画を確定してから接続を破棄し、data.recordingに最終状態を含める。既に録画が失敗していてもcloseは所有者を解放し、recordingState:failedと失敗情報を返す。
 - daemon正常終了（SIGINT/SIGTERMを含む）は録画を確定する。SIGKILL、ホスト停止後の復元は対象外。

@@ -14,6 +14,7 @@ class RecordingManager {
   final ScreenRecorder _recorder;
   final _entries = <String, _Entry>{};
   final _devices = <String>{};
+  final _cleanups = <Future<void>>{};
   bool _disposed = false;
   Future<void>? _disposing;
 
@@ -49,6 +50,7 @@ class RecordingManager {
     final entry = _Entry(target, path);
     _entries[owner] = entry;
     var reserved = false;
+    Future<RecordingHandle>? starting;
     try {
       // Reserve the destination exclusively; tools write into a private sibling
       // directory and cannot overwrite an existing user file, directory or link.
@@ -62,11 +64,21 @@ class RecordingManager {
       entry.stagingPath = '${entry.staging!.path}/capture.$extension';
       _check(deadline);
       final startupLimit = DateTime.now().add(const Duration(seconds: 30));
-      entry.handle = await _recorder.start(
-        target,
-        entry.stagingPath!,
-        deadline.isBefore(startupLimit) ? deadline : startupLimit,
-      );
+      final startDeadline = deadline.isBefore(startupLimit)
+          ? deadline
+          : startupLimit;
+      starting = _recorder.start(target, entry.stagingPath!, startDeadline);
+      try {
+        entry.handle = await starting.timeout(
+          startDeadline.difference(DateTime.now()),
+        );
+      } on TimeoutException {
+        throw const PlatformException(
+          'TIMEOUT',
+          'Recording startup is still being cleaned up',
+          hint: 'Do not restart the operation automatically.',
+        );
+      }
       if (_disposed) {
         throw const PlatformException('IO_ERROR', 'Recorder is shutting down');
       }
@@ -81,14 +93,6 @@ class RecordingManager {
       );
       return entry.info;
     } catch (error) {
-      await entry.handle?.stop().catchError((Object _) {});
-      if (reserved) {
-        await File(path).delete().catchError((Object _) => File(path));
-      }
-      await entry.staging
-          ?.delete(recursive: true)
-          .catchError((Object _) => entry.staging!);
-      _devices.remove(target.key);
       if (identical(_entries[owner], entry)) {
         if (previous == null) {
           _entries.remove(owner);
@@ -96,12 +100,20 @@ class RecordingManager {
           _entries[owner] = previous;
         }
       }
-      if (error is PlatformException) rethrow;
-      throw const PlatformException(
-        'IO_ERROR',
-        'Cannot start screen recording',
-        hint: 'Use a new output path in an existing writable directory.',
-      );
+      final failure = error is PlatformException
+          ? error
+          : const PlatformException(
+              'IO_ERROR',
+              'Cannot start screen recording',
+              hint: 'Use a new output path in an existing writable directory.',
+            );
+      final cleanup = _cleanupFailedStart(entry, starting, reserved: reserved);
+      if (failure.code == 'TIMEOUT') {
+        _trackCleanup(cleanup);
+      } else {
+        await cleanup;
+      }
+      throw failure;
     } finally {
       entry.startDone.complete();
     }
@@ -152,7 +164,7 @@ class RecordingManager {
       // Retain staging for recovery; never claim an incomplete file is complete.
     } finally {
       entry.finished = DateTime.now();
-      _devices.remove(entry.target.key);
+      _releaseDeviceWhenTerminated(entry);
     }
   }
 
@@ -179,8 +191,71 @@ class RecordingManager {
     await Future.wait(
       _entries.values.where((entry) => entry.handle != null).map(_finish),
     );
+    while (_cleanups.isNotEmpty) {
+      await Future.wait(_cleanups.toList());
+    }
     _entries.clear();
     _devices.clear();
+  }
+
+  Future<void> _cleanupFailedStart(
+    _Entry entry,
+    Future<RecordingHandle>? starting, {
+    required bool reserved,
+  }) async {
+    try {
+      var handle = entry.handle;
+      if (handle == null && starting != null) {
+        try {
+          handle = await starting;
+          entry.handle = handle;
+        } catch (_) {
+          // The backend rejected startup and has no handle to terminate.
+        }
+      }
+      if (handle != null) {
+        try {
+          await handle.stop();
+        } catch (_) {
+          // Preserve the original startup error; termination is observed below.
+        }
+        if (handle.isRunning) await _settled(handle.ended);
+      }
+    } finally {
+      if (reserved) {
+        await File(entry.path)
+            .delete()
+            .catchError((Object _) => File(entry.path));
+      }
+      await entry.staging
+          ?.delete(recursive: true)
+          .catchError((Object _) => entry.staging!);
+      _devices.remove(entry.target.key);
+    }
+  }
+
+  void _releaseDeviceWhenTerminated(_Entry entry) {
+    final handle = entry.handle;
+    if (handle == null || !handle.isRunning) {
+      _devices.remove(entry.target.key);
+      return;
+    }
+    final cleanup = _settled(handle.ended)
+        .whenComplete(() => _devices.remove(entry.target.key));
+    _trackCleanup(cleanup);
+  }
+
+  void _trackCleanup(Future<void> cleanup) {
+    _cleanups.add(cleanup);
+    unawaited(cleanup.whenComplete(() => _cleanups.remove(cleanup)));
+  }
+}
+
+Future<void> _settled(Future<void> future) async {
+  try {
+    await future;
+  } catch (_) {
+    // Completion still proves the capture process has terminated.
   }
 }
 

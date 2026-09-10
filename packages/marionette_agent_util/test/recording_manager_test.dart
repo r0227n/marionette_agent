@@ -28,13 +28,19 @@ class Handle implements RecordingHandle {
   final done = Completer<void>();
   Completer<void>? stopGate;
   bool fail = false;
+  bool failBeforeEnding = false;
   int stops = 0;
   @override
   Future<void> get ended => done.future;
   @override
+  bool get isRunning => !done.isCompleted;
+  @override
   Future<void> stop() async {
     stops++;
     await stopGate?.future;
+    if (failBeforeEnding) {
+      throw const PlatformException('IO_ERROR', 'termination not confirmed');
+    }
     if (!done.isCompleted) done.complete();
     if (fail) throw const PlatformException('IO_ERROR', 'capture failed');
     await File(path).writeAsBytes([1, 2, 3]);
@@ -52,11 +58,12 @@ void main() {
     String owner, {
     String? path,
     RecordingTarget device = target,
+    int deadlineMs = 2000,
   }) => manager.start(
     owner: owner,
     target: device,
     path: path ?? '${directory.path}/$owner.mp4',
-    deadline: deadline(),
+    deadline: deadline(deadlineMs),
   );
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('record-test-');
@@ -149,6 +156,86 @@ void main() {
     backend.handles.single.stopGate!.complete();
     await manager.stop('a', deadline());
     await start('b');
+  });
+  test(
+    'failed stop keeps device reserved until termination is confirmed',
+    () async {
+      await start('a');
+      final handle = backend.handles.single..failBeforeEnding = true;
+
+      await expectLater(
+        manager.stop('a', deadline()),
+        throwsA(
+          isA<PlatformException>().having((e) => e.code, 'code', 'IO_ERROR'),
+        ),
+      );
+      expect(manager.status('a')['recordingState'], 'failed');
+      await expectLater(
+        start('b'),
+        throwsA(
+          isA<PlatformException>().having(
+            (e) => e.code,
+            'code',
+            'SESSION_CONFLICT',
+          ),
+        ),
+      );
+
+      handle.done.complete();
+      await handle.ended;
+      await Future<void>.delayed(Duration.zero);
+      await start('b');
+    },
+  );
+  test('start deadline returns while late handle cleanup continues', () async {
+    backend.startGate = Completer<void>();
+    final pending = start(
+      'a',
+      deadlineMs: 20,
+    ).then<Object?>((value) => value, onError: (Object error) => error);
+    while (backend.handles.isEmpty) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    final handle = backend.handles.single;
+    handle.stopGate = Completer<void>();
+
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    Object? result;
+    try {
+      result = await pending.timeout(const Duration(milliseconds: 200));
+    } catch (error) {
+      result = error;
+    } finally {
+      backend.startGate!.complete();
+    }
+    expect(
+      result,
+      isA<PlatformException>().having((e) => e.code, 'code', 'TIMEOUT'),
+    );
+    expect(manager.contains('a'), false);
+    await expectLater(
+      start('b'),
+      throwsA(
+        isA<PlatformException>().having(
+          (e) => e.code,
+          'code',
+          'SESSION_CONFLICT',
+        ),
+      ),
+    );
+
+    handle.stopGate!.complete();
+    await handle.ended;
+    Map<String, Object?>? restarted;
+    for (var attempt = 0; attempt < 50 && restarted == null; attempt++) {
+      try {
+        restarted = await start('b');
+      } on PlatformException catch (error) {
+        if (error.code != 'SESSION_CONFLICT') rethrow;
+        await Future<void>.delayed(const Duration(milliseconds: 2));
+      }
+    }
+    expect(restarted, containsPair('recordingState', 'recording'));
   });
   test(
     'automatic end finalizes; failed end is visible and close releases owner',

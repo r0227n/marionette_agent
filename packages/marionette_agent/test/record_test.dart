@@ -12,6 +12,7 @@ import 'package:test/test.dart';
 
 class Recorder implements ScreenRecorder {
   int starts = 0;
+  Handle? lastHandle;
   @override
   Future<RecordingHandle> start(
     RecordingTarget target,
@@ -19,7 +20,7 @@ class Recorder implements ScreenRecorder {
     DateTime deadline,
   ) async {
     starts++;
-    return Handle(path);
+    return lastHandle = Handle(path);
   }
 }
 
@@ -27,12 +28,16 @@ class Handle implements RecordingHandle {
   Handle(this.path);
   final String path;
   final done = Completer<void>();
+  bool fail = false;
   @override
   Future<void> get ended => done.future;
+  @override
+  bool get isRunning => !done.isCompleted;
   @override
   Future<void> stop() async {
     await File(path).writeAsString('video fixture');
     if (!done.isCompleted) done.complete();
+    if (fail) throw const PlatformException('IO_ERROR', 'finalization failed');
   }
 }
 
@@ -148,6 +153,15 @@ void main() {
     );
     expect((await call('record', params: {'action': 'stop'})).exitCode, 0);
     expect(manager.sessions['a']!.status, 'disconnected');
+  });
+  test('confirmed stop failure uses failed outcome', () async {
+    await call('record', params: start());
+    recorder.lastHandle!.fail = true;
+
+    final result = await call('record', params: {'action': 'stop'});
+
+    expect(result.error!.code, 'IO_ERROR');
+    expect(result.error!.outcome, Outcome.failed);
   });
   test('daemon revalidates unknown parameters before starting', () async {
     final result = await call('record', params: {...start(), 'extra': true});

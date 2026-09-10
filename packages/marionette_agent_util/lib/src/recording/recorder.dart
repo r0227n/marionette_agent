@@ -24,6 +24,9 @@ abstract interface class RecordingHandle {
   /// Completes when capture ends (including automatic limits or failure).
   Future<void> get ended;
 
+  /// Remains true until capture process termination has been observed.
+  bool get isRunning;
+
   /// Idempotent. Throws if capture or finalization failed.
   Future<void> stop();
 }

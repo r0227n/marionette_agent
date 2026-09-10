@@ -256,6 +256,8 @@ class _ProcessRecording implements RecordingHandle {
   @override
   late final Future<void> ended;
   int? exitCode;
+  @override
+  bool get isRunning => exitCode == null;
   bool signalLocal = true;
   void Function(String)? onLine;
   Future<void> Function()? beforeStop, afterStop;
@@ -308,6 +310,12 @@ class _ProcessRecording implements RecordingHandle {
       }
       await afterStop?.call();
     } on TimeoutException {
+      process.kill(ProcessSignal.sigkill);
+      try {
+        await ended.timeout(const Duration(seconds: 5));
+      } on TimeoutException {
+        // RecordingManager retains the device reservation until ended settles.
+      }
       throw const PlatformException(
         'TIMEOUT',
         'Screen recorder did not finalize',
