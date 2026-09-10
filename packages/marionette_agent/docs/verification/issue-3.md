@@ -39,25 +39,35 @@
 
 ### 準備
 
-実際には各placeholderへ上記環境のprivate path／割当UDIDを設定した。URI値は表示・保存していない。
+`flutter run`は起動中のまま保持するため、runner用とCLI用の2つのterminalを使う。URI値は表示・検証記録へ保存しない。以下の端末は検証時の割当であり、人間が再現するときは使用する端末のUDIDへ置き換える。
+
+ターミナルAをこのworktreeの`example/`で開き、次を実行する。表示するのは私有ディレクトリのpathだけであり、ターミナルBへその値を引き継ぐ。
 
 ```bash
 umask 077
-VERIFY_DIR=$(mktemp -d /tmp/mra-i3.XXXXXX)
-export MARIONETTE_AGENT_RUNTIME_DIR="$VERIFY_DIR/runtime"
-CLI=packages/marionette_agent/bin/marionette_agent.dart
-SESSION=issue3
-SIMULATOR_UDID=<assigned-udid>
-
-cd example
+MRA_I3_CHECK=$(mktemp -d /tmp/mra-i3.XXXXXX)
+printf '%s\n' "$MRA_I3_CHECK"
+MRA_VERIFY_URI_FILE="$MRA_I3_CHECK/uri"
+SIMULATOR_UDID=DEDBBEE8-F70D-4CF2-A150-930585F683B0
 flutter pub get
 flutter run -d "$SIMULATOR_UDID" --debug --no-pub \
-  --vmservice-out-file=<private-uri-file>
-cd ..
+  --vmservice-out-file="$MRA_VERIFY_URI_FILE" \
+  >"$MRA_I3_CHECK/runner.log" 2>&1
+```
 
-VM_URI=$(<private-uri-file)
+アプリ起動後、ターミナルBを同じworktreeのルートで開く。`MRA_I3_CHECK`にはターミナルAで表示された実際の絶対pathを設定し、新しいディレクトリを作り直さない。
+
+```bash
+MRA_I3_CHECK=/tmp/mra-i3.XXXXXX  # ターミナルAで表示されたpathへ置換
+export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_I3_CHECK/runtime"
+MRA_VERIFY_URI_FILE="$MRA_I3_CHECK/uri"
+CLI="$PWD/packages/marionette_agent/bin/marionette_agent.dart"
+SESSION=issue3
+VM_URI=$(cat "$MRA_VERIFY_URI_FILE")
 dart "$CLI" --session "$SESSION" connect "$VM_URI" --json
 ```
+
+以下の操作もターミナルBで実行する。確認後はCLIでsessionをcloseし、ターミナルAのrunnerを`q`で終了してアプリの停止を確認する。URIとraw runner logを削除し、選択したエビデンスは保持する。
 
 ### 操作と観測
 
