@@ -192,4 +192,4 @@ record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実�
 
 保存は内部パッケージがdaemon内で担当し、動画はIPCで転送しない。出力先を排他的に予約して同じ親directoryのprivate stagingへ録画し、確定後に予約先へ書き込む。開始失敗時はこの要求の予約を回収し、確定失敗時はstagingを復旧用に保持する。予約後に別プロセスが意図的に保存先を差し替える競合までは保証しない。
 
-検証状況: iOS Simulator／Android Emulatorは製品CLIで確認する。macOSの実録画検証は利用者の指示で保留中。3環境すべての検証完了までは録画タスク全体を未完了として扱う。
+検証状況: iOS Simulator／Android Emulator／macOSメインディスプレイを製品CLIで確認済み。macOSではstart・status・stop・重複stop・既存file拒否・closeによる確定と、生成MOVの全フレーム復号・画面変化を確認した。

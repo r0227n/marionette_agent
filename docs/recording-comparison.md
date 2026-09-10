@@ -51,4 +51,4 @@ marionette --uri '<VM Service URI>' record-video --output mcp-keyboard.webm --du
 
 追加で製品CLIの`integration_test/record_smoke.dart`を、MARIONETTE_RECORD_PLATFORM=ios、MARIONETTE_RECORD_DEVICE=上記UDID、MARIONETTE_TEST_VM_URI_FILE=/tmp/mra-compare-ios-uri、MARIONETTE_RECORD_EVIDENCE=/tmp/mra-keyboard-productとして実行。接続なし録画開始、tap/fill、状態照会、stop、重複stop、上書き拒否、closeによる確定がすべて成功。12秒のフレームで`record verification`、19 characters、日本語仮想キーボードを確認した。
 
-OSダイアログ、PlatformView、保護コンテンツ、アプリクラッシュ後の継続は今回実測していない。macOS実録画検証は引き続き保留。Androidの上流方式との同時比較も今回の対象外。iOSの観測結果をこれらへ一般化しない。
+OSダイアログ、PlatformView、保護コンテンツ、アプリクラッシュ後の継続は今回実測していない。macOS実録画は後続検証で成功した。Androidの上流方式との同時比較も今回の対象外。iOSの観測結果をこれらへ一般化しない。

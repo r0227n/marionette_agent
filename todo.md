@@ -8,20 +8,18 @@
 - 完了条件: 同じ画面操作を両方式で録画・復号・目視確認し、実装判断と証跡をPR #19のコメントへ追加する。
 - 結果: [比較記録](docs/recording-comparison.md)。simctlは仮想キーボードと変換候補を収録、上流record-videoは同領域が空白。入力結果は両方に映る。製品CLIのrecord_smokeも再成功し、仮想キーボードを含む動画を確認。現在のOS録画方式を維持する。
 - 証跡: [PR #19コメント](https://github.com/r0227n/marionette_agent/pull/19#issuecomment-5605923365)へ動画3本と抽出PNG2枚を投稿。
-- 制約: 同時録画のsimctl原本はffmpeg null muxerでDTS警告3件。画像復号は成功、根因は未確定。製品CLI単独録画2本と上流動画の全フレーム復号は警告なし。性能比較・OSダイアログ・PlatformViewは未実測。R01のmacOS保留は継続。
+- 制約: 同時録画のsimctl原本はffmpeg null muxerでDTS警告3件。画像復号は成功、根因は未確定。製品CLI単独録画2本と上流動画の全フレーム復号は警告なし。性能比較・OSダイアログ・PlatformViewは未実測。
 - 変更は本記録と比較文書のみ。git diff --checkとリンク・仕様整合性を確認。
 
 ## R01: プラットフォーム処理の内部パッケージとrecord
 
-- 状態: 作業中
+- 状態: 完了
 - 担当モデル: GPT-6 (Codex)
 - 依存: 既存session/daemon/CLI。録画中のdaemon寿命・接続なし録画・期限処理のため基盤を拡張する。
 - 利用者の指示により `packages/marionette_agent_util` を新設。録画専用ではなく、CLIからOS固有処理を分離する内部パッケージとする。
 - 完了条件: iOS Simulator / Android Emulator / macOSのrecord start・status・stopを製品CLIから検証。動画を復号し画面変化を確認。format/analyze/全test、SPEC/ARCHITECTURE/日本語CLI参照更新。
 - worktree: feature/device-recording。hook_status=skipped-untrusted。既知の依存取得を個別実行する。
-- macOS: CGPreflightScreenCaptureAccess=false。画面収録権限の有効化を利用者へ依頼済み。
-
-- macOS: 許可変更後にCGPreflightScreenCaptureAccess=trueを確認。ただし利用者から再起動のため検証保留の指示あり。以降macOS実録画は実施せず、未完了として引き継ぐ。
+- macOS: CGPreflightScreenCaptureAccess=falseから許可変更後trueを確認。アプリ再起動後に製品CLIで実録画を検証済み。
 
 ### 実装結果
 
@@ -72,9 +70,21 @@ ffprobeで動画情報を確認し、全動画を`ffmpeg -v error -i <video> -ma
 
 PR用証跡: `/tmp/mra-record-pr-evidence/`（動画5本、操作前後のPNG4枚）。結果JSONと元動画は各evidence directoryに保持する。
 
-### 残る作業・制約
+### macOS実環境検証
 
-- macOS実録画検証: 利用者の指示で保留。許可確認APIがfalse→trueになったことは確認したが、製品record CLIによるmacOS動画の生成・再生は未確認。タスク全体は未完了のまま。
+ホストmacOS 26.5.2、メインディスプレイ番号1。`/tmp/mra-macos-verification-20260911/`を専用runtime・証跡directoryとして製品CLIを実行した。
+
+期待／実際: `record start`は1秒のprocess生存確認後にrecordingを返した。録画中の`record status`もrecording。Simulatorをホーム画面から検証アプリへ遷移させた後、`record stop`でstoppedとなりMOVを確定した。statusと重複stopは同じ結果を返し、既存MOVへのstartはIO_ERROR/outcome:not_sentで拒否した。別pathへの2回目のstart後に`close`を実行し、closed:trueかつrecordingState:stoppedで確定した。close後、daemon不在のstatusはidleを返した。
+
+| 動画 | codec / 解像度 / fps | media duration | bytes |
+| --- | --- | --- | --- |
+| operations.mov | H.264 / 4096×2304 / 60 | 51.748333s | 93,036,828 |
+| close.mov | H.264 / 4096×2304 / 60 | 14.198333s | 21,470,177 |
+
+両動画をffprobeで確認し、`ffmpeg -v error -i <video> -map 0:v:0 -f null -`で全フレームを復号。期待／実際: 終了コード0、stderrなし。5秒・35秒付近の抽出フレームでホーム画面から検証アプリへの変化を目視し、close.movの抽出フレームも表示内容を確認した。macOS録画はメインディスプレイ全体を含み、個人情報が映ったため動画と抽出PNGはPRへ添付せずローカルだけに保持する。
+
+### 残る制約
+
 - Android実機、iOS実機、Android180秒自動停止の実環境検証は未実施。自動終了経路は単体テストで確認。iOS実機は未対応。
 - macOS標準コマンドにはfirst-frame通知がなく、開始は起動後1秒の生存確認。stopで生成動画を検証する。
 - 音声、回転中の正しい収録、SIGKILL／ホスト停止後の復元、録画分割結合は対象外。

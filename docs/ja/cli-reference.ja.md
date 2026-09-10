@@ -348,7 +348,7 @@ Flutterアプリだけでなく、キーボードやOS画面を含む端末／�
 marionette-agent --session demo record start ./ios.mp4 --platform ios --device <UDID>
 # Android: adb devicesに表示されたserialを明示
 marionette-agent --session demo record start ./android.mp4 --platform android --device emulator-5556
-# macOS: 1=メインディスプレイ（実録画検証は現在保留中）
+# macOS: 1=メインディスプレイ
 marionette-agent --session demo record start ./mac.mov --platform macos --device 1
 
 marionette-agent --session demo record status --json
@@ -369,7 +369,7 @@ marionette-agent --session demo close
 
 状態はstarting/recording/stopping/stopped/failed、録画なしはidleです。elapsedMsは開始確認から確定までの壁時計経過時間で、動画のメディアdurationではありません。failedにはfailureとrecoveryPathがあり、stagingの動画を復旧できます（破損・未生成の場合を除く）。stop自体は録画失敗を非0で返します。
 
-macOSの標準コマンドにはfirst-frame通知がないため、startは起動後1秒の生存を確認して返します。実際の動画生成はstopで検証します。iOSは最初のフレーム、Androidは動画headerの生成を開始確認に使います。macOS実録画は利用者の指示で検証保留中です。
+macOSの標準コマンドにはfirst-frame通知がないため、startは起動後1秒の生存を確認して返します。実際の動画生成はstopで検証します。iOSは最初のフレーム、Androidは動画headerの生成を開始確認に使います。macOSのメインディスプレイ録画は製品CLIで検証済みです。
 
 `--platform web` / `linux` / `windows` はUNSUPPORTED_CAPABILITY（終了コード6）です。未知のplatform名はINVALID_ARGUMENT（終了コード2）になります。未対応platformはdaemon起動前に拒否し、別方式へ自動fallbackしません。後続対応: [Web #16](https://github.com/r0227n/marionette_agent/issues/16)、[Linux #17](https://github.com/r0227n/marionette_agent/issues/17)、[Windows #18](https://github.com/r0227n/marionette_agent/issues/18)。
 
