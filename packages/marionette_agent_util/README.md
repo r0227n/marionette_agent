@@ -1,6 +1,6 @@
 # marionette_agent_util
 
-`marionette_agent`専用の内部プラットフォームサービス。録画専用のパッケージではなく、OS・端末ごとのコマンド、ネイティブAPI、依存ツールの判定をここへ集約する。将来の端末情報取得などは独立したサービスとして追加する。
+OS・端末ごとのコマンド、ネイティブAPI、依存ツールの判定をここへ集約する。将来の端末情報取得などは独立したサービスとして追加する。
 
 CLI解析・JSON envelope・session/ref・VM Service操作には依存しない。CLIは公開APIを呼び出して`PlatformException`を製品エラーへ変換する。隣接リポジトリやMCPプロセスには依存しない。
 
