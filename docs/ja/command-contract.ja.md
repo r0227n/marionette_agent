@@ -87,6 +87,7 @@ ref、selector、座標を混在させてはいけません。selector値は空�
 | `ElementSwipe.distance` | 有限かつ0より大きい。既定200 logical pixel |
 | `CoordinateSwipe` | 始点と終点が異なる |
 | `Direction` | `left`、`right`、`up`、`down`。コンテンツではなく指の移動方向 |
+| `WaitRequest.pollIntervalMs` | 50〜1,000の整数。既定100ms |
 
 ## CommandContext
 
@@ -151,6 +152,12 @@ tap / fill / swipe / captureScreenshots / readLogs
 
 `scroll`は独立したbackend primitiveではなく、要素指定の`swipe`を使用します。成功結果には通常の`requiresSnapshot`に加えて`"command":"scroll"`を含めます。
 
+## wait
+
+単独waitとworkflow waitは`commands/wait.dart`の同じ`handleWait`へ、selector、state、poll間隔を正規化して渡します。単独waitは共通`--timeout`、workflow waitはstep期限とworkflow全体期限の早い方をExecutionのdeadlineとして使います。
+
+handlerは全paramsとselector capabilityを観測前に検証し、`CommandContext.read`で`Backend.inspect`だけを直列pollします。`exists`は一意性、visibility、text由来を検査し、`gone`は0件だけを成功とします。mutation経路を使わないため送信回数は0で、成功時は既存refを維持します。read中のtimeout／通信断は既存契約どおり`not_sent`で接続世代を破棄し、queue開始前のtimeoutは観測せず接続を維持します。
+
 ## screenshotとlogs
 
 `screenshot`と`logs`はread-onlyであり、既存refを失効させません。
@@ -193,7 +200,7 @@ INFO以上のdiagnostic recordだけをstderrへ出します。認証情報を�
 
 workflowは`SessionManager`で通常の1コマンド経路から分岐し、1つのqueue entryを完了まで占有します。各stepには新しい`Execution`と`CommandContext`を作り、1 step 1 mutationの制約を維持します。stepから`SessionManager.handle`を再帰呼び出ししてはいけません。
 
-workflowが通常handlerを利用できるactionは`snapshot`、`tap`、`fill`、`swipe`、`scroll`です。`wait`はworkflow専用のread-only primitiveです。stepで確定したoutcomeは親workflowで変更せず、進捗detailsを追加します。詳細は[workflow v1仕様](workflow-file-spec.ja.md)を参照してください。
+workflowが通常handlerを利用できるactionは`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`です。waitは単独コマンドと同じread-only handlerを利用し、step固有期限だけをworkflow側で設定します。stepで確定したoutcomeは親workflowで変更せず、進捗detailsを追加します。詳細は[workflow v1仕様](workflow-file-spec.ja.md)を参照してください。
 
 ## 検証
 
@@ -214,5 +221,6 @@ dart test
 - [transport_test.dart](../../packages/marionette_agent/test/transport_test.dart): IPC切断、version、64 MiB上限。
 - [artifact_writer_test.dart](../../packages/marionette_agent/test/artifact_writer_test.dart): PNG検証と排他的保存。
 - [workflow_execution_test.dart](../../packages/marionette_agent/test/workflow_execution_test.dart): workflowのstep境界と遅延応答。
+- [wait_test.dart](../../packages/marionette_agent/test/wait_test.dart): 単独／workflow waitの条件判定、入力、期限、queue、ref、送信0回。
 
 CLI機能を追加・変更した場合は、unit testだけでなく`example`をiOS Simulatorで起動し、製品CLI経由の画面変化まで確認します。

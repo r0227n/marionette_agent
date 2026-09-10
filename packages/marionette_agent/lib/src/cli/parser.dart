@@ -6,6 +6,7 @@ import '../commands/actions.dart';
 import '../commands/observations.dart';
 import 'workflow_command.dart';
 import 'record_command.dart';
+import 'wait_command.dart';
 
 /// Register ArgParser grammar and conversion from validated args to protocol params.
 class CliCommand {
@@ -41,6 +42,7 @@ class CliParser {
     'scroll': swipeCommand(coordinates: false),
     'screenshot': screenshotCommand(),
     'logs': CliCommand(ArgParser(), noArguments),
+    'wait': waitCommand(),
     'swipe': swipeCommand(),
     'connect': CliCommand(ArgParser(), (args) {
       if (args.rest.length != 1) invalid('Usage: connect <uri>');
@@ -77,6 +79,8 @@ class CliParser {
       'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'scroll uses finger movement direction; reaching content is not guaranteed.\n'
       'screenshot [path] | logs\n'
+      'wait <selector> [--state exists|gone] [--poll-interval <ms>]\n'
+      'wait observes only; run snapshot before the next UI operation.\n'
       'record start <path> --platform ios|android|macos --device <id>\n'
       'record stop | record status (no connect required; close finalizes recording)\n'
       'workflow schema [action] | workflow validate <path> | workflow run <path>\n'

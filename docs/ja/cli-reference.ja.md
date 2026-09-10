@@ -38,7 +38,7 @@ marionette-agent --session demo fill --key text_input -- '--not-an-option'
 
 ## 対象を指定するオプション
 
-要素を操作する`tap`、`fill`、`swipe`、`scroll`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。
+要素を操作する`tap`、`fill`、`swipe`、`scroll`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`ではrefを受理せず、selectorオプションのどれか1つだけを指定します。
 
 | 指定方法 | 説明 |
 | --- | --- |
@@ -48,7 +48,7 @@ marionette-agent --session demo fill --key text_input -- '--not-an-option'
 | `--text <value>` | 対応する要素型のtextと完全一致させます。表示用Semanticsのtextが常に操作対象になるとは限りません。 |
 | `--type <value>` | Flutter要素のtypeと完全一致させます。一意に一致する必要があります。 |
 
-selectorは実行時の観測で一意に一致する必要があります。0件なら`TARGET_NOT_FOUND`、複数件なら`AMBIGUOUS_TARGET`です。新しいsnapshot、再接続、切断、またはUI操作を行うと、それ以前のrefは失効します。UI操作後は再度snapshotを取得してください。
+操作コマンドのselectorは実行時の観測で一意に一致する必要があります。0件なら`TARGET_NOT_FOUND`、複数件なら`AMBIGUOUS_TARGET`です。waitの条件判定は後述の契約に従います。新しいsnapshot、再接続、切断、またはUI操作を行うと、それ以前のrefは失効します。UI操作後は再度snapshotを取得してください。
 
 ## sessionと接続
 
@@ -108,6 +108,33 @@ Snapshot 3
 @e8 TextField key="text_input"
 - Semantics "Status" (no unique actionable selector)
 ```
+
+### `wait`
+
+画面遷移などによる要素の出現または消失を、workflowファイルを作らずに待ちます。UI操作は送信せず、同じsessionの`inspect`だけをpollします。
+
+```text
+wait --key|--identifier|--text|--type <value>
+  [--state exists|gone] [--poll-interval <ms>]
+```
+
+| オプション | 既定値 | 説明 |
+| --- | --- | --- |
+| `--state <state>` | `exists` | `exists`は一意で可視またはvisibility不明の一致を待ち、`gone`は一致0件を待ちます。 |
+| `--poll-interval <ms>` | `100` | 観測完了後から次の観測までの間隔。50〜1,000の整数です。 |
+| 共通`--timeout <ms>` | `30000` | queue待ちと全pollを含む単独wait全体の期限です。 |
+
+```bash
+marionette-agent --session demo tap --key about_tab
+marionette-agent --session demo wait --key about_content --timeout 5000
+marionette-agent --session demo wait --key operation_scroll_area \
+  --state gone --poll-interval 100 --json
+marionette-agent --session demo snapshot
+```
+
+`exists`で2件以上一致すると`AMBIGUOUS_TARGET`です。`gone`は1件以上なら待機を続けます。非表示の1件は`exists`を満たしません。text selectorは表示textの由来を確認し、唯一の一致がbackend matcherに対応しない場合は`UNRESOLVABLE_TARGET`です。固定bindingではidentifier matcherがないため、`--identifier`は`UNSUPPORTED_CAPABILITY`になります。
+
+成功時は`data.state`と`data.requiresSnapshot:true`を返します。wait自体は公開snapshot／refを発行・更新・失効しませんが、待機中にUIが変化し得るため、後続操作の前に`snapshot`で画面と最新refを確認してください。wait中のtimeoutまたは通信断は`outcome:not_sent`となり、接続とrefを破棄します。queue内で開始前に期限切れとなった場合は観測せず、接続とrefを維持します。
 
 ## UI操作
 

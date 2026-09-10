@@ -103,12 +103,14 @@ CommandContextにsession実行、対象解決、期限確認、ref失効、mutat
 
 workflowはSessionManagerで通常経路から分岐するが、各stepは既存CommandRegistryと新しいExecution／CommandContextを使う。1つのExecutionで複数mutationを送信したり、stepからSessionManagerを再帰呼び出ししたりしない。
 
+waitは単独コマンドとworkflow stepの両方を同じCommandRegistry handlerへ正規化する。handlerはselector、state、poll間隔を再検証し、CommandContext.read経由でinspectだけを直列pollする。公開snapshot／refを生成せず、mutation経路と自動retryを持たない。workflowはstep固有期限を子Executionへ設定してから同じhandlerを呼び出す。
+
 ## 検証
 
 - 単体: 引数の排他・有限値、JSONと終了コード、ref失効・曖昧性・session分離、workflow parse／binding／実行。
 - adapter契約: 固定依存のresponse fixtureとFakeBackendでマッピング・異常系を確認。
-- IPC: 別CLIプロセス間の保持、同時起動、並行session、close競合、daemon停止、送信前後のtimeout。
-- Simulator: `example/`を使い、独立した2アプリ、入力欄、PageView、Dismissible、スクロール領域、ログ、workflowの停止と最終snapshotを検証。
+- IPC: 別CLIプロセス間の保持、同時起動、並行session、close競合、daemon停止、waitの共通期限、送信前後のtimeout。
+- Simulator: `example/`を使い、独立した2アプリ、入力欄、PageView、Dismissible、スクロール領域、ログ、単独waitの出現・消失、workflowの停止と最終snapshotを検証。
 
 FakeBackendの合格はSimulator検証の代わりにしない。コード変更時はパッケージ内でformat、analyze、関連testを実行し、引き継ぎ時は全体testも実行する。Simulator検証にはFlutter／bindingバージョン、Simulator機種・OS、コマンド、観測結果を記録する。
 
@@ -124,7 +126,7 @@ FakeBackendの合格はSimulator検証の代わりにしない。コード変更
 
 SessionManagerはworkflowを単独Execution.boundの外で分岐し、WorkflowExecutionが1つのqueue entry・開始epoch・全体deadline・停止状態・進捗・snapshot候補を所有する。各stepは親へ固定された新しいExecutionを持ち、従来の1回送信ガードを維持する。親はstepで確定したoutcomeを再分類しない。timeout時は親を停止し、開始epochだけを破棄する。遅延Futureは親停止状態を確認するため、新しい接続・ref・後続stepを変更できない。
 
-waitはworkflow専用のread primitiveで、ElementInfo.candidateValueによる一致をinspectでpollし、単独のtext候補は由来の信頼性も確認する。CommandContext.checkで計算後の期限も確認し、公開refを生成しない。その他のstepは既存CommandRegistryを直接呼ぶ。SessionManagerへstep単位で再帰しない。最終snapshot候補は後続mutationで破棄し、失敗時は返さない。
+wait stepは単独waitと同じ登録済みread handlerを使い、ElementInfo.candidateValueによる一致をinspectでpollし、単独のtext候補は由来の信頼性も確認する。CommandContext.checkで計算後の期限も確認し、公開refを生成しない。全stepが既存CommandRegistryを直接呼び、SessionManagerへstep単位で再帰しない。最終snapshot候補は後続mutationで破棄し、失敗時は返さない。
 
 IPC protocolVersionは3（record追加）。requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
 
