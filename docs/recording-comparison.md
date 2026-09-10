@@ -16,8 +16,15 @@
 
 同じSimulatorで次の2コマンドを同時に開始し、入力欄tap → 仮想キー「あ」「か」 → 変換確定 → キーボード終了を操作した。開始時点と終了時点は厳密には一致しない。simctl側は約29秒でSIGINT停止、上流側は35秒指定で終了。simctlの停止はキーボードを閉じる直前であり、終了後のレイアウト復元は上流動画で確認した。認証URIは証跡に記録しない。
 
+再現時は別々のターミナルで実行する。ターミナルAでは次を開始し、UI操作後（この比較では約29秒後）にCtrl+Cを押してSIGINTを送り、コマンドが終了するまで待つ。
+
 ```sh
 xcrun simctl io 022CF629-91E1-48F0-816B-2D86B8CD1D38 recordVideo --codec=h264 simctl-keyboard.mp4
+```
+
+ターミナルAの録画中にターミナルBで次を開始する。35秒後の自動終了まで待つ。
+
+```sh
 marionette --uri '<VM Service URI>' record-video --output mcp-keyboard.webm --duration 35 --transport tcp --verbose
 ```
 

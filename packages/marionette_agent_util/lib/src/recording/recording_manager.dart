@@ -9,11 +9,15 @@ import '../platform_exception.dart';
 /// The caller serializes requests per owner. Device reservations are synchronous
 /// across owners, including while a recorder is starting or finalizing.
 class RecordingManager {
-  RecordingManager({ScreenRecorder? recorder})
-    : _recorder = recorder ?? const PlatformScreenRecorder();
+  RecordingManager({
+    ScreenRecorder? recorder,
+    this.shutdownTimeout = const Duration(seconds: 60),
+  }) : _recorder = recorder ?? const PlatformScreenRecorder();
   final ScreenRecorder _recorder;
+  final Duration shutdownTimeout;
   final _entries = <String, _Entry>{};
   final _devices = <String>{};
+  final _active = <_Entry>{};
   final _cleanups = <Future<void>>{};
   bool _disposed = false;
   Future<void>? _disposing;
@@ -49,6 +53,7 @@ class RecordingManager {
     }
     final entry = _Entry(target, path);
     _entries[owner] = entry;
+    _active.add(entry);
     var reserved = false;
     Future<RecordingHandle>? starting;
     try {
@@ -56,12 +61,14 @@ class RecordingManager {
       // directory and cannot overwrite an existing user file, directory or link.
       await File(path).create(exclusive: true);
       reserved = true;
+      _checkActive(entry);
       entry.staging = await Directory(File(path).parent.path)
           .createTemp('.marionette-record-');
       final extension = target.platform == RecordingPlatform.macos
           ? 'mov'
           : 'mp4';
       entry.stagingPath = '${entry.staging!.path}/capture.$extension';
+      _checkActive(entry);
       _check(deadline);
       final startupLimit = DateTime.now().add(const Duration(seconds: 30));
       final startDeadline = deadline.isBefore(startupLimit)
@@ -88,6 +95,7 @@ class RecordingManager {
       // Automatic Android limit or unexpected recorder exit is finalized too.
       unawaited(
         entry.handle!.ended
+            .catchError((Object _) {})
             .then((_) => _finish(entry))
             .catchError((Object _) {}),
       );
@@ -145,6 +153,7 @@ class RecordingManager {
     entry.state = 'stopping';
     try {
       await entry.handle!.stop();
+      _checkActive(entry);
       final staged = File(entry.stagingPath!);
       if (!await staged.exists() || await staged.length() == 0) {
         throw const PlatformException('IO_ERROR', 'Recorder produced no video');
@@ -153,7 +162,17 @@ class RecordingManager {
       // Copy into our reserved destination. Do not rename over an arbitrary file.
       // As with screenshot saving, hostile replacement after reservation is out
       // of scope; ordinary pre-existing paths are rejected before capture.
-      await staged.openRead().pipe(File(entry.path).openWrite());
+      _checkActive(entry);
+      final sink = entry.sink = File(entry.path).openWrite();
+      unawaited(sink.done.catchError((Object _) {}));
+      final reader = entry.copy = StreamIterator(staged.openRead());
+      while (await reader.moveNext()) {
+        _checkActive(entry);
+        sink.add(reader.current);
+        await sink.flush();
+      }
+      await sink.close();
+      _checkActive(entry);
       entry.state = 'stopped';
       await entry.staging!.delete(recursive: true);
     } catch (error) {
@@ -161,6 +180,10 @@ class RecordingManager {
           ? error
           : const PlatformException('IO_ERROR', 'Cannot finalize recording');
       entry.state = 'failed';
+      final copy = entry.copy;
+      if (copy != null) unawaited(_settled(copy.cancel()));
+      final sink = entry.sink;
+      if (sink != null) unawaited(_settled(sink.close()));
       // Retain staging for recovery; never claim an incomplete file is complete.
     } finally {
       entry.finished = DateTime.now();
@@ -185,17 +208,53 @@ class RecordingManager {
 
   Future<void> _dispose() async {
     _disposed = true;
+    try {
+      await _drain().timeout(shutdownTimeout);
+    } on TimeoutException {
+      // Keep private staging for recovery. Never remove a file that an
+      // outstanding OS operation may still be using, or publish it as complete.
+      final entries = {..._active, ..._entries.values};
+      await Future.wait(entries.map(_abort))
+          .timeout(const Duration(seconds: 5), onTimeout: () => <void>[]);
+    } finally {
+      _entries.clear();
+      _devices.clear();
+    }
+  }
+
+  Future<void> _drain() async {
     await Future.wait(
       _entries.values.toList().map((entry) => entry.startDone.future),
     );
     await Future.wait(
-      _entries.values.where((entry) => entry.handle != null).map(_finish),
+      _entries.values
+          .toList()
+          .where((entry) => entry.handle != null)
+          .map(_finish),
     );
     while (_cleanups.isNotEmpty) {
       await Future.wait(_cleanups.toList());
     }
-    _entries.clear();
-    _devices.clear();
+  }
+
+  Future<void> _abort(_Entry entry) async {
+    if (entry.state == 'stopped') return;
+    entry.aborted = true;
+    entry.state = 'failed';
+    entry.error = const PlatformException(
+      'TIMEOUT',
+      'Recording shutdown expired',
+    );
+    entry.finished = DateTime.now();
+    await Future.wait([
+      if (entry.handle case final handle?) _settled(handle.abort()),
+      if (entry.copy case final copy?) _settled(copy.cancel()),
+      if (entry.sink case final sink?) _settled(sink.close()),
+    ]);
+  }
+
+  void _checkActive(_Entry entry) {
+    if (entry.aborted) throw entry.error!;
   }
 
   Future<void> _cleanupFailedStart(
@@ -214,6 +273,10 @@ class RecordingManager {
         }
       }
       if (handle != null) {
+        if (entry.aborted) {
+          await _settled(handle.abort());
+          return;
+        }
         try {
           await handle.stop();
         } catch (_) {
@@ -222,15 +285,18 @@ class RecordingManager {
         if (handle.isRunning) await _settled(handle.ended);
       }
     } finally {
-      if (reserved) {
+      if (reserved && !entry.aborted) {
         await File(entry.path)
             .delete()
             .catchError((Object _) => File(entry.path));
       }
-      await entry.staging
-          ?.delete(recursive: true)
-          .catchError((Object _) => entry.staging!);
+      if (!entry.aborted) {
+        await entry.staging
+            ?.delete(recursive: true)
+            .catchError((Object _) => entry.staging!);
+      }
       _devices.remove(entry.target.key);
+      _active.remove(entry);
     }
   }
 
@@ -238,10 +304,13 @@ class RecordingManager {
     final handle = entry.handle;
     if (handle == null || !handle.isRunning) {
       _devices.remove(entry.target.key);
+      _active.remove(entry);
       return;
     }
-    final cleanup = _settled(handle.ended)
-        .whenComplete(() => _devices.remove(entry.target.key));
+    final cleanup = _settled(handle.ended).whenComplete(() {
+      _devices.remove(entry.target.key);
+      _active.remove(entry);
+    });
     _trackCleanup(cleanup);
   }
 
@@ -316,6 +385,9 @@ class _Entry {
   int? bytes;
   PlatformException? error;
   Future<void>? finishing;
+  bool aborted = false;
+  StreamIterator<List<int>>? copy;
+  IOSink? sink;
   bool get complete => state == 'stopped' || state == 'failed';
   Map<String, Object?> get info => {
     'recordingState': state,

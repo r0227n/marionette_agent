@@ -30,6 +30,13 @@ class Handle implements RecordingHandle {
   bool fail = false;
   bool failBeforeEnding = false;
   int stops = 0;
+  int aborts = 0;
+  @override
+  Future<void> abort() async {
+    aborts++;
+    if (!done.isCompleted) done.complete();
+  }
+
   @override
   Future<void> get ended => done.future;
   @override
@@ -45,6 +52,37 @@ class Handle implements RecordingHandle {
     if (fail) throw const PlatformException('IO_ERROR', 'capture failed');
     await File(path).writeAsBytes([1, 2, 3]);
   }
+}
+
+class StalledFile implements File {
+  final data = StreamController<List<int>>();
+  bool cancelled = false;
+  StalledFile() {
+    data.onCancel = () {
+      cancelled = true;
+    };
+  }
+  @override
+  Future<bool> exists() async => true;
+  @override
+  Future<int> length() async => 3;
+  @override
+  Future<File> writeAsBytes(
+    List<int> bytes, {
+    FileMode mode = FileMode.write,
+    bool flush = false,
+  }) async => this;
+  @override
+  Stream<List<int>> openRead([int? start, int? end]) => data.stream;
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+final class StalledRead extends IOOverrides {
+  final file = StalledFile();
+  @override
+  File createFile(String path) =>
+      path.endsWith('/capture.mp4') ? file : super.createFile(path);
 }
 
 void main() {
@@ -275,6 +313,79 @@ void main() {
       expect(manager.contains('a'), false);
     },
   );
+  test('shutdown is bounded when startup never returns', () async {
+    manager = RecordingManager(
+      recorder: backend,
+      shutdownTimeout: const Duration(milliseconds: 20),
+    );
+    backend.startGate = Completer<void>();
+    final pending = start('a', deadlineMs: 5000);
+    final assertion = expectLater(pending, throwsA(isA<PlatformException>()));
+    while (backend.handles.isEmpty) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    var returned = false;
+    try {
+      await manager.dispose().timeout(const Duration(milliseconds: 200));
+      returned = true;
+    } on TimeoutException {
+      // Release the fake after observing the unbounded shutdown regression.
+    } finally {
+      backend.startGate!.complete();
+      await assertion;
+    }
+    expect(returned, isTrue);
+    expect(backend.handles.single.aborts, 1);
+  });
+  test('shutdown aborts a stalled stop and retains recovery video', () async {
+    manager = RecordingManager(
+      recorder: backend,
+      shutdownTimeout: const Duration(milliseconds: 20),
+    );
+    await start('a');
+    final handle = backend.handles.single;
+    handle.stopGate = Completer<void>();
+    await File(handle.path).writeAsBytes([9, 8, 7]);
+    await manager.dispose().timeout(const Duration(milliseconds: 200));
+    expect(handle.aborts, 1);
+    expect(await File(handle.path).readAsBytes(), [9, 8, 7]);
+    expect(await File('${directory.path}/a.mp4').length(), 0);
+    handle.stopGate!.complete();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    // The late stop must not publish or remove the recovery file.
+    expect(await File(handle.path).exists(), isTrue);
+    expect(await File('${directory.path}/a.mp4').length(), 0);
+  });
+  test(
+    'shutdown cancels stalled file copy without publishing success',
+    () async {
+      final io = StalledRead();
+      await IOOverrides.runWithIOOverrides(() async {
+        manager = RecordingManager(
+          recorder: backend,
+          shutdownTimeout: const Duration(milliseconds: 20),
+        );
+        await start('a');
+        await manager.dispose().timeout(const Duration(milliseconds: 200));
+        expect(io.file.cancelled, isTrue);
+        expect(await File('${directory.path}/a.mp4').length(), 0);
+        expect(
+          await Directory(backend.handles.single.path).parent.exists(),
+          isTrue,
+        );
+      }, io);
+      await io.file.data.close();
+    },
+  );
+  test('failed ended notification finalizes and releases the device', () async {
+    await start('a');
+    final handle = backend.handles.single..fail = true;
+    handle.done.completeError(StateError('stream failed'));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(manager.status('a')['recordingState'], 'failed');
+    expect(handle.stops, 1);
+    await start('b');
+  });
   test('invalid device and suffix rejected before any recording', () async {
     await expectLater(
       start(

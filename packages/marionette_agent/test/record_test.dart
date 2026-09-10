@@ -30,6 +30,11 @@ class Handle implements RecordingHandle {
   final done = Completer<void>();
   bool fail = false;
   @override
+  Future<void> abort() async {
+    if (!done.isCompleted) done.complete();
+  }
+
+  @override
   Future<void> get ended => done.future;
   @override
   bool get isRunning => !done.isCompleted;

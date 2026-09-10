@@ -29,4 +29,8 @@ abstract interface class RecordingHandle {
 
   /// Idempotent. Throws if capture or finalization failed.
   Future<void> stop();
+
+  /// Force termination of this capture only; do not publish an incomplete file.
+  /// Must be safe after stop and must not wait indefinitely for process exit.
+  Future<void> abort();
 }

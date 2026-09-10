@@ -96,6 +96,16 @@ class PlatformScreenRecorder implements ScreenRecorder {
                 '*$remote*) kill -2 $remotePid;; esac',
           ], DateTime.now().add(const Duration(seconds: 5)));
         };
+        handle.beforeAbort = () async {
+          if (remotePid == null) return;
+          await _run('adb', [
+            '-s',
+            target.device,
+            'shell',
+            'case "\$(cat /proc/$remotePid/cmdline 2>/dev/null)" in '
+                '*$remote*) kill -9 $remotePid;; esac',
+          ], DateTime.now().add(const Duration(seconds: 5)));
+        };
         handle.afterStop = () async {
           await _run('adb', [
             '-s',
@@ -202,26 +212,31 @@ Future<String> _run(
 }) async {
   _check(deadline);
   final process = await _spawn(executable, args);
-  // Consume bounded output without forwarding device/tool diagnostics.
+  return consumeRecordingCommand(process, deadline, allowFailure: allowFailure);
+}
+
+/// Internal process-output seam; the deadline covers exit and both pipes.
+Future<String> consumeRecordingCommand(
+  Process process,
+  DateTime deadline, {
+  bool allowFailure = false,
+}) async {
   final output = StringBuffer();
-  final outputDone = Completer<void>();
-  final subscription = process.stdout
-      .transform(utf8.decoder)
-      .listen(
-        (text) {
-          if (output.length < 1024 * 1024) output.write(text);
-        },
-        onDone: outputDone.complete,
-        onError: outputDone.completeError,
-      );
+  final outputDone = process.stdout.transform(utf8.decoder).forEach((text) {
+    if (output.length < 1024 * 1024) output.write(text);
+  });
   final errors = process.stderr.drain<void>();
+  // Install handlers on every future before waiting for process termination.
+  final completed = Future.wait<Object?>([
+    process.exitCode,
+    outputDone,
+    errors,
+  ], eagerError: true);
   try {
-    final code = await process.exitCode.timeout(
+    final results = await completed.timeout(
       deadline.difference(DateTime.now()),
     );
-    await outputDone.future;
-    await errors;
-    if (code != 0 && !allowFailure) {
+    if (results.first != 0 && !allowFailure) {
       throw const PlatformException(
         'IO_ERROR',
         'Platform recording command failed',
@@ -235,19 +250,26 @@ Future<String> _run(
       'TIMEOUT',
       'Platform recording command timed out',
     );
-  } finally {
-    await subscription.cancel();
+  } catch (_) {
+    process.kill(ProcessSignal.sigkill);
+    rethrow;
   }
+  // Do not wait for pipe closure after a timeout or stream failure. Future.wait
+  // still consumes late failures, even when an inherited pipe remains open.
 }
 
 class _ProcessRecording implements RecordingHandle {
   _ProcessRecording(this.process, {this.failureHint}) {
     _stdoutDone = _consume(process.stdout);
     _stderrDone = _consume(process.stderr);
-    ended = process.exitCode.then((code) async {
-      exitCode = code;
-      await Future.wait([_stdoutDone, _stderrDone]);
-    });
+    ended = Future.wait([
+      process.exitCode.then((code) {
+        exitCode = code;
+      }),
+      _stdoutDone,
+      _stderrDone,
+    ]).then((_) {});
+    unawaited(ended.catchError((Object _) {}));
   }
   final Process process;
   final String? failureHint;
@@ -260,7 +282,8 @@ class _ProcessRecording implements RecordingHandle {
   bool get isRunning => exitCode == null;
   bool signalLocal = true;
   void Function(String)? onLine;
-  Future<void> Function()? beforeStop, afterStop;
+  Future<void> Function()? beforeStop, afterStop, beforeAbort;
+  bool _aborted = false;
   Future<void>? _stopping;
 
   Future<void> _consume(Stream<List<int>> stream) async {
@@ -293,6 +316,14 @@ class _ProcessRecording implements RecordingHandle {
   @override
   Future<void> stop() => _stopping ??= _stop();
 
+  @override
+  Future<void> abort() async {
+    _aborted = true;
+    // Stop the host process immediately, even if the remote device is offline.
+    process.kill(ProcessSignal.sigkill);
+    await beforeAbort?.call();
+  }
+
   Future<void> _stop() async {
     try {
       if (exitCode == null) {
@@ -307,6 +338,9 @@ class _ProcessRecording implements RecordingHandle {
           'Screen recording failed',
           hint: failureHint,
         );
+      }
+      if (_aborted) {
+        throw const PlatformException('TIMEOUT', 'Recording shutdown expired');
       }
       await afterStop?.call();
     } on TimeoutException {

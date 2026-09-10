@@ -8,6 +8,8 @@ import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
+import 'package:marionette_agent/src/recording/record_service.dart';
+import 'package:marionette_agent_util/marionette_agent_util.dart';
 
 import 'session_test.dart' show request;
 
@@ -25,7 +27,80 @@ class _DelayedDispose extends SessionManager {
   }
 }
 
+class _StalledRecorder implements ScreenRecorder, RecordingHandle {
+  final done = Completer<void>();
+  bool aborted = false;
+  @override
+  Future<RecordingHandle> start(
+    RecordingTarget target,
+    String path,
+    DateTime deadline,
+  ) async => this;
+  @override
+  Future<void> get ended => done.future;
+  @override
+  bool get isRunning => !done.isCompleted;
+  @override
+  Future<void> stop() => Completer<void>().future;
+  @override
+  Future<void> abort() async {
+    aborted = true;
+    if (!done.isCompleted) done.complete();
+  }
+}
+
 void main() {
+  test(
+    'recording deadline lets daemon release metadata and lifetime lock',
+    () async {
+      final directory = await Directory('/tmp')
+          .createTemp('mra-record-shutdown-');
+      await Process.run('chmod', ['700', directory.path]);
+      final runtime = await RuntimeDirectory.prepare(directory: directory.path);
+      final recorder = _StalledRecorder();
+      final recordings = RecordingManager(
+        recorder: recorder,
+        shutdownTimeout: const Duration(milliseconds: 20),
+      );
+      final manager = SessionManager(
+        FakeBackend.new,
+        coreCommands(),
+        recordings: RecordService(manager: recordings),
+      );
+      final server = DaemonServer(runtime, manager);
+      final running = server.run();
+      try {
+        final readyDeadline = DateTime.now().add(const Duration(seconds: 2));
+        while (!File(runtime.metadata).existsSync()) {
+          if (DateTime.now().isAfter(readyDeadline)) {
+            fail('Daemon did not start');
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 5));
+        }
+        await recordings.start(
+          owner: 'recording',
+          target: const RecordingTarget(
+            RecordingPlatform.android,
+            'emulator-5556',
+          ),
+          path: '${directory.path}/video.mp4',
+          deadline: readyDeadline,
+        );
+        await server.close().timeout(const Duration(seconds: 1));
+        await running.timeout(const Duration(seconds: 1));
+        expect(recorder.aborted, isTrue);
+        expect(File(runtime.metadata).existsSync(), isFalse);
+        expect(
+          FileSystemEntity.typeSync(runtime.socket),
+          FileSystemEntityType.notFound,
+        );
+      } finally {
+        await server.close();
+        await directory.delete(recursive: true);
+      }
+    },
+  );
+
   test(
     'shutdown waits for cleanup after delivering the final response',
     () async {
