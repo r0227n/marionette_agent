@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Only the GitHub boundary is simulated. No live Issues/PRs are written.
+set -eo pipefail
+case "$1 $2" in
+  'api --paginate') printf '[[]]\n' ;;
+  'api repos/'*)
+    jq -n --arg state "${CIP_FIXTURE_ISSUE_STATE:-open}" '{number:1,title:"Fixture change",body:"Update fixture contents",state:$state,issue_dependencies_summary:{blocked_by:0}}'
+    ;;
+  'pr list')
+    if [ -f "$CIP_FIXTURE_ROOT/pr.json" ]; then jq '[.]' "$CIP_FIXTURE_ROOT/pr.json"; else printf '[]\n'; fi
+    ;;
+  'pr create')
+    shift 2
+    if [ "$1" = --help ]; then printf '%s\n' '--attach'; exit 0; fi
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --base) base=$2; shift 2 ;;
+        --head) head=$2; shift 2 ;;
+        --body-file) body=$2; shift 2 ;;
+        --draft) draft=true; shift ;;
+        *) shift 2 ;;
+      esac
+    done
+    jq -n --arg base "$base" --arg head "$head" --arg commit "$(git rev-parse HEAD)" --argjson draft "${draft:-false}" --rawfile body "$body" \
+      '{url:"https://github.com/fixture/project/pull/1",state:"OPEN",isDraft:$draft,headRefOid:$commit,headRefName:$head,baseRefName:$base,body:$body}' > "$CIP_FIXTURE_ROOT/pr.json"
+    printf 'https://github.com/fixture/project/pull/1\n'
+    ;;
+  'pr view') cat "$CIP_FIXTURE_ROOT/pr.json" ;;
+  *) printf 'Unexpected gh fixture invocation\n' >&2; exit 2 ;;
+esac

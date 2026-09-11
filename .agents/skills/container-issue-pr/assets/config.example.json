@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "source": "/absolute/path/to/repository",
+  "state_root": "/absolute/path/outside/repository/container-issue-pr",
+  "lock_root": "/absolute/shared/path/container-issue-pr-locks",
+  "repository": "owner/repository",
+  "remote": "origin",
+  "base": "main",
+  "branch_prefix": "feature",
+  "parallelism": 2,
+  "container": {
+    "image": "local/development-agent:latest",
+    "network": "bridge",
+    "cpus": 2,
+    "memory": "4g",
+    "env_file": null
+  },
+  "agent": {
+    "argv": ["/usr/local/bin/task-agent"]
+  },
+  "copy": {
+    "exclude": [".env", ".env.*", ".DS_Store", "node_modules", ".dart_tool", "build", ".build", "Pods", ".gradle", "DerivedData"],
+    "extra": []
+  },
+  "host": {
+    "resources": ["host-runtime"],
+    "env": {},
+    "commands": [
+      {"name": "Host acceptance checks", "cwd": ".", "argv": ["bash", "scripts/verify-host.sh"]}
+    ]
+  },
+  "pr": {
+    "evidence": "required",
+    "waiver_reason": ""
+  }
+}
