@@ -5,6 +5,8 @@ Issue: https://github.com/r0227n/marionette_agent/issues/10
 Owner: sole Issue #10 worker; coordinator requested gpt-6-astra / medium.
 Branch: `feature/issue-10-snapshot-filter`.
 Base: `50ccf97f47ecf03a51ea3c5646c9164325570c0b` (`origin/develop`).
+Verified implementation/fixture commit: `39950f50b30925ae8e4c38687d41b92479cf4c91`.
+The following commit only records this verified hash; it does not change code.
 Worktree: `/Users/r0227n/Dev/marionette_agent-worktrees/feature-issue-10-snapshot-filter`.
 Progress index: repository-root `todo.md`, created because none existed.
 
