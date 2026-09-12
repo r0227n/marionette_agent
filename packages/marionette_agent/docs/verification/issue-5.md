@@ -6,6 +6,9 @@
 - Owner: sole Issue #5 worker; branch `feature/issue-5-is-visible`.
 - Worktree: `/Users/r0227n/Dev/marionette_agent-worktrees/feature-issue-5-is-visible`.
 - Base: `50ccf97f47ecf03a51ea3c5646c9164325570c0b`.
+- Verified implementation: `0fc5785f7bd7fc2c67a60a3574f663c479142852`.
+  Simulator ran the identical product code before this commit; only test timeout
+  and documentation changes followed the live run.
 - Flutter 3.47.2; example `marionette_flutter` 0.6.0; backend `marionette_mcp` 0.6.0.
 - iPhone Air, iOS 26.2, reserved UDID `C66CFC02-289C-4106-8F63-93DF694BB2C4`.
 - Private run directory `/tmp/mra-i5.3SLMDd`, runtime `/tmp/mra-i5.3SLMDd/runtime`, session `p1-issue-5`.
@@ -15,8 +18,11 @@
 
 `dart format .` and `dart analyze` passed in `packages/marionette_agent`.
 Formatting-only churn in the pre-existing `artifact_writer_test.dart` was excluded.
-The full suite is being rerun after process startup timeouts on the shared host
-(load average 495.72). No failing behavior assertion is being treated as passing.
+`dart test --concurrency=1` passed all 168 tests in 1m31s on the implementation
+commit above, with no skips. The default-concurrency and first serial runs hit
+process startup timeouts on the shared host (load average 495.72); the final run
+passed after load decreased. No product code or existing test deadline was changed
+to resolve those failures. Log: `/private/tmp/mra-p1-20260912/worker-5-tests-final.log`.
 Unit and IPC fixtures cover true/false/null, missing/ambiguous targets, unsupported
 selectors and stale refs. Unit tests verify the exact published observation is
 retained, no mutation is sent, and the prior ref still works for a later tap.
@@ -59,6 +65,7 @@ FakeBackend unit and IPC fixtures, without claiming live false/null evidence.
 ## Evidence and teardown
 
 - `/tmp/mra-i5.3SLMDd/evidence/before.png` and `after.png`: both opened with view_image.
+  Both have SHA-256 `343f2e0af26b1f4999f0e73933fef0a06cce0a63bc734512dfa14bd28ab96f83`.
 - `/tmp/mra-i5.3SLMDd/evidence/scenarios.log`: commands and exit codes.
 - Same directory: `before.json`, `after-snapshot.out`, `*-text.out`, `*-json.out`.
 - Harness: `/tmp/mra-i5.3SLMDd/verify.sh` (no URI).
