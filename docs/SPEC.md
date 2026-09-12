@@ -42,9 +42,9 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 
 | オプション | 契約 |
 | --- | --- |
-| `--session <name>` | 省略時は `default`。英数字で始まる英数字・`_`・`-`、最大64文字 |
+| `--session <name>` | 省略時は `MARIONETTE_AGENT_SESSION`、未設定なら `default`。英数字で始まる英数字・`_`・`-`、最大64文字 |
 | `--json` | stdoutへ1つのJSONオブジェクトを出力 |
-| `--timeout <ms>` | DurationとDateTimeで表現可能な正の整数。既定30,000ms。待ち行列・接続・処理を含む期限。範囲外はINVALID_ARGUMENT |
+| `--timeout <ms>` | DurationとDateTimeで表現可能な正の整数。省略時は `MARIONETTE_AGENT_TIMEOUT_MS`、未設定なら30,000ms。待ち行列・接続・処理を含む期限。範囲外はINVALID_ARGUMENT |
 | `--content-boundaries` | 値なしflag、既定無効。snapshot要素／logs entryを未信頼コンテンツとして識別 |
 | `--max-output <chars>` | 正の整数、既定無制限。snapshot／logsの項目列をUnicode code point数で制限 |
 | `--idle-timeout <duration>` | daemon全体のidle期限。既定1h、0で無効。整数msまたはms/s/m/h接尾辞 |
@@ -52,11 +52,13 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 
 共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。対話入力は要求しない。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
 
-構文エラーでも、有効に指定されたsessionとJSONモードを応答へ反映する。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
+sessionとtimeoutはそれぞれ明示CLI > 環境変数 > 既定値の順で選び、選択された値だけに既存の名前・正整数・Duration／DateTime範囲検証を適用する。環境変数の空文字も設定済みとして扱い、不正ならINVALID_ARGUMENTとする。明示CLIで上書きされた環境値は空文字・不正値でも検証しない。明示CLIの欠損・重複・不正値は環境値へ戻さず引数エラーとする。環境変数はCLI呼出しごとに解決し、選択したtimeoutはqueue待ちを含む既存の絶対deadlineへ変換する。configファイル、認証情報、session id、idle-timeoutの環境fallbackは提供しない。
+
+構文エラーでも、有効に選択されたsession（環境値を含む）とJSONモードを応答へ反映する。不正なsessionはnull、session非依存コマンドもnullとする。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
 
 ### 共通安全オプション
 
-共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。新しい3オプションもhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。
+共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。新しい3オプションもhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。この3オプションには環境変数や設定ファイルのfallbackはない。
 
 `--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
 

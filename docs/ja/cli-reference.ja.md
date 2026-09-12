@@ -12,9 +12,9 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 
 | オプション | 既定値 | 説明 |
 | --- | --- | --- |
-| `--session <name>` | `default` | 操作するsession名。英数字で始まり、英数字・`_`・`-`だけで構成された最大64文字を指定します。 |
+| `--session <name>` | 環境変数 → `default` | 操作するsession名。英数字で始まり、英数字・`_`・`-`だけで構成された最大64文字を指定します。 |
 | `--json` | 無効 | 成功・失敗とも、stdoutへ結果を1つのJSONオブジェクトとして出力します。シェルスクリプトやagentからの利用に適しています。 |
-| `--timeout <ms>` | `30000` | ファイル読込、daemon起動、キュー待ち、接続、処理を含む期限を正の整数のミリ秒で指定します。 |
+| `--timeout <ms>` | 環境変数 → `30000` | ファイル読込、daemon起動、キュー待ち、接続、処理を含む期限を正の整数のミリ秒で指定します。 |
 | `--content-boundaries` | 無効 | snapshot要素行とlogs entryに呼出し固有の境界を付けます。JSONではmetadataを追加します。 |
 | `--max-output <chars>` | 無制限 | 正の整数。snapshot/logsの項目列をUnicode code point数で制限します。 |
 | `--idle-timeout <duration>` | `1h` | daemon全体の無操作期限。整数msまたはms/s/m/h接尾辞。`0`で自動終了を無効にします。 |
@@ -38,6 +38,25 @@ marionette-agent snapshot --session demo --timeout 10000 --json
 ```bash
 marionette-agent --session demo fill --key text_input -- '--not-an-option'
 ```
+
+### 環境変数によるsessionとtimeoutの既定値
+
+`--session`は`MARIONETTE_AGENT_SESSION`、`--timeout`は`MARIONETTE_AGENT_TIMEOUT_MS`へフォールバックします。それぞれ **明示CLI > 環境変数 > 組込み既定値** の順です。同じruntime directoryを使う独立CLIプロセス間で同じ環境sessionを利用できます。
+
+```bash
+export MARIONETTE_AGENT_SESSION=demo
+export MARIONETTE_AGENT_TIMEOUT_MS=10000
+marionette-agent connect "$VM_URI"
+marionette-agent snapshot --json
+marionette-agent session show --session other --timeout 30000 --json
+marionette-agent close
+```
+
+選択された値だけを検証します。session名は上表の名前規則、timeoutは正整数かつDuration／DateTimeで表現可能な範囲が必要です。空文字、空白、timeoutの0・負数・小数・単位付き値・範囲外はINVALID_ARGUMENT（終了コード2）です。不正値を既定値に戻しません。明示CLIに隠れた環境値は不正でも無視しますが、明示CLIの欠損・重複・不正値は環境値で補いません。
+
+構文エラーでも、有効な環境sessionまたは明示sessionとJSONモードを回復します。不正なsessionとsession非依存コマンドの応答sessionはnullです。オプションの値や`--`以降の文字列は共通オプションとして再解釈しません。timeoutにはキュー待ちも含まれ、環境値もCLI指定と同じ絶対期限になります。
+
+configファイル、認証情報、session id、idle-timeout用の環境fallbackはありません。runtime directoryは従来の`MARIONETTE_AGENT_RUNTIME_DIR`で指定します。
 
 ### 未信頼コンテンツと出力量
 

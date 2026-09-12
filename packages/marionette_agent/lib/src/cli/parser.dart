@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:args/args.dart';
 
 import 'common_options.dart';
@@ -19,13 +21,18 @@ class CliCommand {
 /// args owns tokenization, subcommands, option values, -- and usage rendering.
 /// Only the product's duplicate-option and value constraints are custom.
 class CliParser {
-  CliParser({Map<String, CliCommand> commands = const {}}) {
+  CliParser({
+    Map<String, CliCommand> commands = const {},
+    Map<String, String>? environment,
+  }) : parser = CommonOptions.createParser(
+         environment ?? Platform.environment,
+       ) {
     definitions.addAll(commands);
     for (final entry in definitions.entries) {
       parser.addCommand(entry.key, entry.value.parser);
     }
   }
-  final parser = CommonOptions.createParser();
+  final ArgParser parser;
   final definitions = <String, CliCommand>{
     'workflow': workflowCommand(),
     'record': recordCommand(),
@@ -81,7 +88,9 @@ class CliParser {
       'sensitive forbids defaults; snapshots may reveal values displayed by the app.\n'
       'Workflow stops on failure; completed steps must not be replayed automatically.\n'
       'Selectors: --key <value> | --identifier <value> | --text <value> | --type <value>\n'
-      'Common options work before or after commands. Use -- for literal arguments.';
+      'Common options work before or after commands. Use -- for literal arguments.\n'
+      'Session/timeout validate only the selected CLI, environment or default value.\n'
+      'Empty or invalid selected values are INVALID_ARGUMENT; overridden environment values are ignored.';
 
   Invocation parse(
     List<String> arguments, {

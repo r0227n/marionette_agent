@@ -161,9 +161,11 @@ RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に
 
 単体テストは保存保護・端末排他・開始失敗・停止期限・異常終了・終了競合、CLIテストは未接続録画session・ref保持・通信断後の継続・close・未対応platformを検証する。`integration_test/record_smoke.dart`は製品CLIで開始→接続→操作→動画確定→重複stop→上書き拒否→close確定を確認する。実動画を復号して画面変化を確認する。
 
-## 共通安全オプション（Issue #2）
+## 共通オプション（Issue #2・#8）
 
 `cli/common_options.dart`が既存・新規の全共通オプションの名前、help、既定値、ArgParser登録、重複検出、構文エラー回復、値検証とCommonOptionsを所有する。CliParserはrootへ一度登録し、argsの継承によって全command／subcommandへ適用する。個別command parserに定義を複写しない。IPCのsessionと出力上限の再検証も同じ値検証へ委譲する。
+
+CliParserは呼出元のPlatform.environment（テストでは注入したmap）をCommonOptions.createParserへ渡す。session／timeoutのArgParser既定値を環境変数 > 組込み既定値で設定し、argsが明示CLIを優先する。検証は選択後にだけ実行し、空値を未設定として扱わない。構文エラー回復も同じparserのsession既定値を使い、環境解決を重複実装しない。runnerは選択されたtimeoutを解析開始前の時刻からの絶対deadlineへ変換する既存経路を使い、daemonやsession queueは環境変数を再解決しない。
 
 Requestは`maxOutput`と`outputJson`をparams外に持つ。`output/content.dart`の項目serializerをdaemonの制限とCLIの表示が共有し、code point予算を一致させる。SessionManagerはqueue内で公開snapshotを完成させた後に制限し、SnapshotService.retainPublishedで返却generationの省略refを削除してからqueueを解放する。workflow finalSnapshotもこの経路を通る。未公開refを後続要求から利用できる時間窓を作らない。nonceはrendererだけがCLI呼出しごとに生成し、JSONでは対象dataにmetadataとして付加する。
 

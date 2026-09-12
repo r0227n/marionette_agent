@@ -24,13 +24,23 @@ class CommonOptions {
   final String? special;
   static const defaultIdleTimeoutMs = 3600000;
 
-  static ArgParser createParser() => ArgParser()
-    ..addOption('session', defaultsTo: 'default', help: 'Session name')
+  static ArgParser createParser(Map<String, String> environment) => ArgParser()
+    ..addOption(
+      'session',
+      defaultsTo:
+          environment['MARIONETTE_AGENT_SESSION'] ??
+          const CommonOptions().session,
+      help: 'Session name (CLI > MARIONETTE_AGENT_SESSION > default)',
+    )
     ..addFlag('json', negatable: false, help: 'One JSON result on stdout')
     ..addOption(
       'timeout',
-      defaultsTo: '30000',
-      help: 'Positive deadline in milliseconds',
+      defaultsTo:
+          environment['MARIONETTE_AGENT_TIMEOUT_MS'] ??
+          '${const CommonOptions().timeoutMs}',
+      help:
+          'Positive deadline in ms, including queue wait '
+          '(CLI > MARIONETTE_AGENT_TIMEOUT_MS > 30000)',
     )
     ..addFlag(
       'content-boundaries',
@@ -162,7 +172,7 @@ class CommonOptions {
     void Function(String?, bool)? output,
   ) {
     var grammar = parser;
-    String? session = 'default';
+    String? session = parser.options['session']!.defaultsTo as String?;
     var json = false;
     var independent =
         (commands.firstOrNull == 'workflow' && !commands.contains('run')) ||
