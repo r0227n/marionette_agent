@@ -7,6 +7,8 @@
 check状態と終了コード集計を所有する。外部processとprobeはfixtureへ差し替え可能。
 daemon socketは所有者/0700確認後に接続し、既存protocol decoderでhandshakeだけを読む。
 DaemonClient、SessionManager、runtime準備、command dispatchを呼ばない。
+DaemonServerはhandshakeだけのclientが切断した時に元のidle期限を再利用する。
+要求をdispatchした場合だけ新しい無操作区間を開始し、doctorによる寿命の延長を防ぐ。
 
 `backend/doctor_probe.dart`は公開vm_service APIで独立clientを作り、既存backendのURI正規化を再利用する。
 上流internal APIのimportを追加せず、観測したextension登録とbinding versionだけを返す。

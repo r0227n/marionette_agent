@@ -5,6 +5,7 @@
 `doctor [--probe-uri <uri>]` は接続不要のローカル診断。sessionはnull。
 runtime作成・permission変更・socket削除・daemon起動/停止・package導入・Simulator起動を行わない。
 既存session/backend/refへ要求を配送せず、daemonではhandshakeだけを読み接続を破棄する。
+handshakeだけの照会ではdaemonの既存idle期限を更新しない。
 
 成功した診断実行のenvelopeは`ok:true`、dataは`doctor:true`、`exitCode`、`checks`。
 各checkは`id`、`status`、`reason`、利用者が実行する`nextStep`、`details`を持つ。

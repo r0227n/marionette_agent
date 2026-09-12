@@ -21,6 +21,7 @@ class DaemonServer {
   });
   final int idleTimeoutMs;
   Timer? _idleTimer;
+  DateTime? _idleDeadline;
   final RuntimeDirectory runtime;
   final SessionManager manager;
   final _clients = <Socket>{};
@@ -146,6 +147,7 @@ class DaemonServer {
       expiry = Timer(request.remaining + ipcResponseGrace, expire);
       final diagnostics = <DiagnosticEntry>[];
       dispatched = true;
+      _idleDeadline = null;
       final response = await captureDiagnostics(
         diagnostics,
         () => manager.handle(request),
@@ -209,7 +211,14 @@ class DaemonServer {
         manager.hasPending) {
       return;
     }
-    _idleTimer = Timer(Duration(milliseconds: idleTimeoutMs), _expireIdle);
+    // Handshake-only clients suspend the timer while connected, but do not
+    // renew the user's inactivity interval. Only dispatched requests renew it.
+    _idleDeadline ??= DateTime.now().add(Duration(milliseconds: idleTimeoutMs));
+    final remaining = _idleDeadline!.difference(DateTime.now());
+    _idleTimer = Timer(
+      remaining.isNegative ? Duration.zero : remaining,
+      _expireIdle,
+    );
   }
 
   void _expireIdle() {
