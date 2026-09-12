@@ -4,6 +4,8 @@
 
 ## 構成
 
+`is visible`は`CommandContext.observeTarget`から`SnapshotService.observeTarget`を利用し、sessionのread境界でinspectする。操作用resolveと対象再観測・一意性・stale判定を共有し、操作用resolveのみ非表示を拒否する。コマンドはnullableなvisibleをknown/valueへ変換するだけで、mutationや公開snapshot/ref更新を行わない。単体およびIPC fixtureでtrue/false/nullと対象解決エラーを検証する。
+
 ```text
 AI Agent / Shell
   → Dart CLI（解析・workflow読込／検証・出力・ファイル保存）

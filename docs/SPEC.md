@@ -75,6 +75,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
 | `close` | 録画があれば確定し、選択sessionを切断・破棄。対象不在も成功。Flutterアプリは終了しない |
 | `snapshot` | 観測を更新し、要素一覧とrefを返す |
+| `is visible <ref\|selector>` | 可視状態をknown/valueで返す。未観測はunknown |
 | `tap <ref>` / `tap <selector>` | 対象を1回タップ |
 | `tap --x <n> --y <n>` | 明示座標を1回タップ |
 | `fill <ref> <text>` / `fill <selector> <text>` | 入力欄の内容を置換。空文字でクリア |
@@ -114,6 +115,12 @@ workflow内の操作対象はselectorだけを受理し、refと座標操作は�
 - 通信断でsessionはdisconnectedとなりrefを失効する。明示的なconnectで復旧する。操作の自動再送はしない。
 - daemon再起動で接続・snapshotを復元しない。最後のsessionを閉じたdaemonは終了する。
 - タイムアウトしても送信済み操作を取り消せたとは限らない。結果不明を返し、接続を破棄して再接続と再観測を要求する。
+
+### is visible
+
+`is visible <ref|selector>`は一度だけ対象を再観測する読み取りコマンド。成功のJSON `data`は`{"known":true,"value":true}`、`{"known":true,"value":false}`、`{"known":false,"value":null}`のいずれかとする。nullableなvisibleの未観測をfalseへ丸めない。textはそれぞれ`Visible: true`、`Visible: false`、`Visible: unknown`。
+
+共通の対象再観測・一意性・属性比較を利用する。selectorの0件は`TARGET_NOT_FOUND`、複数件は`AMBIGUOUS_TARGET`、古いrefは`STALE_REF`、未対応selectorは`UNSUPPORTED_CAPABILITY`。非表示の一意な対象は成功してfalseを返す。成功時はUI操作、refの失効・再発行、公開snapshot世代の更新を行わない。待機やenabled/checkedの判定は含まない。
 
 ### snapshotと要素参照
 
