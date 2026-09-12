@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 // image is pinned to 4.9.1: its public barrel loads every codec/filter.
@@ -15,8 +16,9 @@ import '../protocol/protocol.dart';
 Future<Json> saveScreenshots(
   Json data,
   String? destination,
-  DateTime deadline,
-) async {
+  DateTime deadline, {
+  String? screenshotDir,
+}) async {
   void checkDeadline() {
     if (!DateTime.now().isBefore(deadline)) {
       throw const AgentError('TIMEOUT', 'Screenshot saving deadline exceeded');
@@ -46,14 +48,31 @@ Future<Json> saveScreenshots(
   final created = <File>[];
   try {
     checkDeadline();
+    String? generated;
     if (destination == null) {
-      temporary = await Directory.systemTemp.createTemp(
-        'marionette-screenshot-',
-      );
+      if (screenshotDir == null) {
+        temporary = await Directory.systemTemp.createTemp(
+          'marionette-screenshot-',
+        );
+        generated = p.join(temporary.path, 'screen.png');
+      } else {
+        final directory = p.normalize(p.absolute(screenshotDir));
+        if (await FileSystemEntity.type(directory, followLinks: false) !=
+            FileSystemEntityType.directory) {
+          throw const AgentError(
+            'IO_ERROR',
+            'Screenshot directory must exist and must not be a symlink',
+          );
+        }
+        final random = Random.secure();
+        final token = List.generate(
+          16,
+          (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+        ).join();
+        generated = p.join(directory, 'screen-$token.png');
+      }
     }
-    final base = p.normalize(
-      p.absolute(destination ?? p.join(temporary!.path, 'screen.png')),
-    );
+    final base = p.normalize(p.absolute(destination ?? generated!));
     final paths = List.generate(
       images.length,
       (i) => images.length == 1

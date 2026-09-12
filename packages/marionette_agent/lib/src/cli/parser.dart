@@ -71,6 +71,8 @@ class CliParser {
       'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'scroll uses finger movement direction; reaching content is not guaranteed.\n'
       'screenshot [path] | logs\n'
+      'Screenshot destination: explicit path > --screenshot-dir > temporary directory.\n'
+      'Screenshot directories must exist; --screenshot-dir must not be a symlink.\n'
       'wait <selector> [--state exists|gone] [--poll-interval <ms>]\n'
       'wait observes only; run snapshot before the next UI operation.\n'
       'record start <path> --platform ios|android|macos --device <id>\n'

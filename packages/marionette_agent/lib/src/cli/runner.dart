@@ -118,6 +118,7 @@ Future<int> runCli(
             result.data!,
             invocation.params['path'] as String?,
             started.add(Duration(milliseconds: invocation.timeoutMs)),
+            screenshotDir: invocation.options.screenshotDir,
           ),
         );
       }

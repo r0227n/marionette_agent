@@ -18,6 +18,7 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 | `--content-boundaries` | 無効 | snapshot要素行とlogs entryに呼出し固有の境界を付けます。JSONではmetadataを追加します。 |
 | `--max-output <chars>` | 無制限 | 正の整数。snapshot/logsの項目列をUnicode code point数で制限します。 |
 | `--idle-timeout <duration>` | `1h` | daemon全体の無操作期限。整数msまたはms/s/m/h接尾辞。`0`で自動終了を無効にします。 |
+| `--screenshot-dir <path>` | 未指定 | path省略のscreenshotを保存する既存directory。明示pathがあればそちらを優先します。 |
 | `--help`, `-h` | — | ヘルプを表示します。接続は不要です。 |
 | `--version` | — | CLIのバージョンを表示します。接続は不要です。 |
 
@@ -270,15 +271,27 @@ marionette-agent --session demo snapshot
 
 ### `screenshot [path]`
 
-現在の画面をPNGとして保存し、保存した絶対パスを返します。pathを省略すると非公開の一時ディレクトリへ保存します。相対pathはコマンドを実行したカレントディレクトリ基準です。
+現在の画面をPNGとして保存し、text／JSONとも`paths`配列に保存した絶対パスを返します。保存先の優先順位は次のとおりです。
+
+1. 明示した`path`。`--screenshot-dir`の存在や権限は調べません。
+2. `--screenshot-dir <path>`で指定したdirectoryの直下。`screen-<32桁の乱数hex>.png`という名前を呼出しごとに生成します。
+3. 両方省略時は従来どおり非公開の一時directory内の`screen.png`。
+
+相対pathとdirectoryはコマンドを実行したカレントdirectory基準です。`--screenshot-dir`は共通オプションなのでコマンドの前後に指定でき、この呼出しのscreenshotだけに適用されます。daemon／sessionに保存されず、他コマンドには影響しません。空文字、NULを含むpath、値の欠損、重複指定は`INVALID_ARGUMENT`です。
 
 ```bash
 mkdir -p ./artifacts
 marionette-agent --session demo screenshot ./artifacts/screen.png
+marionette-agent --session demo --screenshot-dir ./artifacts screenshot
+marionette-agent --session demo screenshot --screenshot-dir ./artifacts --json
 marionette-agent --session demo screenshot --json
 ```
 
-既存ファイルは上書きしません。保存先の親ディレクトリは事前に作成してください。複数画像が返された場合は、指定名へ連番を付けて保存します。
+指定directoryと明示pathの親directoryは事前に作成してください。CLIは自動作成しません。指定directoryの不存在、通常file、directory自身のsymlink（リンク切れを含む）、保存に必要な権限の不足は`IO_ERROR`（終了コード1）です。祖先directoryのsymlinkは利用できます。
+
+連続／同時撮影は呼出しごとに別名を生成し、既存file・directory・symlinkは上書きしません。万一生成名が既存pathと衝突した場合も`IO_ERROR`です。複数画像は指定名／生成名の拡張子の前に`-1`、`-2`を付けます（例: `screen-<32桁hex>-1.png`、`screen-<32桁hex>-2.png`）。拡張子なしの明示pathには連番と`.png`を付けます。
+
+全PNGを検証し、全保存先を排他的に予約してから書き込みます。途中失敗時はこの要求が作成したfileをcleanupし、成功pathを返しません。指定directoryと既存artifactは削除しません。画像が空／不正なら`BACKEND_ERROR`、保存期限超過は`TIMEOUT`、その他の保存失敗は`IO_ERROR`です。これらのoutcomeは`not_sent`です。cleanupの失敗で元のエラーは置き換えません。保存先の確認・予約後に別プロセスが意図的にpathを差し替える競合までは保証しません。
 
 ### `logs`
 

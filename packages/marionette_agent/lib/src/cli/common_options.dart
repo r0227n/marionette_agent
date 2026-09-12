@@ -11,6 +11,7 @@ class CommonOptions {
     this.contentBoundaries = false,
     this.maxOutput,
     this.idleTimeoutMs,
+    this.screenshotDir,
     this.special,
   });
   final String session;
@@ -21,6 +22,9 @@ class CommonOptions {
 
   /// Null means inherit the running daemon's immutable configuration.
   final int? idleTimeoutMs;
+
+  /// Local to this CLI invocation; not persisted or sent to the daemon.
+  final String? screenshotDir;
   final String? special;
   static const defaultIdleTimeoutMs = 3600000;
 
@@ -44,6 +48,11 @@ class CommonOptions {
     ..addOption(
       'idle-timeout',
       help: 'Daemon idle duration: ms, 10s, 3m, 1h (default 1h; 0 disables)',
+    )
+    ..addOption(
+      'screenshot-dir',
+      valueHelp: 'path',
+      help: 'Existing directory for generated PNG names; explicit screenshot path wins (default temporary)',
     )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
     ..addFlag('version', negatable: false, help: 'Show version');
@@ -106,11 +115,17 @@ class CommonOptions {
     if (args.flag('help') && args.flag('version')) {
       invalid('Choose help or version');
     }
+    final screenshotDir = args.option('screenshot-dir');
+    if (screenshotDir != null &&
+        (screenshotDir.isEmpty || screenshotDir.contains('\u0000'))) {
+      invalid('Expected a non-empty screenshot directory path without NUL');
+    }
     return CommonOptions(
       session: session,
       json: args.flag('json'),
       timeoutMs: duration(args.option('timeout')!),
       contentBoundaries: args.flag('content-boundaries'),
+      screenshotDir: screenshotDir,
       maxOutput: args.option('max-output') == null
           ? null
           : positiveInteger(args.option('max-output')!),

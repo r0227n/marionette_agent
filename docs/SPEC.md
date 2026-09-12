@@ -48,6 +48,7 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | `--content-boundaries` | 値なしflag、既定無効。snapshot要素／logs entryを未信頼コンテンツとして識別 |
 | `--max-output <chars>` | 正の整数、既定無制限。snapshot／logsの項目列をUnicode code point数で制限 |
 | `--idle-timeout <duration>` | daemon全体のidle期限。既定1h、0で無効。整数msまたはms/s/m/h接尾辞 |
+| `--screenshot-dir <path>` | path省略のscreenshotを保存する既存directory。既定未指定。明示pathを優先し、両方省略時は従来の一時保存 |
 | `--help` / `--version` | 接続なしで利用可能 |
 
 共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。対話入力は要求しない。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
@@ -56,7 +57,7 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 
 ### 共通安全オプション
 
-共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。新しい3オプションもhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。
+共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。help/version、workflow、recordでも受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。
 
 `--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
 
@@ -82,7 +83,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | 明示した始点から終点へスワイプ |
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | 要素の出現または消失を観測だけで待つ |
-| `screenshot [path]` | PNGを保存し絶対パスを返す。省略時は一時ファイル |
+| `screenshot [path]` | PNGを保存し絶対パスを返す。明示path > `--screenshot-dir` > 一時ファイルの順に選択 |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
 | `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
 | `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
@@ -167,7 +168,17 @@ outcomeはnot_sent・failed・unknown。送信後の通信断・タイムアウ�
 | 6 | 機能不足: UNSUPPORTED_CAPABILITY |
 | 1 | その他: BACKEND_ERROR、IO_ERROR、INTERNAL_ERROR |
 
-screenshotのdataはpaths配列。複数画像は連番で保存し、通常利用で既存ファイルの上書きを避けるため、全保存先を排他的に作成してから画像を書き込む。既存のファイル・ディレクトリ・symlinkは拒否する。意図的な競合プロセスによる、保存先の予約後の差し替えまでは保証しない。画像が空なら失敗。logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
+### screenshotの保存
+
+screenshotのdataは絶対pathの`paths`配列。保存先は明示path、共通`--screenshot-dir <path>`、従来の非公開一時directoryの順に選ぶ。明示pathがあればdirectoryの存在や権限を調べず、その場所へ保存する。directory設定は呼出しごとで、daemon／sessionには保存せず、他コマンドの動作にも影響しない。空文字またはNULを含むdirectory指定はINVALID_ARGUMENT。
+
+明示pathとdirectoryの相対pathは呼出元CLIのcwdを基準に正規化する。明示pathの親と指定directoryは事前作成を必須とし、自動作成しない。指定directoryの不存在、通常file、directory自身のsymlink（danglingを含む）、保存に必要な権限の不足はIO_ERROR。祖先directoryのsymlinkは解決を許す。directoryのtype確認後に意図的に差し替えられる競合までは保証しない。
+
+directory指定時はその直下に`screen-<128bit乱数の32桁hex>.png`を生成する。連続／同時撮影でも各要求で別名を生成し、排他的作成で上書きを防ぐ。万一生成名が既存pathと衝突した場合もIO_ERRORとして拒否する。両方省略時は従来どおり一意な`marionette-screenshot-*`一時directory内の`screen.png`へ保存する。
+
+複数画像は指定名／生成名の拡張子の前へ`-1`、`-2`の連番を付ける（拡張子なしは`.png`を追加）。全PNGを復号検証し、全保存先を排他的に作成してから画像を書き込む。既存のfile・directory・symlinkは拒否する。途中失敗時はこの要求が作成した画像fileを削除し、一時保存の場合はこの要求の一時directoryも削除する。指定directoryと既存artifactは削除しない。cleanupの失敗で元のエラーを置き換えず、成功pathを返さない。保存先の予約後に別プロセスが意図的に差し替える競合までは保証しない。画像が空または不正PNGならBACKEND_ERROR、保存期限超過はTIMEOUT、その他の保存失敗はIO_ERROR。readであるscreenshotのこれらのエラーは従来どおりoutcome:not_sentとなる。
+
+logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
 
 ## 検証基準
 
