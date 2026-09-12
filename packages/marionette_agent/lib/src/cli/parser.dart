@@ -27,6 +27,10 @@ class CliParser {
   }
   final parser = CommonOptions.createParser();
   final definitions = <String, CliCommand>{
+    'doctor': CliCommand(ArgParser()..addOption('probe-uri'), (args) {
+      if (args.rest.isNotEmpty) invalid('Usage: doctor [--probe-uri <uri>]');
+      return {'probeUri': args['probe-uri']};
+    }),
     'workflow': workflowCommand(),
     'record': recordCommand(),
     'tap': actionCommand(),
@@ -63,6 +67,7 @@ class CliParser {
   String get usage =>
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
+      'doctor [--probe-uri <uri>] (read-only; no connection required)\n'
       'connect <uri> | session list | session show | close | snapshot\n'
       'swipe <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>\n'
@@ -126,6 +131,7 @@ class Invocation {
   final Json params;
   String? get resultSession =>
       command == 'help' ||
+          command == 'doctor' ||
           command == 'version' ||
           (command == 'workflow' && params['action'] != 'run') ||
           (command == 'session' && params['action'] == 'list')

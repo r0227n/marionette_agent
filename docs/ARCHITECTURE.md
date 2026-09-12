@@ -1,5 +1,20 @@
 # marionette_agent — アーキテクチャ
 
+## doctor境界 (Issue #9)
+
+`cli/runner.dart`はdoctorを`RuntimeDirectory.prepare`より前にローカル配送する。
+`cli/doctor.dart`がhost/runtimeのread-only検査、固定依存の宣言/lock比較、Simulator列挙、
+check状態と終了コード集計を所有する。外部processとprobeはfixtureへ差し替え可能。
+daemon socketは所有者/0700確認後に接続し、既存protocol decoderでhandshakeだけを読む。
+DaemonClient、SessionManager、runtime準備、command dispatchを呼ばない。
+
+`backend/doctor_probe.dart`は公開vm_service APIで独立clientを作り、既存backendのURI正規化を再利用する。
+上流internal APIのimportを追加せず、観測したextension登録とbinding versionだけを返す。
+URI・remote error本文を境界の外へ返さない。finallyと遅延完了handlerで接続を解放する。
+各process/RPCは全体deadlineの残り時間を使い、IPCには最大1秒の上限も設ける。
+診断結果は共通Resultのdataに入れ、runnerがdoctorのdata.exitCodeをprocess終了値に適用する。
+text rendererはcheck状態/理由/次手順/details、JSONは共通envelopeを表示する。
+
 本書は[SPEC.md](SPEC.md)の`marionette_agent 0.0.1`契約を実現する現行構成を定義する。単独コマンドとworkflow v1は実装済み。コマンド追加時の具体的な不変条件は[実装契約](ja/command-contract.ja.md)を参照する。
 
 ## 構成

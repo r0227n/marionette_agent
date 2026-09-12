@@ -54,6 +54,17 @@ String render(
     ].join('\n');
   }
   final data = result.data!;
+  if (data['doctor'] == true) {
+    return [
+      'Doctor: exit ${data['exitCode']}',
+      for (final check in data['checks'] as List) ...[
+        '[${check['status']}] ${check['id']}: ${check['reason']}',
+        '  Next: ${check['nextStep']}',
+        if ((check['details'] as Map).isNotEmpty)
+          '  ${jsonEncode(check['details'])}',
+      ],
+    ].join('\n');
+  }
   if (data['help'] case final String help) return help;
   if (data['version'] case final String version) return version;
   if (data['completedSteps'] case final int count) {

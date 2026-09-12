@@ -1,5 +1,31 @@
 # marionette-agent CLI リファレンス
 
+## `doctor` 環境診断
+
+```sh
+marionette-agent doctor
+marionette-agent doctor --json
+marionette-agent doctor --probe-uri "$VM_URI" --timeout 10000 --json
+```
+
+接続やdaemonなしで実行できます。macOS/Dart対応範囲、runtimeの所有者/0700/path長、
+daemon応答/protocol、CLI固定依存の宣言とlockfile、利用可能なiOS Simulatorを調べます。
+`MARIONETTE_AGENT_RUNTIME_DIR`で検査対象を選びます。未作成runtimeは正常な未実施扱いです。
+修復・socket削除・daemon自動起動・Simulator起動・package再導入は行いません。
+
+VM Serviceへの接続は`--probe-uri`を明示した時だけです。URIは出力しませんが、shell履歴や
+process引数の共有には注意してください。既存sessionとrefを変更せず、probe専用接続を終了時に解放します。
+binding versionは実応答がある場合だけ報告します。registeredExtensionsは実登録の観測であり、
+操作成功を保証しません。binding未観測はunknownで、固定依存のversionから推測しません。
+
+textは各checkの状態・理由・Next・詳細、JSONは`data.checks`に同じ内容を返します。
+`success`は確認済み、`failure`は不適合、`unknown`は観測失敗/timeout、`skipped`は未実施です。
+`data.exitCode`およびprocess終了値はfailure/unknownがあれば1、それ以外0。
+診断結果を返せた場合は異常checkがあってもenvelopeは`ok:true`、`session:null`です。
+引数不正は通常の終了2。doctor内の期限切れはcheckのunknown/終了1であり、通常操作の終了5とは異なります。
+`--timeout`は全体期限で、未着手checkも期限切れならunknown。daemon handshake待ちは最大1秒です。
+各checkの`nextStep`を確認し、必要な復旧操作は利用者が別途実行してください。
+
 ## 基本構文
 
 ```text
