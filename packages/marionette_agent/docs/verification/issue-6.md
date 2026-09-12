@@ -1,6 +1,7 @@
 # Issue #6 — close --all 検証
 
 担当: Issue #6 worker。branch: `feature/issue-6-close-all`。
+検証済みコードcommit: `ebca8562e2822b817b70f58da2b630b054cddbb1`。この記録へのcommit追記は文書のみの追補。
 基点: `50ccf97f47ecf03a51ea3c5646c9164325570c0b` (`origin/develop`)。
 進捗: [todo.md](../../../../todo.md)。AgentのSimulator検証は成功。人間確認は未実施。
 
