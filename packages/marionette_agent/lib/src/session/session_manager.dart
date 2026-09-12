@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../diagnostics/diagnostic_logging.dart';
+
 import '../output/content.dart';
 import '../backend/backend.dart';
 import '../backend/marionette_backend.dart';
@@ -37,6 +39,11 @@ class SessionManager {
 
   /// Reserve session at intake and execute requests in selected session queue.
   Future<Result> handle(Request request) async {
+    final debug = DebugDiagnostics(
+      enabled: request.debug,
+      requestId: request.requestId,
+      session: request.session,
+    );
     final independent =
         request.command == 'session' && request.params['action'] == 'list';
     final resultSession = independent ? null : request.session;
@@ -97,10 +104,12 @@ class SessionManager {
       final session = existing ?? Session(request.session);
       sessions[request.session] = session;
       session.pending++;
+      debug.emit(DebugStage.sessionQueue);
       var started = false;
       final future = session.queue
           .run(() async {
             started = true;
+            debug.emit(DebugStage.commandExecute);
             request.checkDeadline();
             if (request.command == 'record') return recordings.handle(request);
             Json? recording;

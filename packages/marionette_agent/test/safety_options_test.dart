@@ -50,6 +50,7 @@ void main() {
         ['--version'],
       ]) {
         final flags = [
+          '--debug',
           '--content-boundaries',
           '--max-output',
           '15',
@@ -69,10 +70,13 @@ void main() {
           expect(value.idleTimeoutMs, 180000);
           expect(value.session, 'demo');
           expect(value.json, isTrue);
+          expect(value.debug, isTrue);
         }
       }
       expect(CliParser().parse(['snapshot']).options.idleTimeoutMs, isNull);
       expect(CommonOptions.defaultIdleTimeoutMs, 3600000);
+      expect(CliParser().parse(['snapshot']).options.debug, isFalse);
+      expect(CliParser().usage, contains('--debug'));
       expect(CliParser().usage, contains('--content-boundaries'));
       expect(CliParser().usage, contains('--max-output'));
       expect(CliParser().usage, contains('--idle-timeout'));

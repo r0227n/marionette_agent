@@ -94,6 +94,115 @@ void main() {
     expect(jsonDecode(result.stdout as String), containsPair('ok', true));
     expect(result.stderr, '[INFO] fake-daemon: Request handled\n');
   });
+  test(
+    'debug crosses IPC with isolated sessions and secret-safe failures',
+    () async {
+      final results = await Future.wait([
+        cli([
+          '--debug',
+          '--session',
+          'a',
+          'connect',
+          'http://localhost:1/auth-secret-a',
+        ]),
+        cli([
+          '--session',
+          'b',
+          'connect',
+          'http://localhost:2/auth-secret-b',
+          '--debug',
+        ]),
+      ]);
+      final ids = <String>[];
+      for (var i = 0; i < results.length; i++) {
+        final result = results[i];
+        expect(jsonDecode(result.stdout as String), containsPair('ok', true));
+        final diagnostic = result.stderr as String;
+        final session = i == 0 ? 'a' : 'b';
+        final other = i == 0 ? 'b' : 'a';
+        expect(diagnostic, contains('stage=daemonDispatch'));
+        expect(diagnostic, contains('stage=commandExecute'));
+        expect(diagnostic, contains('stage=cliResult'));
+        expect(diagnostic, contains('code=OK'));
+        expect(diagnostic, isNot(contains('auth-secret')));
+        expect(diagnostic, isNot(contains('localhost')));
+        expect(diagnostic, isNot(contains('session=$other ')));
+        final matches = RegExp(
+          r'requestId=([A-Za-z0-9_-]+) session=' +
+              session +
+              r' stage=\w+ elapsedMs=\d+',
+        ).allMatches(diagnostic);
+        expect(matches.length, greaterThanOrEqualTo(8));
+        final unique = matches.map((m) => m.group(1)!).toSet();
+        expect(unique, hasLength(1));
+        ids.add(unique.single);
+      }
+      expect(ids[0], isNot(ids[1]));
+      expect(body(await cli(['--session', 'a', 'count']))['ok'], true);
+      final snapshot = await cli(['--session', 'a', 'snapshot', '--debug']);
+      expect(jsonDecode(snapshot.stdout as String), containsPair('ok', true));
+      expect(snapshot.stdout, contains('app-secret-text'));
+      expect(snapshot.stderr, isNot(contains('app-secret-text')));
+      final filled = await cli([
+        '--session',
+        'a',
+        'fill',
+        '--key',
+        'input',
+        'fill-secret-input',
+        '--debug',
+      ]);
+      expect(jsonDecode(filled.stdout as String), containsPair('ok', true));
+      expect(filled.stderr, contains('stage=daemonResult'));
+      expect(filled.stderr, isNot(contains('app-secret-text')));
+      expect(filled.stderr, isNot(contains('fill-secret-input')));
+      final unsupported = await cli([
+        '--session',
+        'a',
+        'fill',
+        '--identifier',
+        'app-secret-text',
+        'fill-secret-input',
+        '--debug',
+      ]);
+      expect(
+        jsonDecode(unsupported.stdout as String)['error']['code'],
+        'UNSUPPORTED_CAPABILITY',
+      );
+      expect(unsupported.stderr, contains('code=UNSUPPORTED_CAPABILITY'));
+      expect(unsupported.stderr, isNot(contains('app-secret-text')));
+      expect(unsupported.stderr, isNot(contains('fill-secret-input')));
+      final timedOut = await cli([
+        '--session',
+        'a',
+        'wait',
+        '--text',
+        'missing-secret-text',
+        '--timeout',
+        '3000',
+        '--debug',
+      ]);
+      expect(jsonDecode(timedOut.stdout as String)['error']['code'], 'TIMEOUT');
+      expect(timedOut.stderr, contains('code=TIMEOUT'));
+      expect(timedOut.stderr, isNot(contains('missing-secret-text')));
+      final failure = await cli([
+        'fill',
+        '--text',
+        'app-secret-text',
+        'fill-secret-input',
+        '--debug',
+      ]);
+      expect(jsonDecode(failure.stdout as String), containsPair('ok', false));
+      expect(failure.stderr, contains('code=NOT_CONNECTED'));
+      expect(failure.stderr, isNot(contains('app-secret-text')));
+      expect(failure.stderr, isNot(contains('fill-secret-input')));
+      final syntax = await cli(['--debug', 'snapshot', '--unknown=secret']);
+      expect(jsonDecode(syntax.stdout as String), containsPair('ok', false));
+      expect(syntax.stderr, contains('code=INVALID_ARGUMENT'));
+      expect(syntax.stderr, isNot(contains('secret')));
+    },
+    timeout: Timeout(const Duration(seconds: 60)),
+  );
   test('compiled executable starts the same binary in daemon mode', () async {
     final executable = '${runtime.path}/cli';
     final build = await Process.run(Platform.resolvedExecutable, [

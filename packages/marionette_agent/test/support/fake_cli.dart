@@ -7,7 +7,8 @@ import 'package:logging/logging.dart';
 import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
 import 'package:marionette_agent/src/cli/runner.dart';
-import 'package:marionette_agent/src/commands/registry.dart';
+import 'package:marionette_agent/src/commands/core_commands.dart';
+import 'package:marionette_agent/src/backend/backend.dart';
 import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/diagnostics/diagnostic_logging.dart';
@@ -16,7 +17,7 @@ import 'package:marionette_agent/src/session/session_manager.dart';
 Future<void> main(List<String> args) async {
   configureDiagnosticLogging();
   if (args.isNotEmpty && args.first == '--internal-daemon') {
-    final registry = CommandRegistry();
+    final registry = coreCommands();
     registry.register('count', (context, params) async {
       return context.read((backend) async {
         await backend.inspect();
@@ -33,7 +34,17 @@ Future<void> main(List<String> args) async {
     });
     await DaemonServer(
       await RuntimeDirectory.prepare(),
-      SessionManager(FakeBackend.new, registry),
+      SessionManager(
+        () => FakeBackend()
+          ..elements = [
+            ElementInfo(
+              key: 'input',
+              text: 'app-secret-text',
+              type: 'TextField',
+            ),
+          ],
+        registry,
+      ),
       idleTimeoutMs: CommonOptions.daemonIdle(args),
     ).run();
   } else {

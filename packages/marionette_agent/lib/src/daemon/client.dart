@@ -66,6 +66,11 @@ class DaemonClient {
 
   /// Include startup wait in the deadline. Never retry after request send even on disconnect.
   Future<Result> send(Request request) async {
+    final diagnostics = DebugDiagnostics(
+      enabled: request.debug,
+      requestId: request.requestId,
+      session: request.session,
+    );
     final resultSession =
         request.command == 'session' && request.params['action'] == 'list'
         ? null
@@ -90,6 +95,7 @@ class DaemonClient {
 
     _Connection? connection;
     try {
+      diagnostics.emit(DebugStage.daemonOpen);
       connection = await _open(request);
       if (connection == null) {
         final startsRecording =
@@ -117,6 +123,7 @@ class DaemonClient {
         try {
           connection = await _open(request);
           if (connection == null) {
+            diagnostics.emit(DebugStage.daemonStart);
             await Process.start(
               launchCommand.first,
               [
@@ -138,8 +145,10 @@ class DaemonClient {
           await lock.close();
         }
       }
+      diagnostics.emit(DebugStage.daemonReady);
       request.checkDeadline();
       final bytes = encodeFrame(request.toJson());
+      diagnostics.emit(DebugStage.requestSend);
       sent = true;
       connection.socket.add(bytes);
       await connection.socket.flush().timeout(request.remaining);
