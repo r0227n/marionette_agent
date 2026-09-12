@@ -91,6 +91,8 @@ SnapshotServiceは要素情報を正規化し、RefStoreはref→観測世代・
 
 ElementInfo.valueは信頼できるselector候補、candidateValueは衝突し得る観測値を返す。textの重複集計・再観測・waitにはcandidateValueを使って未知の型も数え、単独の由来未確認textはUNRESOLVABLE_TARGETとする。
 
+ここでの`ElementInfo.value`はselector候補の取得であり、入力値のread APIではない。[Issue #14の将来設計](semantics-selector-state-design.md)はdisplay、照合根拠、型付き値/状態を分離する。固定bindingのraw診断属性はstring化・省略され得るため、adapterが型付きstateとして公開できる根拠にはしない。Semantics階層とWidgetの対応ID、属性の由来、操作別capabilityは上流依存として残る。現行DTO/CLIへの追加実装は本設計に含めない。
+
 Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示用textがTextMatcherに対応しない場合がある。配列添字をselectorにせず、対象を確定できなければ読み取り情報と理由を返す。上流は最初の一致を選ぶため、契約テストには重複・Semanticsラッパー・非表示要素を含める。
 
 事前観測では原子的な対象保証にならない制約はSPECに従う。アプリ側への永続ID拡張追加は初版に持ち込まない。

@@ -8,6 +8,8 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 
 共通オプションはコマンドの前後どちらにも記述できます。同じオプションを複数回指定すると引数エラーになります。
 
+label/role/hint/placeholder/tooltip selectorと入力値・enabled/checked取得コマンドは未実装です。snapshotのtextは入力値や状態を保証しません。固定依存の制約と将来案は [Semantics selector・状態取得設計](../semantics-selector-state-design.md) を参照してください。
+
 ### 共通オプション
 
 | オプション | 既定値 | 説明 |
