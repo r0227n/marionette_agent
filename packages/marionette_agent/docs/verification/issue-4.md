@@ -3,7 +3,8 @@
 - 担当: Issue #4 sole worker (gpt-6-astra, medium requested).
 - Branch: `feature/issue-4-get-observations`.
 - Base: `50ccf97f47ecf03a51ea3c5646c9164325570c0b`.
-- 進捗場所確認: AGENTS.mdと既存記録を確認。todo.mdは存在せず、現行worker規約のIssue別記録を使用する。
+- 検証済みコードcommit: `6010ee567ff0af4ddb04586b7fde166a8f1f7462`。後続変更はこの検証記録と進捗indexのみ。
+- 進捗場所確認: AGENTS.mdと既存記録を確認。todo.mdは存在しなかったためrootに担当・検証結果のindexを整備し、詳細は現行worker規約のIssue別記録へ残した。
 - 実装: get text/boxのread resolver、get countの独立候補集計、CLI/help、SPEC・ARCHITECTURE・日本語reference。
 - 自動検証: `dart format .`成功、`dart analyze`はNo issues found、`dart test`は171件全成功（39秒）。新規unit/IPCは8テスト。初回の新規テスト2件は不正ref構文を修正。既存FIFO/stdinの3秒process起動テストがホスト負荷下でtimeoutしたが、Simulator終了後の最終全体runは同じテストを含め全成功。最終ログ: `/tmp/mra-i4.0ruBiq/dart-test-final.log`。formatが変更した無関係な既存テストの空白差分は元へ戻した。
 - Simulator: 予約UDID `022CF629-91E1-48F0-816B-2D86B8CD1D38`、iPhone 17 Pro / iOS 26.2。起動直前の状態はShutdown。
