@@ -181,6 +181,25 @@ void main() {
       expect(() => parser.parse(args), invalidArg);
     }
   });
+  test('standalone wait crosses IPC and uses the common deadline', () async {
+    expect(body(await cli(['connect', 'http://localhost:1/']))['ok'], true);
+    final found = body(await cli(['wait', '--key', 'button']));
+    expect(found['data'], {'state': 'exists', 'requiresSnapshot': true});
+
+    final missing = body(
+      await cli([
+        'wait',
+        '--key',
+        'absent',
+        '--poll-interval',
+        '50',
+        '--timeout',
+        '80',
+      ]),
+    );
+    expect((missing['error'] as Map)['code'], 'TIMEOUT');
+    expect((missing['error'] as Map)['outcome'], 'not_sent');
+  });
   test('schema and template/bound validation never prepare runtime, stdin and errors are private', () async {
     final schema = body(await cli(['workflow', 'schema', 'tap']));
     expect(schema['session'], isNull);

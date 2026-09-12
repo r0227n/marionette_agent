@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../backend/backend.dart';
+import '../commands/wait.dart';
 import '../protocol/protocol.dart';
 import 'schema_catalog.dart';
 
@@ -136,7 +137,7 @@ class WorkflowStep {
     this.selector,
     this.state,
     this.timeoutMs = 5000,
-    this.pollIntervalMs = 100,
+    this.pollIntervalMs = defaultWaitPollIntervalMs,
   });
   final String id, action;
   final Json params;
@@ -218,6 +219,11 @@ class WorkflowPlan {
         params['direction'] = step['direction'];
         params['distance'] = step['distance'] ?? 200;
       }
+      if (action == 'wait') {
+        params['state'] = step['state'];
+        params['pollIntervalMs'] =
+            step['pollIntervalMs'] ?? defaultWaitPollIntervalMs;
+      }
       steps.add(
         WorkflowStep(
           id,
@@ -226,7 +232,8 @@ class WorkflowPlan {
           selector: selector,
           state: step['state'] as String?,
           timeoutMs: step['timeoutMs'] as int? ?? 5000,
-          pollIntervalMs: step['pollIntervalMs'] as int? ?? 100,
+          pollIntervalMs:
+              step['pollIntervalMs'] as int? ?? defaultWaitPollIntervalMs,
         ),
       );
     }

@@ -242,7 +242,7 @@ workflow内で最後に取得し、完了時にも有効なsnapshotだけが`fin
 
 ### `wait`
 
-`wait`はworkflow専用のread-only actionです。UI操作をretryせず、`inspect`をpollします。
+workflowの`wait`は単独`wait`コマンドと共通のread-only handlerを使います。UI操作をretryせず、`inspect`をpollします。
 
 | field | 型 | 必須 | 制約 |
 | --- | --- | --- | --- |
@@ -263,7 +263,9 @@ workflow内で最後に取得し、完了時にも有効なsnapshotだけが`fin
 
 text selectorでは、表示textが一致してもbackend matcherとの対応を確認できない唯一の要素なら、`exists`と`gone`のどちらも`UNRESOLVABLE_TARGET`です。安全性を確認できない表示textを`gone`へ誤変換しません。未知のtext由来を含めて複数一致する`exists`は`AMBIGUOUS_TARGET`です。
 
-waitはmutationを送信せず、公開refを発行・失効しません。条件が期限内に成立しなければ`TIMEOUT / not_sent`でworkflowを停止し、現在の接続世代とrefを破棄します。独立したtop-levelの`wait`コマンドはありません。
+waitはmutationを送信せず、公開refを発行・失効しません。条件が期限内に成立しなければ`TIMEOUT / not_sent`でworkflowを停止し、現在の接続世代とrefを破棄します。
+
+単独コマンドでは`wait <selector> [--state exists|gone] [--poll-interval <ms>]`として同じ条件判定を利用できます。単独コマンドのstateは`exists`が既定、poll間隔はworkflowと同じ50〜1,000ms（既定100ms）で、期限はstepの`timeoutMs`ではなく共通`--timeout`です。成功結果は後続操作前の`snapshot`を案内します。詳細は[CLIリファレンス](cli-reference.ja.md#wait)を参照してください。
 
 ## JSONとYAMLの受理範囲
 

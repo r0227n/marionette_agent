@@ -3,6 +3,7 @@ import 'registry.dart';
 import 'swipe.dart';
 import 'actions.dart';
 import 'observations.dart';
+import 'wait.dart';
 
 /// Registers the initial product command set.
 CommandRegistry coreCommands() => CommandRegistry()
@@ -18,6 +19,7 @@ CommandRegistry coreCommands() => CommandRegistry()
   )
   ..register('screenshot', handleScreenshot)
   ..register('logs', handleLogs)
+  ..register('wait', handleWait)
   ..register('snapshot', (context, params) {
     if (params.isNotEmpty) invalid('Usage: snapshot');
     return context.snapshot();

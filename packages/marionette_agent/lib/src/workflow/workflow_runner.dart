@@ -6,7 +6,6 @@ import '../protocol/protocol.dart';
 import '../session/session.dart';
 import '../snapshot/snapshot_service.dart';
 import 'model.dart';
-import '../commands/wait.dart';
 
 /// Parent lifetime is pinned to the connection generation acquired by this queue entry.
 /// Each child retains its own one-mutation guard and error classification.
@@ -92,9 +91,7 @@ class WorkflowExecution {
         );
         final context = CommandContext(child, snapshots);
         final result = await child.bound(
-          () => step.action == 'wait'
-              ? waitForTarget(context, step)
-              : commands.dispatch(context, step.action, step.params),
+          () => commands.dispatch(context, step.action, step.params),
         );
         check();
         completed++;
