@@ -1,0 +1,4 @@
+interface:
+  display_name: "Issues to PR"
+  short_description: "Deliver one verified draft PR per GitHub issue"
+  default_prompt: "Use $issues-to-pr to implement the provided issue numbers or URLs in parallel and hand off one verified draft PR per issue."

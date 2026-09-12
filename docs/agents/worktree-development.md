@@ -1,8 +1,21 @@
-# git gtr による並列開発
+# ブランチとworktreeの運用
 
-コード・文書・設定の変更を並列で進めるときは、タスクごとに git gtr の専用 worktree を使う。主 worktree は worktree の管理と統合に使い、タスクの変更を混在させない。
+Issueに紐づくコード・文書・設定の変更には、Issueごとに git gtr の専用worktreeを使う。Issueに紐づかないタスクは現在のcheckout内の作業ブランチで進め、worktreeを新設しない。主checkoutもIssueに紐づかないタスクの作業場所として使える。
 
-## 着手
+## Issueに紐づかないタスク
+
+1. `git status --short --branch` と `git branch --show-current` で現在地と変更を確認する。すでに今回のタスク用ブランチなら継続する。
+2. 作業ブランチがなければ、利用者が指定した基点、指定がなければ最新の `origin/develop` から `feature/<task-slug>` を現在のcheckoutに作る。作成前に `git fetch origin develop` で基点を取得する。
+
+   ```bash
+   git switch -c feature/<task-slug> origin/develop
+   ```
+
+3. 別タスクのブランチ・変更を今回のブランチへ混ぜない。未コミット変更を自動stash・破棄せず、切替できなければ現在の変更と理由を報告する。同じcheckoutを複数Agentが同時に切り替えない。Issueに紐づかない複数タスクでcheckoutを共有するときは作業を直列化する。
+
+以下のworktree作成・hook確認はIssueに紐づくタスクだけに適用する。
+
+## Issueに紐づくタスクの着手
 
 1. 現在の worktree を確認する。
 
@@ -12,10 +25,10 @@
    git gtr go 1
    ```
 
-2. 現在地が既にそのタスク専用の worktree なら、そのまま作業する。現在地が `git gtr go 1` の返す主 worktree、または別タスクの worktree なら、主 worktreeから `feature/<task-slug>` を作る。
+2. 現在地が既にそのIssue専用のworktreeなら継続する。別の場所にそのIssueのworktreeがあれば再利用する。新規の場合だけ、主worktreeから `feature/issue-<number>-<slug>` を作る。Issue番号とbranch・pathの対応を記録し、既存PRとの重複は [issues-to-pr](../../.agents/skills/issues-to-pr/SKILL.md) で確認する。
 
    ```bash
-   git gtr new feature/<task-slug> --porcelain
+   git gtr new feature/issue-<number>-<slug> --porcelain
    ```
 
    `.gtrconfig` により `develop` が基点、`origin` が remote になる。既存ブランチなど別の基点が必要な場合だけ `--from <ref>` を明示する。
@@ -23,8 +36,8 @@
 3. 終了コードが 0 であることを確認し、stdout のタブ区切りレコードから `path`、`branch`、`hook_status` を読む。作成後の全操作は、絶対パスで返された `path` の配下だけで行う。人間向けログから作成成功を推測しない。
 
    ```text
-   path	/absolute/path/to/marionette_agent-worktrees/feature-task-slug
-   branch	feature/<task-slug>
+   path	/absolute/path/to/marionette_agent-worktrees/feature-issue-42-example
+   branch	feature/issue-42-example
    hook_status	ran
    ```
 
@@ -47,9 +60,11 @@ hook の失敗を含む非 0 終了は作成失敗として扱う。別ディレ
 
 ## 並列作業と引き継ぎ
 
-- 1つのブランチと worktree を1つのタスクだけに割り当てる。同じブランチを複数 worktree に配置する `--force` は使わない。
+- 1つのブランチと worktree を1つのIssueだけに割り当てる。同じブランチを複数 worktree に配置する `--force` は使わない。
 - コマンドは対象 worktree を作業ディレクトリとして実行する。主 worktree や別タスクの未コミット変更には触れない。
 - 引き継ぎ前に対象 worktree で `git status --short --branch` を実行し、ブランチ、変更ファイル、検証コマンドと結果、`hook_status` の注意事項を報告する。
+
+CLIの検証資源の分離とSimulatorの利用調整は [simulator-verify](../../.agents/skills/simulator-verify/SKILL.md) に従う。コードを並行実装できても、共有Simulatorの操作は直列化する。
 
 ## 終了と削除
 
