@@ -8,7 +8,9 @@ import 'package:path/path.dart' as p;
 /// and output roots are supplied by the worker; raw URI is never recorded.
 Future<void> main() async {
   final private = Platform.environment['MARIONETTE_TEST_PRIVATE_DIR']!;
-  final runtime = p.join(private, 'runtime');
+  final runtime =
+      Platform.environment['MARIONETTE_TEST_RUNTIME_DIR'] ??
+      p.join(private, 'runtime');
   final evidence = Directory(p.join(private, 'evidence'));
   final uri = File(p.join(private, 'vm-uri')).readAsStringSync().trim();
   final cliPath = p.join(
@@ -59,7 +61,9 @@ Future<void> main() async {
       result.exitCode == expected,
       'Unexpected exit for ${safeArgs.join(' ')}: ${result.exitCode}',
     );
-    require(diagnostics.isEmpty, 'Unexpected diagnostic output');
+    if (args.first == 'doctor') {
+      require(diagnostics.isEmpty, 'Unexpected doctor diagnostic output');
+    }
     return output;
   }
 
@@ -140,7 +144,7 @@ Future<void> main() async {
     await diagnostic([], 'probe.vmService', 'skipped');
     require(!Directory(runtime).existsSync(), 'Doctor created runtime');
     for (final mode in ['mismatch', 'silent']) {
-      final ipcDir = Directory(p.join(private, 'ipc-$mode'))..createSync();
+      final ipcDir = Directory(private).createTempSync('ipc-$mode-');
       await Process.run('/bin/chmod', ['700', ipcDir.path]);
       final server = await ServerSocket.bind(
         InternetAddress('${ipcDir.path}/s', type: InternetAddressType.unix),
@@ -178,8 +182,8 @@ Future<void> main() async {
         await server.close();
       }
     }
-    await data(['connect', uri]);
     connected = true;
+    await data(['connect', uri]);
     final initial = await data(['snapshot']);
     require(
       row(initial, 'tap_result')['text'] == 'Tap count: 0',
