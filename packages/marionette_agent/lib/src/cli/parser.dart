@@ -8,6 +8,7 @@ import '../commands/observations.dart';
 import 'workflow_command.dart';
 import 'record_command.dart';
 import 'wait_command.dart';
+import 'get_command.dart';
 
 /// Register ArgParser grammar and conversion from validated args to protocol params.
 class CliCommand {
@@ -35,6 +36,7 @@ class CliParser {
     'screenshot': screenshotCommand(),
     'logs': CliCommand(ArgParser(), noArguments),
     'wait': waitCommand(),
+    'get': getCommand(),
     'swipe': swipeCommand(),
     'connect': CliCommand(ArgParser(), (args) {
       if (args.rest.length != 1) invalid('Usage: connect <uri>');
@@ -64,6 +66,8 @@ class CliParser {
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
       'connect <uri> | session list | session show | close | snapshot\n'
+      'get text|box <ref|selector> | get count <selector>\n'
+      'get preserves refs; box uses Flutter logical pixels; missing values are null.\n'
       'swipe <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>\n'
       'Directions describe finger movement; verify the result with snapshot.\n'

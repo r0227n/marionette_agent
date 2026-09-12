@@ -151,6 +151,24 @@ Snapshot 3
 - Semantics "Status" (no unique actionable selector)
 ```
 
+### `get text` / `get box` / `get count`
+
+全snapshotを出力せずに属性や一致件数を確認します。
+
+```sh
+marionette-agent --session demo get text @e1
+marionette-agent --session demo get box --key tap_button --json
+marionette-agent --session demo get count --type Text --json
+```
+
+text/boxはrefまたはselectorを1つ指定します。再観測で単一対象を確認し、selectorが0件なら`TARGET_NOT_FOUND`、複数件なら`AMBIGUOUS_TARGET`、未発行・消失・属性変更したrefなら`STALE_REF`です。由来未確認型のtextだけで対象を指定すると`UNRESOLVABLE_TARGET`です。key/typeで指定すればその観測textを取得できます。
+
+成功dataはtextが`{"text":string|null}`、boxが`{"bounds":{"x":number,"y":number,"width":number,"height":number}|null,"unit":"flutter_logical_pixels"}`です。boundsはFlutter論理座標で、スクリーンショットの物理pixelではありません。欠損値はnullで返し、実際の空文字やゼロは保持します。入力欄のvalue属性ではありません。
+
+countはselectorのみを受理し、refは`INVALID_ARGUMENT`です。成功dataは`{"count":integer,"selector":{kind:value}}`で、0件・複数件も正常結果です。完全一致の観測候補を数えます。textは既知型だけでなく由来未確認型も含むため、上流操作matcherの一致数・操作可能性は保証しません。未対応selector（固定bindingのidentifierなど）は`UNSUPPORTED_CAPABILITY`です。
+
+成功したgetは既存refを維持し、世代更新・refの再発行をしません。続けて同じrefを操作できますが、後続操作時にもstale判定は行われます。text表示でも属性は構造化表示され、`--json`では共通JSON包絡のdataへ格納します。
+
 ### `wait`
 
 画面遷移などによる要素の出現または消失を、workflowファイルを作らずに待ちます。UI操作は送信せず、同じsessionの`inspect`だけをpollします。

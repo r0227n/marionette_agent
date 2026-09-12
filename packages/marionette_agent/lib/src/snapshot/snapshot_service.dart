@@ -133,6 +133,19 @@ class SnapshotService {
 
   /// Re-match stored selector and validate attribute changes; do not issue a ref here.
   Future<Selector> resolve(Execution context, TargetQuery target) async {
+    final resolved = await resolveRead(context, target);
+    if (resolved.element.visible == false) {
+      throw const AgentError('UNRESOLVABLE_TARGET', 'Target is not visible');
+    }
+    return resolved.selector;
+  }
+
+  /// Read-only target resolution. It re-observes and validates refs without
+  /// invalidating them, so successful state queries keep the current snapshot.
+  Future<ResolvedElement> resolveRead(
+    Execution context,
+    TargetQuery target,
+  ) async {
     context.requireConnected();
     _Reference? reference;
     final Selector selector;
@@ -151,14 +164,7 @@ class SnapshotService {
       case SelectorQuery(selector: final selected):
         selector = selected;
     }
-    if (!context.session.backend!.selectors.contains(selector.kind)) {
-      throw const AgentError(
-        'UNSUPPORTED_CAPABILITY',
-        'Binding does not support this selector',
-      );
-    }
-    final elements = await context.read((backend) => backend.inspect());
-    final matches = _matches(elements, selector);
+    final matches = await count(context, selector);
     if (matches.length > 1) {
       throw const AgentError(
         'AMBIGUOUS_TARGET',
@@ -191,10 +197,20 @@ class SnapshotService {
         hint: 'Run snapshot again',
       );
     }
-    if (element.visible == false) {
-      throw const AgentError('UNRESOLVABLE_TARGET', 'Target is not visible');
+    return ResolvedElement(selector, element);
+  }
+
+  /// Count selector candidates without requiring uniqueness.
+  Future<List<ElementInfo>> count(Execution context, Selector selector) async {
+    context.requireConnected();
+    if (!context.session.backend!.selectors.contains(selector.kind)) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Binding does not support this selector',
+      );
     }
-    return selector;
+    final elements = await context.read((backend) => backend.inspect());
+    return _matches(elements, selector);
   }
 
   List<ElementInfo> _matches(List<ElementInfo> elements, Selector selector) =>
@@ -204,4 +220,10 @@ class SnapshotService {
                 element.candidateValue(selector.kind) == selector.value,
           )
           .toList();
+}
+
+class ResolvedElement {
+  const ResolvedElement(this.selector, this.element);
+  final Selector selector;
+  final ElementInfo element;
 }

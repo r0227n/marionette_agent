@@ -75,6 +75,9 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
 | `close` | 録画があれば確定し、選択sessionを切断・破棄。対象不在も成功。Flutterアプリは終了しない |
 | `snapshot` | 観測を更新し、要素一覧とrefを返す |
+| `get text <ref\|selector>` | 単一要素の観測textを返す |
+| `get box <ref\|selector>` | 単一要素のboundsをFlutter論理座標で返す |
+| `get count <selector>` | 完全一致する観測候補の件数を返す（ref不可） |
 | `tap <ref>` / `tap <selector>` | 対象を1回タップ |
 | `tap --x <n> --y <n>` | 明示座標を1回タップ |
 | `fill <ref> <text>` / `fill <selector> <text>` | 入力欄の内容を置換。空文字でクリア |
@@ -114,6 +117,14 @@ workflow内の操作対象はselectorだけを受理し、refと座標操作は�
 - 通信断でsessionはdisconnectedとなりrefを失効する。明示的なconnectで復旧する。操作の自動再送はしない。
 - daemon再起動で接続・snapshotを復元しない。最後のsessionを閉じたdaemonは終了する。
 - タイムアウトしても送信済み操作を取り消せたとは限らない。結果不明を返し、接続を破棄して再接続と再観測を要求する。
+
+### getによる状態照会
+
+`get text`と`get box`は対象を再観測し、操作と共通の一意性・ref属性比較を使用する。selectorが0件ならTARGET_NOT_FOUND、複数件ならAMBIGUOUS_TARGET、未発行／消失／属性変更したrefならSTALE_REF。単独の由来未確認text selectorはUNRESOLVABLE_TARGET。表示不可でも観測された属性は返せるため、操作専用のvisible判定は行わない。
+
+成功dataはtextが`{"text":string|null}`、boxが`{"bounds":{"x":number,"y":number,"width":number,"height":number}|null,"unit":"flutter_logical_pixels"}`。boundsはFlutter論理座標であり、Simulator画像の物理pixelではない。欠損はnull、実際の空文字やゼロはそのまま返す。入力欄のvalue属性を取得する契約ではない。
+
+`get count`の成功dataは`{"count":integer,"selector":{kind:value}}`。現在のinspect結果についてkey/identifier/text/typeの完全一致を数え、0件・複数件とも成功する。textはcandidateValueを使い、既知型と由来未確認型の観測textをそれぞれ1候補として数える。これは上流操作matcherの実一致数や操作可能性の保証ではない。refはINVALID_ARGUMENT、binding未対応selectorは件数にかかわらずUNSUPPORTED_CAPABILITY。成功した全getは公開snapshotの世代・refを更新／失効／再発行しない。timeout・通信断は既存read契約に従う。
 
 ### snapshotと要素参照
 
