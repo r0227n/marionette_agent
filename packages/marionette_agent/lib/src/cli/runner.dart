@@ -5,6 +5,7 @@ import '../daemon/client.dart';
 import '../daemon/runtime.dart';
 import '../protocol/protocol.dart';
 import 'parser.dart';
+import 'common_options.dart';
 import 'artifact_writer.dart';
 import 'renderer.dart';
 import 'workflow_loader.dart';
@@ -18,8 +19,9 @@ Future<int> runCli(
   List<String>? launchCommand,
 }) async {
   final started = DateTime.now();
-  var json = args.takeWhile((arg) => arg != '--').contains('--json');
-  String? session = 'default';
+  var json = false;
+  var boundaries = false;
+  String? session = const CommonOptions().session;
   Result result;
   bool workflow = false;
   String? workflowName;
@@ -33,6 +35,7 @@ Future<int> runCli(
         json = useJson;
       },
     );
+    boundaries = invocation.options.contentBoundaries;
     workflow = invocation.command == 'workflow';
     json = invocation.json;
     session = invocation.resultSession;
@@ -90,15 +93,24 @@ Future<int> runCli(
       result = Result.success(null, {'version': version});
     } else {
       final runtime = await RuntimeDirectory.prepare();
-      result = await DaemonClient(runtime, launchCommand: launchCommand).send(
-        Request(
-          requestId: '$pid-${Random.secure().nextInt(1 << 32)}',
-          session: invocation.session,
-          command: invocation.command,
-          params: params,
-          deadline: started.add(Duration(milliseconds: invocation.timeoutMs)),
-        ),
-      );
+      result =
+          await DaemonClient(
+            runtime,
+            launchCommand: launchCommand,
+            idleTimeoutMs: invocation.options.idleTimeoutMs,
+          ).send(
+            Request(
+              requestId: '$pid-${Random.secure().nextInt(1 << 32)}',
+              session: invocation.session,
+              command: invocation.command,
+              params: params,
+              maxOutput: invocation.options.maxOutput,
+              outputJson: invocation.json,
+              deadline: started.add(
+                Duration(milliseconds: invocation.timeoutMs),
+              ),
+            ),
+          );
       if (invocation.command == 'screenshot' && result.error == null) {
         result = Result.success(
           session,
@@ -123,7 +135,7 @@ Future<int> runCli(
       const AgentError('INTERNAL_ERROR', 'CLI failed'),
     );
   }
-  stdout.writeln(render(result, json: json));
+  stdout.writeln(render(result, json: json, contentBoundaries: boundaries));
   if (!json && result.error?.code == 'INVALID_ARGUMENT') {
     stdout.writeln(cliParser.usage);
   }

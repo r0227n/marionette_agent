@@ -102,6 +102,29 @@ class SnapshotService {
     return {'generation': observation.generation, 'elements': rows};
   }
 
+  /// Only delivered refs remain actionable; numbering still covers all rows.
+  void retainPublished(Session session, Json data) {
+    final snapshot = data['finalSnapshot'] is Map
+        ? asJson(data['finalSnapshot'])
+        : data;
+    final observation = session.observation;
+    if (observation is! _Observation ||
+        snapshot['generation'] != observation.generation ||
+        snapshot['elements'] is! List) {
+      return;
+    }
+    final visible = (snapshot['elements'] as List)
+        .map((row) => asJson(row)['ref'])
+        .toSet();
+    session.observation = _Observation(
+      observation.generation,
+      Map.unmodifiable({
+        for (final entry in observation.refs.entries)
+          if (visible.contains(entry.key)) entry.key: entry.value,
+      }),
+    );
+  }
+
   Future<void> _yield(Execution context) async {
     context.check();
     await Future<void>.delayed(Duration.zero);

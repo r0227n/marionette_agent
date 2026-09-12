@@ -15,6 +15,9 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 | `--session <name>` | `default` | 操作するsession名。英数字で始まり、英数字・`_`・`-`だけで構成された最大64文字を指定します。 |
 | `--json` | 無効 | 成功・失敗とも、stdoutへ結果を1つのJSONオブジェクトとして出力します。シェルスクリプトやagentからの利用に適しています。 |
 | `--timeout <ms>` | `30000` | ファイル読込、daemon起動、キュー待ち、接続、処理を含む期限を正の整数のミリ秒で指定します。 |
+| `--content-boundaries` | 無効 | snapshot要素行とlogs entryに呼出し固有の境界を付けます。JSONではmetadataを追加します。 |
+| `--max-output <chars>` | 無制限 | 正の整数。snapshot/logsの項目列をUnicode code point数で制限します。 |
+| `--idle-timeout <duration>` | `1h` | daemon全体の無操作期限。整数msまたはms/s/m/h接尾辞。`0`で自動終了を無効にします。 |
 | `--help`, `-h` | — | ヘルプを表示します。接続は不要です。 |
 | `--version` | — | CLIのバージョンを表示します。接続は不要です。 |
 
@@ -35,6 +38,45 @@ marionette-agent snapshot --session demo --timeout 10000 --json
 ```bash
 marionette-agent --session demo fill --key text_input -- '--not-an-option'
 ```
+
+### 未信頼コンテンツと出力量
+
+```bash
+marionette-agent snapshot --content-boundaries --max-output 1000
+marionette-agent logs --content-boundaries --max-output 1000 --json
+```
+
+textではsnapshotの要素一覧とlogsのentryだけが次のマーカーに入ります。見出し、エラー、hint、件数metadata、stderr診断は外側です。nonceは呼出しごとに生成する128bitのランダムhexで、sourceはsnapshotまたはlogsです。アプリの文言を無害化する機能ではありません。
+
+```text
+Snapshot 1
+--- BEGIN UNTRUSTED snapshot <nonce> ---
+@e1 Text "日本😀"
+--- END UNTRUSTED snapshot <nonce> ---
+Truncated: true; originalCount: 2; omittedCount: 1
+```
+
+JSONはアプリ文字列を変更せず、対象のdataに`contentBoundary: {"nonce":"<nonce>","source":"snapshot"}`を追加します。logsのsourceは`logs`です。`--max-output`設定時は`truncated`、`originalCount`、`omittedCount`も同じdataに常に返します。JSON自体を途中で切ることはありません。
+
+予算はUTF-16やbyteではなくUnicode code pointです。textはsnapshotの1行／JSON化したlog entry、JSONは各項目のcompact JSONを数え、項目間の改行／commaを含めます。JSON包絡・配列括弧、見出し、境界と件数metadataは予算外です。先頭から完全な項目を採用し、次の項目が収まらない時点で残りを省略します。最初から収まらなければ空配列です。JSONのquote・escapeは文字数に含まれるため、表示形式によって件数は異なります。
+
+全要素の観測・generation・ref採番後に制限します。省略refは使用できず、番号を推測して指定するとSTALE_REFです。必要なら予算を増やして新snapshotを取得してください。workflow runのfinalSnapshotも対象です。その他の結果、画像base64／ファイル、IPC 64MiB上限、stderr診断はこの制限の対象外です。
+
+### daemonのidle期限
+
+```bash
+marionette-agent connect "$VM_URI" --idle-timeout 10s
+marionette-agent snapshot                    # 起動時の10sを引き継ぐ
+marionette-agent snapshot --idle-timeout 3m  # INVALID_ARGUMENT / not_sent
+```
+
+`10s`、`3m`、`1h`、`10000`（ミリ秒）、`10ms`を指定できます。負数・小数・未知単位・Duration／DateTime範囲外は引数エラーです。`--max-output`の0も引数エラーですが、`--idle-timeout 0`は自動終了を無効にします。重複、値の欠損もINVALID_ARGUMENTです。
+
+daemon全体の設定は起動時に固定されます。省略した要求は既存設定を引き継ぎ、異なる値を明示した要求は処理送信前に拒否します。同時起動も先に確定した設定だけが有効です。設定を変更するにはそのdaemonのsessionをすべてcloseした後、希望する値でconnect／record startを実行します。help/version、workflow schema/validateはローカル処理なのでdaemon設定に接触しません。
+
+実行中・待ち行列中・応答配送中にはidle終了せず、全queueが空になってから期限を計測します。定期的なhealth probeでは無操作期限を延長しません。期限到達時は録画を通常の終了経路で確定し、全session・ref・socket・寿命lockを解放します。録画だけの継続もidle終了の対象です。Flutterアプリは残りますが、次の操作はNOT_CONNECTEDになるため、明示的にconnectし、新snapshotを取得してください。アプリ操作は自動再送しません。
+
+3オプションはrecord、workflow、help/versionを含む全コマンドの前後で受理します。環境変数・設定ファイルからのfallbackはありません。
 
 ## 対象を指定するオプション
 

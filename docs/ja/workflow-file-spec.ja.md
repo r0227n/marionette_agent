@@ -1,6 +1,6 @@
 # workflowファイル実行仕様 v1
 
-本書は、`marionette-agent`に実装されているworkflow v1の入力、検証、実行、出力を定義します。workflowのdocument schema versionは1、公開結果の`schemaVersion`は1、daemonとのIPC `protocolVersion`は3です。
+本書は、`marionette-agent`に実装されているworkflow v1の入力、検証、実行、出力を定義します。workflowのdocument schema versionは1、公開結果の`schemaVersion`は1、daemonとのIPC `protocolVersion`は4です。
 
 利用者向けのCLI全体は[CLIリファレンス](cli-reference.ja.md)、通常コマンドを含む製品契約は[製品仕様](../SPEC.md)、内部構成は[アーキテクチャ](../ARCHITECTURE.md)、コマンドhandlerの実装境界は[コマンド実装契約](command-contract.ja.md)を参照してください。
 
@@ -321,7 +321,9 @@ integer fieldへ小数は指定できません。すべてのnumberは有限で�
 
 ## snapshotと後続CLI
 
-成功結果に`finalSnapshot`がある場合、そのrefはsessionの最新公開snapshotとして残ります。別CLI processの通常コマンドへ渡せます。
+共通の`--content-boundaries`と`--max-output`は`finalSnapshot`にも適用します。境界と件数metadataはそのsnapshot object内に置き、省略されたrefは使用できません。文字数予算とidle終了後の再接続は[CLIリファレンス](cli-reference.ja.md#未信頼コンテンツと出力量)に従います。
+
+成功結果に`finalSnapshot`がある場合、その返却されたrefはsessionの最新公開snapshotとして残ります。別CLI processの通常コマンドへ渡せます。
 
 ```sh
 marionette-agent --session demo workflow run ./flow.yaml --json

@@ -1,0 +1,2018 @@
+[
+  {
+    "command": "--json connect <private VM URI> --idle-timeout 10s",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "name": "issue2",
+        "state": "connected",
+        "uri": "<redacted VM endpoint>",
+        "snapshotValid": false,
+        "connectionGeneration": 1
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json snapshot",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "generation": 1,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 124.0,
+              "width": 420.0,
+              "height": 674.0
+            },
+            "visible": true,
+            "ref": "@e1"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e2"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 192.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e3"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 206.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e4"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e5"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e6"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e7"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e8"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 356.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e9"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 171.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e10"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 157.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e11"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e12"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e13"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e14"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 276.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e15"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 340.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e16"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 88.9033203125,
+              "y": 82.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e17"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 96.1925417582194,
+              "y": 814.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e18"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 258.63114293416345,
+              "y": 814.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e19"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json screenshot <EVIDENCE_DIR>/before.png",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "paths": [
+          "<EVIDENCE_DIR>/before.png"
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "snapshot --content-boundaries --max-output 300",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": "Snapshot 2\n--- BEGIN UNTRUSTED snapshot 3890abc0d10b3dde75144fc8a63fa057 ---\n@e20 ListView key=\"operation_scroll_area\"\n@e21 Text \"Tap\"\n@e22 FilledButton key=\"tap_button\"\n@e23 Text key=\"tap_result\" \"Tap count: 0\"\n@e24 Text \"Fill\"\n@e25 TextField key=\"text_input\"\n@e26 Text key=\"fill_result\" \"Not edited\"\n@e27 Text \"PageView swipe\"\n@e28 PageView key=\"page_view\"\n@e29 Text \"Page 1\"\n--- END UNTRUSTED snapshot 3890abc0d10b3dde75144fc8a63fa057 ---\nTruncated: true; originalCount: 21; omittedCount: 11\n"
+  },
+  {
+    "command": "snapshot --content-boundaries --max-output 300",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": "Snapshot 3\n--- BEGIN UNTRUSTED snapshot 2f24caafdcff951d369a95cc1e414df4 ---\n@e39 ListView key=\"operation_scroll_area\"\n@e40 Text \"Tap\"\n@e41 FilledButton key=\"tap_button\"\n@e42 Text key=\"tap_result\" \"Tap count: 0\"\n@e43 Text \"Fill\"\n@e44 TextField key=\"text_input\"\n@e45 Text key=\"fill_result\" \"Not edited\"\n@e46 Text \"PageView swipe\"\n@e47 PageView key=\"page_view\"\n@e48 Text \"Page 1\"\n--- END UNTRUSTED snapshot 2f24caafdcff951d369a95cc1e414df4 ---\nTruncated: true; originalCount: 21; omittedCount: 11\n"
+  },
+  {
+    "command": "--json snapshot --content-boundaries --max-output 500",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "generation": 4,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 124.0,
+              "width": 420.0,
+              "height": 674.0
+            },
+            "visible": true,
+            "ref": "@e58"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e59"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 192.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e60"
+          }
+        ],
+        "truncated": true,
+        "originalCount": 21,
+        "omittedCount": 18,
+        "contentBoundary": {
+          "nonce": "0434005980a3886182b34626ee2a8f62",
+          "source": "snapshot"
+        }
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json snapshot",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "generation": 5,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 124.0,
+              "width": 420.0,
+              "height": 674.0
+            },
+            "visible": true,
+            "ref": "@e77"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e78"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 192.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e79"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 206.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e80"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e81"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e82"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e83"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e84"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 356.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e85"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 171.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e86"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 157.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e87"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e88"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e89"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e90"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 276.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e91"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 340.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e92"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 88.9033203125,
+              "y": 82.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e93"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 96.1925417582194,
+              "y": 814.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e94"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 258.63114293416345,
+              "y": 814.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e95"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json snapshot --max-output 1",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "generation": 6,
+        "elements": [],
+        "truncated": true,
+        "originalCount": 21,
+        "omittedCount": 21
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json tap @e96",
+    "expectedExit": 4,
+    "actualExit": 4,
+    "result": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "issue2",
+      "data": null,
+      "error": {
+        "code": "STALE_REF",
+        "message": "Ref is not valid in this session",
+        "hint": "Run snapshot again",
+        "outcome": "not_sent"
+      }
+    }
+  },
+  {
+    "command": "--json tap --key tap_button --idle-timeout 3m",
+    "expectedExit": 2,
+    "actualExit": 2,
+    "result": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "issue2",
+      "data": null,
+      "error": {
+        "code": "INVALID_ARGUMENT",
+        "message": "Idle timeout differs from the running daemon; close its sessions before changing it",
+        "hint": "Run marionette-agent --help",
+        "outcome": "not_sent"
+      }
+    }
+  },
+  {
+    "command": "--json snapshot",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "generation": 7,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 124.0,
+              "width": 420.0,
+              "height": 674.0
+            },
+            "visible": true,
+            "ref": "@e115"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e116"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 192.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e117"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 206.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e118"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e119"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e120"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e121"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e122"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 356.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e123"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 171.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e124"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 157.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e125"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e126"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e127"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e128"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 276.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e129"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 340.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e130"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 88.9033203125,
+              "y": 82.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e131"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 96.1925417582194,
+              "y": 814.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e132"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 258.63114293416345,
+              "y": 814.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e133"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json tap --key tap_button",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "requiresSnapshot": true
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json fill --key text_input 日本😀",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "requiresSnapshot": true
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json tap --key tap_button",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "requiresSnapshot": true
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json snapshot --content-boundaries",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "generation": 8,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 124.0,
+              "width": 420.0,
+              "height": 674.0
+            },
+            "visible": true,
+            "ref": "@e134"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e135"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 192.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e136"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 2",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 206.0,
+              "width": 84.716796875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e137"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e138"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e139"
+          },
+          {
+            "type": "Text",
+            "text": "4 characters",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 86.275390625,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e140"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e141"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 356.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e142"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 171.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e143"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 157.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e144"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e145"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e146"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e147"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 276.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e148"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 340.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e149"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 88.9033203125,
+              "y": 82.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e150"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 96.1925417582194,
+              "y": 814.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e151"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 258.63114293416345,
+              "y": 814.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e152"
+          }
+        ],
+        "contentBoundary": {
+          "nonce": "526977152b360e1197fe01f4e970637e",
+          "source": "snapshot"
+        }
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json screenshot <EVIDENCE_DIR>/after.png",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "paths": [
+          "<EVIDENCE_DIR>/after.png"
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json logs --content-boundaries",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "entries": [
+          "example started",
+          "tap button pressed: 1",
+          "text input changed",
+          "tap button pressed: 2"
+        ],
+        "configured": true,
+        "contentBoundary": {
+          "nonce": "ae263e8816b72ba967684935c1521f9b",
+          "source": "logs"
+        }
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "logs --content-boundaries",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": "Logs\nConfigured: true\n--- BEGIN UNTRUSTED logs a3f3e17973c5351ff7640571f0d0f6eb ---\n\"example started\"\n\"tap button pressed: 1\"\n\"text input changed\"\n\"tap button pressed: 2\"\n--- END UNTRUSTED logs a3f3e17973c5351ff7640571f0d0f6eb ---\n"
+  },
+  {
+    "command": "logs --content-boundaries --max-output 1",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": "Logs\nConfigured: true\n--- BEGIN UNTRUSTED logs ac0bc345a219be5e28e4ecd5e6777f22 ---\n--- END UNTRUSTED logs ac0bc345a219be5e28e4ecd5e6777f22 ---\nTruncated: true; originalCount: 4; omittedCount: 4\n"
+  },
+  {
+    "command": "--json logs --content-boundaries --max-output 1",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "entries": [],
+        "configured": true,
+        "truncated": true,
+        "originalCount": 4,
+        "omittedCount": 4,
+        "contentBoundary": {
+          "nonce": "d26a49ae11a6275eea46784a02076599",
+          "source": "logs"
+        }
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json workflow run <EVIDENCE_DIR>/wait-longer-than-idle.json --timeout 20000",
+    "expectedExit": 5,
+    "actualExit": 5,
+    "result": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "issue2",
+      "data": null,
+      "error": {
+        "details": {
+          "workflow": "idle-active",
+          "progressKnown": true,
+          "stepIndex": 1,
+          "stepId": "wait",
+          "action": "wait",
+          "completedSteps": 0
+        },
+        "code": "TIMEOUT",
+        "message": "Workflow step failed",
+        "hint": "Inspect the current UI; completed steps must not be replayed automatically",
+        "outcome": "not_sent"
+      }
+    }
+  },
+  {
+    "command": "--json connect <private VM URI>",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "name": "issue2",
+        "state": "connected",
+        "uri": "<redacted VM endpoint>",
+        "snapshotValid": false,
+        "connectionGeneration": 3
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json snapshot",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "generation": 9,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 124.0,
+              "width": 420.0,
+              "height": 674.0
+            },
+            "visible": true,
+            "ref": "@e153"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e154"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 192.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e155"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 2",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 206.0,
+              "width": 84.716796875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e156"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e157"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e158"
+          },
+          {
+            "type": "Text",
+            "text": "4 characters",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 86.275390625,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e159"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e160"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 356.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e161"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 171.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e162"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 157.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e163"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e164"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e165"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e166"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 276.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e167"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 340.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e168"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 88.9033203125,
+              "y": 82.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e169"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 96.1925417582194,
+              "y": 814.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e170"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 258.63114293416345,
+              "y": 814.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e171"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json snapshot",
+    "expectedExit": 3,
+    "actualExit": 3,
+    "result": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "issue2",
+      "data": null,
+      "error": {
+        "code": "NOT_CONNECTED",
+        "message": "Daemon is not running",
+        "hint": "Run connect, then snapshot",
+        "outcome": "not_sent"
+      }
+    }
+  },
+  {
+    "command": "--json connect <private VM URI>",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "name": "issue2",
+        "state": "connected",
+        "uri": "<redacted VM endpoint>",
+        "snapshotValid": false,
+        "connectionGeneration": 1
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json session show",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "name": "issue2",
+        "state": "connected",
+        "uri": "<redacted VM endpoint>",
+        "snapshotValid": false,
+        "connectionGeneration": 1
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json snapshot",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "generation": 1,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 124.0,
+              "width": 420.0,
+              "height": 674.0
+            },
+            "visible": true,
+            "ref": "@e1"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e2"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 192.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e3"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 2",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 206.0,
+              "width": 84.716796875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e4"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e5"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e6"
+          },
+          {
+            "type": "Text",
+            "text": "4 characters",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 86.275390625,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e7"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e8"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 356.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e9"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 171.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e10"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 157.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e11"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e12"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e13"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e14"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 356.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 276.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e15"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 340.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e16"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 88.9033203125,
+              "y": 82.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e17"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 96.1925417582194,
+              "y": 814.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e18"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 258.63114293416345,
+              "y": 814.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e19"
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "command": "--json screenshot <EVIDENCE_DIR>/reconnected.png",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "paths": [
+          "<EVIDENCE_DIR>/reconnected.png"
+        ]
+      },
+      "error": null
+    }
+  },
+  {
+    "check": "active request lasted beyond 10s; daemon expired after 11s idle; explicit reconnect preserved app state",
+    "actual": "passed",
+    "activeElapsedMs": 12992
+  },
+  {
+    "command": "--json close",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "result": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "issue2",
+      "data": {
+        "closed": true
+      },
+      "error": null
+    }
+  }
+]

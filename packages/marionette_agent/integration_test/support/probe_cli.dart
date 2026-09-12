@@ -1,3 +1,5 @@
+import 'package:marionette_agent/src/cli/common_options.dart';
+
 import 'dart:io';
 
 import 'package:args/args.dart';
@@ -17,7 +19,7 @@ import 'package:marionette_agent/src/snapshot/snapshot_service.dart';
 /// Verifies a single dispatch through the shared base path, not the production tap command (B01).
 Future<void> main(List<String> args) async {
   configureDiagnosticLogging();
-  if (args.length == 1 && args.single == '--internal-daemon') {
+  if (args.isNotEmpty && args.first == '--internal-daemon') {
     final commands = coreCommands()
       ..register('verify-tap', (context, params) {
         if (params.length != 1 || params['ref'] is! String) invalid();
@@ -29,6 +31,7 @@ Future<void> main(List<String> args) async {
     await DaemonServer(
       await RuntimeDirectory.prepare(),
       SessionManager(MarionetteBackend.new, commands),
+      idleTimeoutMs: CommonOptions.daemonIdle(args),
     ).run();
   } else {
     exitCode = await runCli(

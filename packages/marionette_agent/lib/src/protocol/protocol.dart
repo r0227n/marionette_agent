@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import '../cli/common_options.dart';
+
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
-const protocolVersion = 3;
+const protocolVersion = 4;
 
 /// Version for result envelopes rendered to stdout.
 const schemaVersion = 1;
@@ -85,11 +87,7 @@ Never invalid([String message = 'Invalid arguments']) => throw AgentError(
 );
 
 /// Session-name constraints to avoid uncontrolled strings in paths and socket names.
-void validateSession(String name) {
-  if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$').hasMatch(name)) {
-    invalid('Invalid session name');
-  }
-}
+void validateSession(String name) => CommonOptions.validateSession(name);
 
 /// Public result envelope must hold either success data or error, never both.
 class Result {
@@ -141,12 +139,16 @@ class Request {
     required this.command,
     required this.params,
     required this.deadline,
+    this.maxOutput,
+    this.outputJson = false,
   });
   final String requestId;
   final String session;
   final String command;
   final Json params;
   final DateTime deadline;
+  final int? maxOutput;
+  final bool outputJson;
   Duration get remaining => deadline.difference(DateTime.now());
   void checkDeadline() {
     if (remaining <= Duration.zero) {
@@ -161,6 +163,8 @@ class Request {
     'command': command,
     'params': params,
     'deadline': deadline.millisecondsSinceEpoch,
+    'maxOutput': maxOutput,
+    'outputJson': outputJson,
   };
   factory Request.fromJson(Json json) {
     if (json['protocolVersion'] != protocolVersion) {
@@ -175,11 +179,17 @@ class Request {
         json['deadline'] is! int) {
       invalid('Invalid IPC request');
     }
+    final maxOutput = CommonOptions.outputLimit(json['maxOutput']);
+    if (json['outputJson'] != null && json['outputJson'] is! bool) {
+      invalid('Invalid output policy');
+    }
     final name = json['session'] as String;
     validateSession(name);
     return Request(
       requestId: json['requestId'] as String,
       session: name,
+      maxOutput: maxOutput,
+      outputJson: json['outputJson'] == true,
       command: json['command'] as String,
       params: asJson(json['params']),
       deadline: DateTime.fromMillisecondsSinceEpoch(json['deadline'] as int),

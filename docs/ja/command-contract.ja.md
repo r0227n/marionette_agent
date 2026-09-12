@@ -2,7 +2,7 @@
 
 本書は、`marionette_agent`へコマンドを追加・変更するときに守る実装契約を、現在のコードに基づいて説明します。利用者向けのCLI構文は[CLIリファレンス](cli-reference.ja.md)、製品全体の契約は[製品仕様](../SPEC.md)、構成と依存方向は[アーキテクチャ](../ARCHITECTURE.md)、workflow固有の契約は[workflow v1仕様](workflow-file-spec.ja.md)を参照してください。
 
-対象バージョンは`marionette_agent 0.0.1`、公開結果の`schemaVersion`は1、IPCの`protocolVersion`は3です。`marionette_mcp`は0.6.0に固定されています。
+対象バージョンは`marionette_agent 0.0.1`、公開結果の`schemaVersion`は1、IPCの`protocolVersion`は4です。`marionette_mcp`は0.6.0に固定されています。
 
 ## 実装境界
 
@@ -44,7 +44,7 @@ recordはVM Serviceに依存しない例外で、SessionManagerの共通session 
 
 `decode`は`ArgResults`を文字列keyのJSON objectへ変換します。CLIを経由せずIPC paramsが届く場合があるため、handlerも許可field、型、必須条件、排他条件をすべて再検証します。未知fieldを無視してはいけません。
 
-共通オプションの`--session`、`--json`、`--timeout`、`--help`、`--version`はroot parserがコマンドの前後で処理します。コマンドparserでは再定義しません。selectorを持つコマンドは`addSelectorOptions`を使い、CLI側では`parseTarget`、handler側では共有された`decodeTarget`相当の検証を使います。
+共通オプションの`--session`、`--json`、`--timeout`、`--content-boundaries`、`--max-output`、`--idle-timeout`、`--help`、`--version`は`cli/common_options.dart`に定義し、root parserがコマンドの前後で処理します。コマンドparserでは再定義しません。selectorを持つコマンドは`addSelectorOptions`を使い、CLI側では`parseTarget`、handler側では共有された`decodeTarget`相当の検証を使います。
 
 登録と1回送信の最小例は次のとおりです。
 
