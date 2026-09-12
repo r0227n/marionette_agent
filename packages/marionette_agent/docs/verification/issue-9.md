@@ -11,54 +11,107 @@ Commands run from `packages/marionette_agent`:
 ```sh
 dart format .
 dart analyze
-dart test
+dart test --concurrency=1
 ```
 
-Results: pending final run. `test/doctor_test.dart` covers sessionless parsing,
+Results: format passed; analyze reported no issues; all 179 tests passed at
+`ea98d00d3ef053b1c3c6f944c6181c62c3b27082`. Full log:
+`/private/tmp/mra-p1-20260912/worker-9-tests-final.log`.
+The first concurrent run hit existing subprocess startup deadlines under host load;
+the coordinator requested serial runs. No product deadline or existing assertion was relaxed.
+`test/doctor_test.dart` covers sessionless parsing,
 absent runtime/no implicit VM probe, SDK/path/owner failures, passive Unix IPC
 compatible/mismatch/unresponsive, secret redaction in text/JSON, exhausted deadline,
 and real WebSocket VM fixtures with observed/unobserved binding and connection closure.
+`test/idle_timeout_test.dart` additionally proves repeated passive handshakes cannot
+renew the daemon's idle lifetime. Actual dispatched requests still receive a full idle interval.
 Fixtures do not boot any app or Simulator.
 
-## Deferred Simulator Plan
+## Final Simulator Results
 
-Coordinator explicitly deferred Simulator work and publication during this phase.
+Verified code commit: `ea98d00d3ef053b1c3c6f944c6181c62c3b27082`.
+Documentation/evidence follow-up commits do not change this code.
+Date: 2026-09-12. macOS 26.5.2 (25F84), Flutter 3.47.2, Dart 3.13.2 stable,
+marionette_flutter 0.6.0, marionette_mcp 0.6.0.
 Reserved UDID: `FD418F17-7B55-456F-BC05-BF95BC08866F` (iPad Pro 11-inch M5, iOS 26.2).
-Preflight on 2026-09-12 observed Shutdown using `xcrun simctl list devices available`.
-No runtime/app runner/device has been started by this worker.
+Preflight immediately before boot observed Shutdown. Only this UDID was booted/operated.
+Final private root: `/tmp/mra-i9.Xr0H4s`; runtime: `/tmp/mra-i9.Xr0H4s/runtime`;
+session: `p1-issue-9`; bundle: `com.example.example`; runner tool handle: `38494`.
 
-1. Re-read simulator-verify instructions; re-check the reserved UDID is Shutdown.
-   If unexpectedly Booted, report and wait. Create private `mktemp -d /tmp/mra-i9.XXXXXX`,
-   use session `p1-issue-9`, and record exact runtime/runner/bundle ownership in worker status.
-2. Run product CLI doctor in text and JSON with the private runtime still absent or empty.
-   Expect no daemon/socket/session creation; host/dependencies/Simulator checks observable,
-   probe skipped. Capture sanitized responses and process exit values.
-3. Boot only the reserved device, build/run this worktree's `example/` with its own runner
-   and private URI file. Record runner handle and bundle ID; keep raw runner logs private.
-4. Run `dart run bin/marionette_agent.dart --session p1-issue-9 connect "$VM_URI"`,
-   then snapshot/session show and a product screenshot. Record ref and current UI state.
-5. Run doctor with and without `--probe-uri "$VM_URI"` in text/JSON; expect compatible
-   daemon, successful VM protocol observation, actual binding version/registered extensions.
-   Run session show and tap the saved ref afterwards to prove the connection/ref survived.
-   Observe the expected UI change with snapshot and product screenshot; inspect actual images
-   with view_image and record expected versus actual screen state.
-6. Repeat explicit probe with a refused loopback endpoint and a silent fixture endpoint;
-   expect failure and unknown respectively, exit1, no secret values. Check saved connection
-   and fresh ref remain usable after both. A reachable VM without binding is covered by
-   automated wire fixture; report unknown instead of inferring capabilities.
-7. Capture meaningful before/after images and sanitized text/JSON responses with commands,
-   expected/actual states, actual commits, device/runtime/CLI versions and evidence paths.
-8. Close only `p1-issue-9`, stop the owned runner, shut down the reserved device, and record
-   teardown before release. Verify all required checks and images before draft publication.
-9. Re-check remote PRs in all states and branch head, commit/push as authorized, then create
-   one develop-target Draft PR with attachments and the unchecked human steps below.
+```sh
+# In example/; URI and raw runner log remain private.
+flutter pub get
+flutter run -d FD418F17-7B55-456F-BC05-BF95BC08866F --debug --no-pub \
+  --vmservice-out-file=/tmp/mra-i9.Xr0H4s/vm-uri
+# In packages/marionette_agent/, another terminal:
+MARIONETTE_TEST_PRIVATE_DIR=/tmp/mra-i9.Xr0H4s \
+  dart run integration_test/doctor_smoke.dart
+```
+
+Actual: all 50 product-CLI calls passed. Every doctor scenario below ran in text and JSON.
+[Sanitized commands, expected/actual exit codes and full responses](issue-9-results.json)
+are committed as evidence; the harness checks raw URI/auth-path and fixture-token absence
+before recording stdout/stderr. Doctor stderr was empty in every scenario.
+
+| Scenario | Expected and actual |
+| --- | --- |
+| No daemon/runtime, no explicit URI | exit0; runtime/probe skipped; runtime stays absent |
+| IPC incompatible protocol | failure/exit1; no command bytes sent; socket retained |
+| IPC unresponsive | unknown/exit1; no command bytes sent; socket retained |
+| Connected daemon, no explicit URI | exit0; compatible ready handshake, probe skipped |
+| Explicit running example URI | success/exit0; VM protocol 4.21; observed binding 0.6.0 and 17 registered extensions |
+| Refused explicit endpoint | failure/exit1; URI and remote error withheld |
+| Silent explicit VM endpoint, timeout2500 | unknown/exit1; dedicated connection closed |
+| Reachable fixture VM without binding | success/exit0; bindingStatus unknown, bindings empty |
+
+For each explicit probe pair, session show before/after was identical, daemon metadata and
+runtime entries were unchanged, and the exact pre-probe ref remained usable. Tapping refs
+`@e33`, `@e93`, `@e153`, `@e213` after successful/refused/timeout/unobserved probe pairs
+respectively produced Tap count 1/2/3/4. No snapshot was taken between saving each ref and
+using it after the probes. All five actual images were read with view_image; the visible
+counter matches snapshot state and the remaining Controls UI remains unchanged.
+
+Evidence directory: `/tmp/mra-i9.Xr0H4s/evidence/`:
+- `doctor-before.png`: Tap count 0, fresh Controls fixture.
+- `doctor-after-successful.png`: Tap count 1 after saved-ref tap following successful probes.
+- `doctor-after-refused.png`: Tap count 2 after saved-ref tap following refused probes.
+- `doctor-after-timeout.png`: Tap count 3 after saved-ref tap following timed-out probes.
+- `doctor-after-unobserved.png`: Tap count 4 after saved-ref tap following unknown-binding probes.
+- `doctor-results.json`: source for the committed sanitized result record.
+
+Teardown: harness closed its session and all local fixture sockets. Daemon metadata and
+socket were absent. Runner `38494` exited0 after `q`; reserved Simulator shutdown succeeded
+and simctl confirmed Shutdown. URI files from both runs were removed. Raw runner logs are
+private and are not PR attachments. Earlier runner `79997` also exited0 after `q`; its
+two private runtimes were closed before the final run. Worktree is preserved.
 
 ## Human Handoff
+
+Start with a freshly launched example (Tap count0). Use a newly reserved Simulator and
+a new private directory so old daemon/app state cannot affect reproduction:
+confirm the reserved device is Shutdown, then run `xcrun simctl boot <YOUR_RESERVED_UDID>`.
+
+```sh
+# Repository root, terminal A
+umask 077
+MRA_DOCTOR_PRIVATE=$(mktemp -d /tmp/mra-i9.XXXXXX)
+mkdir -m 700 "$MRA_DOCTOR_PRIVATE/evidence"
+cd example
+flutter pub get
+flutter run -d <YOUR_RESERVED_UDID> --debug --no-pub \
+  --vmservice-out-file="$MRA_DOCTOR_PRIVATE/vm-uri"
+# Terminal B, packages/marionette_agent; substitute terminal A's private path.
+MARIONETTE_TEST_PRIVATE_DIR=<PRIVATE_PATH> dart run integration_test/doctor_smoke.dart
+```
+
+The harness performs the full text/JSON matrix and closes its CLI session. Review the
+result JSON and five screenshots; then stop runner with `q`, shut down the reserved
+device, and remove the private URI file. URI values must not be pasted into public logs.
 
 - [ ] On macOS run doctor in text/JSON without a daemon; review each nextStep and exit code.
 - [ ] Probe the example app explicitly, verify observed binding fields, and confirm existing
   session/ref still operates and screen changes as expected.
 - [ ] Inspect attached screenshots and sanitized failure/timeout responses.
 
-Current limitation: Simulator acceptance, image inspection, verified commit and Draft PR
-are pending coordinator capacity. This is a phase handoff, not Issue completion.
+Human verification remains pending. Agent acceptance has passed. Registered extensions
+are observations, not a claim that every listed operation is supported by this CLI.
