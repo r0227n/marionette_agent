@@ -13,5 +13,5 @@ environment, verified commits and human reproduction steps are maintained in
 - [x] Update SPEC, ARCHITECTURE, Japanese CLI reference and help.
 - [x] Final format, analyze and serial full tests (176 passed); example tests (5 passed).
 - [x] Verify assigned Simulator images, refs, stale errors and unsupported provider (39 CLI calls; 9 inspected images).
-- [ ] Teardown owned resources and publish inspected evidence-backed Draft PR.
+- [x] Teardown owned resources and publish inspected evidence-backed [Draft PR #32](https://github.com/r0227n/marionette_agent/pull/32).
 - [ ] Human verification (pending).

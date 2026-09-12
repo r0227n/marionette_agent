@@ -8,6 +8,8 @@ Base: `50ccf97f47ecf03a51ea3c5646c9164325570c0b` (`origin/develop`).
 Verified code commit: `4bb12cc1549b81673d1ad21d8bae0b52b53fab99`.
 Status: required automated and Simulator verification passed; resources released.
 Publication follow-up changes only verification documents and transcripts.
+Draft PR: https://github.com/r0227n/marionette_agent/pull/32 (develop target).
+Read-back confirmed Draft status, all 9 image attachments and pending human verification.
 
 ## Research and support boundary
 
