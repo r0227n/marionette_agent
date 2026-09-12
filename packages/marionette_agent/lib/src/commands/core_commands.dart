@@ -1,4 +1,3 @@
-import '../protocol/protocol.dart';
 import 'registry.dart';
 import 'swipe.dart';
 import 'actions.dart';
@@ -20,7 +19,4 @@ CommandRegistry coreCommands() => CommandRegistry()
   ..register('screenshot', handleScreenshot)
   ..register('logs', handleLogs)
   ..register('wait', handleWait)
-  ..register('snapshot', (context, params) {
-    if (params.isNotEmpty) invalid('Usage: snapshot');
-    return context.snapshot();
-  });
+  ..register('snapshot', handleSnapshot);

@@ -50,7 +50,7 @@ class SnapshotService {
 
   /// Invalidate stale refs and expose only data and uniquely actionable refs.
 
-  Future<Json> publish(Execution context) async {
+  Future<Json> publish(Execution context, {Selector? filter}) async {
     context.requireConnected();
     context.session.invalidate();
     final elements = await context.read((backend) => backend.inspect());
@@ -94,12 +94,28 @@ class SnapshotService {
         row['ref'] = ref;
         refs[ref] = _Reference(selected, element);
       }
-      rows.add(row);
+      // Filtering affects delivery only, after full-observation safety and numbering.
+      if (filter == null ||
+          element.candidateValue(filter.kind) == filter.value) {
+        rows.add(row);
+      }
     }
     context.check();
     final observation = _Observation(++_generation, Map.unmodifiable(refs));
     context.session.observation = observation;
-    return {'generation': observation.generation, 'elements': rows};
+    final result = <String, dynamic>{
+      'generation': observation.generation,
+      if (filter != null)
+        'filter': {
+          'kind': filter.kind.name,
+          'value': filter.value,
+          'matchedCount': rows.length,
+          'totalCount': elements.length,
+        },
+      'elements': rows,
+    };
+    if (filter != null) retainPublished(context.session, result);
+    return result;
   }
 
   /// Only delivered refs remain actionable; numbering still covers all rows.

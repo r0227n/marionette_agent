@@ -41,7 +41,7 @@ class CliParser {
       return {'uri': args.rest.single};
     }),
     'close': CliCommand(ArgParser(), noArguments),
-    'snapshot': CliCommand(ArgParser(), noArguments),
+    'snapshot': snapshotCommand(),
     'session': CliCommand(
       ArgParser()
         ..addCommand('list')
@@ -64,6 +64,8 @@ class CliParser {
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
       'connect <uri> | session list | session show | close | snapshot\n'
+      'snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]\n'
+      'Snapshot filters observed values; zero/multiple matches are valid. Full observation determines ref safety.\n'
       'swipe <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>\n'
       'Directions describe finger movement; verify the result with snapshot.\n'

@@ -22,7 +22,8 @@ class CommandContext {
   void check() => _execution.check();
 
   /// Fetch a new public snapshot. This emits refs, unlike pre-observation.
-  Future<Json> snapshot() => _snapshots.publish(_execution);
+  Future<Json> snapshot({Selector? filter}) =>
+      _snapshots.publish(_execution, filter: filter);
 
   /// Read flow. Validate connection generation and deadline before and after await; do not invalidate refs.
   Future<T> read<T>(Future<T> Function(Backend) operation) =>

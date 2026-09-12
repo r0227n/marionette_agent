@@ -107,6 +107,22 @@ class _MarionetteAgentExampleScreenState
                     ],
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      SnapshotLabel(
+                        label: 'Filter label A',
+                        identifier: 'snapshot_label_a',
+                      ),
+                      SnapshotLabel(
+                        label: 'Filter label B',
+                        identifier: 'snapshot_label_b',
+                      ),
+                    ],
+                  ),
+                ),
                 _Section(
                   title: 'Fill',
                   child: Column(
@@ -211,6 +227,12 @@ class _MarionetteAgentExampleScreenState
             ),
     );
   }
+}
+
+/// Duplicate unknown types expose display-only text and global ref collisions.
+class SnapshotLabel extends Semantics {
+  SnapshotLabel({super.key, required String label, required super.identifier})
+    : super(label: label, child: Text(label));
 }
 
 class _Section extends StatelessWidget {

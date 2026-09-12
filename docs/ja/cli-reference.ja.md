@@ -135,6 +135,27 @@ marionette-agent --session demo close
 
 ### `snapshot`
 
+任意のfilterを1つ指定すると、観測値に完全一致する要素だけを返します。大文字小文字を区別します。filterなしは全要素を返します。
+
+```sh
+marionette-agent snapshot --key tap_button
+marionette-agent snapshot --identifier label --json
+marionette-agent snapshot --text 'Tap me'
+marionette-agent snapshot --type Text --max-output 1000 --json
+```
+
+`--key` / `--identifier` / `--text` / `--type`の併用、空値、refはINVALID_ARGUMENTです。0件や複数件でも成功し、新generationで旧refがすべて失効します。textは未知型の表示値にも一致し、identifierは操作backendの対応と無関係に観測属性を比較します。属性がなければ一致しません。観測で一致しても、そのselectorで操作できるとは限りません。
+
+JSONのdataにはfilter指定時だけ次のmetadataが加わります。
+
+```json
+{"filter":{"kind":"type","value":"Text","matchedCount":5,"totalCount":20}}
+```
+
+text形式では`Filter: type="Text"; matchedCount: 5; totalCount: 20`と表示します。totalCountは全観測数、matchedCountは出力制限前の一致数です。全観測に基づく一意性確認・ref採番の後にfilter、その後に`--max-output`を適用します。filterだけでは出力省略を意味しません。予算指定時のoriginalCountはmatchedCountと同じで、omittedCountは一致要素のうち予算で省略された数です。metadataは文字数予算に含みません。
+
+filter外の重複もref安全性の判定に使います。返却された有効refだけを操作に使ってください。filter外や予算で省略された番号を推測して使うとSTALE_REFになります。workflow v1のsnapshot stepにはfilterを追加していません。
+
 現在のUIを観測し、操作可能または可読な要素とrefを返します。これは完全なWidgetツリーではありません。
 
 ```bash
