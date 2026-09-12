@@ -3,27 +3,37 @@ import 'dart:io';
 import 'dart:typed_data';
 
 // image is pinned to 4.9.1: its public barrel loads every codec/filter.
-// Keep this internal API at this boundary; validate PNG tests before upgrades.
+// Keep these internal APIs at this boundary; validate codec tests before upgrades.
+// ignore: implementation_imports
+import 'package:image/src/formats/jpeg_encoder.dart' show JpegEncoder;
 // ignore: implementation_imports
 import 'package:image/src/formats/png_decoder.dart' show PngDecoder;
+// ignore: implementation_imports
+import 'package:image/src/image/image.dart' show Image;
 import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
+import 'common_options.dart';
 
 /// Decode before writing, reserve each destination exclusively, and roll back
 /// this request's files on failure. Existing files are not normally overwritten.
 Future<Json> saveScreenshots(
   Json data,
   String? destination,
-  DateTime deadline,
-) async {
+  DateTime deadline, {
+  ScreenshotFormat format = ScreenshotFormat.png,
+  int quality = CommonOptions.defaultScreenshotQuality,
+  DateTime Function()? now,
+}) async {
+  final clock = now ?? DateTime.now;
   void checkDeadline() {
-    if (!DateTime.now().isBefore(deadline)) {
+    if (!clock().isBefore(deadline)) {
       throw const AgentError('TIMEOUT', 'Screenshot saving deadline exceeded');
     }
   }
 
   checkDeadline();
+  if (destination != null) destination = format.destinationPath(destination);
   final payloads = data['images'];
   if (payloads is! List || payloads.isEmpty) {
     throw const AgentError('BACKEND_ERROR', 'No screenshots returned');
@@ -34,13 +44,43 @@ Future<Json> saveScreenshots(
       checkDeadline();
       if (value is! String) throw const FormatException();
       final bytes = base64Decode(value);
-      if (PngDecoder().decode(bytes) == null) throw const FormatException();
-      images.add(bytes);
+      final decoded = PngDecoder().decode(bytes);
+      if (decoded == null) throw const FormatException();
+      checkDeadline();
+      if (format == ScreenshotFormat.jpeg) {
+        // Flatten into opaque RGB before encoding. This also handles grayscale
+        // alpha, palette/16-bit PNGs and padded JPEG edge blocks consistently.
+        final rgb = Image(width: decoded.width, height: decoded.height);
+        for (final pixel in decoded) {
+          if (pixel.x == 0 && pixel.y % 256 == 0) checkDeadline();
+          final alpha = pixel.aNormalized;
+          final white = 1 - alpha;
+          final red = pixel.rNormalized;
+          final green = pixel.length < 3 ? red : pixel.gNormalized;
+          final blue = pixel.length < 3 ? red : pixel.bNormalized;
+          rgb.setPixelRgb(
+            pixel.x,
+            pixel.y,
+            (255 * (red * alpha + white)).round(),
+            (255 * (green * alpha + white)).round(),
+            (255 * (blue * alpha + white)).round(),
+          );
+        }
+        checkDeadline();
+        images.add(JpegEncoder(quality: quality).encode(rgb));
+      } else {
+        images.add(bytes);
+      }
+      // Synchronous codecs cannot be interrupted; never publish late output.
+      checkDeadline();
     }
   } on AgentError {
     rethrow;
   } catch (_) {
-    throw const AgentError('BACKEND_ERROR', 'Invalid PNG screenshot');
+    throw const AgentError(
+      'BACKEND_ERROR',
+      'Cannot decode or convert PNG screenshot',
+    );
   }
   Directory? temporary;
   final created = <File>[];
@@ -52,7 +92,9 @@ Future<Json> saveScreenshots(
       );
     }
     final base = p.normalize(
-      p.absolute(destination ?? p.join(temporary!.path, 'screen.png')),
+      p.absolute(
+        destination ?? p.join(temporary!.path, 'screen${format.extension}'),
+      ),
     );
     final paths = List.generate(
       images.length,
@@ -60,7 +102,7 @@ Future<Json> saveScreenshots(
           ? base
           : p.join(
               p.dirname(base),
-              '${p.basenameWithoutExtension(base)}-${i + 1}${p.extension(base).isEmpty ? '.png' : p.extension(base)}',
+              '${p.basenameWithoutExtension(base)}-${i + 1}${p.extension(base)}',
             ),
     );
     // Reserve every path before writing any image. This refuses destinations

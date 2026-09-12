@@ -48,6 +48,8 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | `--content-boundaries` | 値なしflag、既定無効。snapshot要素／logs entryを未信頼コンテンツとして識別 |
 | `--max-output <chars>` | 正の整数、既定無制限。snapshot／logsの項目列をUnicode code point数で制限 |
 | `--idle-timeout <duration>` | daemon全体のidle期限。既定1h、0で無効。整数msまたはms/s/m/h接尾辞 |
+| `--screenshot-format png\|jpeg` | screenshotの保存形式。既定png。backendはPNGのまま、CLI側でJPEGへ変換 |
+| `--screenshot-quality <0-100>` | JPEG指定時だけ受理する整数。省略時90。PNG指定時・単独指定・範囲外はINVALID_ARGUMENT |
 | `--help` / `--version` | 接続なしで利用可能 |
 
 共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。対話入力は要求しない。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
@@ -56,7 +58,7 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 
 ### 共通安全オプション
 
-共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。新しい3オプションもhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。
+共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。help/version、workflow、recordでも共通オプションを受理・検証する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。screenshot形式・品質は画像保存時だけ使用し、他コマンドの出力は変更しない。
 
 `--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
 
@@ -82,7 +84,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | 明示した始点から終点へスワイプ |
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | 要素の出現または消失を観測だけで待つ |
-| `screenshot [path]` | PNGを保存し絶対パスを返す。省略時は一時ファイル |
+| `screenshot [path]` | PNG（既定）またはJPEGを保存し絶対パスを返す。省略時は一時ファイル |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
 | `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
 | `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
@@ -97,6 +99,15 @@ scrollは初版では指定領域を既存swipe機構で操作する。direction
 単独`wait`の`state`は`exists`が既定で、`gone`も指定できる。`poll-interval`は50〜1,000msの整数、既定100ms。最初の観測は即時に行い、全体期限は共通`--timeout`を使う。`exists`は一致が正確に1件かつ`visible != false`で成功し、複数一致はAMBIGUOUS_TARGET。`gone`は0件で成功し、1件以上なら待つ。text照合では由来未確認の候補も衝突へ含め、唯一の候補が由来未確認ならUNRESOLVABLE_TARGETとする。
 
 `wait`は同一session queueで`inspect`だけをpollし、UI操作を送信せず、公開snapshot／refを発行・更新・失効しない。成功dataは待機した`state`と`requiresSnapshot:true`を返し、実際の画面状態と最新refを後続`snapshot`で確認するよう案内する。wait中のtimeoutまたは通信断はreadの既存契約どおり`outcome:not_sent`で接続世代とrefを破棄する。queue内で実行開始前に期限切れとなった要求は観測せず、接続とrefを維持する。
+
+### screenshotの形式・保存
+
+- 既定PNGは復号検証後にbackendの元バイト列を保存し、寸法と透過を保持する。JPEGはCLI側でPNGを復号し、各画素のRGBを白背景へalpha合成してから不可逆圧縮する。寸法は変えない。PNG内の背景色指定は使用しない。
+- `--screenshot-format`は小文字の`png`または`jpeg`。`--screenshot-quality`はJPEG指定時だけ0〜100の整数を受理し、既定90。固定encoderの品質0は最低品質1と同じ圧縮になる。品質100もlosslessではない。
+- pathの拡張子はPNGなら`.png`、JPEGなら`.jpg`または`.jpeg`。大文字小文字を区別せず、指定した綴りは維持する。形式は拡張子から推測しない。不一致・未知の拡張子は接続前にINVALID_ARGUMENT。拡張子がなければPNGは`.png`、JPEGは`.jpg`を付加する。
+- path省略時は専用の非公開一時directoryに`screen.png`または`screen.jpg`を保存する。複数画像はbackendの順で、指定名の拡張子直前へ`-1`、`-2`…を付ける。例: `screen.jpeg`→`screen-1.jpeg`、`screen-2.jpeg`。自動名も同じ連番規則。
+- 共通`--timeout`は取得・転送・復号・白背景合成・JPEG変換・保存を含む元の絶対期限。codec処理前後・合成中・保存中に期限を確認し、期限後に成功を返さない。同期codecや進行中のOS I/Oの即時中断は保証しない。
+- 全画像の復号・変換が成功してから全保存先を排他的に予約し、書き込む。既存file/directory/symlinkはIO_ERRORで拒否する。途中の変換失敗は出力を作らず、予約・書込みの失敗やTIMEOUTではこの要求が作成した全fileと自動作成directoryの削除を試みる。既存fileを削除・上書きしない。OSがcleanupを拒否した場合は部分artifactが残る場合があり、成功pathsは返さない。意図的な予約後の差し替えは従来どおり保証外。
 
 ### workflow v1
 
@@ -175,7 +186,7 @@ screenshotのdataはpaths配列。複数画像は連番で保存し、通常利�
 2. 2つのsessionの接続・ref・切断が分離され、同一sessionの並行要求が直列化される。
 3. 古いref、曖昧な対象、通信断、timeoutが規定のJSONと終了コードになり、操作が自動再送されない。
 4. PageViewの切替とDismissibleのdismissをswipeで確認し、座標方式もSimulatorで検証する。
-5. wait、scroll、PNG保存、ログ取得が共通のsession・deadline・エラー契約を通して動作する。
+5. wait、scroll、PNG/JPEG保存、ログ取得が共通のsession・deadline・エラー契約を通して動作する。
 6. workflowのJSON／YAML検証、binding、queue占有、wait、停止時の進捗、最終snapshot引き継ぎを自動テストとSimulatorで確認する。
 7. コード変更時は`packages/marionette_agent`でformat、analyze、関連testを実行する。CLI契約を変えた場合は`example/`をiOS Simulatorで起動し、製品CLIの結果と操作後の画面状態を確認する。
 

@@ -1,6 +1,24 @@
 import 'package:args/args.dart';
+import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
+
+enum ScreenshotFormat {
+  png('.png'),
+  jpeg('.jpg');
+
+  const ScreenshotFormat(this.extension);
+  final String extension;
+
+  String destinationPath(String path) {
+    final suffix = p.extension(path).toLowerCase();
+    if (suffix.isEmpty) return '$path$extension';
+    if (suffix != extension && !(this == jpeg && suffix == '.jpeg')) {
+      invalid('Screenshot extension must match --screenshot-format');
+    }
+    return path;
+  }
+}
 
 /// Single source for common grammar, defaults, recovery and typed values.
 class CommonOptions {
@@ -11,6 +29,8 @@ class CommonOptions {
     this.contentBoundaries = false,
     this.maxOutput,
     this.idleTimeoutMs,
+    this.screenshotFormat = ScreenshotFormat.png,
+    this.screenshotQuality = defaultScreenshotQuality,
     this.special,
   });
   final String session;
@@ -21,8 +41,11 @@ class CommonOptions {
 
   /// Null means inherit the running daemon's immutable configuration.
   final int? idleTimeoutMs;
+  final ScreenshotFormat screenshotFormat;
+  final int screenshotQuality;
   final String? special;
   static const defaultIdleTimeoutMs = 3600000;
+  static const defaultScreenshotQuality = 90;
 
   static ArgParser createParser() => ArgParser()
     ..addOption('session', defaultsTo: 'default', help: 'Session name')
@@ -44,6 +67,16 @@ class CommonOptions {
     ..addOption(
       'idle-timeout',
       help: 'Daemon idle duration: ms, 10s, 3m, 1h (default 1h; 0 disables)',
+    )
+    ..addOption(
+      'screenshot-format',
+      defaultsTo: 'png',
+      help: 'Screenshot format: png|jpeg (default png; JPEG uses a white background)',
+    )
+    ..addOption(
+      'screenshot-quality',
+      help:
+          'JPEG only: integer 0-100 (default $defaultScreenshotQuality; 0 maps to quality 1)',
     )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
     ..addFlag('version', negatable: false, help: 'Show version');
@@ -106,9 +139,31 @@ class CommonOptions {
     if (args.flag('help') && args.flag('version')) {
       invalid('Choose help or version');
     }
+    final screenshotFormat = switch (args.option('screenshot-format')) {
+      'png' => ScreenshotFormat.png,
+      'jpeg' => ScreenshotFormat.jpeg,
+      _ => invalid('Expected --screenshot-format png|jpeg'),
+    };
+    final rawQuality = args.option('screenshot-quality');
+    var screenshotQuality = defaultScreenshotQuality;
+    if (rawQuality != null) {
+      final quality = int.tryParse(rawQuality);
+      if (screenshotFormat != ScreenshotFormat.jpeg ||
+          !RegExp(r'^[0-9]+$').hasMatch(rawQuality) ||
+          quality == null ||
+          quality < 0 ||
+          quality > 100) {
+        invalid(
+          '--screenshot-quality requires JPEG and an integer from 0 to 100',
+        );
+      }
+      screenshotQuality = quality;
+    }
     return CommonOptions(
       session: session,
       json: args.flag('json'),
+      screenshotFormat: screenshotFormat,
+      screenshotQuality: screenshotQuality,
       timeoutMs: duration(args.option('timeout')!),
       contentBoundaries: args.flag('content-boundaries'),
       maxOutput: args.option('max-output') == null

@@ -71,6 +71,9 @@ class CliParser {
       'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'scroll uses finger movement direction; reaching content is not guaranteed.\n'
       'screenshot [path] | logs\n'
+      'Screenshot extensions: .png or .jpg/.jpeg; missing extension is appended.\n'
+      'Multiple images: name-1.ext, name-2.ext; existing files are refused.\n'
+      'Path omitted: private screen.png/screen.jpg; conversion uses --timeout.\n'
       'wait <selector> [--state exists|gone] [--poll-interval <ms>]\n'
       'wait observes only; run snapshot before the next UI operation.\n'
       'record start <path> --platform ios|android|macos --device <id>\n'
@@ -107,11 +110,13 @@ class CliParser {
     }
     final command = args.command;
     if (command == null) invalid('A command is required');
-    return Invocation(
-      options,
-      command.name!,
-      definitions[command.name]!.decode(command),
-    );
+    final params = definitions[command.name]!.decode(command);
+    if (command.name == 'screenshot' && params['path'] is String) {
+      params['path'] = options.screenshotFormat.destinationPath(
+        params['path'] as String,
+      );
+    }
+    return Invocation(options, command.name!, params);
   }
 }
 

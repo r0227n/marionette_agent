@@ -18,6 +18,8 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 | `--content-boundaries` | 無効 | snapshot要素行とlogs entryに呼出し固有の境界を付けます。JSONではmetadataを追加します。 |
 | `--max-output <chars>` | 無制限 | 正の整数。snapshot/logsの項目列をUnicode code point数で制限します。 |
 | `--idle-timeout <duration>` | `1h` | daemon全体の無操作期限。整数msまたはms/s/m/h接尾辞。`0`で自動終了を無効にします。 |
+| `--screenshot-format png\|jpeg` | `png` | screenshotの保存形式。JPEGはCLI側で変換します。 |
+| `--screenshot-quality <0-100>` | JPEGでは`90` | JPEG指定時だけ受け付ける整数。PNG指定時・単独指定は引数エラーです。 |
 | `--help`, `-h` | — | ヘルプを表示します。接続は不要です。 |
 | `--version` | — | CLIのバージョンを表示します。接続は不要です。 |
 
@@ -270,15 +272,25 @@ marionette-agent --session demo snapshot
 
 ### `screenshot [path]`
 
-現在の画面をPNGとして保存し、保存した絶対パスを返します。pathを省略すると非公開の一時ディレクトリへ保存します。相対pathはコマンドを実行したカレントディレクトリ基準です。
+現在の画面をPNG（既定）またはJPEGとして保存し、保存した絶対パスを返します。JSONの`data.paths`、通常テキストの`paths`が画像の一覧です。pathを省略すると非公開の一時ディレクトリへ保存します。相対pathはコマンドを実行したカレントディレクトリ基準です。
 
 ```bash
 mkdir -p ./artifacts
 marionette-agent --session demo screenshot ./artifacts/screen.png
 marionette-agent --session demo screenshot --json
+marionette-agent --session demo screenshot ./artifacts/screen.jpg --screenshot-format jpeg --json
+marionette-agent --screenshot-format jpeg --screenshot-quality 75 --session demo screenshot ./artifacts/compact.jpeg
 ```
 
-既存ファイルは上書きしません。保存先の親ディレクトリは事前に作成してください。複数画像が返された場合は、指定名へ連番を付けて保存します。
+PNGは元のバイト列・寸法・透過を維持します。JPEGは同じ寸法で、透過部分を白背景に合成してから不可逆圧縮します。PNGの背景色指定は使用しません。品質は0〜100の整数、JPEGで省略すると90です。0はencoderの最低品質1と同じ圧縮で、100もlosslessではありません。小数、範囲外、PNGでの品質指定、品質だけの指定は`INVALID_ARGUMENT`（終了コード2）です。
+
+拡張子はPNGなら`.png`、JPEGなら`.jpg`または`.jpeg`を指定します。大文字小文字は区別せず綴りを保持します。拡張子から形式を自動選択しないので、既定PNGに`screen.jpg`を渡した場合も接続前の引数エラーです。未知の拡張子も拒否します。拡張子がなければ`.png`または`.jpg`を付加します。path省略時の自動名は`screen.png`または`screen.jpg`です。
+
+複数画像ではbackendから返された順に`screen-1.png`、`screen-2.png`、または`screen-1.jpeg`、`screen-2.jpeg`のように拡張子直前へ連番を付けます。自動名も同じ規則です。保存先の親ディレクトリは事前に作成してください。全画像を変換して全保存先を排他的に予約し、既存file・directory・symlinkは`IO_ERROR`で拒否します。上書きしません。
+
+共通`--timeout`には取得・転送から復号・変換・保存までを含めます。変換失敗時は保存せず、予約・書込み後の失敗や期限切れではこの呼出しが作った全画像と自動directoryの削除を試みます。OSが削除を拒否すると部分ファイルが残る場合があります。失敗時には成功pathsを返しません。同期codecと進行中のOS I/Oの即時中断、予約後に別プロセスが意図的に保存先を差し替える競合は保証しません。
+
+形式・品質は共通オプションなのでhelp/versionや他のコマンドでも受理・検証しますが、screenshot以外の出力には適用しません。
 
 ### `logs`
 

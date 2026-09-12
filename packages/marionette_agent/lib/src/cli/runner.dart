@@ -117,7 +117,9 @@ Future<int> runCli(
           await saveScreenshots(
             result.data!,
             invocation.params['path'] as String?,
-            started.add(Duration(milliseconds: invocation.timeoutMs)),
+            deadline,
+            format: invocation.options.screenshotFormat,
+            quality: invocation.options.screenshotQuality,
           ),
         );
       }
