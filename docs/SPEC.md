@@ -73,7 +73,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `connect <uri>` | 指定sessionで接続。HTTP(S)のVM Service URIもWS(S)へ正規化 |
 | `session list` | sessionの名前・接続状態を一覧表示。daemon不在時は空一覧 |
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
-| `close` | 録画があれば確定し、選択sessionを切断・破棄。対象不在も成功。Flutterアプリは終了しない |
+| `close [--all]` | 録画があれば確定し、選択session（--allは全session）を切断・破棄。対象不在も成功。Flutterアプリは終了しない |
 | `snapshot` | 観測を更新し、要素一覧とrefを返す |
 | `tap <ref>` / `tap <selector>` | 対象を1回タップ |
 | `tap --x <n> --y <n>` | 明示座標を1回タップ |
@@ -114,6 +114,16 @@ workflow内の操作対象はselectorだけを受理し、refと座標操作は�
 - 通信断でsessionはdisconnectedとなりrefを失効する。明示的なconnectで復旧する。操作の自動再送はしない。
 - daemon再起動で接続・snapshotを復元しない。最後のsessionを閉じたdaemonは終了する。
 - タイムアウトしても送信済み操作を取り消せたとは限らない。結果不明を返し、接続を破棄して再接続と再観測を要求する。
+
+### close --all
+
+`close --all`はdaemon全体の後始末。明示的な`--session`との併用（defaultも含む）はINVALID_ARGUMENT（exit 2）。daemon不在・空でも成功し、自動起動しない。成功はsession:null、data:{closed:true,sessions:[session別Result]}。名前順の各Resultは通常の包絡（session、ok、dataまたはerror）を使う。closedはローカルsessionの破棄を表し、アプリ終了を意味しない。
+
+受付時に対象sessionを固定して全新規要求の受付を停止する。それ以前に予約したconnectも対象に含む。queue待ちは実行前にCONNECTION_LOST/not_sentとして拒否し、実行中は共通`--timeout`の絶対期限まで完了を待つ。期限到達で接続世代を失効し、送信済み操作の応答はCONNECTION_LOST/unknown、未送信はnot_sent。遅延完了によるref復活・後続操作の送信・UI再送を禁止する。
+
+sessionごとに録画確定・切断を期限内で待つ。部分失敗でも全sessionのref・URI所有権を破棄しdaemonを終了する。部分失敗はdata:null、error.details:{closed:true,sessions:[session別Result]}。期限超過が1件でもあればTIMEOUT（exit 5）、それ以外の失敗はCLOSE_FAILED（exit 1）。集約outcomeは結果不明があればunknown、それ以外はfailed。各sessionに切断成功、失敗、期限超過を残す。IPC配送自体が途絶えた場合はunknownとなり、session別結果を推測しない。
+
+停止中daemonへ送信した新規connectはCONNECTION_LOST/not_sent。handshakeが停止中なら既存の起動lock／寿命lock経路で次daemonを待つことがあるため、close --allは将来の明示connectを禁止する障壁ではない。次回利用は明示connectと新snapshotが必要。socket削除と寿命lock解放は既存shutdown経路を使い、応答配送はdeadline+250ms、残client破棄はshutdown後250msに制限する。録画の期限後cleanupには既存のshutdown上限（60秒とabort猶予5秒）を適用する。
 
 ### snapshotと要素参照
 
