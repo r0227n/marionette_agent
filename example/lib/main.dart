@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
+import 'mapped_screenshot.dart';
+
 final PrintLogCollector operationLogCollector = PrintLogCollector();
 
 void main() {
@@ -9,6 +11,9 @@ void main() {
     MarionetteBinding.ensureInitialized(
       MarionetteConfiguration(logCollector: operationLogCollector),
     );
+    if (!const bool.fromEnvironment('DISABLE_MAPPED_SCREENSHOT')) {
+      registerMappedScreenshot();
+    }
   } else {
     WidgetsFlutterBinding.ensureInitialized();
   }

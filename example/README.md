@@ -48,6 +48,12 @@ dart "$CLI" --session beta close
 
 自動widget確認は `flutter test`、CLIのSimulator検証記録は [verification](../packages/marionette_agent/docs/verification/) を参照。
 
+## 注釈Screenshotのopt-in provider
+
+debug構成は`lib/mapped_screenshot.dart`の固定名providerを登録する。通常のbinding 0.6.0だけでは画像geometryが不足するため、このfixtureで明示的に補う。単一RenderViewの未resize画像と物理/論理寸法を一緒に返し、overlayは注入しない。一般のbinding対応を表すものではない。`flutter run --dart-define=DISABLE_MAPPED_SCREENSHOT=true ...`で登録を無効化し、CLIのUNSUPPORTED_CAPABILITYを検証できる。
+
+`snapshot`の後に`screenshot --annotate <新しいpath>`を実行する。原画像は別pathへ通常`screenshot`で取得し、ラベルと実要素位置を照合する。詳細契約は[SPEC](../docs/SPEC.md)、Issue別の手順・結果は[Issue #11](../packages/marionette_agent/docs/verification/issue-11.md)を参照する。
+
 ## Workflow検証
 
 Controls/Aboutのタブ（controls_tab/about_tab）とAbout画面のabout_contentをworkflow用に提供する。packages/marionette_agent/examples/workflows/reach-controls.yamlはタブ移動、wait、PageView swipe、snapshotを実行する。JSON版も同じ到達状態を検証する。
