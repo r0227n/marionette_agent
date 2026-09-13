@@ -97,6 +97,10 @@ OSの排他ロックで起動を直列化し、取得後に稼働daemonを再確
 
 IPCのサイズ上限は初版で1フレーム64MiB。画像はbase64としてdaemonからCLIへ返し、超過は明示エラー。screenshotのファイル保存は呼出元CLIが担い、相対パスは呼出元のcwdで解決する。recordは例外としてutilがdaemon内で保存し、CLIは絶対pathを渡す。
 
+`--screenshot-dir`は`cli/common_options.dart`で登録・空文字／NUL検証し、`CommonOptions.screenshotDir`からrunner経由で`cli/artifact_writer.dart`へ渡す。IPC paramsやdaemon設定には追加しない。writerが明示path > directory > 一時保存を選び、pathがある場合はdirectoryへ触れない。directoryは事前作成済みの実directoryに限定し、自動作成やdirectory自身のsymlink追跡はしない（祖先のsymlinkは許可）。相対指定は呼出元cwdで正規化し、返却pathを絶対化する。
+
+directory指定では直下に128bitの`Random.secure`のhexを含むPNG名を要求ごとに生成する。既存の複数画像の連番化・全画像検証・全宛先の排他的予約・書込み・失敗時cleanupを共用する。生成名の衝突も既存pathとしてIO_ERRORにし、上書きや再撮影をしない。指定directoryはcleanup対象に含めない。未指定時の一意な一時directoryと`screen.png`は維持する。受入検証は`screenshot_directory_test.dart`で競合・保存失敗、`screenshot_cli_test.dart`で製品CLIのtext/JSONとcwd・呼出し間の設定分離を確認する。
+
 応答配送の期限は要求deadline+250msとし、受信しないクライアントのsocketも切断する。最後のclose後も配送・切断を無期限に待たず、250msの猶予で残るクライアントを破棄してdaemonの寿命ロックを解放する。最終応答の送信開始後は別のエラーフレームを追加しない。
 
 ## sessionと実行順序

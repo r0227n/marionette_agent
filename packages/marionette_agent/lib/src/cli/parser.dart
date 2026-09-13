@@ -103,6 +103,8 @@ class CliParser {
       'scroll uses finger movement direction; reaching content is not guaranteed.\n'
       'screenshot [--annotate] [path] | logs\n'
       '  --annotate requires a valid snapshot and an opt-in mapped screenshot provider.\n'
+      'Screenshot destination: explicit path > --screenshot-dir > temporary directory.\n'
+      'Screenshot directories must exist; --screenshot-dir must not be a symlink.\n'
       'is visible <ref|selector> (true, false, or unknown; preserves refs)\n'
       'wait <selector> [--state exists|gone] [--poll-interval <ms>]\n'
       'wait observes only; run snapshot before the next UI operation.\n'
