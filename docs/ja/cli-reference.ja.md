@@ -399,7 +399,7 @@ marionette-agent --session demo screenshot ./artifacts/screen.jpg --screenshot-f
 marionette-agent --screenshot-format jpeg --screenshot-quality 75 --session demo screenshot ./artifacts/compact.jpeg
 ```
 
-PNGは元のバイト列・寸法・透過を維持します。JPEGは同じ寸法で、透過部分を白背景に合成してから不可逆圧縮します。PNGの背景色指定は使用しません。品質は0〜100の整数、JPEGで省略すると90です。0はencoderの最低品質1と同じ圧縮で、100もlosslessではありません。小数、範囲外、PNGでの品質指定、品質だけの指定は`INVALID_ARGUMENT`（終了コード2）です。
+注釈なしのPNGは元のバイト列・寸法・透過を維持します。JPEGは同じ寸法で、透過部分を白背景に合成してから不可逆圧縮します。PNGの背景色指定は使用しません。品質は0〜100の整数、JPEGで省略すると90です。0はencoderの最低品質1と同じ圧縮で、100もlosslessではありません。小数、範囲外、PNGでの品質指定、品質だけの指定は`INVALID_ARGUMENT`（終了コード2）です。
 
 拡張子はPNGなら`.png`、JPEGなら`.jpg`または`.jpeg`を指定します。大文字小文字は区別せず綴りを保持します。拡張子から形式を自動選択しないので、既定PNGに`screen.jpg`を渡した場合も接続前の引数エラーです。未知の拡張子も拒否します。拡張子がなければ`.png`または`.jpg`を付加します。path省略時の自動名は`screen.png`または`screen.jpg`です。
 
@@ -419,7 +419,7 @@ marionette-agent --session demo screenshot --annotate ./artifacts/annotated.png 
 
 注釈画像は新しい出力先へ保存し、原画像・既存保存先を上書きしません。refは更新も失効もしません。成功dataには`paths`、`annotated: true`、`generation`、`annotationCount`、`skippedAnnotations`を返します。bounds欠損は`missing_or_invalid_bounds`、画面から一部でも外れるboundsは`bounds_outside_view`、ラベル配置領域不足は`label_space_exhausted`として省略します。
 
-古い/未取得snapshotやcapture前後に対象が変わった場合は`STALE_REF`です。provider未登録、画像/view対応不明、複数画像、相対回転、PNG寸法不一致は`UNSUPPORTED_CAPABILITY`です。単一viewのportrait/landscapeに対応し、倍率を推測しません。アニメーション中ではなく静止した画面で使用してください。全体timeoutは合成・保存まで共通です。
+古い/未取得snapshotやcapture前後に対象が変わった場合は`STALE_REF`です。provider未登録、画像/view対応不明、複数画像、相対回転、PNG寸法不一致は`UNSUPPORTED_CAPABILITY`です。単一viewのportrait/landscapeに対応し、倍率を推測しません。アニメーション中ではなく静止した画面で使用してください。全体timeoutは合成・保存まで共通です。JPEG指定時はPNGへ注釈を合成してからJPEGへ変換します。注釈のmetadataとref保持はPNGの場合と同じです。
 
 ### `logs`
 
