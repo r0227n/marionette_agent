@@ -14,6 +14,7 @@ import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
 import 'common_options.dart';
+import 'screenshot_annotation.dart';
 
 /// Decode before writing, reserve each destination exclusively, and roll back
 /// this request's files on failure. Existing files are not normally overwritten.
@@ -39,6 +40,7 @@ Future<Json> saveScreenshots(
     throw const AgentError('BACKEND_ERROR', 'No screenshots returned');
   }
   final images = <Uint8List>[];
+  AnnotatedScreenshot? annotated;
   try {
     for (final value in payloads) {
       checkDeadline();
@@ -47,7 +49,35 @@ Future<Json> saveScreenshots(
       final decoded = PngDecoder().decode(bytes);
       if (decoded == null) throw const FormatException();
       checkDeadline();
-      if (format == ScreenshotFormat.jpeg) {
+      images.add(bytes);
+      // Synchronous codecs cannot be interrupted; never publish late output.
+      checkDeadline();
+    }
+  } on AgentError {
+    rethrow;
+  } catch (_) {
+    throw const AgentError(
+      'BACKEND_ERROR',
+      'Cannot decode or convert PNG screenshot',
+    );
+  }
+  if (data.containsKey('annotations')) {
+    if (images.length != 1) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Multiple screenshot view correspondence is not supported',
+      );
+    }
+    annotated = annotateScreenshot(images.single, data, checkDeadline);
+    images[0] = annotated.bytes;
+  }
+  // Annotation consumes mapped PNG pixels; encode the final pixels as JPEG.
+  if (format == ScreenshotFormat.jpeg) {
+    try {
+      for (var i = 0; i < images.length; i++) {
+        checkDeadline();
+        final decoded = PngDecoder().decode(images[i]);
+        if (decoded == null) throw const FormatException();
         // Flatten into opaque RGB before encoding. This also handles grayscale
         // alpha, palette/16-bit PNGs and padded JPEG edge blocks consistently.
         final rgb = Image(width: decoded.width, height: decoded.height);
@@ -67,20 +97,14 @@ Future<Json> saveScreenshots(
           );
         }
         checkDeadline();
-        images.add(JpegEncoder(quality: quality).encode(rgb));
-      } else {
-        images.add(bytes);
+        images[i] = JpegEncoder(quality: quality).encode(rgb);
+        checkDeadline();
       }
-      // Synchronous codecs cannot be interrupted; never publish late output.
-      checkDeadline();
+    } on AgentError {
+      rethrow;
+    } catch (_) {
+      throw const AgentError('BACKEND_ERROR', 'Cannot convert PNG screenshot');
     }
-  } on AgentError {
-    rethrow;
-  } catch (_) {
-    throw const AgentError(
-      'BACKEND_ERROR',
-      'Cannot decode or convert PNG screenshot',
-    );
   }
   Directory? temporary;
   final created = <File>[];
@@ -118,7 +142,15 @@ Future<Json> saveScreenshots(
       await created[i].writeAsBytes(images[i], flush: true);
     }
     checkDeadline();
-    return {'paths': paths};
+    return {
+      'paths': paths,
+      if (annotated != null) ...{
+        'annotated': true,
+        'generation': (data['annotations'] as Map)['generation'],
+        'annotationCount': annotated.count,
+        'skippedAnnotations': annotated.skipped,
+      },
+    };
   } catch (error) {
     for (final file in created) {
       try {

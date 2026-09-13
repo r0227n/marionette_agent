@@ -8,6 +8,8 @@ import '../commands/observations.dart';
 import 'workflow_command.dart';
 import 'record_command.dart';
 import 'wait_command.dart';
+import 'get_command.dart';
+import '../commands/is_visible.dart';
 
 /// Register ArgParser grammar and conversion from validated args to protocol params.
 class CliCommand {
@@ -27,6 +29,10 @@ class CliParser {
   }
   final parser = CommonOptions.createParser();
   final definitions = <String, CliCommand>{
+    'doctor': CliCommand(ArgParser()..addOption('probe-uri'), (args) {
+      if (args.rest.isNotEmpty) invalid('Usage: doctor [--probe-uri <uri>]');
+      return {'probeUri': args['probe-uri']};
+    }),
     'workflow': workflowCommand(),
     'record': recordCommand(),
     'tap': actionCommand(),
@@ -35,13 +41,25 @@ class CliParser {
     'screenshot': screenshotCommand(),
     'logs': CliCommand(ArgParser(), noArguments),
     'wait': waitCommand(),
+    'get': getCommand(),
+    'is': isCommand(),
     'swipe': swipeCommand(),
     'connect': CliCommand(ArgParser(), (args) {
       if (args.rest.length != 1) invalid('Usage: connect <uri>');
       return {'uri': args.rest.single};
     }),
-    'close': CliCommand(ArgParser(), noArguments),
-    'snapshot': CliCommand(ArgParser(), noArguments),
+    'snapshot': snapshotCommand(),
+    'close': CliCommand(
+      ArgParser()..addFlag(
+        'all',
+        negatable: false,
+        help: 'Close every session and stop the daemon.',
+      ),
+      (args) {
+        noArguments(args);
+        return args['all'] == true ? {'all': true} : {};
+      },
+    ),
     'session': CliCommand(
       ArgParser()
         ..addCommand('list')
@@ -63,14 +81,22 @@ class CliParser {
   String get usage =>
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
-      'connect <uri> | session list | session show | close | snapshot\n'
+      'doctor [--probe-uri <uri>] (read-only; no connection required)\n'
+      'snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]\n'
+      'Snapshot filters observed values; zero/multiple matches are valid. Full observation determines ref safety.\n'
+      'get text|box <ref|selector> | get count <selector>\n'
+      'get preserves refs; box uses Flutter logical pixels; missing values are null.\n'
+      'connect <uri> | session list | session show | close [--all] | snapshot\n'
+      'close --all stops all sessions; cannot combine with --session. Apps keep running.\n'
       'swipe <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>\n'
       'Directions describe finger movement; verify the result with snapshot.\n'
       'tap <ref|selector> | tap --x <n> --y <n> | fill <ref|selector> <text>\n'
       'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'scroll uses finger movement direction; reaching content is not guaranteed.\n'
-      'screenshot [path] | logs\n'
+      'screenshot [--annotate] [path] | logs\n'
+      '  --annotate requires a valid snapshot and an opt-in mapped screenshot provider.\n'
+      'is visible <ref|selector> (true, false, or unknown; preserves refs)\n'
       'Screenshot extensions: .png or .jpg/.jpeg; missing extension is appended.\n'
       'Multiple images: name-1.ext, name-2.ext; existing files are refused.\n'
       'Path omitted: private screen.png/screen.jpg; conversion uses --timeout.\n'
@@ -90,19 +116,26 @@ class CliParser {
     List<String> arguments, {
     void Function(String? session, bool json)? onOutput,
     void Function(String? command)? onCommand,
+    void Function(bool)? onDebug,
   }) {
     final ArgResults args;
     try {
       args = parser.parse(arguments);
     } on ArgParserException catch (error) {
       onCommand?.call(error.commands.firstOrNull);
-      CommonOptions.recoverOutput(parser, arguments, error.commands, onOutput);
+      CommonOptions.recoverOutput(
+        parser,
+        arguments,
+        error.commands,
+        onOutput,
+        onDebug,
+      );
       invalid('Invalid command syntax');
     } on FormatException {
       invalid('Invalid command syntax');
     }
     onCommand?.call(args.command?.name);
-    CommonOptions.reportOutput(args, onOutput);
+    CommonOptions.reportOutput(args, onOutput, onDebug);
     CommonOptions.rejectDuplicateOptions(parser, arguments);
     final options = CommonOptions.parse(args);
     if (options.special != null) {
@@ -115,6 +148,11 @@ class CliParser {
       params['path'] = options.screenshotFormat.destinationPath(
         params['path'] as String,
       );
+    }
+    if (command.name == 'close' &&
+        params['all'] == true &&
+        args.wasParsed('session')) {
+      invalid('close --all cannot be combined with --session');
     }
     return Invocation(options, command.name!, params);
   }
@@ -131,9 +169,11 @@ class Invocation {
   final Json params;
   String? get resultSession =>
       command == 'help' ||
+          command == 'doctor' ||
           command == 'version' ||
           (command == 'workflow' && params['action'] != 'run') ||
-          (command == 'session' && params['action'] == 'list')
+          (command == 'session' && params['action'] == 'list') ||
+          (command == 'close' && params['all'] == true)
       ? null
       : session;
 }

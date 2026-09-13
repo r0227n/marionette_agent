@@ -44,7 +44,7 @@ String redactUri(Uri uri) => Uri(
 ).toString();
 
 /// The only production module allowed to import upstream internal APIs.
-class MarionetteBackend implements Backend {
+class MarionetteBackend implements Backend, MappedScreenshotBackend {
   MarionetteBackend({VmServiceConnector? connector})
     : _connector = connector ?? VmServiceConnector();
   final VmServiceConnector _connector;
@@ -271,5 +271,32 @@ class MarionetteBackend implements Backend {
       throw const AgentError('BACKEND_ERROR', 'Invalid logs response');
     }
     return LogBatch(logs.cast<String>(), configured: true);
+  });
+
+  @override
+  Future<MappedScreenshot> captureMappedScreenshot() => _call(() async {
+    final response = await _connector.callCustomExtension(
+      'marionette_agent.captureMappedScreenshot',
+    );
+    if (response['status'] != 'Success' || response['supported'] != true) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Binding cannot verify screenshot view geometry',
+      );
+    }
+    final images = response['screenshots'];
+    if (images is! List ||
+        images.length != 1 ||
+        images.single is! String ||
+        response['geometry'] is! Map) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'A single mapped screenshot is required',
+      );
+    }
+    return MappedScreenshot(
+      images.single as String,
+      ScreenshotGeometry.decode(response['geometry']),
+    );
   });
 }

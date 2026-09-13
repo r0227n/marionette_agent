@@ -8,6 +8,43 @@ import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('debug IPC policy is opt-in and strictly typed', () {
+    final request = Request(
+      requestId: 'test-1',
+      session: 'demo',
+      command: 'snapshot',
+      params: {},
+      deadline: DateTime.now(),
+      debug: true,
+    );
+    expect(Request.fromJson(request.toJson()).debug, isTrue);
+    final legacy = request.toJson()..remove('debug');
+    expect(Request.fromJson(legacy).debug, isFalse);
+    expect(
+      () => Request.fromJson({...legacy, 'debug': 'true'}),
+      throwsA(isA<AgentError>()),
+    );
+  });
+
+  test('debug recovery respects literals and rejects duplicate flags', () {
+    for (final pair in <(List<String>, bool)>[
+      (['--debug', 'snapshot', '--unknown'], true),
+      (['snapshot', '--timeout', 'bad', '--debug'], true),
+      (['fill', '--text', '--debug', '--unknown'], false),
+      (['snapshot', '--', '--debug'], false),
+    ]) {
+      var debug = false;
+      expect(
+        () => CliParser().parse(pair.$1, onDebug: (value) => debug = value),
+        throwsA(isA<AgentError>()),
+      );
+      expect(debug, pair.$2);
+    }
+    expect(
+      () => CliParser().parse(['--debug', 'snapshot', '--debug']),
+      throwsA(isA<AgentError>()),
+    );
+  });
   test('common options anywhere, literal values and registry', () {
     final parser = CliParser(
       commands: {

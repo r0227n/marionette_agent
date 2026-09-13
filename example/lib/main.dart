@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
+import 'mapped_screenshot.dart';
+
 final PrintLogCollector operationLogCollector = PrintLogCollector();
 
 void main() {
@@ -9,6 +11,9 @@ void main() {
     MarionetteBinding.ensureInitialized(
       MarionetteConfiguration(logCollector: operationLogCollector),
     );
+    if (!const bool.fromEnvironment('DISABLE_MAPPED_SCREENSHOT')) {
+      registerMappedScreenshot();
+    }
   } else {
     WidgetsFlutterBinding.ensureInitialized();
   }
@@ -103,6 +108,22 @@ class _MarionetteAgentExampleScreenState
                       Text(
                         'Tap count: $_tapCount',
                         key: const ValueKey('tap_result'),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      SnapshotLabel(
+                        label: 'Filter label A',
+                        identifier: 'snapshot_label_a',
+                      ),
+                      SnapshotLabel(
+                        label: 'Filter label B',
+                        identifier: 'snapshot_label_b',
                       ),
                     ],
                   ),
@@ -211,6 +232,12 @@ class _MarionetteAgentExampleScreenState
             ),
     );
   }
+}
+
+/// Duplicate unknown types expose display-only text and global ref collisions.
+class SnapshotLabel extends Semantics {
+  SnapshotLabel({super.key, required String label, required super.identifier})
+    : super(label: label, child: Text(label));
 }
 
 class _Section extends StatelessWidget {

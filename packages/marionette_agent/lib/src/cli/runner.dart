@@ -3,8 +3,10 @@ import 'dart:math';
 
 import '../daemon/client.dart';
 import '../daemon/runtime.dart';
+import '../diagnostics/diagnostic_logging.dart';
 import '../protocol/protocol.dart';
 import 'parser.dart';
+import 'doctor.dart';
 import 'common_options.dart';
 import 'artifact_writer.dart';
 import 'renderer.dart';
@@ -19,17 +21,23 @@ Future<int> runCli(
   List<String>? launchCommand,
 }) async {
   final started = DateTime.now();
+  final elapsed = Stopwatch()..start();
   var json = false;
+  var debug = false;
+  final requestId = '$pid-${Random.secure().nextInt(1 << 32)}';
+  DebugDiagnostics? diagnostics;
   var boundaries = false;
   String? session = const CommonOptions().session;
   Result result;
   bool workflow = false;
+  int? diagnosticExitCode;
   String? workflowName;
   final cliParser = parser ?? CliParser();
   try {
     final invocation = cliParser.parse(
       args,
       onCommand: (command) => workflow = command == 'workflow',
+      onDebug: (value) => debug = value,
       onOutput: (name, useJson) {
         session = name;
         json = useJson;
@@ -39,6 +47,13 @@ Future<int> runCli(
     workflow = invocation.command == 'workflow';
     json = invocation.json;
     session = invocation.resultSession;
+    diagnostics = DebugDiagnostics(
+      elapsed: elapsed,
+      enabled: debug,
+      requestId: requestId,
+      session: session,
+    );
+    diagnostics.emit(DebugStage.cliParsed);
     final deadline = started.add(Duration(milliseconds: invocation.timeoutMs));
     Json params = invocation.params;
     Json? localData;
@@ -85,13 +100,21 @@ Future<int> runCli(
         'Workflow validation deadline exceeded',
       );
     }
-    if (localData != null) {
+    if (invocation.command == 'doctor') {
+      final data = await Doctor().run(
+        deadline,
+        probeUri: params['probeUri'] as String?,
+      );
+      diagnosticExitCode = data['exitCode'] as int;
+      result = Result.success(null, data);
+    } else if (localData != null) {
       result = Result.success(null, localData);
     } else if (invocation.command == 'help') {
       result = Result.success(null, {'help': cliParser.usage});
     } else if (invocation.command == 'version') {
       result = Result.success(null, {'version': version});
     } else {
+      diagnostics.emit(DebugStage.runtimePrepare);
       final runtime = await RuntimeDirectory.prepare();
       result =
           await DaemonClient(
@@ -100,7 +123,8 @@ Future<int> runCli(
             idleTimeoutMs: invocation.options.idleTimeoutMs,
           ).send(
             Request(
-              requestId: '$pid-${Random.secure().nextInt(1 << 32)}',
+              requestId: requestId,
+              debug: debug,
               session: invocation.session,
               command: invocation.command,
               params: params,
@@ -137,9 +161,17 @@ Future<int> runCli(
       const AgentError('INTERNAL_ERROR', 'CLI failed'),
     );
   }
+  (diagnostics ??
+          DebugDiagnostics(
+            elapsed: elapsed,
+            enabled: debug,
+            requestId: requestId,
+            session: session,
+          ))
+      .emit(DebugStage.cliResult, code: result.error?.code ?? 'OK');
   stdout.writeln(render(result, json: json, contentBoundaries: boundaries));
   if (!json && result.error?.code == 'INVALID_ARGUMENT') {
     stdout.writeln(cliParser.usage);
   }
-  return result.exitCode;
+  return diagnosticExitCode ?? result.exitCode;
 }

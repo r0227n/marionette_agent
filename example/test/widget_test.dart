@@ -4,6 +4,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:example/main.dart';
 
 void main() {
+  testWidgets('snapshot fixture exposes duplicate display-only types', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MarionetteAgentExampleApp());
+    final labels = tester
+        .widgetList<SnapshotLabel>(find.byType(SnapshotLabel))
+        .toList();
+    expect(labels, hasLength(2));
+    expect(labels.map((label) => label.properties.label), [
+      'Filter label A',
+      'Filter label B',
+    ]);
+    expect(labels.map((label) => label.key), everyElement(isNull));
+    expect(find.text('Filter label A'), findsOneWidget);
+    expect(find.text('Filter label B'), findsOneWidget);
+  });
+
   testWidgets('workflow tabs expose and remove their content', (tester) async {
     await tester.pumpWidget(const MarionetteAgentExampleApp());
     await tester.tap(find.byKey(const ValueKey('about_tab')));

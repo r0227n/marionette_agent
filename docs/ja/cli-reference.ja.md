@@ -1,5 +1,31 @@
 # marionette-agent CLI リファレンス
 
+## `doctor` 環境診断
+
+```sh
+marionette-agent doctor
+marionette-agent doctor --json
+marionette-agent doctor --probe-uri "$VM_URI" --timeout 10000 --json
+```
+
+接続やdaemonなしで実行できます。macOS/Dart対応範囲、runtimeの所有者/0700/path長、
+daemon応答/protocol、CLI固定依存の宣言とlockfile、利用可能なiOS Simulatorを調べます。
+`MARIONETTE_AGENT_RUNTIME_DIR`で検査対象を選びます。未作成runtimeは正常な未実施扱いです。
+修復・socket削除・daemon自動起動・Simulator起動・package再導入は行いません。
+
+VM Serviceへの接続は`--probe-uri`を明示した時だけです。URIは出力しませんが、shell履歴や
+process引数の共有には注意してください。既存sessionとrefを変更せず、probe専用接続を終了時に解放します。
+binding versionは実応答がある場合だけ報告します。registeredExtensionsは実登録の観測であり、
+操作成功を保証しません。binding未観測はunknownで、固定依存のversionから推測しません。
+
+textは各checkの状態・理由・Next・詳細、JSONは`data.checks`に同じ内容を返します。
+`success`は確認済み、`failure`は不適合、`unknown`は観測失敗/timeout、`skipped`は未実施です。
+`data.exitCode`およびprocess終了値はfailure/unknownがあれば1、それ以外0。
+診断結果を返せた場合は異常checkがあってもenvelopeは`ok:true`、`session:null`です。
+引数不正は通常の終了2。doctor内の期限切れはcheckのunknown/終了1であり、通常操作の終了5とは異なります。
+`--timeout`は全体期限で、未着手checkも期限切れならunknown。daemon handshake待ちは最大1秒です。
+各checkの`nextStep`を確認し、必要な復旧操作は利用者が別途実行してください。
+
 ## 基本構文
 
 ```text
@@ -8,12 +34,15 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 
 共通オプションはコマンドの前後どちらにも記述できます。同じオプションを複数回指定すると引数エラーになります。
 
+label/role/hint/placeholder/tooltip selectorと入力値・enabled/checked取得コマンドは未実装です。snapshotのtextは入力値や状態を保証しません。固定依存の制約と将来案は [Semantics selector・状態取得設計](../semantics-selector-state-design.md) を参照してください。
+
 ### 共通オプション
 
 | オプション | 既定値 | 説明 |
 | --- | --- | --- |
 | `--session <name>` | `default` | 操作するsession名。英数字で始まり、英数字・`_`・`-`だけで構成された最大64文字を指定します。 |
 | `--json` | 無効 | 成功・失敗とも、stdoutへ結果を1つのJSONオブジェクトとして出力します。シェルスクリプトやagentからの利用に適しています。 |
+| `--debug` | 無効 | request ID、session、処理段階、経過ms、結果の正規化error codeをstderrへ追加します。通常診断は維持します。 |
 | `--timeout <ms>` | `30000` | ファイル読込、daemon起動、キュー待ち、接続、処理を含む期限を正の整数のミリ秒で指定します。 |
 | `--content-boundaries` | 無効 | snapshot要素行とlogs entryに呼出し固有の境界を付けます。JSONではmetadataを追加します。 |
 | `--max-output <chars>` | 無制限 | 正の整数。snapshot/logsの項目列をUnicode code point数で制限します。 |
@@ -27,7 +56,13 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 marionette-agent --help
 marionette-agent --version
 marionette-agent snapshot --session demo --timeout 10000 --json
+marionette-agent --debug snapshot --session demo --json
+marionette-agent snapshot --session demo --debug
 ```
+
+詳細診断のstageは`cliParsed`、`runtimePrepare`、`daemonOpen`、必要時の`daemonStart`、`daemonReady`、`requestSend`、`daemonDispatch`、`sessionQueue`、`commandExecute`、`daemonResult`、`cliResult`です。到達した段階だけを出力し、結果のcodeは成功なら`OK`、失敗なら`TIMEOUT`などです。elapsedMsはCLI・IPC・daemon dispatch・session queueの各区間開始からの経過時間です。daemon側の診断は応答受信時にまとめて表示されます。応答を受け取れないtimeoutではCLI側の最終結果を確認してください。
+
+`--debug`はコマンドの前後で利用でき、要求ごとにdaemonへ伝わります。並行sessionには影響しません。認証URI、入力値、selector値、アプリtext、stack traceは追加診断に出しません。stdoutのJSON包絡は変わりません。session名自体は診断に表示されるため、秘密値をsession名に使用しないでください。 `close --all`の部分失敗では診断にも`CLOSE_FAILED`を保持します。
 
 通常のテキスト出力はstdout、診断ログはstderrへ出力されます。`--json`の結果は次の包絡形式です。
 
@@ -82,7 +117,7 @@ daemon全体の設定は起動時に固定されます。省略した要求は�
 
 ## 対象を指定するオプション
 
-要素を操作する`tap`、`fill`、`swipe`、`scroll`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`ではrefを受理せず、selectorオプションのどれか1つだけを指定します。
+要素を操作する`tap`、`fill`、`swipe`、`scroll`と状態を読む`is visible`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`ではrefを受理せず、selectorオプションのどれか1つだけを指定します。
 
 | 指定方法 | 説明 |
 | --- | --- |
@@ -93,6 +128,17 @@ daemon全体の設定は起動時に固定されます。省略した要求は�
 | `--type <value>` | Flutter要素のtypeと完全一致させます。一意に一致する必要があります。 |
 
 操作コマンドのselectorは実行時の観測で一意に一致する必要があります。0件なら`TARGET_NOT_FOUND`、複数件なら`AMBIGUOUS_TARGET`です。waitの条件判定は後述の契約に従います。新しいsnapshot、再接続、切断、またはUI操作を行うと、それ以前のrefは失効します。UI操作後は再度snapshotを取得してください。
+
+## is visible
+
+```sh
+marionette-agent is visible @e1
+marionette-agent is visible --key tap_button --json
+```
+
+対象を一度再観測し、textでは`Visible: true` / `Visible: false` / `Visible: unknown`を返します。JSONの`data`はそれぞれ`{"known":true,"value":true}` / `{"known":true,"value":false}` / `{"known":false,"value":null}`です。未観測はfalseではありません。
+
+selectorの0件は`TARGET_NOT_FOUND`、複数件は`AMBIGUOUS_TARGET`、古いrefは`STALE_REF`、未対応selectorは`UNSUPPORTED_CAPABILITY`です。成功時にUI操作やrefの失効・再発行は行わず、既存のsnapshot世代を保ちます。backendがfalse/nullを観測できるかはアプリとbindingに依存します。
 
 ## sessionと接続
 
@@ -123,7 +169,7 @@ marionette-agent --session demo session show
 marionette-agent session show --session demo --json
 ```
 
-### `close`
+### `close [--all]`
 
 選択sessionの録画があれば動画を確定し、接続を切断して破棄します。Flutterアプリ自体は終了しません。sessionが存在しない場合も成功します。録画があった場合はdata.recordingに最終状態を返します。
 
@@ -133,9 +179,43 @@ marionette-agent --session demo close
 
 最後のsessionを閉じるとdaemonも終了します。
 
+全sessionを後始末する場合は次を実行します。`--session`との併用はできません。
+
+```sh
+marionette-agent close --all --timeout 30000 --json
+marionette-agent session list
+```
+
+`close --all`はsession:nullを返し、成功時のdata.sessionsへ名前順のsession別Resultを格納します。daemon不在でも空配列で成功します。アプリは起動したまま、全refは失効し、次の利用には明示connectとsnapshotが必要です。
+
+受付後の新規要求とqueue待ちはnot_sentとして拒否します。実行中操作は共通期限まで待ち、期限で中断した送信済み操作はunknownです。切断失敗でも他sessionを後始末し、部分結果はerror.details.sessionsに返します（textにも表示）。全体終了コードは期限超過があれば5、その他の切断失敗は1、全成功は0です。送信済み操作を自動再送しないでください。停止中に競合したconnectは拒否されるか、要求送信前なら次daemonへ接続する場合があります。
+
+録画確定の期限超過時も全体closeはdaemonを終了し、有界cleanupへ引き継ぎます。選択sessionだけのcloseとは異なりsessionを保持しません。詳細は[SPECの契約](../SPEC.md#close---all)を参照してください。
+
 ## 観測
 
 ### `snapshot`
+
+任意のfilterを1つ指定すると、観測値に完全一致する要素だけを返します。大文字小文字を区別します。filterなしは全要素を返します。
+
+```sh
+marionette-agent snapshot --key tap_button
+marionette-agent snapshot --identifier label --json
+marionette-agent snapshot --text 'Tap me'
+marionette-agent snapshot --type Text --max-output 1000 --json
+```
+
+`--key` / `--identifier` / `--text` / `--type`の併用、空値、refはINVALID_ARGUMENTです。0件や複数件でも成功し、新generationで旧refがすべて失効します。textは未知型の表示値にも一致し、identifierは操作backendの対応と無関係に観測属性を比較します。属性がなければ一致しません。観測で一致しても、そのselectorで操作できるとは限りません。
+
+JSONのdataにはfilter指定時だけ次のmetadataが加わります。
+
+```json
+{"filter":{"kind":"type","value":"Text","matchedCount":5,"totalCount":20}}
+```
+
+text形式では`Filter: type="Text"; matchedCount: 5; totalCount: 20`と表示します。totalCountは全観測数、matchedCountは出力制限前の一致数です。全観測に基づく一意性確認・ref採番の後にfilter、その後に`--max-output`を適用します。filterだけでは出力省略を意味しません。予算指定時のoriginalCountはmatchedCountと同じで、omittedCountは一致要素のうち予算で省略された数です。metadataは文字数予算に含みません。
+
+filter外の重複もref安全性の判定に使います。返却された有効refだけを操作に使ってください。filter外や予算で省略された番号を推測して使うとSTALE_REFになります。workflow v1のsnapshot stepにはfilterを追加していません。
 
 現在のUIを観測し、操作可能または可読な要素とrefを返します。これは完全なWidgetツリーではありません。
 
@@ -152,6 +232,24 @@ Snapshot 3
 @e8 TextField key="text_input"
 - Semantics "Status" (no unique actionable selector)
 ```
+
+### `get text` / `get box` / `get count`
+
+全snapshotを出力せずに属性や一致件数を確認します。
+
+```sh
+marionette-agent --session demo get text @e1
+marionette-agent --session demo get box --key tap_button --json
+marionette-agent --session demo get count --type Text --json
+```
+
+text/boxはrefまたはselectorを1つ指定します。再観測で単一対象を確認し、selectorが0件なら`TARGET_NOT_FOUND`、複数件なら`AMBIGUOUS_TARGET`、未発行・消失・属性変更したrefなら`STALE_REF`です。由来未確認型のtextだけで対象を指定すると`UNRESOLVABLE_TARGET`です。key/typeで指定すればその観測textを取得できます。
+
+成功dataはtextが`{"text":string|null}`、boxが`{"bounds":{"x":number,"y":number,"width":number,"height":number}|null,"unit":"flutter_logical_pixels"}`です。boundsはFlutter論理座標で、スクリーンショットの物理pixelではありません。欠損値はnullで返し、実際の空文字やゼロは保持します。入力欄のvalue属性ではありません。
+
+countはselectorのみを受理し、refは`INVALID_ARGUMENT`です。成功dataは`{"count":integer,"selector":{kind:value}}`で、0件・複数件も正常結果です。完全一致の観測候補を数えます。textは既知型だけでなく由来未確認型も含むため、上流操作matcherの一致数・操作可能性は保証しません。未対応selector（固定bindingのidentifierなど）は`UNSUPPORTED_CAPABILITY`です。
+
+成功したgetは既存refを維持し、世代更新・refの再発行をしません。続けて同じrefを操作できますが、後続操作時にもstale判定は行われます。text表示でも属性は構造化表示され、`--json`では共通JSON包絡のdataへ格納します。
 
 ### `wait`
 
@@ -270,7 +368,7 @@ marionette-agent --session demo snapshot
 
 ## 画像とログ
 
-### `screenshot [path]`
+### `screenshot [--annotate] [path]`
 
 現在の画面をPNG（既定）またはJPEGとして保存し、保存した絶対パスを返します。JSONの`data.paths`、通常テキストの`paths`が画像の一覧です。pathを省略すると非公開の一時ディレクトリへ保存します。相対pathはコマンドを実行したカレントディレクトリ基準です。
 
@@ -291,6 +389,18 @@ PNGは元のバイト列・寸法・透過を維持します。JPEGは同じ寸�
 共通`--timeout`には取得・転送から復号・変換・保存までを含めます。変換失敗時は保存せず、予約・書込み後の失敗や期限切れではこの呼出しが作った全画像と自動directoryの削除を試みます。OSが削除を拒否すると部分ファイルが残る場合があります。失敗時には成功pathsを返しません。同期codecと進行中のOS I/Oの即時中断、予約後に別プロセスが意図的に保存先を差し替える競合は保証しません。
 
 形式・品質は共通オプションなのでhelp/versionや他のコマンドでも受理・検証しますが、screenshot以外の出力には適用しません。
+
+`--annotate`は直近の有効snapshotの操作可能refだけを`@eN`ラベルで画像へ合成します。固定binding 0.6.0だけでは対応metadataが不足するため、opt-inの`marionette_agent.captureMappedScreenshot` providerが必要です。exampleのdebugアプリはこれを登録します。一般のMarionetteアプリが自動的に対応するわけではありません。
+
+```bash
+marionette-agent --session demo snapshot --json
+marionette-agent --session demo screenshot ./artifacts/original.png
+marionette-agent --session demo screenshot --annotate ./artifacts/annotated.png --json
+```
+
+注釈画像は新しい出力先へ保存し、原画像・既存保存先を上書きしません。refは更新も失効もしません。成功dataには`paths`、`annotated: true`、`generation`、`annotationCount`、`skippedAnnotations`を返します。bounds欠損は`missing_or_invalid_bounds`、画面から一部でも外れるboundsは`bounds_outside_view`、ラベル配置領域不足は`label_space_exhausted`として省略します。
+
+古い/未取得snapshotやcapture前後に対象が変わった場合は`STALE_REF`です。provider未登録、画像/view対応不明、複数画像、相対回転、PNG寸法不一致は`UNSUPPORTED_CAPABILITY`です。単一viewのportrait/landscapeに対応し、倍率を推測しません。アニメーション中ではなく静止した画面で使用してください。全体timeoutは合成・保存まで共通です。
 
 ### `logs`
 
@@ -455,3 +565,5 @@ macOSの標準コマンドにはfirst-frame通知がないため、startは起�
 `--platform web` / `linux` / `windows` はUNSUPPORTED_CAPABILITY（終了コード6）です。未知のplatform名はINVALID_ARGUMENT（終了コード2）になります。未対応platformはdaemon起動前に拒否し、別方式へ自動fallbackしません。後続対応: [Web #16](https://github.com/r0227n/marionette_agent/issues/16)、[Linux #17](https://github.com/r0227n/marionette_agent/issues/17)、[Windows #18](https://github.com/r0227n/marionette_agent/issues/18)。
 
 録画データはdaemon内の内部パッケージが直接保存します。通常終了とSIGINT/SIGTERMは録画確定を最大60秒待ち、期限超過時は所有する録画プロセスを強制停止します。追加の後処理待ちは最大5秒です。未確定動画は成功扱いにせず、保存先と同じ親ディレクトリの`.marionette-record-*`内の動画と予約先を復旧用に残します。OSで進行中のファイルI/Oの取り消しや、切断されたAndroid端末の強制停止は保証できません。SIGKILLやホスト停止後の自動復元はありません。Androidの画面回転を伴う録画は保証しません。
+
+`doctor`は構文・引数エラーでもsession非依存で、JSONの`session`は`null`です。

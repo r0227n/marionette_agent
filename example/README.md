@@ -13,6 +13,11 @@
 
 入力欄の外側をtapするとキーボードを閉じられる。初期状態に戻すにはアプリを再起動する。
 
+Snapshot filter検証用に、keyを持たない2つの`SnapshotLabel`（Semantics派生型）を表示する。
+`Filter label A` / `Filter label B`は表示textであり、操作用text matcherの確認済み型ではない。
+同型の重複をfilter外に残し、`--text 'Filter label A'`へ絞っても安全でないrefが発行されないことを確認する。
+同じ文言の子Textもあるため、表示textの複数一致も検証できる。identifierの公開可否は実payloadで確認する。
+
 ## 2つの独立したアプリを起動
 
 `flutter devices`で2つのiOS SimulatorのUDIDを確認する。別Simulatorなら同じbundle IDでもプロセス・VM Service・画面状態が独立する。各runnerは別ターミナルで実行する。
@@ -47,6 +52,12 @@ dart "$CLI" --session beta close
 最後にFlutter runnerを`d`でdetachし、URIの一時ファイルを削除する。動作検証はCLIの成功応答に加え、次のsnapshotと画面の変化を確認する。swipe/scrollの方向は指の動きであり、ページ切替・到達を保証しない。
 
 自動widget確認は `flutter test`、CLIのSimulator検証記録は [verification](../packages/marionette_agent/docs/verification/) を参照。
+
+## 注釈Screenshotのopt-in provider
+
+debug構成は`lib/mapped_screenshot.dart`の固定名providerを登録する。通常のbinding 0.6.0だけでは画像geometryが不足するため、このfixtureで明示的に補う。単一RenderViewの未resize画像と物理/論理寸法を一緒に返し、overlayは注入しない。一般のbinding対応を表すものではない。`flutter run --dart-define=DISABLE_MAPPED_SCREENSHOT=true ...`で登録を無効化し、CLIのUNSUPPORTED_CAPABILITYを検証できる。
+
+`snapshot`の後に`screenshot --annotate <新しいpath>`を実行する。原画像は別pathへ通常`screenshot`で取得し、ラベルと実要素位置を照合する。詳細契約は[SPEC](../docs/SPEC.md)、Issue別の手順・結果は[Issue #11](../packages/marionette_agent/docs/verification/issue-11.md)を参照する。
 
 ## Workflow検証
 

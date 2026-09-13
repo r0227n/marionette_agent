@@ -1,9 +1,10 @@
-import '../protocol/protocol.dart';
 import 'registry.dart';
 import 'swipe.dart';
 import 'actions.dart';
+import 'get.dart';
 import 'observations.dart';
 import 'wait.dart';
+import 'is_visible.dart';
 
 /// Registers the initial product command set.
 CommandRegistry coreCommands() => CommandRegistry()
@@ -20,7 +21,6 @@ CommandRegistry coreCommands() => CommandRegistry()
   ..register('screenshot', handleScreenshot)
   ..register('logs', handleLogs)
   ..register('wait', handleWait)
-  ..register('snapshot', (context, params) {
-    if (params.isNotEmpty) invalid('Usage: snapshot');
-    return context.snapshot();
-  });
+  ..register('get', handleGet)
+  ..register('is', handleIs)
+  ..register('snapshot', handleSnapshot);
