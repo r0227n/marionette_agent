@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Marionette Web Recording — Issue 16</title>
+<style>body{font:24px system-ui;background:#edf4fa;color:#16334a;margin:0;padding:70px}main{max-width:850px;margin:auto;background:white;padding:40px;border-radius:20px}button,input{font:inherit;padding:14px;margin:12px 0}button{background:#175a91;color:white;border:0;border-radius:8px}h1{font-size:38px}#result{background:#def6e7;padding:20px}nav{display:flex;gap:20px}small{font-size:18px}</style>
+<main><small>MARIONETTE / WHOLE DISPLAY RECORDING</small><h1>Web recording verification</h1>
+<p>The video must include Chrome's address bar and the native file chooser.</p>
+<nav><button id="controls" onclick="document.querySelector('#panel').hidden=false;document.querySelector('#about').hidden=true">Controls</button><button id="aboutButton" onclick="document.querySelector('#panel').hidden=true;document.querySelector('#about').hidden=false">About</button></nav>
+<section id="panel"><button id="tap" onclick="document.querySelector('#count').textContent=++window.count">Tap counter</button> <strong id="count">0</strong><br>
+<label>Test input <input id="text" placeholder="Enter verification text" oninput="document.querySelector('#result').textContent=this.value.length+' characters'"></label><p id="result">Not edited</p>
+<label>Open native file chooser <input id="file" type="file"></label></section>
+<section id="about" hidden><h2>About screen</h2><p>Navigation was recorded. Browser UI remains visible.</p></section></main>
+<script>window.count=0</script></html>

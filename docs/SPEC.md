@@ -6,7 +6,7 @@
 
 Dart製CLIから、Marionette対応FlutterアプリをAI Agentが観測・操作できるようにする。agent-browserのsession、snapshot、短い要素参照、構造化出力という操作体系を採用する。ブラウザー固有のコマンド互換性は目的に含めない。
 
-初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイを対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。Simulatorやアプリの起動・ビルド・インストールは利用者側で行う。
+初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイ（ChromeのWeb検証を含む）を対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。Simulatorやアプリの起動・ビルド・インストールは利用者側で行う。
 
 MCPサーバー／クライアントの提供は対象外。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。
 
@@ -223,7 +223,7 @@ screenshotのdataはpaths配列。複数画像は連番で保存し、通常利�
 
 label/role/hint/placeholder/tooltipによる共通selectorと、入力値・enabled/checkedのread-only取得は未実装。[Issue #14設計案](semantics-selector-state-design.md)に固定binding 0.6.0の取得/照合能力、型付きDTO、unknownと重複の契約案、上流依存を記録する。Semantics由来の表示textや診断文字列を入力値・状態の代用にしない。設計案は現行CLIの受理構文や実装済み契約を増やさない。
 
-record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実機録画、Web／Linux／Windows録画、アプリ起動管理、独自拡張、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
+record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、アプリ起動管理、独自拡張、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
 
 ## 端末画面録画
 
@@ -234,7 +234,8 @@ record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実�
 | ios | 起動済みiOS SimulatorのUDID | `.mp4`、macOSとXcode。iOS実機・`booted`のような曖昧な別名は未対応 |
 | android | オンライン・認証済みadb serial | `.mp4`、Android platform-tools。Emulator／実機の標準screenrecord |
 | macos | 1から始まるディスプレイ番号 | `.mov`、macOS標準screencaptureと実行元アプリの画面収録許可 |
-| web / linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
+| web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`、macOSと可視Chrome、専用debug profileと画面収録許可。明示したディスプレイ全体 |
+| linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
 
 - platform/device/pathは必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
 - 相対pathは呼出元CLIのcwdで絶対pathへ変換する。親directoryは既存かつ書込可能であること。既存file/directory/symlinkはIO_ERRORとして拒否し、自動上書きしない。
@@ -253,3 +254,17 @@ record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実�
 保存は内部パッケージがdaemon内で担当し、動画はIPCで転送しない。出力先を排他的に予約して同じ親directoryのprivate stagingへ録画し、確定後に予約先へ書き込む。開始失敗時はこの要求の予約を回収し、確定失敗時はstagingを復旧用に保持する。予約後に別プロセスが意図的に保存先を差し替える競合までは保証しない。
 
 検証状況: iOS Simulator／Android Emulator／macOSメインディスプレイを製品CLIで確認済み。macOSではstart・status・stop・重複stop・既存file拒否・closeによる確定と、生成MOVの全フレーム復号・画面変化を確認した。
+
+### Web録画の範囲と接続
+
+WebはmacOS上の可視Google Chromeを対象とする。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
+
+利用者が選んだディスプレイ全体を標準screencaptureでMOVへ録画する。Chromeのアドレスバー・タブ・設定画面、同じdisplayのOSダイアログや他アプリを含む。タブだけの映像、Flutter描画の録画、音声ではない。Chromeを指定displayへ配置するのは利用者の責任であり、CLIはウインドウ位置を変更・追従しない。別displayへ移動しても録画先は変わらない。隠れた／最小化したウインドウや別displayのdialogは写らず、覆っている画面が写る。保護コンテンツの録画は保証しない。
+
+Chromeのpage identityをCDPで確認し、Inspector終了通知とWebSocket切断を監視する。captureはmacOS backendの開始確認・停止・権限と同じ契約。macOSの実行元アプリに画面収録許可が必要で、拒否や無効displayはIO_ERRORと設定確認hintを返す。許可を自動変更したり、権限dialogを迂回したりしない。Webの通常操作は利用者または既存ブラウザー操作手段で行い、Web向けtap/fillを追加しない。VM Serviceに依存せず、record中の通常CLI操作も妨げない。
+
+対象タブの終了・クラッシュ・debug接続断はCONNECTION_LOSTとして録画を終了し、statusをfailedへ更新する。stopは非0、closeはfailureを含む最終状態を返す。部分動画はrecoveryPathに保持し、別タブへ切り替えて成功扱いにはしない。明示的なstop/closeは通常確定する。開始・停止中の競合と期限超過は共通契約に従う。同一daemonの同一displayはWebの別タブとmacos録画を含めて排他。別daemonや外部レコーダーとの排他は保証しない。
+
+API比較・選定理由と参照元は[Web録画方式](web-recording.md)を参照。
+
+Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'platform_recorder.dart';
 import 'recorder.dart';
+import 'web_target.dart';
 import '../platform_exception.dart';
 
 /// Host-independent lifecycle and artifact ownership for platform recordings.
@@ -64,10 +65,7 @@ class RecordingManager {
       _checkActive(entry);
       entry.staging = await Directory(File(path).parent.path)
           .createTemp('.marionette-record-');
-      final extension = target.platform == RecordingPlatform.macos
-          ? 'mov'
-          : 'mp4';
-      entry.stagingPath = '${entry.staging!.path}/capture.$extension';
+      entry.stagingPath = '${entry.staging!.path}/capture${target.extension}';
       _checkActive(entry);
       _check(deadline);
       final startupLimit = DateTime.now().add(const Duration(seconds: 30));
@@ -340,12 +338,12 @@ void _check(DateTime deadline) {
 /// Validate before invoking tools, including direct callers and IPC adapters.
 void validateTarget(RecordingTarget target, String path) {
   final valid = switch (target.platform) {
-    RecordingPlatform.web ||
     RecordingPlatform.linux ||
     RecordingPlatform.windows => throw const PlatformException(
       'UNSUPPORTED_CAPABILITY',
       'Screen recording is not implemented for this platform',
     ),
+    RecordingPlatform.web => WebRecordingTarget.parse(target.device) != null,
     RecordingPlatform.ios => RegExp(
       r'^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$',
     ).hasMatch(target.device),
@@ -356,9 +354,7 @@ void validateTarget(RecordingTarget target, String path) {
       r'^[1-9][0-9]{0,2}$',
     ).hasMatch(target.device),
   };
-  final extension = target.platform == RecordingPlatform.macos
-      ? '.mov'
-      : '.mp4';
+  final extension = target.extension;
   if (!valid ||
       !path.startsWith('/') ||
       path.contains('\u0000') ||
@@ -367,7 +363,7 @@ void validateTarget(RecordingTarget target, String path) {
       'INVALID_ARGUMENT',
       'Invalid recording target or output path',
       hint:
-          'Specify a Simulator UDID, adb serial or positive display index and an absolute $extension path.',
+          'Specify a Simulator UDID, adb serial or positive display index, or Web display/page pair and an absolute $extension path.',
     );
   }
 }
