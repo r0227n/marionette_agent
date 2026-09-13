@@ -14,6 +14,7 @@ import 'diff_command.dart';
 import 'batch_command.dart';
 import 'state_command.dart';
 import 'install_command.dart';
+import 'skills_command.dart';
 import 'policy_file.dart';
 import 'common_options.dart';
 import 'artifact_writer.dart';
@@ -38,13 +39,17 @@ Future<int> runCli(
   String? session = const CommonOptions().session;
   Result result;
   bool workflow = false;
+  var skills = false;
   int? diagnosticExitCode;
   String? workflowName;
   final cliParser = parser ?? CliParser();
   try {
     final invocation = cliParser.parse(
       args,
-      onCommand: (command) => workflow = command == 'workflow',
+      onCommand: (command) {
+        workflow = command == 'workflow';
+        skills = command == 'skills';
+      },
       onDebug: (value) => debug = value,
       onOutput: (name, useJson) {
         session = name;
@@ -63,6 +68,18 @@ Future<int> runCli(
     );
     diagnostics.emit(DebugStage.cliParsed);
     final deadline = started.add(Duration(milliseconds: invocation.timeoutMs));
+    if (invocation.command == 'skills') {
+      final output = invocation.params['action'] == 'help'
+          ? SkillsOutput({'help': skillsUsage}, skillsUsage)
+          : SkillCatalog(
+              await findSkillsDirectories(environment: cliParser.environment),
+              deadline: deadline,
+            ).run(invocation.params);
+      diagnostics.emit(DebugStage.cliResult, code: 'OK');
+      final rendered = output.render(json);
+      stdout.write(rendered.endsWith('\n') ? rendered : '$rendered\n');
+      return 0;
+    }
     final policy = await loadPolicy(invocation.options, deadline);
     Json params = invocation.params;
     Json? localData;
@@ -292,6 +309,15 @@ Future<int> runCli(
             session: session,
           ))
       .emit(DebugStage.cliResult, code: result.error?.code ?? 'OK');
+  if (skills && result.error != null) {
+    final message = result.error!.message;
+    if (json) {
+      stdout.writeln(jsonEncode({'success': false, 'error': message}));
+    } else {
+      stderr.writeln(message);
+    }
+    return 1;
+  }
   stdout.writeln(render(result, json: json, contentBoundaries: boundaries));
   if (!json && result.error?.code == 'INVALID_ARGUMENT') {
     stdout.writeln(cliParser.usage);

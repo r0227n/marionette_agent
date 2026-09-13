@@ -19,6 +19,7 @@ import 'config_file.dart';
 import 'state_command.dart';
 import 'install_command.dart';
 import 'batch_command.dart';
+import 'skills_command.dart';
 import '../commands/keyboard.dart';
 import '../commands/drag.dart';
 
@@ -47,6 +48,7 @@ class CliParser {
   final ArgParser parser;
   final Map<String, String> environment;
   final definitions = <String, CliCommand>{
+    'skills': skillsCommand(),
     'device': CliCommand(
       ArgParser()..addCommand(
         'list',
@@ -148,6 +150,9 @@ class CliParser {
   String get usage =>
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
+      'skills [list] | skills get <name> [name...] [--full] | skills get --all [--full]\n'
+      'skills path [name] | skills --help (bundled guides; no download or connection)\n'
+      'Start with marionette-agent skills get core; use --full for references and templates.\n'
       'doctor [--probe-uri <uri>] (read-only; no connection required)\n'
       'snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]\n'
       'Snapshot filters observed values; zero/multiple matches are valid. Full observation determines ref safety.\n'
@@ -229,6 +234,9 @@ class CliParser {
     CommonOptions.rejectDuplicateOptions(parser, arguments);
     final options = CommonOptions.parse(args);
     if (options.special != null) {
+      if (options.special == 'help' && args.command?.name == 'skills') {
+        return Invocation(options, 'skills', {'action': 'help'});
+      }
       return Invocation(options, options.special!, {});
     }
     final command = args.command;
@@ -259,6 +267,7 @@ class Invocation {
   final Json params;
   String? get resultSession =>
       command == 'help' ||
+          command == 'skills' ||
           command == 'doctor' ||
           command == 'device' ||
           command == 'install' ||

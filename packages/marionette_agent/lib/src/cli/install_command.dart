@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
 import 'parser.dart';
+import 'skills_command.dart';
 
 CliCommand installCommand() =>
     CliCommand(ArgParser()..addOption('source'), (args) {
@@ -23,6 +24,7 @@ Future<Json> installCli(Json params, String action, DateTime deadline) async {
   Directory? staging;
   Process? process;
   var reserved = false;
+  var installed = false;
   String? destination;
   try {
     final source = params['source'] as String?;
@@ -57,11 +59,21 @@ Future<Json> installCli(Json params, String action, DateTime deadline) async {
     } else if (type != FileSystemEntityType.file) {
       invalid('Upgrade requires an existing regular marionette-agent binary');
     }
-    staging = await Directory(directory).createTemp('.mra-install-');
+    staging = await Directory(directory).createTemp('.marionette-agent-');
+    // The binary names its sibling bundle, so moving the whole installation
+    // keeps skills available and upgrades cannot mix code and guide versions.
+    for (final name in skillDirectories) {
+      await _copySkillDirectory(
+        Directory(p.join(root, name)),
+        Directory(p.join(staging.path, name)),
+        deadline,
+      );
+    }
     final binary = p.join(staging.path, 'marionette-agent');
     final pending = Process.start('dart', [
       'compile',
       'exe',
+      '-DMARIONETTE_AGENT_SKILL_BUNDLE=${p.basename(staging.path)}',
       entry,
       '-o',
       binary,
@@ -96,6 +108,7 @@ Future<Json> installCli(Json params, String action, DateTime deadline) async {
     // Only a verified temporary binary replaces the explicitly selected target.
     await File(binary).rename(destination);
     reserved = false;
+    installed = true;
     return {
       'installed': true,
       'action': action,
@@ -120,12 +133,41 @@ Future<Json> installCli(Json params, String action, DateTime deadline) async {
         /* Preserve failure. */
       }
     }
-    if (staging != null) {
+    if (staging != null && !installed) {
       try {
         await staging.delete(recursive: true);
       } catch (_) {
         /* Preserve failure. */
       }
+    }
+  }
+}
+
+Future<void> _copySkillDirectory(
+  Directory source,
+  Directory destination,
+  DateTime deadline,
+) async {
+  if (!deadline.isAfter(DateTime.now())) {
+    throw const AgentError('TIMEOUT', 'Installation deadline exceeded');
+  }
+  // Distribution sources must be self-contained, including their resources.
+  if (await FileSystemEntity.type(source.path, followLinks: false) !=
+      FileSystemEntityType.directory) {
+    invalid('Source must include regular skills and skill-data directories');
+  }
+  await destination.create();
+  await for (final entry in source.list(followLinks: false)) {
+    final target = p.join(destination.path, p.basename(entry.path));
+    if (entry is Directory) {
+      await _copySkillDirectory(entry, Directory(target), deadline);
+    } else if (entry is File) {
+      if (!deadline.isAfter(DateTime.now())) {
+        throw const AgentError('TIMEOUT', 'Installation deadline exceeded');
+      }
+      await entry.copy(target);
+    } else {
+      invalid('Bundled skill resources must be regular files or directories');
     }
   }
 }

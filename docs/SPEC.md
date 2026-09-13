@@ -112,6 +112,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | コマンド | 動作 |
 | --- | --- |
 | `connect <uri>` | 指定sessionで接続。HTTP(S)のVM Service URIもWS(S)へ正規化 |
+| `skills [list]` / `skills get <name> [name...] [--full]` / `skills get --all [--full]` / `skills path [name]` | 同梱Skillの一覧・本文・既存pathをローカルで返す |
 | `session list` | sessionの名前・接続状態を一覧表示。daemon不在時は空一覧 |
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
 | `close [--all]` | 録画があれば確定し、選択session（--allは全session）を切断・破棄。対象不在も成功。Flutterアプリは終了しない |
@@ -228,7 +229,7 @@ key、identifierを優先し、text・typeはバックエンドの照合との�
 
 ### 出力と終了コード
 
-JSONは成功・失敗とも以下の包絡形式。schemaVersionは初版で1。session非依存コマンドではsessionはnull。dataとerrorの一方だけを非nullとする。help/versionもJSONモードでは同じ包絡形式を使う。
+JSONは`skills`を除き成功・失敗とも以下の包絡形式。schemaVersionは初版で1。session非依存コマンドではsessionはnull。dataとerrorの一方だけを非nullとする。help/versionもJSONモードでは同じ包絡形式を使う。`skills --help`を含むSkill配信の互換出力は後述の専用契約に従う。
 
 ```json
 {"schemaVersion":1,"ok":true,"session":"demo","data":{"requiresSnapshot":true},"error":null}
@@ -281,6 +282,24 @@ boundsが欠損・非有限ならmissing_or_invalid_bounds、幅/高さが非正
 7. コード変更時は`packages/marionette_agent`でformat、analyze、関連testを実行する。CLI契約を変えた場合は`example/`をiOS Simulatorで起動し、製品CLIの結果と操作後の画面状態を確認する。
 
 単体・IPC・契約テストは`packages/marionette_agent/test/`、Simulatorシナリオは`packages/marionette_agent/integration_test/`に置く。FakeBackendの成功だけをSimulator検証の代替にはしない。
+
+## 同梱Skillの配信
+
+`skills`はagent-browserの同梱Skill設計を採用するローカル読取コマンド。アプリ接続、runtime作成、daemon起動・照会、ダウンロード、Skillの生成やエージェント設定へのインストールを行わない。`--restore`やaction policyを実行せず、共通オプションの解析・値検証と`--debug`だけを共有する。batch/workflow/IPCの操作には追加しない。
+
+- `skills`と`skills list`は名前順の一覧。textの説明は最大70 UTF-8 bytes付近の単語境界で省略し、JSONには全文を返す。
+- `skills get <name> [name...]`は指定順でfrontmatterを含むSKILL.md全文を返す。`--full`は各Skillのreferences/、templates/直下の読めるテキストファイルを、ディレクトリ順・ファイル名順に追加する。再帰探索や実行はしない。
+- `skills get --all`は非表示でない全Skillを名前順に取得。`--full`を併用可能。`--all`は名前指定より優先する。
+- `skills path`は探索対象ディレクトリを1行ずつ、`skills path <name>`は名前に対応するSkillディレクトリを返す。ディレクトリ名ではなくfrontmatterのnameで検索する。
+- `skills --help` / `-h`で専用help。`--json`はコマンドの前後で使用可能。共通契約の未知オプション・重複・余剰引数の検証を使用する。
+
+`packages/marionette_agent/skills/marionette-agent/SKILL.md`は`hidden: true`の導入用stub。`skill-data/core/`と`skill-data/simulator-verify/`が実行時ガイドで、それぞれ補助reference/templateも同梱する。直下サブディレクトリのSKILL.mdからname・description・hiddenを簡易パースする。descriptionのインデント継続行は空白で連結、hiddenはtrue/yesを認識する。name欠損、frontmatter不正、読取不能なエントリは無視。hiddenはlist/--allから除外するが明示名でget/pathできる。空一覧は成功、get対象なしや未知名は失敗。重複nameは両方を一覧に残し、明示名では探索順の先頭を使う。
+
+保存先の解決は、既存の`MARIONETTE_AGENT_SKILLS_DIR`（単独のSkill親ディレクトリ）を最優先する。不正・不存在のoverrideは通常探索へ戻す。通常は実行ファイルのsymlinkを解決し、親の親にskills/がある配布root、または実行ファイルから上方のskills/を持つrootのskills/とskill-data/を使う。Dart起動では実行package URIからpackage rootを解決するfallbackを持ち、呼出元cwdから別packageを選ばない。install/upgrade済みバイナリは、自身に記録された実行ファイル隣接のバージョン別bundleを通常探索より優先する。そのbundleが失われた場合に別版へfallbackしない。
+
+install/upgradeは指定checkoutの両ディレクトリをbin-directory内の専用`.marionette-agent-*` bundleへコピーしてからコンパイルする。相対bundle名だけをバイナリへ埋め込み、成功したバイナリを配置するため、ソースcheckoutなしでも移動可能。配布時はバイナリと対応する隠しbundleを一緒に運ぶ。失敗時は新bundleと自身の予約先を回収し、upgrade前のバイナリを保持する。旧bundleは実行中の旧版との整合性のため自動削除しない。手動コンパイルではskills/・skill-data/とbin/を持つ配布rootを用意するか、環境変数で明示する。コピー元のsymlink・特殊ファイルは自己完結した配布を保証できないため拒否する。
+
+互換性のためskillsだけは`{"success":true,"data":...}`、失敗は`{"success":false,"error":"説明"}`。listはname/descriptionの配列、getはname/contentの配列（--fullで補助ファイルがあればfilesのpath/content配列）、pathはpaths配列を持つobjectまたはname/path object。専用helpはdata.help。session/schemaVersion/outcomeを付けない。text失敗はstderr、JSON結果はstdoutへ1 object。成功0、skillsと識別された引数エラー・未知名・探索失敗・期限切れは1。通常コマンドのJSON/終了値は変更しない。共通timeoutを読取前後で確認し、同期filesystem I/Oの即時中断は保証しない。
 
 ## 対象外・将来範囲
 

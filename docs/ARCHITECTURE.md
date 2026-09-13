@@ -40,6 +40,8 @@ AI Agent / Shell
 ```text
 packages/marionette_agent/
   bin/marionette_agent.dart
+  skills/       # 外部発見用のhidden stub
+  skill-data/   # core・simulator-verifyの実行時ガイドと補助ファイル
   lib/src/
     cli/        # parser、text/JSON renderer、artifact writer
     diagnostics/# loggingレコードの秘匿化、request単位の収集、stderr出力
@@ -57,6 +59,14 @@ packages/marionette_agent/
 ```
 
 protocolはDartの値とJSONだけを扱う。コマンド層はBackend interfaceに依存し、上流connectorやresponse mapを直接扱わない。rendererはbackend例外を解釈しない。
+
+## Skill配信のローカル境界
+
+`cli/skills_command.dart`がskillsの文法、package/環境変数からの探索、frontmatter解析、catalogと専用text/JSON出力を所有する。`cli/runner.dart`は引数解析後、policy読込・RuntimeDirectory.prepareより前に実行して返る。成功時も失敗時もIPCへ渡さず、session/refを参照しない。`--debug`は既存診断を使う。
+
+`skills/`の導入用stubと`skill-data/`の実行時ガイドをDartパッケージ内に置く。Dart起動ではIsolate.resolvePackageUri、手動コンパイルでは実行ファイルを基準とする配布rootを使う。`install_command.dart`はソースの両ディレクトリを新規bundleへコピーし、相対bundle名をDart環境定数としてコンパイルする。成功したバイナリだけを切り替え、失敗時は新規bundleを回収する。既存版のbundleは保持する。実行時に展開・生成・ダウンロードする経路を持たない。
+
+Skillの互換JSONは`SkillsOutput`の専用境界で生成し、protocolのResult/schemaVersionは変更しない。コマンド詳細、探索優先順位、配布時に同伴するbundleの契約は[SPEC](SPEC.md#同梱skillの配信)を参照。
 
 ## Marionette adapter
 

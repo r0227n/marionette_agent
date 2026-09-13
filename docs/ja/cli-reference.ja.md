@@ -28,6 +28,40 @@ textは各checkの状態・理由・Next・詳細、JSONは`data.checks`に同�
 
 ## 基本構文
 
+### 同梱Skillの参照
+
+`skills`はインストール済みCLIに対応する操作ガイドを読みます。接続・daemonは不要で、ダウンロードやファイル保存は行いません。
+
+```sh
+marionette-agent skills
+marionette-agent skills list --json
+marionette-agent skills get core
+marionette-agent skills get core simulator-verify
+marionette-agent skills get core --full
+marionette-agent skills get --all --full
+marionette-agent skills path
+marionette-agent skills path simulator-verify
+marionette-agent skills --help
+```
+
+`list`が既定で、名前と説明を名前順に返します。`get`はfrontmatterを含む全文を指定順に返し、`--full`で`references/`と`templates/`直下のテキストも追加します。補助ファイルの再帰探索や実行は行いません。`--all`は非表示でない全Skillを名前順に選び、明示した名前より優先します。`path`は探索対象ディレクトリ一覧、名前付きでは該当Skillのディレクトリを表示します。
+
+同梱する`core`は基本操作、`simulator-verify`はSimulatorの準備・実動作確認・証跡・後片付けのガイドです。`skills/marionette-agent/SKILL.md`は`skills get core`へ案内する導入用stubで、`hidden: true`により一覧や`--all`には出ません。`skills get marionette-agent`と`skills path marionette-agent`では明示的に取得できます。
+
+checkoutでは`packages/marionette_agent/skills/`と`packages/marionette_agent/skill-data/`に保存します。`install/upgrade`はバイナリの隣に専用の隠しbundleを配置します。配布先へ移動する際は対応する`.marionette-agent-*`ディレクトリも一緒に移動してください。`skills path`で使用中のbundleを確認できます。upgrade前のbundleは自動削除しません。旧バイナリを使うプロセスや配布物がなくなったことを確認してから不要分を整理できます。
+
+`MARIONETTE_AGENT_SKILLS_DIR`で、`<name>/SKILL.md`が並ぶ既存ディレクトリを指定すると、その場所だけを探索します。未設定・不存在なら同梱先を使います。エージェント固有の設定ディレクトリへコピーする機能はありません。
+
+`--json`はコマンドの前後で指定でき、`skills`だけはagent-browser互換の包絡を使います。
+
+```json
+{"success":true,"data":[{"name":"core","content":"..."}]}
+```
+
+listのdataはname/description配列、getはname/content配列、`--full`では補助ファイルがあれば各項目にfilesのpath/content配列を追加します。pathは`{"paths":["..."]}`、名前指定時は`{"name":"core","path":"..."}`、専用helpは`{"help":"..."}`です。成功は終了0。未知名・引数不正・同梱先不明・期限切れは終了1で`{"success":false,"error":"説明"}`、textモードではstderrへ説明を出します。通常のsession/schemaVersion/outcomeは含みません。共通の引数・重複検証を適用し、`--restore`やaction policyによるアプリ処理は実行しません。
+
+### CLIの構文
+
 ```text
 marionette-agent [共通オプション] <コマンド> [コマンドオプション] [引数]
 ```
@@ -78,7 +112,7 @@ marionette-agent snapshot --session demo --debug
 
 `--debug`はコマンドの前後で利用でき、要求ごとにdaemonへ伝わります。並行sessionには影響しません。認証URI、入力値、selector値、アプリtext、stack traceは追加診断に出しません。stdoutのJSON包絡は変わりません。session名自体は診断に表示されるため、秘密値をsession名に使用しないでください。 `close --all`の部分失敗では診断にも`CLOSE_FAILED`を保持します。
 
-通常のテキスト出力はstdout、診断ログはstderrへ出力されます。`--json`の結果は次の包絡形式です。
+通常のテキスト出力はstdout、診断ログはstderrへ出力されます。`skills`を除く`--json`の結果は次の包絡形式です。
 
 ```json
 {"schemaVersion":1,"ok":true,"session":"demo","data":{},"error":null}
