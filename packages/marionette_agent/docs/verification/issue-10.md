@@ -177,3 +177,7 @@ head, body, attachments, and pending human checkbox.
 
 Human verification remains pending. Publication is performed only after the
 above checks and evidence inspection; no Ready conversion or merge is authorized.
+
+## PR #30 integration review (2026-09-13)
+
+Integrated develop through PR #29 while retaining close --all, get, is visible and debug. Filter/ref implementation is unchanged from its verified version; resolved registration and documentation conflicts. dart format and dart analyze passed; all 195 CLI tests and all 6 example widget tests passed. Reviewed existing Simulator result JSON and screenshot evidence, including filtered-ref tap.

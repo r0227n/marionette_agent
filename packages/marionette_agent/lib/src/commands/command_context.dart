@@ -25,9 +25,19 @@ class CommandContext {
   Future<Json> snapshot({Selector? filter}) =>
       _snapshots.publish(_execution, filter: filter);
 
+  /// Re-observe one target without changing the published refs.
+  Future<ElementInfo> observeTarget(TargetQuery query) =>
+      _snapshots.observeTarget(_execution, query);
+
   /// Read flow. Validate connection generation and deadline before and after await; do not invalidate refs.
   Future<T> read<T>(Future<T> Function(Backend) operation) =>
       _execution.read(operation);
+
+  Future<ResolvedElement> resolveRead(TargetQuery query) =>
+      _snapshots.resolveRead(_execution, query);
+
+  Future<List<ElementInfo>> count(Selector selector) =>
+      _snapshots.count(_execution, selector);
 
   /// Validate uniqueness and target attributes, invalidate all refs, and send one UI action.
   ///
