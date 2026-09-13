@@ -1,0 +1,62 @@
+schemaVersion: 1
+name: all-actions
+# Fresh example app; run the companion all_commands_smoke.dart for all CLI commands.
+steps:
+  - id: open-about
+    action: tap
+    target: {key: about_tab}
+  - id: wait-about
+    action: wait
+    target: {key: about_content}
+    state: exists
+  - id: open-controls
+    action: tap
+    target: {key: controls_tab}
+  - id: wait-about-gone
+    action: wait
+    target: {key: about_content}
+    state: gone
+  - id: tap-counter
+    action: tap
+    target: {key: tap_button}
+  - id: fill-input
+    action: fill
+    target: {key: text_input}
+    text: {literal: Workflow check}
+  - id: wait-filled
+    action: wait
+    target: {text: 14 characters}
+    state: exists
+  - id: dismiss-keyboard
+    action: tap
+    target: {key: tap_result}
+  - id: next-page
+    action: swipe
+    target: {key: page_view}
+    direction: left
+    distance: 250
+  - id: wait-page-two
+    action: wait
+    target: {text: 'Current page: 2'}
+    state: exists
+  - id: inspect-controls
+    action: snapshot
+  - id: scroll-first-page
+    action: scroll
+    target: {key: operation_scroll_area}
+    direction: up
+    distance: 400
+  - id: scroll-to-bottom
+    action: scroll
+    target: {key: operation_scroll_area}
+    direction: up
+    distance: 150
+  - id: wait-bottom
+    action: wait
+    target: {key: scroll_result}
+    state: exists
+  - id: add-log
+    action: tap
+    target: {key: log_button}
+  - id: inspect-bottom
+    action: snapshot

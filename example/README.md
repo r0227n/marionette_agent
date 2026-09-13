@@ -61,6 +61,8 @@ debug構成は`lib/mapped_screenshot.dart`の固定名providerを登録する。
 
 ## Workflow検証
 
+全コマンドをiOS/Androidで確認する手順は [全コマンドの動作確認](../packages/marionette_agent/examples/workflows/README.md) を参照してください。全6 actionを含む `all-actions.yaml` と、接続・観測・録画・終了まで実行する `all_commands_smoke.dart` を提供します。
+
 Controls/Aboutのタブ（controls_tab/about_tab）とAbout画面のabout_contentをworkflow用に提供する。packages/marionette_agent/examples/workflows/reach-controls.yamlはタブ移動、wait、PageView swipe、snapshotを実行する。JSON版も同じ到達状態を検証する。
 
 アプリを新規起動した状態で、packages/marionette_agentから次を実行する。URIは認証情報を含むので、ファイルのアクセス権を制限する。
