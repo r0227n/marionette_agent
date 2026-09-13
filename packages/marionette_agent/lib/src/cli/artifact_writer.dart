@@ -4,12 +4,17 @@ import 'dart:math';
 import 'dart:typed_data';
 
 // image is pinned to 4.9.1: its public barrel loads every codec/filter.
-// Keep this internal API at this boundary; validate PNG tests before upgrades.
+// Keep these internal APIs at this boundary; validate codec tests before upgrades.
+// ignore: implementation_imports
+import 'package:image/src/formats/jpeg_encoder.dart' show JpegEncoder;
 // ignore: implementation_imports
 import 'package:image/src/formats/png_decoder.dart' show PngDecoder;
+// ignore: implementation_imports
+import 'package:image/src/image/image.dart' show Image;
 import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
+import 'common_options.dart';
 import 'screenshot_annotation.dart';
 
 /// Decode before writing, reserve each destination exclusively, and roll back
@@ -19,14 +24,19 @@ Future<Json> saveScreenshots(
   String? destination,
   DateTime deadline, {
   String? screenshotDir,
+  ScreenshotFormat format = ScreenshotFormat.png,
+  int quality = CommonOptions.defaultScreenshotQuality,
+  DateTime Function()? now,
 }) async {
+  final clock = now ?? DateTime.now;
   void checkDeadline() {
-    if (!DateTime.now().isBefore(deadline)) {
+    if (!clock().isBefore(deadline)) {
       throw const AgentError('TIMEOUT', 'Screenshot saving deadline exceeded');
     }
   }
 
   checkDeadline();
+  if (destination != null) destination = format.destinationPath(destination);
   final payloads = data['images'];
   if (payloads is! List || payloads.isEmpty) {
     throw const AgentError('BACKEND_ERROR', 'No screenshots returned');
@@ -38,13 +48,20 @@ Future<Json> saveScreenshots(
       checkDeadline();
       if (value is! String) throw const FormatException();
       final bytes = base64Decode(value);
-      if (PngDecoder().decode(bytes) == null) throw const FormatException();
+      final decoded = PngDecoder().decode(bytes);
+      if (decoded == null) throw const FormatException();
+      checkDeadline();
       images.add(bytes);
+      // Synchronous codecs cannot be interrupted; never publish late output.
+      checkDeadline();
     }
   } on AgentError {
     rethrow;
   } catch (_) {
-    throw const AgentError('BACKEND_ERROR', 'Invalid PNG screenshot');
+    throw const AgentError(
+      'BACKEND_ERROR',
+      'Cannot decode or convert PNG screenshot',
+    );
   }
   if (data.containsKey('annotations')) {
     if (images.length != 1) {
@@ -56,6 +73,41 @@ Future<Json> saveScreenshots(
     annotated = annotateScreenshot(images.single, data, checkDeadline);
     images[0] = annotated.bytes;
   }
+  // Annotation consumes mapped PNG pixels; encode the final pixels as JPEG.
+  if (format == ScreenshotFormat.jpeg) {
+    try {
+      for (var i = 0; i < images.length; i++) {
+        checkDeadline();
+        final decoded = PngDecoder().decode(images[i]);
+        if (decoded == null) throw const FormatException();
+        // Flatten into opaque RGB before encoding. This also handles grayscale
+        // alpha, palette/16-bit PNGs and padded JPEG edge blocks consistently.
+        final rgb = Image(width: decoded.width, height: decoded.height);
+        for (final pixel in decoded) {
+          if (pixel.x == 0 && pixel.y % 256 == 0) checkDeadline();
+          final alpha = pixel.aNormalized;
+          final white = 1 - alpha;
+          final red = pixel.rNormalized;
+          final green = pixel.length < 3 ? red : pixel.gNormalized;
+          final blue = pixel.length < 3 ? red : pixel.bNormalized;
+          rgb.setPixelRgb(
+            pixel.x,
+            pixel.y,
+            (255 * (red * alpha + white)).round(),
+            (255 * (green * alpha + white)).round(),
+            (255 * (blue * alpha + white)).round(),
+          );
+        }
+        checkDeadline();
+        images[i] = JpegEncoder(quality: quality).encode(rgb);
+        checkDeadline();
+      }
+    } on AgentError {
+      rethrow;
+    } catch (_) {
+      throw const AgentError('BACKEND_ERROR', 'Cannot convert PNG screenshot');
+    }
+  }
   Directory? temporary;
   final created = <File>[];
   try {
@@ -66,7 +118,7 @@ Future<Json> saveScreenshots(
         temporary = await Directory.systemTemp.createTemp(
           'marionette-screenshot-',
         );
-        generated = p.join(temporary.path, 'screen.png');
+        generated = p.join(temporary.path, 'screen${format.extension}');
       } else {
         final directory = p.normalize(p.absolute(screenshotDir));
         if (await FileSystemEntity.type(directory, followLinks: false) !=
@@ -81,7 +133,7 @@ Future<Json> saveScreenshots(
           16,
           (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
         ).join();
-        generated = p.join(directory, 'screen-$token.png');
+        generated = p.join(directory, 'screen-$token${format.extension}');
       }
     }
     final base = p.normalize(p.absolute(destination ?? generated!));
@@ -91,7 +143,7 @@ Future<Json> saveScreenshots(
           ? base
           : p.join(
               p.dirname(base),
-              '${p.basenameWithoutExtension(base)}-${i + 1}${p.extension(base).isEmpty ? '.png' : p.extension(base)}',
+              '${p.basenameWithoutExtension(base)}-${i + 1}${p.extension(base)}',
             ),
     );
     // Reserve every path before writing any image. This refuses destinations

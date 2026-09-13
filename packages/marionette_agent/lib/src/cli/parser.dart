@@ -106,6 +106,9 @@ class CliParser {
       'Screenshot destination: explicit path > --screenshot-dir > temporary directory.\n'
       'Screenshot directories must exist; --screenshot-dir must not be a symlink.\n'
       'is visible <ref|selector> (true, false, or unknown; preserves refs)\n'
+      'Screenshot extensions: .png or .jpg/.jpeg; missing extension is appended.\n'
+      'Multiple images: name-1.ext, name-2.ext; existing files are refused.\n'
+      'Path and directory omitted: private screen.png/screen.jpg; conversion uses --timeout.\n'
       'wait <selector> [--state exists|gone] [--poll-interval <ms>]\n'
       'wait observes only; run snapshot before the next UI operation.\n'
       'record start <path> --platform ios|android|macos --device <id>\n'
@@ -152,6 +155,11 @@ class CliParser {
     final command = args.command;
     if (command == null) invalid('A command is required');
     final params = definitions[command.name]!.decode(command);
+    if (command.name == 'screenshot' && params['path'] is String) {
+      params['path'] = options.screenshotFormat.destinationPath(
+        params['path'] as String,
+      );
+    }
     if (command.name == 'close' &&
         params['all'] == true &&
         args.wasParsed('session')) {

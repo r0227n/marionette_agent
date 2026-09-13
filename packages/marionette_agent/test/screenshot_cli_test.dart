@@ -6,114 +6,114 @@ import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
 import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
-import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
-import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
-  test('product CLI saves text/JSON paths in its cwd and keeps directory options local', () async {
-    final temporaryRoot = await Directory('/tmp').createTemp('mra-shot-');
-    // A child process resolves macOS /tmp to /private/tmp as its actual cwd.
-    final root = Directory(await temporaryRoot.resolveSymbolicLinks());
-    final runtime = await RuntimeDirectory.prepare(
-      directory: p.join(root.path, 'runtime'),
-    );
-    final bytes = image.encodePng(image.Image(width: 2, height: 2));
-    final backend = FakeBackend()..screenshots = [base64Encode(bytes)];
-    final manager = SessionManager(() => backend, coreCommands());
-    final server = DaemonServer(runtime, manager);
-    final serving = server.run();
-    final cliPath = File('bin/marionette_agent.dart').absolute.path;
-    final output = await Directory(p.join(root.path, 'images')).create();
-    Future<ProcessResult> cli(List<String> args) => Process.run(
-      Platform.resolvedExecutable,
-      [cliPath, '--session', 'screenshots', ...args],
-      workingDirectory: root.path,
-      environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
-    );
-    Json data(ProcessResult result, {bool json = true}) {
-      expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
-      expect(result.stderr, '');
-      final body = asJson(jsonDecode(result.stdout as String));
-      if (!json) return body;
-      expect(body['ok'], isTrue);
-      expect(body['session'], 'screenshots');
-      return asJson(body['data']);
-    }
+  late Directory directory;
+  late String runtimePath;
+  final cliPath = File('bin/marionette_agent.dart').absolute.path;
+  Future<ProcessResult> cli(List<String> args) => Process.run(
+    Platform.resolvedExecutable,
+    [cliPath, '--session', 'issue13', ...args],
+    environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtimePath},
+  );
+  setUp(() async {
+    directory = await Directory('/tmp').createTemp('mra-jpeg-');
+    runtimePath = '${directory.path}/runtime';
+  });
+  tearDown(() => directory.delete(recursive: true));
 
+  test('product CLI passes format/quality to local saving and renders text/JSON paths', () async {
+    final fixture = image.Image(width: 9, height: 7);
+    for (final pixel in fixture) {
+      pixel.setRgb(pixel.x * 29, pixel.y * 37, 128);
+    }
+    final png = image.encodePng(fixture);
+    final backend = FakeBackend()..screenshots = [base64Encode(png)];
+    final runtime = await RuntimeDirectory.prepare(directory: runtimePath);
+    final server = DaemonServer(
+      runtime,
+      SessionManager(() => backend, coreCommands()),
+    );
+    final serving = server.run();
     try {
-      await Future.doWhile(() async {
+      while (!File(runtime.metadata).existsSync()) {
         await Future<void>.delayed(const Duration(milliseconds: 10));
-        return !File(runtime.metadata).existsSync();
-      }).timeout(const Duration(seconds: 5));
-      final connected = await manager.handle(
-        Request(
-          requestId: 'setup',
-          session: 'screenshots',
-          command: 'connect',
-          params: {'uri': 'http://localhost:1/'},
-          deadline: DateTime.now().add(const Duration(seconds: 5)),
-        ),
-      );
-      expect(connected.exitCode, 0);
-      final saved = <String>[];
-      for (final json in [false, true]) {
-        final result = data(
-          await cli([
-            if (!json) ...['--screenshot-dir', 'images'],
-            'screenshot',
-            if (json) ...['--screenshot-dir=images', '--json'],
-          ]),
-          json: json,
-        );
-        final path = (result['paths'] as List).single as String;
-        expect(p.dirname(path), output.path);
-        expect(await File(path).readAsBytes(), bytes);
-        saved.add(path);
       }
-      expect(saved.toSet(), hasLength(2));
-      final explicit = data(
-        await cli([
+      expect((await cli(['connect', 'http://localhost:1/'])).exitCode, 0);
+      final pngPath = '${directory.path}/default.png';
+      final savedPng = await cli(['screenshot', pngPath]);
+      expect(savedPng.exitCode, 0);
+      expect(jsonDecode(savedPng.stdout as String), {
+        'paths': [pngPath],
+      });
+      expect(savedPng.stderr, isEmpty);
+      expect(await File(pngPath).readAsBytes(), png);
+
+      for (final quality in [null, 0, 100]) {
+        final path = '${directory.path}/q${quality ?? 'default'}.jpg';
+        final result = await cli([
+          '--screenshot-format=jpeg',
           'screenshot',
-          'explicit.png',
-          '--screenshot-dir=missing',
+          path,
           '--json',
-        ]),
-      );
-      expect(explicit['paths'], [p.join(root.path, 'explicit.png')]);
-      expect(
-        await File(p.join(root.path, 'explicit.png')).readAsBytes(),
-        bytes,
-      );
-      expect(Directory(p.join(root.path, 'missing')).existsSync(), isFalse);
-      final temporary = data(await cli(['screenshot', '--json']));
-      final temporaryFile = File((temporary['paths'] as List).single as String);
-      try {
-        expect(p.isAbsolute(temporaryFile.path), isTrue);
-        expect(p.isWithin(root.path, temporaryFile.path), isFalse);
-        expect(p.basename(temporaryFile.path), 'screen.png');
-        expect(await temporaryFile.readAsBytes(), bytes);
-      } finally {
-        await temporaryFile.parent.delete(recursive: true);
+          if (quality != null) '--screenshot-quality=$quality',
+        ]);
+        expect(result.exitCode, 0);
+        expect(result.stderr, isEmpty);
+        final response = jsonDecode(result.stdout as String) as Map;
+        expect(response['ok'], isTrue);
+        expect(response['session'], 'issue13');
+        expect(response['data'], {
+          'paths': [path],
+        });
+        final bytes = await File(path).readAsBytes();
+        expect(bytes, image.encodeJpg(fixture, quality: quality ?? 90));
+        expect(image.decodeJpg(bytes)!.width, 9);
       }
-      final failure = await cli([
-        'screenshot',
-        '--screenshot-dir=missing',
-        '--json',
-      ]);
-      expect(failure.exitCode, 1);
-      expect(failure.stderr, '');
-      final error = asJson(jsonDecode(failure.stdout as String));
-      expect(error['ok'], isFalse);
-      expect(error['session'], 'screenshots');
-      expect(asJson(error['error'])['code'], 'IO_ERROR');
-      expect(asJson(error['error'])['outcome'], 'not_sent');
-      expect(output.listSync(), hasLength(2));
+      expect(
+        backend.calls.where((c) => c == 'captureScreenshots'),
+        hasLength(4),
+      );
+      expect((await cli(['close'])).exitCode, 0);
+      await serving;
+      expect(File(runtime.metadata).existsSync(), isFalse);
     } finally {
       await server.close();
       await serving;
-      await root.delete(recursive: true);
     }
   });
+
+  test(
+    'invalid screenshot options fail in text/JSON before runtime or connection',
+    () async {
+      for (final args in [
+        ['screenshot', 'image.jpg', '--json'],
+        ['screenshot', '--screenshot-quality=90'],
+        [
+          'screenshot',
+          '--screenshot-format=jpeg',
+          '--screenshot-quality=101',
+          '--json',
+        ],
+      ]) {
+        final result = await cli(args);
+        expect(result.exitCode, 2);
+        expect(result.stderr, isEmpty);
+        if (args.contains('--json')) {
+          final response = jsonDecode(result.stdout as String) as Map;
+          expect(response['session'], 'issue13');
+          expect(response['error']['code'], 'INVALID_ARGUMENT');
+          expect(response['error']['outcome'], 'not_sent');
+        } else {
+          expect(result.stdout, contains('INVALID_ARGUMENT'));
+          expect(result.stdout, contains('Outcome: not_sent'));
+          expect(result.stdout, contains('--screenshot-quality'));
+        }
+        expect(Directory(runtimePath).existsSync(), isFalse);
+        expect(directory.listSync(), isEmpty);
+      }
+    },
+  );
 }

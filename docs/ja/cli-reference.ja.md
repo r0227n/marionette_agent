@@ -47,6 +47,8 @@ label/role/hint/placeholder/tooltip selectorと入力値・enabled/checked取得
 | `--content-boundaries` | 無効 | snapshot要素行とlogs entryに呼出し固有の境界を付けます。JSONではmetadataを追加します。 |
 | `--max-output <chars>` | 無制限 | 正の整数。snapshot/logsの項目列をUnicode code point数で制限します。 |
 | `--idle-timeout <duration>` | `1h` | daemon全体の無操作期限。整数msまたはms/s/m/h接尾辞。`0`で自動終了を無効にします。 |
+| `--screenshot-format png\|jpeg` | `png` | screenshotの保存形式。JPEGはCLI側で変換します。 |
+| `--screenshot-quality <0-100>` | JPEGでは`90` | JPEG指定時だけ受け付ける整数。PNG指定時・単独指定は引数エラーです。 |
 | `--screenshot-dir <path>` | 未指定 | path省略のscreenshotを保存する既存directory。明示pathがあればそちらを優先します。 |
 | `--help`, `-h` | — | ヘルプを表示します。接続は不要です。 |
 | `--version` | — | CLIのバージョンを表示します。接続は不要です。 |
@@ -388,11 +390,11 @@ marionette-agent --session demo snapshot
 
 ### `screenshot [--annotate] [path]`
 
-現在の画面をPNGとして保存し、text／JSONとも`paths`配列に保存した絶対パスを返します。保存先の優先順位は次のとおりです。
+現在の画面をPNG（既定）またはJPEGとして保存し、text／JSONとも`paths`配列に保存した絶対パスを返します。保存先の優先順位は次のとおりです。
 
 1. 明示した`path`。`--screenshot-dir`の存在や権限は調べません。
-2. `--screenshot-dir <path>`で指定したdirectoryの直下。`screen-<32桁の乱数hex>.png`という名前を呼出しごとに生成します。
-3. 両方省略時は従来どおり非公開の一時directory内の`screen.png`。
+2. `--screenshot-dir <path>`で指定したdirectoryの直下。`screen-<32桁の乱数hex>.png`（JPEGは`.jpg`）という名前を呼出しごとに生成します。
+3. 両方省略時は従来どおり非公開の一時directory内の`screen.png`または`screen.jpg`。
 
 相対pathとdirectoryはコマンドを実行したカレントdirectory基準です。`--screenshot-dir`は共通オプションなのでコマンドの前後に指定でき、この呼出しのscreenshotだけに適用されます。daemon／sessionに保存されず、他コマンドには影響しません。空文字、NULを含むpath、値の欠損、重複指定は`INVALID_ARGUMENT`です。
 
@@ -402,11 +404,22 @@ marionette-agent --session demo screenshot ./artifacts/screen.png
 marionette-agent --session demo --screenshot-dir ./artifacts screenshot
 marionette-agent --session demo screenshot --screenshot-dir ./artifacts --json
 marionette-agent --session demo screenshot --json
+marionette-agent --session demo screenshot ./artifacts/screen.jpg --screenshot-format jpeg --json
+marionette-agent --screenshot-format jpeg --screenshot-quality 75 --session demo screenshot ./artifacts/compact.jpeg
 ```
 
+注釈なしのPNGは元のバイト列・寸法・透過を維持します。JPEGは同じ寸法で、透過部分を白背景に合成してから不可逆圧縮します。PNGの背景色指定は使用しません。品質は0〜100の整数、JPEGで省略すると90です。0はencoderの最低品質1と同じ圧縮で、100もlosslessではありません。小数、範囲外、PNGでの品質指定、品質だけの指定は`INVALID_ARGUMENT`（終了コード2）です。
+
+拡張子はPNGなら`.png`、JPEGなら`.jpg`または`.jpeg`を指定します。大文字小文字は区別せず綴りを保持します。拡張子から形式を自動選択しないので、既定PNGに`screen.jpg`を渡した場合も接続前の引数エラーです。未知の拡張子も拒否します。拡張子がなければ`.png`または`.jpg`を付加します。pathと`--screenshot-dir`を両方省略時の自動名は`screen.png`または`screen.jpg`です。
+
+複数画像ではbackendから返された順に`screen-1.png`、`screen-2.png`、または`screen-1.jpeg`、`screen-2.jpeg`のように拡張子直前へ連番を付けます。自動名も同じ規則です。保存先の親ディレクトリは事前に作成してください。全画像を変換して全保存先を排他的に予約し、既存file・directory・symlinkは`IO_ERROR`で拒否します。上書きしません。
+
+共通`--timeout`には取得・転送から復号・変換・保存までを含めます。変換失敗時は保存せず、予約・書込み後の失敗や期限切れではこの呼出しが作った全画像と自動directoryの削除を試みます。OSが削除を拒否すると部分ファイルが残る場合があります。失敗時には成功pathsを返しません。同期codecと進行中のOS I/Oの即時中断、予約後に別プロセスが意図的に保存先を差し替える競合は保証しません。
+
+形式・品質は共通オプションなのでhelp/versionや他のコマンドでも受理・検証しますが、screenshot以外の出力には適用しません。
 指定directoryと明示pathの親directoryは事前に作成してください。CLIは自動作成しません。指定directoryの不存在、通常file、directory自身のsymlink（リンク切れを含む）、保存に必要な権限の不足は`IO_ERROR`（終了コード1）です。祖先directoryのsymlinkは利用できます。
 
-連続／同時撮影は呼出しごとに別名を生成し、既存file・directory・symlinkは上書きしません。万一生成名が既存pathと衝突した場合も`IO_ERROR`です。複数画像は指定名／生成名の拡張子の前に`-1`、`-2`を付けます（例: `screen-<32桁hex>-1.png`、`screen-<32桁hex>-2.png`）。拡張子なしの明示pathには連番と`.png`を付けます。
+連続／同時撮影は呼出しごとに別名を生成し、既存file・directory・symlinkは上書きしません。万一生成名が既存pathと衝突した場合も`IO_ERROR`です。複数画像は指定名／生成名の拡張子の前に`-1`、`-2`を付けます（例: `screen-<32桁hex>-1.png`、`screen-<32桁hex>-2.png`）。拡張子なしの明示pathには選択形式に応じて`.png`または`.jpg`を付け、複数画像では連番も付けます。
 
 全PNGを検証し、全保存先を排他的に予約してから書き込みます。途中失敗時はこの要求が作成したfileをcleanupし、成功pathを返しません。指定directoryと既存artifactは削除しません。画像が空／不正なら`BACKEND_ERROR`、保存期限超過は`TIMEOUT`、その他の保存失敗は`IO_ERROR`です。これらのoutcomeは`not_sent`です。cleanupの失敗で元のエラーは置き換えません。保存先の確認・予約後に別プロセスが意図的にpathを差し替える競合までは保証しません。
 
@@ -420,7 +433,7 @@ marionette-agent --session demo screenshot --annotate ./artifacts/annotated.png 
 
 注釈画像は新しい出力先へ保存し、原画像・既存保存先を上書きしません。refは更新も失効もしません。成功dataには`paths`、`annotated: true`、`generation`、`annotationCount`、`skippedAnnotations`を返します。bounds欠損は`missing_or_invalid_bounds`、画面から一部でも外れるboundsは`bounds_outside_view`、ラベル配置領域不足は`label_space_exhausted`として省略します。
 
-古い/未取得snapshotやcapture前後に対象が変わった場合は`STALE_REF`です。provider未登録、画像/view対応不明、複数画像、相対回転、PNG寸法不一致は`UNSUPPORTED_CAPABILITY`です。単一viewのportrait/landscapeに対応し、倍率を推測しません。アニメーション中ではなく静止した画面で使用してください。全体timeoutは合成・保存まで共通です。
+古い/未取得snapshotやcapture前後に対象が変わった場合は`STALE_REF`です。provider未登録、画像/view対応不明、複数画像、相対回転、PNG寸法不一致は`UNSUPPORTED_CAPABILITY`です。単一viewのportrait/landscapeに対応し、倍率を推測しません。アニメーション中ではなく静止した画面で使用してください。全体timeoutは合成・保存まで共通です。JPEG指定時はPNGへ注釈を合成してからJPEGへ変換します。注釈のmetadataとref保持はPNGの場合と同じです。
 
 ### `logs`
 

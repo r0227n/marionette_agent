@@ -152,7 +152,7 @@ FakeBackendの合格はSimulator検証の代わりにしない。コード変更
 
 ## 実装で利用する既存機能
 
-引数解析・usageはargs、属性比較はcollection、パス構築はpath、PNG復号検証はimage、RPCエラー定義はvm_serviceを使う。IPCはdart:ioのUnix socketとOSファイルロック、dart:convertのUTF-8/LineSplitter/JSONを利用する。独自処理はsession寿命、ref検証、期限・送信結果の契約、フレーム上限など製品固有の部分に限定する。
+引数解析・usageはargs、属性比較はcollection、パス構築はpath、PNG復号検証とJPEG変換はimage、RPCエラー定義はvm_serviceを使う。IPCはdart:ioのUnix socketとOSファイルロック、dart:convertのUTF-8/LineSplitter/JSONを利用する。独自処理はsession寿命、ref検証、期限・送信結果の契約、フレーム上限など製品固有の部分に限定する。
 
 上流connectorのisConnectedだけでは通信断を検知できないため、状態照会と1秒間隔のhealth probeをsessionキュー上で実行する。CLIの要求期限後はdaemonのTIMEOUT応答を届けるため最大250msのIPC猶予を設けるが、backend実行期限は延長しない。
 
@@ -167,6 +167,14 @@ wait stepは単独waitと同じ登録済みread handlerを使い、ElementInfo.c
 IPC protocolVersionは5（要求単位のdebug policy追加。4で共通出力policyとidle設定handshake追加）。requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
 
 workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/progressKnown:falseとsession名を保持する。CLIのローカル検証はparseと意味検証後も絶対deadlineを確認し、期限を過ぎた成功を返さない。
+
+## ScreenshotのCLI側変換（Issue #13）
+
+`cli/common_options.dart`が形式・品質のroot登録、既定PNG／JPEG品質90、値検証と拡張子規則を所有する。`CliParser`はscreenshotのpathを接続前に検証し、拡張子省略時に選択形式の拡張子を付加する。help/versionと全サブコマンドも共通定義を継承する。形式・品質はInvocationのCommonOptionsからrunnerへ渡し、IPC paramsやbackend adapterへ追加しない。workflow内のscreenshot対応やprotocolVersion変更は行わない。
+
+`cli/artifact_writer.dart`はbackendのPNGを全件復号検証し、注釈を指定した場合はgeometryに従いPNGへ合成してから出力形式へ進む。注釈なしのPNGなら元のバイト列、JPEGなら白背景へ合成した8-bit RGBを固定image 4.9.1のJpegEncoderへ渡す。RGBA／grayscale alpha／palette／16-bitを画素の正規化値で処理し、透過を捨てる前に合成する。encoderに透過の合成を任せないため、JPEG端部のpaddingによる反復合成も避ける。品質0はencoderの最低品質1へ丸められる。imageの内部importは従来のPNG decoderと同じ境界へ集約し、依存更新時は画像fixtureを再検証する。
+
+runnerはCLI開始時の共通絶対deadlineをそのままwriterへ渡す。復号・合成・encode後にも期限を確認してから、従来の全宛先の排他的予約と書込みへ進む。同期codec自体は中断しないが、遅れて得た画像を成功として公開しない。予約後の失敗・TIMEOUTではこの要求の予約file・書込み済みfile・自動directoryを回収する。OSによるcleanup失敗時は残存し得るが、成功pathsを返さず元のエラーを保持する。テストの時計注入により変換後・予約後・書込み後の期限切れをhost負荷によらず検証する。
 
 ## 入出力の安全境界
 
