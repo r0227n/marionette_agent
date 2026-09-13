@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:image/image.dart' as img;
 import 'package:marionette_agent/marionette_agent.dart';
 import 'package:marionette_agent/src/cli/artifact_writer.dart';
+import 'package:marionette_agent/src/cli/common_options.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
@@ -61,6 +62,44 @@ void main() {
       deadline ?? DateTime.now().add(const Duration(seconds: 10)),
     );
   }
+
+  test(
+    'JPEG encodes annotated pixels and preserves annotation metadata',
+    () async {
+      final original = img.Image(width: 400, height: 600);
+      img.fill(original, color: img.ColorRgb8(255, 255, 255));
+      final result = await saveScreenshots(
+        {
+          'images': [base64Encode(img.encodePng(original))],
+          'geometry': geometry(),
+          'annotations': {
+            'generation': 7,
+            'targets': [target('@e1')],
+          },
+        },
+        '${directory.path}/annotated.jpg',
+        DateTime.now().add(const Duration(seconds: 10)),
+        format: ScreenshotFormat.jpeg,
+        quality: 100,
+      );
+      expect(result['annotated'], isTrue);
+      expect(result['annotationCount'], 1);
+      expect(result['generation'], 7);
+      final bytes = await File((result['paths'] as List).single as String)
+          .readAsBytes();
+      expect(bytes.take(2), [0xff, 0xd8]);
+      final output = img.decodeJpg(bytes)!;
+      expect([output.width, output.height], [400, 600]);
+      final border = output.getPixel(119, 120);
+      expect(border.r, greaterThan(180));
+      expect(border.g, lessThan(70));
+      expect(border.b, lessThan(130));
+      final outside = output.getPixel(130, 120);
+      expect(outside.r, greaterThan(245));
+      expect(outside.g, greaterThan(245));
+      expect(outside.b, greaterThan(245));
+    },
+  );
 
   test(
     'explicit scale maps borders to exact image pixels without changing source',
