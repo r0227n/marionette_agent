@@ -133,30 +133,43 @@ class SnapshotService {
 
   /// Re-match stored selector and validate attribute changes; do not issue a ref here.
   Future<Selector> resolve(Execution context, TargetQuery target) async {
-    final element = await observeTarget(context, target);
-    if (element.visible == false) {
+    final resolved = await resolveRead(context, target);
+    if (resolved.element.visible == false) {
       throw const AgentError('UNRESOLVABLE_TARGET', 'Target is not visible');
     }
-    return _selectorFor(context, target);
+    return resolved.selector;
   }
 
-  /// Re-match stored selector and validate attribute changes without issuing refs or invalidating existing ones.
   Future<ElementInfo> observeTarget(
+    Execution context,
+    TargetQuery target,
+  ) async => (await resolveRead(context, target)).element;
+
+  /// Read-only target resolution. It re-observes and validates refs without
+  /// invalidating them, so successful state queries keep the current snapshot.
+  Future<ResolvedElement> resolveRead(
     Execution context,
     TargetQuery target,
   ) async {
     context.requireConnected();
     _Reference? reference;
     final Selector selector;
-    (selector, reference) = _lookupTarget(context, target);
-    if (!context.session.backend!.selectors.contains(selector.kind)) {
-      throw const AgentError(
-        'UNSUPPORTED_CAPABILITY',
-        'Binding does not support this selector',
-      );
+    switch (target) {
+      case RefQuery(:final ref):
+        final observation = context.session.observation;
+        reference = observation is _Observation ? observation.refs[ref] : null;
+        if (reference == null) {
+          throw const AgentError(
+            'STALE_REF',
+            'Ref is not valid in this session',
+            hint: 'Run snapshot again',
+          );
+        }
+        selector = reference.selector;
+      case SelectorQuery(selector: final selected):
+        selector = selected;
     }
-    final elements = await context.read((backend) => backend.inspect());
-    final matches = _matches(elements, selector);
+    final matches = await count(context, selector);
     if (matches.length > 1) {
       throw const AgentError(
         'AMBIGUOUS_TARGET',
@@ -189,7 +202,20 @@ class SnapshotService {
         hint: 'Run snapshot again',
       );
     }
-    return element;
+    return ResolvedElement(selector, element);
+  }
+
+  /// Count selector candidates without requiring uniqueness.
+  Future<List<ElementInfo>> count(Execution context, Selector selector) async {
+    context.requireConnected();
+    if (!context.session.backend!.selectors.contains(selector.kind)) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Binding does not support this selector',
+      );
+    }
+    final elements = await context.read((backend) => backend.inspect());
+    return _matches(elements, selector);
   }
 
   List<ElementInfo> _matches(List<ElementInfo> elements, Selector selector) =>
@@ -199,27 +225,10 @@ class SnapshotService {
                 element.candidateValue(selector.kind) == selector.value,
           )
           .toList();
+}
 
-  Selector _selectorFor(Execution context, TargetQuery target) =>
-      _lookupTarget(context, target).$1;
-
-  (Selector, _Reference?) _lookupTarget(Execution context, TargetQuery target) {
-    switch (target) {
-      case RefQuery(:final ref):
-        final observation = context.session.observation;
-        final reference = observation is _Observation
-            ? observation.refs[ref]
-            : null;
-        if (reference == null) {
-          throw const AgentError(
-            'STALE_REF',
-            'Ref is not valid in this session',
-            hint: 'Run snapshot again',
-          );
-        }
-        return (reference.selector, reference);
-      case SelectorQuery(selector: final selected):
-        return (selected, null);
-    }
-  }
+class ResolvedElement {
+  const ResolvedElement(this.selector, this.element);
+  final Selector selector;
+  final ElementInfo element;
 }

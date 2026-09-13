@@ -32,6 +32,12 @@ class CommandContext {
   Future<T> read<T>(Future<T> Function(Backend) operation) =>
       _execution.read(operation);
 
+  Future<ResolvedElement> resolveRead(TargetQuery query) =>
+      _snapshots.resolveRead(_execution, query);
+
+  Future<List<ElementInfo>> count(Selector selector) =>
+      _snapshots.count(_execution, selector);
+
   /// Validate uniqueness and target attributes, invalidate all refs, and send one UI action.
   ///
   /// Call backend primitive exactly once in callback. Complete argument parsing and validation before calling this method.

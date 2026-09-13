@@ -8,6 +8,7 @@ import '../commands/observations.dart';
 import 'workflow_command.dart';
 import 'record_command.dart';
 import 'wait_command.dart';
+import 'get_command.dart';
 import '../commands/is_visible.dart';
 
 /// Register ArgParser grammar and conversion from validated args to protocol params.
@@ -36,6 +37,7 @@ class CliParser {
     'screenshot': screenshotCommand(),
     'logs': CliCommand(ArgParser(), noArguments),
     'wait': waitCommand(),
+    'get': getCommand(),
     'is': isCommand(),
     'swipe': swipeCommand(),
     'connect': CliCommand(ArgParser(), (args) {
@@ -75,6 +77,8 @@ class CliParser {
   String get usage =>
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
+      'get text|box <ref|selector> | get count <selector>\n'
+      'get preserves refs; box uses Flutter logical pixels; missing values are null.\n'
       'connect <uri> | session list | session show | close [--all] | snapshot\n'
       'close --all stops all sessions; cannot combine with --session. Apps keep running.\n'
       'swipe <ref|selector> <left|right|up|down> [--distance <n>]\n'
