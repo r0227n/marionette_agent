@@ -30,9 +30,85 @@ class ConnectorFixture extends VmServiceConnector {
   Future<Map<String, dynamic>> takeScreenshots() => call({});
   @override
   Future<Map<String, dynamic>> getLogs() => call({});
+  @override
+  Future<Map<String, dynamic>> callCustomExtension(
+    String name, [
+    Map<String, dynamic> args = const {},
+  ]) => call({'extension': name});
 }
 
 void main() {
+  test('mapped capture validates capability at the adapter boundary', () async {
+    final connector = ConnectorFixture();
+    final backend = MarionetteBackend(connector: connector);
+    final geometry = <String, Object?>{
+      'version': 1,
+      'viewCount': 1,
+      'viewId': '0',
+      'rotation': 0,
+      'originX': 0,
+      'originY': 0,
+      'pixelWidth': 400,
+      'pixelHeight': 600,
+      'logicalWidth': 200,
+      'logicalHeight': 300,
+    };
+    connector.response = {
+      'status': 'Success',
+      'supported': true,
+      'screenshots': ['png'],
+      'geometry': geometry,
+    };
+    expect((await backend.captureMappedScreenshot()).geometry.width, 400);
+    expect(connector.args, {
+      'extension': 'marionette_agent.captureMappedScreenshot',
+    });
+    for (final change in <Map<String, dynamic>>[
+      {'supported': false},
+      {
+        'screenshots': ['one', 'two'],
+      },
+      {
+        'geometry': {...geometry, 'rotation': 90},
+      },
+      {'geometry': {}},
+    ]) {
+      connector.response = {...connector.response, ...change};
+      await expectLater(
+        backend.captureMappedScreenshot(),
+        throwsA(
+          isA<AgentError>().having(
+            (e) => e.code,
+            'code',
+            'UNSUPPORTED_CAPABILITY',
+          ),
+        ),
+      );
+      connector.response = {
+        'status': 'Success',
+        'supported': true,
+        'screenshots': ['png'],
+        'geometry': geometry,
+      };
+    }
+    connector.failure = VmServiceExtensionException(
+      'private',
+      errorCode: -32601,
+      error: 'private',
+    );
+    await expectLater(
+      backend.captureMappedScreenshot(),
+      throwsA(
+        isA<AgentError>()
+            .having((e) => e.code, 'code', 'UNSUPPORTED_CAPABILITY')
+            .having(
+              (e) => e.toString(),
+              'diagnostic',
+              isNot(contains('private')),
+            ),
+      ),
+    );
+  });
   test('URI preserves authentication and normalizes websocket suffix', () {
     expect(
       normalizeUri('https://localhost:123/token/?auth=secret').toString(),
