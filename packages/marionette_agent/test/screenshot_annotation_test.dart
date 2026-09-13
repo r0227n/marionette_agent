@@ -77,11 +77,15 @@ void main() {
             'targets': [target('@e1')],
           },
         },
-        '${directory.path}/annotated.jpg',
+        null,
         DateTime.now().add(const Duration(seconds: 10)),
+        screenshotDir: directory.path,
         format: ScreenshotFormat.jpeg,
         quality: 100,
       );
+      final path = (result['paths'] as List).single as String;
+      expect(File(path).parent.path, directory.path);
+      expect(path.split('/').last, matches(r'^screen-[0-9a-f]{32}\.jpg$'));
       expect(result['annotated'], isTrue);
       expect(result['annotationCount'], 1);
       expect(result['generation'], 7);

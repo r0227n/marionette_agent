@@ -137,3 +137,13 @@ runner handle 13164へ`q`を送りexit 0。runner PID 66340、app PID 66991と`c
 - [ ] 人間がPRの変更内容と上記手順を確認した
 
 Ready化、merge、Issueの手動close、worktree削除は行わない。
+
+## PR review integration verification (2026-09-13)
+
+Integrated develop through PR #34. The combined implementation composes mapped PNG annotations before JPEG conversion, preserves annotation metadata, and selects `.png`/`.jpg` for generated directory names. Added a regression checking the JPEG signature, dimensions, colored annotation pixels, metadata, and generated-directory filename. Retained both original directory and format CLI suites. Updated the literal-path safety test to expect the newly specified `.png` suffix; the first full run exposed that stale expectation and was interrupted before restarting after the correction.
+
+Fresh Simulator acceptance at 2560c79 passed 15 product CLI calls: default PNG and extension addition, text-mode quality 0 JPEG, quality 100 JPEG, filtered annotation plus JPEG plus directory selection, refusal to overwrite an existing image with unchanged hash, invalid quality/extension errors, preserved ref followed by a counter change from 1 to 2, stale annotation rejection, and explicit JPEG path overriding a nonexistent directory. Evidence is in `/tmp/mra-review35.q6ap53rg/evidence/` (`pr35-results.json`, `pr35-image-checks.json`, and `pr35-*` images). Visually inspected low-quality JPEG, the annotated JPEG, and the final counter screen. Ordinary PNG and JPEG retained 919×2000 dimensions; mapped annotation used its explicit 1206×2622 provider geometry. No geometry was inferred from the ordinary screenshot.
+
+The example passed Flutter analysis and all 6 widget tests. All 41 combined screenshot tests passed before the final directory-filename assertions were added; the final full suite below includes those assertions. Markdown local links (15) and whitespace checks passed. Both PR #34 and #35 sessions/daemons were closed, runtime sockets removed, owned runner PID 75458 stopped, app terminated, Simulator 022CF629-91E1-48F0-816B-2D86B8CD1D38 confirmed Shutdown, private URI removed, and lease released. Human verification remains pending.
+
+Final verification: `dart format .` (90 files, no pending formatting), `dart analyze` (no issues), and `dart test --concurrency=1 --fail-fast` passed all 259 tests. Final full-suite log: `/tmp/mra-pr35-tests-verified.log`.

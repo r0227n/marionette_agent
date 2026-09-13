@@ -202,7 +202,7 @@ void main() {
         '--',
         '--screenshot-dir',
       ]);
-      expect(screenshot.params['path'], '--screenshot-dir');
+      expect(screenshot.params['path'], '--screenshot-dir.png');
       expect(screenshot.options.screenshotDir, isNull);
       expect(
         CliParser()
