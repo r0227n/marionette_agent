@@ -1,0 +1,4223 @@
+[
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json connect <private-uri>",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "name": "p1-issue-10",
+        "state": "connected",
+        "uri": "ws://127.0.0.1:59741/%3Credacted%3E",
+        "snapshotValid": false,
+        "connectionGeneration": 1
+      },
+      "error": null
+    },
+    "diagnostics": "[INFO] VmServiceConnector: Connecting to VM service at <redacted-uri>\n[INFO] VmServiceConnector: Service registered: reloadSources -> s1.reloadSources\n[INFO] VmServiceConnector: Service registered: hotRestart -> s1.hotRestart\n[INFO] VmServiceConnector: Service registered: flutterVersion -> s1.flutterVersion\n[INFO] VmServiceConnector: Service registered: compileExpression -> s1.compileExpression\n[INFO] VmServiceConnector: Service registered: flutterMemoryInfo -> s1.flutterMemoryInfo\n[INFO] VmServiceConnector: Connected to isolate: isolates/5542124279133099\n"
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 1,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 88.0,
+              "width": 744.0,
+              "height": 945.0
+            },
+            "visible": true,
+            "ref": "@e1"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 120.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e2"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e3"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e4"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label A",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label B",
+            "identifier": "snapshot_label_b",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label B",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e5"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e6"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e7"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e8"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 680.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e9"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 333.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e10"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 319.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e11"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e12"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e13"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 600.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e14"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 664.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e15"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e16"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 848.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 848.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e17"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e18"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 904.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 904.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e19"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_3",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e20"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 960.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 3",
+            "bounds": {
+              "x": 72.0,
+              "y": 960.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e21"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_4",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e22"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 1016.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 4",
+            "bounds": {
+              "x": 72.0,
+              "y": 1016.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e23"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 250.9033203125,
+              "y": 46.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e24"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 204.1925417582194,
+              "y": 1049.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e25"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 474.63114293416334,
+              "y": 1049.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e26"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"screenshot\" \"/tmp/mra-i10.gDuYhj/evidence/before.png\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "paths": [
+          "/tmp/mra-i10.gDuYhj/evidence/before.png"
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "observedDisplayOnlyTextTypes": [
+      "SnapshotLabel"
+    ]
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--key\" \"tap_button\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 2,
+        "filter": {
+          "kind": "key",
+          "value": "tap_button",
+          "matchedCount": 1,
+          "totalCount": 45
+        },
+        "elements": [
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e29"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--key\" \"tap_button\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 3\nFilter: key=\"tap_button\"; matchedCount: 1; totalCount: 45\n@e55 FilledButton key=\"tap_button\"\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--text\" \"Tap me\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 4,
+        "filter": {
+          "kind": "text",
+          "value": "Tap me",
+          "matchedCount": 0,
+          "totalCount": 45
+        },
+        "elements": []
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--text\" \"Tap me\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 5\nFilter: text=\"Tap me\"; matchedCount: 0; totalCount: 45\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--text\" \"Tap count: 0\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 6,
+        "filter": {
+          "kind": "text",
+          "value": "Tap count: 0",
+          "matchedCount": 1,
+          "totalCount": 45
+        },
+        "elements": [
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e134"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--text\" \"Tap count: 0\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 7\nFilter: text=\"Tap count: 0\"; matchedCount: 1; totalCount: 45\n@e160 Text key=\"tap_result\" \"Tap count: 0\"\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--text\" \"Filter label A\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 8,
+        "filter": {
+          "kind": "text",
+          "value": "Filter label A",
+          "matchedCount": 2,
+          "totalCount": 45
+        },
+        "elements": [
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label A",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--text\" \"Filter label A\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 9\nFilter: text=\"Filter label A\"; matchedCount: 2; totalCount: 45\n- SnapshotLabel identifier=\"snapshot_label_a\" \"Filter label A\" (no_unique_supported_selector)\n- Text \"Filter label A\" (no_unique_supported_selector)\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--type\" \"SnapshotLabel\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 10,
+        "filter": {
+          "kind": "type",
+          "value": "SnapshotLabel",
+          "matchedCount": 2,
+          "totalCount": 45
+        },
+        "elements": [
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label B",
+            "identifier": "snapshot_label_b",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--type\" \"SnapshotLabel\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 11\nFilter: type=\"SnapshotLabel\"; matchedCount: 2; totalCount: 45\n- SnapshotLabel identifier=\"snapshot_label_a\" \"Filter label A\" (no_unique_supported_selector)\n- SnapshotLabel identifier=\"snapshot_label_b\" \"Filter label B\" (no_unique_supported_selector)\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--identifier\" \"snapshot_label_a\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 12,
+        "filter": {
+          "kind": "identifier",
+          "value": "snapshot_label_a",
+          "matchedCount": 1,
+          "totalCount": 45
+        },
+        "elements": [
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--identifier\" \"snapshot_label_a\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 13\nFilter: identifier=\"snapshot_label_a\"; matchedCount: 1; totalCount: 45\n- SnapshotLabel identifier=\"snapshot_label_a\" \"Filter label A\" (no_unique_supported_selector)\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--type\" \"Text\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 14,
+        "filter": {
+          "kind": "type",
+          "value": "Text",
+          "matchedCount": 16,
+          "totalCount": 45
+        },
+        "elements": [
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 120.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e340"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e342"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label A",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label B",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e343"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e345"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e346"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 333.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e348"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 319.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e349"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e350"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 600.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e352"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 848.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e355"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 904.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e357"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 3",
+            "bounds": {
+              "x": 72.0,
+              "y": 960.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e359"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 4",
+            "bounds": {
+              "x": 72.0,
+              "y": 1016.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e361"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 250.9033203125,
+              "y": 46.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e362"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--type\" \"Text\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 15\nFilter: type=\"Text\"; matchedCount: 16; totalCount: 45\n@e366 Text \"Tap\"\n@e368 Text key=\"tap_result\" \"Tap count: 0\"\n- Text \"Filter label A\" (no_unique_supported_selector)\n- Text \"Filter label B\" (no_unique_supported_selector)\n@e369 Text \"Fill\"\n@e371 Text key=\"fill_result\" \"Not edited\"\n@e372 Text \"PageView swipe\"\n@e374 Text \"Page 1\"\n@e375 Text key=\"page_result\" \"Current page: 1\"\n@e376 Text \"Dismissible swipe\"\n@e378 Text \"Swipe left to dismiss\"\n@e381 Text \"Scroll item 1\"\n@e383 Text \"Scroll item 2\"\n@e385 Text \"Scroll item 3\"\n@e387 Text \"Scroll item 4\"\n@e388 Text \"Marionette Agent Example\"\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--identifier\" \"missing-i10\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 16,
+        "filter": {
+          "kind": "identifier",
+          "value": "missing-i10",
+          "matchedCount": 0,
+          "totalCount": 45
+        },
+        "elements": []
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--identifier\" \"missing-i10\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 17\nFilter: identifier=\"missing-i10\"; matchedCount: 0; totalCount: 45\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--key\" \"missing-i10\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 18,
+        "filter": {
+          "kind": "key",
+          "value": "missing-i10",
+          "matchedCount": 0,
+          "totalCount": 45
+        },
+        "elements": []
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--key\" \"missing-i10\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 19\nFilter: key=\"missing-i10\"; matchedCount: 0; totalCount: 45\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--type\" \"Text\" \"--max-output\" \"1\" \"--content-boundaries\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 20,
+        "filter": {
+          "kind": "type",
+          "value": "Text",
+          "matchedCount": 16,
+          "totalCount": 45
+        },
+        "elements": [],
+        "truncated": true,
+        "originalCount": 16,
+        "omittedCount": 16,
+        "contentBoundary": {
+          "nonce": "35d0837cf3a3279301aede5c5ba71bf5",
+          "source": "snapshot"
+        }
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--key\" \"missing-i10\" \"--max-output\" \"1\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 21,
+        "filter": {
+          "kind": "key",
+          "value": "missing-i10",
+          "matchedCount": 0,
+          "totalCount": 45
+        },
+        "elements": [],
+        "truncated": false,
+        "originalCount": 0,
+        "omittedCount": 0
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--key\" \"tap_button\" \"--type\" \"Text\"",
+    "expectedExit": 2,
+    "exitCode": 2,
+    "output": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "p1-issue-10",
+      "data": null,
+      "error": {
+        "code": "INVALID_ARGUMENT",
+        "message": "Snapshot accepts exactly one key, identifier, text, or type filter",
+        "hint": "Run marionette-agent --help",
+        "outcome": "not_sent"
+      }
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--type\" \"Text\" \"--max-output\" \"1\" \"--content-boundaries\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 22\nFilter: type=\"Text\"; matchedCount: 16; totalCount: 45\n--- BEGIN UNTRUSTED snapshot 3ba9027be2ff8159b33a970bd821ddc6 ---\n--- END UNTRUSTED snapshot 3ba9027be2ff8159b33a970bd821ddc6 ---\nTruncated: true; originalCount: 16; omittedCount: 16\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--key\" \"missing-i10\" \"--max-output\" \"1\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 23\nFilter: key=\"missing-i10\"; matchedCount: 0; totalCount: 45\nTruncated: false; originalCount: 0; omittedCount: 0\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--key\" \"tap_button\" \"--type\" \"Text\"",
+    "expectedExit": 2,
+    "exitCode": 2,
+    "output": "INVALID_ARGUMENT: Snapshot accepts exactly one key, identifier, text, or type filter\nOutcome: not_sent\nRun marionette-agent --help\nUsage: marionette-agent [options] <command>\n    --session               Session name\n                            (defaults to \"default\")\n    --json                  One JSON result on stdout\n    --timeout               Positive deadline in milliseconds\n                            (defaults to \"30000\")\n    --content-boundaries    Snapshot/log items: nonce markers in text, metadata in JSON (default off)\n    --max-output            Positive Unicode code point budget for whole snapshot/log items (default unlimited)\n    --idle-timeout          Daemon idle duration: ms, 10s, 3m, 1h (default 1h; 0 disables)\n-h, --help                  Show help\n    --version               Show version\n\nCommands: workflow, record, tap, fill, scroll, screenshot, logs, wait, swipe, connect, close, snapshot, session\nconnect <uri> | session list | session show | close | snapshot\nsnapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]\nSnapshot filters observed values; zero/multiple matches are valid. Full observation determines ref safety.\nswipe <ref|selector> <left|right|up|down> [--distance <n>]\nswipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>\nDirections describe finger movement; verify the result with snapshot.\ntap <ref|selector> | tap --x <n> --y <n> | fill <ref|selector> <text>\nscroll <ref|selector> <left|right|up|down> [--distance <n>]\nscroll uses finger movement direction; reaching content is not guaranteed.\nscreenshot [path] | logs\nwait <selector> [--state exists|gone] [--poll-interval <ms>]\nwait observes only; run snapshot before the next UI operation.\nrecord start <path> --platform ios|android|macos --device <id>\nrecord stop | record status (no connect required; close finalizes recording)\nworkflow schema [action] | workflow validate <path> | workflow run <path>\nworkflow: --format json|yaml --inputs <path> --inputs-format json|yaml\nvalidate --check-inputs checks bindings without connecting. stdin (-) requires format.\nsensitive forbids defaults; snapshots may reveal values displayed by the app.\nWorkflow stops on failure; completed steps must not be replayed automatically.\nSelectors: --key <value> | --identifier <value> | --text <value> | --type <value>\nCommon options work before or after commands. Use -- for literal arguments.\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 24,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 88.0,
+              "width": 744.0,
+              "height": 945.0
+            },
+            "visible": true,
+            "ref": "@e599"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 120.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e600"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e601"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e602"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label A",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label B",
+            "identifier": "snapshot_label_b",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label B",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e603"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e604"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e605"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e606"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 680.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e607"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 333.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e608"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 319.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e609"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e610"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e611"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 600.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e612"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 664.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e613"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e614"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 848.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 848.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e615"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e616"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 904.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 904.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e617"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_3",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e618"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 960.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 3",
+            "bounds": {
+              "x": 72.0,
+              "y": 960.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e619"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_4",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e620"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 1016.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 4",
+            "bounds": {
+              "x": 72.0,
+              "y": 1016.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e621"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 250.9033203125,
+              "y": 46.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e622"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 204.1925417582194,
+              "y": 1049.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e623"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 474.63114293416334,
+              "y": 1049.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e624"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--key\" \"missing-i10\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 25,
+        "filter": {
+          "kind": "key",
+          "value": "missing-i10",
+          "matchedCount": 0,
+          "totalCount": 45
+        },
+        "elements": []
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"tap\" \"@e601\"",
+    "expectedExit": 4,
+    "exitCode": 4,
+    "output": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "p1-issue-10",
+      "data": null,
+      "error": {
+        "code": "STALE_REF",
+        "message": "Ref is not valid in this session",
+        "hint": "Run snapshot again",
+        "outcome": "not_sent"
+      }
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 26,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 88.0,
+              "width": 744.0,
+              "height": 945.0
+            },
+            "visible": true,
+            "ref": "@e651"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 120.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e652"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e653"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 0",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 85.0859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e654"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label A",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label B",
+            "identifier": "snapshot_label_b",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label B",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e655"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e656"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e657"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e658"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 680.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e659"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 333.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e660"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 319.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e661"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e662"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e663"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 600.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e664"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 664.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e665"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e666"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 848.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 848.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e667"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e668"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 904.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 904.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e669"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_3",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e670"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 960.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 3",
+            "bounds": {
+              "x": 72.0,
+              "y": 960.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e671"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_4",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e672"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 1016.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 4",
+            "bounds": {
+              "x": 72.0,
+              "y": 1016.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e673"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 250.9033203125,
+              "y": 46.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e674"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 204.1925417582194,
+              "y": 1049.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e675"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 474.63114293416334,
+              "y": 1049.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e676"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"screenshot\" \"/tmp/mra-i10.gDuYhj/evidence/after-stale-ref.png\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "paths": [
+          "/tmp/mra-i10.gDuYhj/evidence/after-stale-ref.png"
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--key\" \"tap_button\" \"--max-output\" \"10000\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 27,
+        "filter": {
+          "kind": "key",
+          "value": "tap_button",
+          "matchedCount": 1,
+          "totalCount": 45
+        },
+        "elements": [
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e679"
+          }
+        ],
+        "truncated": false,
+        "originalCount": 1,
+        "omittedCount": 0
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"tap\" \"@e679\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "requiresSnapshot": true
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\" \"--key\" \"tap_result\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 28,
+        "filter": {
+          "kind": "key",
+          "value": "tap_result",
+          "matchedCount": 1,
+          "totalCount": 45
+        },
+        "elements": [
+          {
+            "type": "Text",
+            "text": "Tap count: 1",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 82.76171875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e706"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"screenshot\" \"/tmp/mra-i10.gDuYhj/evidence/after-valid-ref.png\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "paths": [
+          "/tmp/mra-i10.gDuYhj/evidence/after-valid-ref.png"
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 29,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 88.0,
+              "width": 744.0,
+              "height": 945.0
+            },
+            "visible": true,
+            "ref": "@e729"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 120.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e730"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e731"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 1",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 82.76171875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e732"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label A",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label B",
+            "identifier": "snapshot_label_b",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label B",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e733"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e734"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e735"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e736"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 680.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e737"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 333.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e738"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 319.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e739"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e740"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e741"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 600.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e742"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 664.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e743"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e744"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 848.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 848.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e745"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e746"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 904.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 904.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e747"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_3",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e748"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 960.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 3",
+            "bounds": {
+              "x": 72.0,
+              "y": 960.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e749"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_4",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e750"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 1016.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 4",
+            "bounds": {
+              "x": 72.0,
+              "y": 1016.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e751"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 250.9033203125,
+              "y": 46.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e752"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 204.1925417582194,
+              "y": 1049.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e753"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 474.63114293416334,
+              "y": 1049.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e754"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--key\" \"missing-i10\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 30\nFilter: key=\"missing-i10\"; matchedCount: 0; totalCount: 45\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"tap\" \"@e731\"",
+    "expectedExit": 4,
+    "exitCode": 4,
+    "output": "STALE_REF: Ref is not valid in this session\nOutcome: not_sent\nRun snapshot again\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 31,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 88.0,
+              "width": 744.0,
+              "height": 945.0
+            },
+            "visible": true,
+            "ref": "@e781"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 120.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e782"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e783"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 1",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 82.76171875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e784"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label A",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label B",
+            "identifier": "snapshot_label_b",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label B",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e785"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e786"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e787"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e788"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 680.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e789"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 333.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e790"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 319.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e791"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e792"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e793"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 600.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e794"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 664.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e795"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e796"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 848.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 848.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e797"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e798"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 904.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 904.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e799"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_3",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e800"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 960.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 3",
+            "bounds": {
+              "x": 72.0,
+              "y": 960.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e801"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_4",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e802"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 1016.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 4",
+            "bounds": {
+              "x": 72.0,
+              "y": 1016.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e803"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 250.9033203125,
+              "y": 46.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e804"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 204.1925417582194,
+              "y": 1049.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e805"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 474.63114293416334,
+              "y": 1049.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e806"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"snapshot\" \"--key\" \"tap_button\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "Snapshot 32\nFilter: key=\"tap_button\"; matchedCount: 1; totalCount: 45\n@e809 FilledButton key=\"tap_button\"\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 \"tap\" \"@e809\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": "{\n  \"requiresSnapshot\": true\n}\n",
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"snapshot\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "generation": 33,
+        "elements": [
+          {
+            "type": "ListView",
+            "key": "operation_scroll_area",
+            "bounds": {
+              "x": 0.0,
+              "y": 88.0,
+              "width": 744.0,
+              "height": 945.0
+            },
+            "visible": true,
+            "ref": "@e833"
+          },
+          {
+            "type": "Text",
+            "text": "Tap",
+            "bounds": {
+              "x": 32.0,
+              "y": 120.0,
+              "width": 28.192646026611328,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e834"
+          },
+          {
+            "type": "FilledButton",
+            "key": "tap_button",
+            "bounds": {
+              "x": 32.0,
+              "y": 156.0,
+              "width": 97.3416976928711,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e835"
+          },
+          {
+            "type": "Text",
+            "text": "Tap count: 2",
+            "key": "tap_result",
+            "bounds": {
+              "x": 145.3416976928711,
+              "y": 170.0,
+              "width": 84.716796875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e836"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label A",
+            "identifier": "snapshot_label_a",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label A",
+            "bounds": {
+              "x": 151.2890625,
+              "y": 236.0,
+              "width": 85.5380859375,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "SnapshotLabel",
+            "text": "Filter label B",
+            "identifier": "snapshot_label_b",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Filter label B",
+            "bounds": {
+              "x": 507.4052734375,
+              "y": 236.0,
+              "width": 85.3056640625,
+              "height": 20.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Fill",
+            "bounds": {
+              "x": 32.0,
+              "y": 288.0,
+              "width": 22.678354263305664,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e837"
+          },
+          {
+            "type": "TextField",
+            "key": "text_input",
+            "bounds": {
+              "x": 32.0,
+              "y": 324.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e838"
+          },
+          {
+            "type": "Text",
+            "text": "Not edited",
+            "key": "fill_result",
+            "bounds": {
+              "x": 32.0,
+              "y": 388.0,
+              "width": 71.8232421875,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e839"
+          },
+          {
+            "type": "Text",
+            "text": "PageView swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 456.0,
+              "width": 126.03910064697266,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e840"
+          },
+          {
+            "type": "PageView",
+            "key": "page_view",
+            "bounds": {
+              "x": 32.0,
+              "y": 492.0,
+              "width": 680.0,
+              "height": 140.0
+            },
+            "visible": true,
+            "ref": "@e841"
+          },
+          {
+            "type": "Text",
+            "text": "Page 1",
+            "bounds": {
+              "x": 333.568359375,
+              "y": 544.0,
+              "width": 76.86328125,
+              "height": 36.0
+            },
+            "visible": true,
+            "ref": "@e842"
+          },
+          {
+            "type": "Text",
+            "text": "Current page: 1",
+            "key": "page_result",
+            "bounds": {
+              "x": 319.443359375,
+              "y": 640.0,
+              "width": 105.11328125,
+              "height": 20.0
+            },
+            "visible": true,
+            "ref": "@e843"
+          },
+          {
+            "type": "Text",
+            "text": "Dismissible swipe",
+            "bounds": {
+              "x": 32.0,
+              "y": 708.0,
+              "width": 139.57992553710938,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e844"
+          },
+          {
+            "type": "Dismissible",
+            "key": "dismissible_item",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e845"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 32.0,
+              "y": 744.0,
+              "width": 680.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Swipe left to dismiss",
+            "bounds": {
+              "x": 48.0,
+              "y": 760.0,
+              "width": 600.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e846"
+          },
+          {
+            "type": "RichText",
+            "text": "󰕺",
+            "bounds": {
+              "x": 664.0,
+              "y": 760.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e847"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_1",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e848"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 832.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 848.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 1",
+            "bounds": {
+              "x": 72.0,
+              "y": 848.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e849"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_2",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e850"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 888.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 904.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 2",
+            "bounds": {
+              "x": 72.0,
+              "y": 904.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e851"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_3",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e852"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 944.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 960.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 3",
+            "bounds": {
+              "x": 72.0,
+              "y": 960.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e853"
+          },
+          {
+            "type": "ListTile",
+            "key": "scroll_item_4",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "ref": "@e854"
+          },
+          {
+            "type": "InkWell",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "GestureDetector",
+            "bounds": {
+              "x": 16.0,
+              "y": 1000.0,
+              "width": 712.0,
+              "height": 56.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "RichText",
+            "text": "",
+            "bounds": {
+              "x": 32.0,
+              "y": 1016.0,
+              "width": 24.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "reason": "no_unique_supported_selector"
+          },
+          {
+            "type": "Text",
+            "text": "Scroll item 4",
+            "bounds": {
+              "x": 72.0,
+              "y": 1016.0,
+              "width": 632.0,
+              "height": 24.0
+            },
+            "visible": true,
+            "ref": "@e855"
+          },
+          {
+            "type": "Text",
+            "text": "Marionette Agent Example",
+            "bounds": {
+              "x": 250.9033203125,
+              "y": 46.0,
+              "width": 242.193359375,
+              "height": 28.0
+            },
+            "visible": true,
+            "ref": "@e856"
+          },
+          {
+            "type": "TextButton",
+            "key": "controls_tab",
+            "bounds": {
+              "x": 204.1925417582194,
+              "y": 1049.0,
+              "width": 82.24605941772461,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e857"
+          },
+          {
+            "type": "TextButton",
+            "key": "about_tab",
+            "bounds": {
+              "x": 474.63114293416334,
+              "y": 1049.0,
+              "width": 65.17631530761719,
+              "height": 48.0
+            },
+            "visible": true,
+            "ref": "@e858"
+          }
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"screenshot\" \"/tmp/mra-i10.gDuYhj/evidence/after-valid-text-ref.png\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "paths": [
+          "/tmp/mra-i10.gDuYhj/evidence/after-valid-text-ref.png"
+        ]
+      },
+      "error": null
+    },
+    "diagnostics": ""
+  },
+  {
+    "assertions": "passed",
+    "counterBefore": 0,
+    "counterAfterStaleRef": 0,
+    "counterAfterValidRef": 1,
+    "counterAfterValidTextRef": 2
+  },
+  {
+    "command": "dart bin/marionette_agent.dart --session p1-issue-10 --json \"close\"",
+    "expectedExit": 0,
+    "exitCode": 0,
+    "output": {
+      "schemaVersion": 1,
+      "ok": true,
+      "session": "p1-issue-10",
+      "data": {
+        "closed": true
+      },
+      "error": null
+    },
+    "diagnostics": "[INFO] VmServiceConnector: Disconnecting from VM service\n"
+  }
+]

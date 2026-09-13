@@ -1,0 +1,683 @@
+{
+  "description": "Actual selected elements, preserving all fields on selected elements. Synthetic fixture data only. Not a typed state capability.",
+  "date": "2026-09-12",
+  "binding": "marionette_flutter 0.6.0",
+  "connector": "marionette_mcp 0.6.0",
+  "flutter": "3.47.2",
+  "dart": "3.13.2",
+  "device": "iPad Air 13-inch (M3), iOS 26.2",
+  "udid": "5A240A9B-AC1A-47EC-9C30-8D1F208DC460",
+  "codeCommit": "50ccf97f47ecf03a51ea3c5646c9164325570c0b",
+  "samples": {
+    "baseline": {
+      "rawElements": [
+        {
+          "enabled": "true",
+          "type": "FilledButton",
+          "key": "tap_button",
+          "bounds": {
+            "x": 32.0,
+            "y": 156.0,
+            "width": 97.3416976928711,
+            "height": 48.0
+          },
+          "visible": true
+        },
+        {
+          "decoration": "InputDecoration(labelText: \"Test input\", border: OutlineInputBorder())",
+          "keyboardType": "TextInputType(name: TextInputType.text, signed: null, decimal: null)",
+          "autofocus": "false",
+          "obscuringCharacter": "•",
+          "obscureText": "false",
+          "smartDashesType": "SmartDashesType.enabled",
+          "smartQuotesType": "SmartQuotesType.enabled",
+          "enableSuggestions": "true",
+          "maxLines": "1",
+          "expands": "false",
+          "textCapitalization": "TextCapitalization.none",
+          "textAlign": "TextAlign.start",
+          "cursorWidth": "2.0",
+          "scrollPadding": "EdgeInsets.all(20.0)",
+          "selectionEnabled": "true",
+          "clipBehavior": "Clip.hardEdge",
+          "scribbleEnabled": "true",
+          "stylusHandwritingEnabled": "true",
+          "enableIMEPersonalizedLearning": "true",
+          "contentCommitMimeTypes": "[]",
+          "type": "TextField",
+          "key": "text_input",
+          "bounds": {
+            "x": 32.0,
+            "y": 288.0,
+            "width": 960.0,
+            "height": 56.0
+          },
+          "visible": true
+        },
+        {
+          "data": "Not edited",
+          "type": "Text",
+          "key": "fill_result",
+          "text": "Not edited",
+          "bounds": {
+            "x": 32.0,
+            "y": 352.0,
+            "width": 71.8232421875,
+            "height": 20.0
+          },
+          "visible": true
+        }
+      ],
+      "cliElements": [
+        {
+          "type": "FilledButton",
+          "key": "tap_button",
+          "bounds": {
+            "x": 32.0,
+            "y": 156.0,
+            "width": 97.3416976928711,
+            "height": 48.0
+          },
+          "visible": true,
+          "ref": "@e3"
+        },
+        {
+          "type": "TextField",
+          "key": "text_input",
+          "bounds": {
+            "x": 32.0,
+            "y": 288.0,
+            "width": 960.0,
+            "height": 56.0
+          },
+          "visible": true,
+          "ref": "@e6"
+        },
+        {
+          "type": "Text",
+          "text": "Not edited",
+          "key": "fill_result",
+          "bounds": {
+            "x": 32.0,
+            "y": 352.0,
+            "width": 71.8232421875,
+            "height": 20.0
+          },
+          "visible": true,
+          "ref": "@e7"
+        }
+      ]
+    },
+    "filled": {
+      "rawElements": [
+        {
+          "enabled": "true",
+          "type": "FilledButton",
+          "key": "tap_button",
+          "bounds": {
+            "x": 32.0,
+            "y": 156.0,
+            "width": 97.3416976928711,
+            "height": 48.0
+          },
+          "visible": true
+        },
+        {
+          "decoration": "InputDecoration(labelText: \"Test input\", border: OutlineInputBorder())",
+          "keyboardType": "TextInputType(name: TextInputType.text, signed: null, decimal: null)",
+          "autofocus": "false",
+          "obscuringCharacter": "•",
+          "obscureText": "false",
+          "smartDashesType": "SmartDashesType.enabled",
+          "smartQuotesType": "SmartQuotesType.enabled",
+          "enableSuggestions": "true",
+          "maxLines": "1",
+          "expands": "false",
+          "textCapitalization": "TextCapitalization.none",
+          "textAlign": "TextAlign.start",
+          "cursorWidth": "2.0",
+          "scrollPadding": "EdgeInsets.all(20.0)",
+          "selectionEnabled": "true",
+          "clipBehavior": "Clip.hardEdge",
+          "scribbleEnabled": "true",
+          "stylusHandwritingEnabled": "true",
+          "enableIMEPersonalizedLearning": "true",
+          "contentCommitMimeTypes": "[]",
+          "type": "TextField",
+          "key": "text_input",
+          "bounds": {
+            "x": 32.0,
+            "y": 288.0,
+            "width": 960.0,
+            "height": 56.0
+          },
+          "visible": true
+        },
+        {
+          "data": "7 characters",
+          "type": "Text",
+          "key": "fill_result",
+          "text": "7 characters",
+          "bounds": {
+            "x": 32.0,
+            "y": 352.0,
+            "width": 85.236328125,
+            "height": 20.0
+          },
+          "visible": true
+        }
+      ],
+      "cliElements": [
+        {
+          "type": "FilledButton",
+          "key": "tap_button",
+          "bounds": {
+            "x": 32.0,
+            "y": 156.0,
+            "width": 97.3416976928711,
+            "height": 48.0
+          },
+          "visible": true,
+          "ref": "@e35"
+        },
+        {
+          "type": "TextField",
+          "key": "text_input",
+          "bounds": {
+            "x": 32.0,
+            "y": 288.0,
+            "width": 960.0,
+            "height": 56.0
+          },
+          "visible": true,
+          "ref": "@e38"
+        },
+        {
+          "type": "Text",
+          "text": "7 characters",
+          "key": "fill_result",
+          "bounds": {
+            "x": 32.0,
+            "y": 352.0,
+            "width": 85.236328125,
+            "height": 20.0
+          },
+          "visible": true,
+          "ref": "@e39"
+        }
+      ]
+    },
+    "cleared": {
+      "rawElements": [
+        {
+          "enabled": "true",
+          "type": "FilledButton",
+          "key": "tap_button",
+          "bounds": {
+            "x": 32.0,
+            "y": 156.0,
+            "width": 97.3416976928711,
+            "height": 48.0
+          },
+          "visible": true
+        },
+        {
+          "decoration": "InputDecoration(labelText: \"Test input\", border: OutlineInputBorder())",
+          "keyboardType": "TextInputType(name: TextInputType.text, signed: null, decimal: null)",
+          "autofocus": "false",
+          "obscuringCharacter": "•",
+          "obscureText": "false",
+          "smartDashesType": "SmartDashesType.enabled",
+          "smartQuotesType": "SmartQuotesType.enabled",
+          "enableSuggestions": "true",
+          "maxLines": "1",
+          "expands": "false",
+          "textCapitalization": "TextCapitalization.none",
+          "textAlign": "TextAlign.start",
+          "cursorWidth": "2.0",
+          "scrollPadding": "EdgeInsets.all(20.0)",
+          "selectionEnabled": "true",
+          "clipBehavior": "Clip.hardEdge",
+          "scribbleEnabled": "true",
+          "stylusHandwritingEnabled": "true",
+          "enableIMEPersonalizedLearning": "true",
+          "contentCommitMimeTypes": "[]",
+          "type": "TextField",
+          "key": "text_input",
+          "bounds": {
+            "x": 32.0,
+            "y": 288.0,
+            "width": 960.0,
+            "height": 56.0
+          },
+          "visible": true
+        },
+        {
+          "data": "0 characters",
+          "type": "Text",
+          "key": "fill_result",
+          "text": "0 characters",
+          "bounds": {
+            "x": 32.0,
+            "y": 352.0,
+            "width": 86.083984375,
+            "height": 20.0
+          },
+          "visible": true
+        }
+      ],
+      "cliElements": [
+        {
+          "type": "FilledButton",
+          "key": "tap_button",
+          "bounds": {
+            "x": 32.0,
+            "y": 156.0,
+            "width": 97.3416976928711,
+            "height": 48.0
+          },
+          "visible": true,
+          "ref": "@e67"
+        },
+        {
+          "type": "TextField",
+          "key": "text_input",
+          "bounds": {
+            "x": 32.0,
+            "y": 288.0,
+            "width": 960.0,
+            "height": 56.0
+          },
+          "visible": true,
+          "ref": "@e70"
+        },
+        {
+          "type": "Text",
+          "text": "0 characters",
+          "key": "fill_result",
+          "bounds": {
+            "x": 32.0,
+            "y": 352.0,
+            "width": 86.083984375,
+            "height": 20.0
+          },
+          "visible": true,
+          "ref": "@e71"
+        }
+      ]
+    },
+    "research": {
+      "rawElements": [
+        {
+          "container": "false",
+          "properties": "SemanticsProperties(label: \"Volume\", value: \"70%\", increasedValue: \"70%\", decreasedValue: \"70%\", hint: \"Adjust volume\", tooltip: \"Volume help\", role: tabPanel)",
+          "label": "Volume",
+          "value": "70%",
+          "increasedValue": "70%",
+          "decreasedValue": "70%",
+          "hint": "Adjust volume",
+          "tooltip": "Volume help",
+          "role": "SemanticsRole.tabPanel",
+          "validationResult": "SemanticsValidationResult.none",
+          "type": "Semantics",
+          "key": "semantics_full",
+          "text": "Volume: 70%",
+          "bounds": {
+            "x": 24.0,
+            "y": 112.0,
+            "width": 976.0,
+            "height": 80.0
+          },
+          "visible": true
+        },
+        {
+          "container": "false",
+          "properties": "SemanticsProperties(label: \"Shared label\")",
+          "label": "Shared label",
+          "validationResult": "SemanticsValidationResult.none",
+          "type": "Semantics",
+          "key": "duplicate_a",
+          "text": "Shared label",
+          "bounds": {
+            "x": 24.0,
+            "y": 204.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true
+        },
+        {
+          "container": "false",
+          "properties": "SemanticsProperties(label: \"Shared label\")",
+          "label": "Shared label",
+          "validationResult": "SemanticsValidationResult.none",
+          "type": "Semantics",
+          "key": "duplicate_b",
+          "text": "Shared label",
+          "bounds": {
+            "x": 24.0,
+            "y": 268.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true
+        },
+        {
+          "container": "false",
+          "properties": "SemanticsProperties(checked: true, label: \"Checked sample\")",
+          "checked": "true",
+          "label": "Checked sample",
+          "validationResult": "SemanticsValidationResult.none",
+          "type": "Semantics",
+          "key": "checked_true",
+          "text": "Checked sample",
+          "bounds": {
+            "x": 24.0,
+            "y": 332.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true
+        },
+        {
+          "container": "false",
+          "properties": "SemanticsProperties(checked: false, label: \"Unchecked sample\")",
+          "checked": "false",
+          "label": "Unchecked sample",
+          "validationResult": "SemanticsValidationResult.none",
+          "type": "Semantics",
+          "key": "checked_false",
+          "text": "Unchecked sample",
+          "bounds": {
+            "x": 24.0,
+            "y": 396.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true
+        },
+        {
+          "container": "false",
+          "properties": "SemanticsProperties(mixed: true, label: \"Mixed sample\")",
+          "mixed": "true",
+          "label": "Mixed sample",
+          "validationResult": "SemanticsValidationResult.none",
+          "type": "Semantics",
+          "key": "checked_mixed",
+          "text": "Mixed sample",
+          "bounds": {
+            "x": 24.0,
+            "y": 460.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true
+        },
+        {
+          "controller": "TextEditingController#359c0(TextEditingValue(text: ┤actual input├, selection: TextSelection.invalid, composing: TextRange(start: -1, end: -1)))",
+          "enabled": "true",
+          "decoration": "InputDecoration(labelText: \"Input label\", hintText: \"Input placeholder\", border: OutlineInputBorder())",
+          "keyboardType": "TextInputType(name: TextInputType.text, signed: null, decimal: null)",
+          "autofocus": "false",
+          "obscuringCharacter": "•",
+          "obscureText": "false",
+          "smartDashesType": "SmartDashesType.enabled",
+          "smartQuotesType": "SmartQuotesType.enabled",
+          "enableSuggestions": "true",
+          "maxLines": "1",
+          "expands": "false",
+          "textCapitalization": "TextCapitalization.none",
+          "textAlign": "TextAlign.start",
+          "cursorWidth": "2.0",
+          "scrollPadding": "EdgeInsets.all(20.0)",
+          "selectionEnabled": "true",
+          "clipBehavior": "Clip.hardEdge",
+          "scribbleEnabled": "true",
+          "stylusHandwritingEnabled": "true",
+          "enableIMEPersonalizedLearning": "true",
+          "contentCommitMimeTypes": "[]",
+          "type": "TextField",
+          "key": "controlled_input",
+          "text": "actual input",
+          "bounds": {
+            "x": 24.0,
+            "y": 548.0,
+            "width": 976.0,
+            "height": 56.0
+          },
+          "visible": true
+        },
+        {
+          "enabled": "false",
+          "decoration": "InputDecoration(labelText: \"Disabled input\", hintText: \"Disabled placeholder\", border: OutlineInputBorder())",
+          "keyboardType": "TextInputType(name: TextInputType.text, signed: null, decimal: null)",
+          "autofocus": "false",
+          "obscuringCharacter": "•",
+          "obscureText": "false",
+          "smartDashesType": "SmartDashesType.enabled",
+          "smartQuotesType": "SmartQuotesType.enabled",
+          "enableSuggestions": "true",
+          "maxLines": "1",
+          "expands": "false",
+          "textCapitalization": "TextCapitalization.none",
+          "textAlign": "TextAlign.start",
+          "cursorWidth": "2.0",
+          "scrollPadding": "EdgeInsets.all(20.0)",
+          "selectionEnabled": "true",
+          "clipBehavior": "Clip.hardEdge",
+          "scribbleEnabled": "true",
+          "stylusHandwritingEnabled": "true",
+          "enableIMEPersonalizedLearning": "true",
+          "contentCommitMimeTypes": "[]",
+          "type": "TextField",
+          "key": "disabled_input",
+          "bounds": {
+            "x": 24.0,
+            "y": 620.0,
+            "width": 976.0,
+            "height": 56.0
+          },
+          "visible": true
+        },
+        {
+          "type": "Checkbox",
+          "key": "mixed_checkbox",
+          "bounds": {
+            "x": 24.0,
+            "y": 676.0,
+            "width": 48.0,
+            "height": 48.0
+          },
+          "visible": true
+        },
+        {
+          "tooltip": "Help tooltip",
+          "onPressed": "Closure: () => void",
+          "type": "IconButton",
+          "key": "tooltip_button",
+          "bounds": {
+            "x": 182.1064453125,
+            "y": 676.0,
+            "width": 48.0,
+            "height": 48.0
+          },
+          "visible": true
+        }
+      ],
+      "cliElements": [
+        {
+          "type": "Semantics",
+          "text": "Volume: 70%",
+          "key": "semantics_full",
+          "bounds": {
+            "x": 24.0,
+            "y": 112.0,
+            "width": 976.0,
+            "height": 80.0
+          },
+          "visible": true,
+          "ref": "@e1"
+        },
+        {
+          "type": "Semantics",
+          "text": "Shared label",
+          "key": "duplicate_a",
+          "bounds": {
+            "x": 24.0,
+            "y": 204.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true,
+          "ref": "@e3"
+        },
+        {
+          "type": "Semantics",
+          "text": "Shared label",
+          "key": "duplicate_b",
+          "bounds": {
+            "x": 24.0,
+            "y": 268.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true,
+          "ref": "@e5"
+        },
+        {
+          "type": "Semantics",
+          "text": "Checked sample",
+          "key": "checked_true",
+          "bounds": {
+            "x": 24.0,
+            "y": 332.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true,
+          "ref": "@e7"
+        },
+        {
+          "type": "Semantics",
+          "text": "Unchecked sample",
+          "key": "checked_false",
+          "bounds": {
+            "x": 24.0,
+            "y": 396.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true,
+          "ref": "@e9"
+        },
+        {
+          "type": "Semantics",
+          "text": "Mixed sample",
+          "key": "checked_mixed",
+          "bounds": {
+            "x": 24.0,
+            "y": 460.0,
+            "width": 976.0,
+            "height": 64.0
+          },
+          "visible": true,
+          "ref": "@e11"
+        },
+        {
+          "type": "TextField",
+          "text": "actual input",
+          "key": "controlled_input",
+          "bounds": {
+            "x": 24.0,
+            "y": 548.0,
+            "width": 976.0,
+            "height": 56.0
+          },
+          "visible": true,
+          "ref": "@e13"
+        },
+        {
+          "type": "TextField",
+          "key": "disabled_input",
+          "bounds": {
+            "x": 24.0,
+            "y": 620.0,
+            "width": 976.0,
+            "height": 56.0
+          },
+          "visible": true,
+          "ref": "@e14"
+        },
+        {
+          "type": "Checkbox",
+          "key": "mixed_checkbox",
+          "bounds": {
+            "x": 24.0,
+            "y": 676.0,
+            "width": 48.0,
+            "height": 48.0
+          },
+          "visible": true,
+          "ref": "@e15"
+        },
+        {
+          "type": "IconButton",
+          "key": "tooltip_button",
+          "bounds": {
+            "x": 182.1064453125,
+            "y": 676.0,
+            "width": 48.0,
+            "height": 48.0
+          },
+          "visible": true,
+          "ref": "@e17"
+        }
+      ]
+    }
+  },
+  "expectedErrors": {
+    "duplicate-text": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "p1-issue-14",
+      "data": null,
+      "error": {
+        "code": "AMBIGUOUS_TARGET",
+        "message": "Multiple elements match",
+        "hint": null,
+        "outcome": "not_sent"
+      }
+    },
+    "discovery-text": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "p1-issue-14",
+      "data": null,
+      "error": {
+        "code": "UNRESOLVABLE_TARGET",
+        "message": "Displayed text does not map to a backend text matcher",
+        "hint": null,
+        "outcome": "not_sent"
+      }
+    },
+    "unsupported-identifier": {
+      "schemaVersion": 1,
+      "ok": false,
+      "session": "p1-issue-14",
+      "data": null,
+      "error": {
+        "code": "UNSUPPORTED_CAPABILITY",
+        "message": "Unsupported wait selector",
+        "hint": null,
+        "outcome": "not_sent"
+      }
+    }
+  },
+  "imageSha256": {
+    "baseline.png": "64ef0d5d30aed42bed3ea9e740e10da9ca6cdf0867862c849ad12f4630816ccb",
+    "filled.png": "2726970a9caeab3e0ba64443e7cda3280e5526251c85251c7de116ecc1cc788a",
+    "cleared.png": "a0f053f99eadb7a7e5cf87353d78c4429645beded3959d49bf71f3c27a0a6e10",
+    "research.png": "9716e2ee26bb34570fe8876ac82133e164cffd03ccb4ca3c8b5606f28f377e7c",
+    "research-after-errors.png": "9716e2ee26bb34570fe8876ac82133e164cffd03ccb4ca3c8b5606f28f377e7c"
+  }
+}

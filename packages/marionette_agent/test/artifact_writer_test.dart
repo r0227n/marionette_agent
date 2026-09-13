@@ -39,21 +39,18 @@ void main() {
       p.join(directory.path, 'screen-2.png'),
     ]);
   });
-  test(
-    'existing batch destination is rejected before publication',
-    () async {
-      final existing = File(p.join(directory.path, 'screen-2.png'));
-      await existing.writeAsString('keep');
-      await expectLater(
-        save([png, png], p.join(directory.path, 'screen.png')),
-        throwsA(isA<AgentError>().having((e) => e.code, 'code', 'IO_ERROR')),
-      );
-      expect(await existing.readAsString(), 'keep');
-      expect(File(p.join(directory.path, 'screen-1.png')).existsSync(), false);
-      await expectLater(save([png], existing.path), throwsA(isA<AgentError>()));
-      expect(await existing.readAsString(), 'keep');
-    },
-  );
+  test('existing batch destination is rejected before publication', () async {
+    final existing = File(p.join(directory.path, 'screen-2.png'));
+    await existing.writeAsString('keep');
+    await expectLater(
+      save([png, png], p.join(directory.path, 'screen.png')),
+      throwsA(isA<AgentError>().having((e) => e.code, 'code', 'IO_ERROR')),
+    );
+    expect(await existing.readAsString(), 'keep');
+    expect(File(p.join(directory.path, 'screen-1.png')).existsSync(), false);
+    await expectLater(save([png], existing.path), throwsA(isA<AgentError>()));
+    expect(await existing.readAsString(), 'keep');
+  });
   test(
     'empty, malformed, non-PNG and truncated payloads fail before writing',
     () async {
