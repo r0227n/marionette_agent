@@ -1,6 +1,8 @@
 import 'package:collection/collection.dart';
 
 import '../protocol/protocol.dart';
+import 'screenshot_geometry.dart';
+export 'screenshot_geometry.dart';
 
 /// Matching attributes supported by the backend; check availability via Backend.selectors.
 enum SelectorKind { key, identifier, text, type }
@@ -154,3 +156,14 @@ abstract interface class Backend {
 
 /// Factory for creating a new connector during reconnect, never reusing old connector instances.
 typedef BackendFactory = Backend Function();
+
+/// Optional capture contract: one image with explicit logical view geometry.
+abstract interface class MappedScreenshotBackend {
+  Future<MappedScreenshot> captureMappedScreenshot();
+}
+
+class MappedScreenshot {
+  const MappedScreenshot(this.image, this.geometry);
+  final String image;
+  final ScreenshotGeometry geometry;
+}

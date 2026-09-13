@@ -72,11 +72,18 @@ protocolはDartの値とJSONだけを扱う。コマンド層はBackend interfac
 | fill | enterText |
 | swipe / 初版scroll | swipe |
 | screenshot | takeScreenshots |
+| screenshot --annotate | callCustomExtensionで固定名marionette_agent.captureMappedScreenshotを呼ぶ（opt-in providerが必要） |
 | logs | getLogs |
 
 adapterはURI正規化、wire変換、response検証、例外分類を担当する。HTTP→WS、HTTPS→WSSへ変換するとき認証path/queryを保持し、`/ws` を重複追加しない。機能不足はUNSUPPORTED_CAPABILITY。成功メッセージ文字列だけで成否を判定しない。
 
 Backend interfaceはconnect、disconnect、inspect、tap、fill、swipe、captureScreenshots、readLogsを型付き引数・結果で提供する。上流mapは境界で閉じる。scrollは同じswipe primitiveを使い、helpと出力はscrollとして返す。
+
+注釈captureは任意のBackendへ必須メソッドを追加せず、別のMappedScreenshotBackend能力として定義する。MarionetteBackendは固定名provider応答のsupported/status、単一画像、ScreenshotGeometry v1を検証し、MappedScreenshot DTOへ変換する。geometryはversion=1、viewCount=1、空でないviewId、originX=originY=rotation=0、正の整数pixelWidth/pixelHeight、有限で正のlogicalWidth/logicalHeightを要求する。CLIはIPC後にもgeometryと実PNG寸法を照合し、x方向pixelWidth/logicalWidth、y方向pixelHeight/logicalHeightを適用する。向きや倍率を画像またはboundsから推測しない。
+
+固定binding 0.6.0はRenderViewのlayerをFlutterView.physicalSizeへ描画し、maxScreenshotSize設定時にはfloorした寸法へresizeする。失敗viewを画像配列から除くため、配列indexをview IDと見なせない。ElementInfo.boundsはRenderBox.localToGlobal(Offset.zero)とsizeであり、通常応答は対応metadataを含まない。このため通常takeScreenshotsの結果を注釈へ流用しない。example/lib/mapped_screenshot.dartはdebug時にopt-in providerを登録し、単一RenderViewのlayerから未resize画像とそのviewの明示geometryを一緒に返す。capture中のview数・identity・physicalSize・devicePixelRatio変更は非対応として返す。上流パッケージの変更、隣接repoへのpath依存、overlay注入は不要。一般binding対応には同等のcapture metadata契約の上流提供が必要であり、現時点ではexample provider構成だけが実環境検証対象である。
+
+SnapshotService.annotationTargetsは公開済みrefsを再観測して照合する読み取り専用経路である。capture前後に照合し、refを新規発行・失効しない。CLIのscreenshot_annotationは純粋なPNG合成境界で、bounds不備とラベル配置不足を明示的に省略する。artifact_writerが元bytesとは別のPNGを排他的に保存し、同じdeadlineをdecode・合成・encode・保存まで確認する。一般の独自拡張CLIは引き続き対象外で、固定名providerはSPECの限定例外である。
 
 ## IPCとdaemon起動
 

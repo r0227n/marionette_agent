@@ -367,7 +367,7 @@ marionette-agent --session demo snapshot
 
 ## 画像とログ
 
-### `screenshot [path]`
+### `screenshot [--annotate] [path]`
 
 現在の画面をPNGとして保存し、text／JSONとも`paths`配列に保存した絶対パスを返します。保存先の優先順位は次のとおりです。
 
@@ -390,6 +390,18 @@ marionette-agent --session demo screenshot --json
 連続／同時撮影は呼出しごとに別名を生成し、既存file・directory・symlinkは上書きしません。万一生成名が既存pathと衝突した場合も`IO_ERROR`です。複数画像は指定名／生成名の拡張子の前に`-1`、`-2`を付けます（例: `screen-<32桁hex>-1.png`、`screen-<32桁hex>-2.png`）。拡張子なしの明示pathには連番と`.png`を付けます。
 
 全PNGを検証し、全保存先を排他的に予約してから書き込みます。途中失敗時はこの要求が作成したfileをcleanupし、成功pathを返しません。指定directoryと既存artifactは削除しません。画像が空／不正なら`BACKEND_ERROR`、保存期限超過は`TIMEOUT`、その他の保存失敗は`IO_ERROR`です。これらのoutcomeは`not_sent`です。cleanupの失敗で元のエラーは置き換えません。保存先の確認・予約後に別プロセスが意図的にpathを差し替える競合までは保証しません。
+
+`--annotate`は直近の有効snapshotの操作可能refだけを`@eN`ラベルで画像へ合成します。固定binding 0.6.0だけでは対応metadataが不足するため、opt-inの`marionette_agent.captureMappedScreenshot` providerが必要です。exampleのdebugアプリはこれを登録します。一般のMarionetteアプリが自動的に対応するわけではありません。
+
+```bash
+marionette-agent --session demo snapshot --json
+marionette-agent --session demo screenshot ./artifacts/original.png
+marionette-agent --session demo screenshot --annotate ./artifacts/annotated.png --json
+```
+
+注釈画像は新しい出力先へ保存し、原画像・既存保存先を上書きしません。refは更新も失効もしません。成功dataには`paths`、`annotated: true`、`generation`、`annotationCount`、`skippedAnnotations`を返します。bounds欠損は`missing_or_invalid_bounds`、画面から一部でも外れるboundsは`bounds_outside_view`、ラベル配置領域不足は`label_space_exhausted`として省略します。
+
+古い/未取得snapshotやcapture前後に対象が変わった場合は`STALE_REF`です。provider未登録、画像/view対応不明、複数画像、相対回転、PNG寸法不一致は`UNSUPPORTED_CAPABILITY`です。単一viewのportrait/landscapeに対応し、倍率を推測しません。アニメーション中ではなく静止した画面で使用してください。全体timeoutは合成・保存まで共通です。
 
 ### `logs`
 
