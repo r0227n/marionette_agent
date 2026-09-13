@@ -6,6 +6,7 @@ import '../daemon/runtime.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import '../protocol/protocol.dart';
 import 'parser.dart';
+import 'doctor.dart';
 import 'common_options.dart';
 import 'artifact_writer.dart';
 import 'renderer.dart';
@@ -29,6 +30,7 @@ Future<int> runCli(
   String? session = const CommonOptions().session;
   Result result;
   bool workflow = false;
+  int? diagnosticExitCode;
   String? workflowName;
   final cliParser = parser ?? CliParser();
   try {
@@ -98,7 +100,14 @@ Future<int> runCli(
         'Workflow validation deadline exceeded',
       );
     }
-    if (localData != null) {
+    if (invocation.command == 'doctor') {
+      final data = await Doctor().run(
+        deadline,
+        probeUri: params['probeUri'] as String?,
+      );
+      diagnosticExitCode = data['exitCode'] as int;
+      result = Result.success(null, data);
+    } else if (localData != null) {
       result = Result.success(null, localData);
     } else if (invocation.command == 'help') {
       result = Result.success(null, {'help': cliParser.usage});
@@ -162,5 +171,5 @@ Future<int> runCli(
   if (!json && result.error?.code == 'INVALID_ARGUMENT') {
     stdout.writeln(cliParser.usage);
   }
-  return result.exitCode;
+  return diagnosticExitCode ?? result.exitCode;
 }

@@ -1,5 +1,38 @@
 # marionette_agent — 製品仕様
 
+## 環境診断 doctor (Issue #9)
+
+`doctor [--probe-uri <uri>]` は接続不要のローカル診断。sessionはnull。
+runtime作成・permission変更・socket削除・daemon起動/停止・package導入・Simulator起動を行わない。
+既存session/backend/refへ要求を配送せず、daemonではhandshakeだけを読み接続を破棄する。
+handshakeだけの照会ではdaemonの既存idle期限を更新しない。
+
+成功した診断実行のenvelopeは`ok:true`、dataは`doctor:true`、`exitCode`、`checks`。
+各checkは`id`、`status`、`reason`、利用者が実行する`nextStep`、`details`を持つ。
+statusは`success`(条件確認済み)、`failure`(不適合を確認)、`unknown`(timeout/観測失敗)、
+`skipped`(対象不在/明示probeなし/前提不成立)。failureまたはunknownが1件でもあれば終了1、
+それ以外は終了0。これは診断コマンド固有の集計であり、引数エラー等は通常のerror契約を使う。
+`--timeout`は全checkを含む全体期限。期限切れcheckと残りはunknownとして終了1。
+
+check IDと対象:
+- `host.os`: macOS。`host.dart`: 実行SDKが>=3.13.2 <4.0.0。
+- `runtime.socketPath`: 既存runtimeと同じ絶対path/80 UTF-8 bytes上限、socket `/s` のbyte数。
+- `runtime.directory`: symlink不可、現在user所有、0700。不存在はskippedで作成しない。
+- `daemon.ipc`: 安全確認済みdirectoryのsocketに受動接続、protocolVersion一致とreadyを確認。
+  不在はskipped、拒否/不一致はfailure、無応答はunknown。最大1秒か残り期限の短い方。
+- `dependencies.fixed`: CLI packageのpubspec/lockのmarionette_mcp、image、yaml固定version比較。
+  ファイル不在/取得不可はunknown。実bindingやインストール済み実体のversion保証ではない。
+- `simulators.ios`: `xcrun simctl list devices available --json`でiOS端末の名前/UDID/runtime/stateを観測。
+  0台はfailure、照会失敗はunknown。起動/修復はしない。
+- `probe.vmService`: `--probe-uri`指定時だけ独立したVM clientを作成し、getVersion/getVM/getIsolateと
+  登録済み`ext.flutter.marionette.getVersion`だけを照会。未指定はskipped、接続/RPC異常はfailure、
+  timeoutはunknown。binding versionは有効な応答がある時だけ、capabilityは実際に登録されたextension名のみ。
+  未観測versionはnull/unknown、未観測bindingはunknown。登録確認は操作成功の保証ではない。
+
+probeの認証URI・remote exception・入力文字列は結果/診断へ出力しない。probe終了/失敗/期限切れでは
+独立接続を解放し、遅れて成立した接続も閉じる。外部照会processは期限切れで終了させる。
+実macOS/Simulator受入検証は[Issue #9記録](../packages/marionette_agent/docs/verification/issue-9.md)を参照。
+
 状態: `marionette_agent 0.0.1` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法の詳細は[日本語CLIリファレンス](ja/cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.md)を参照する。
 
 ## 目的と対象

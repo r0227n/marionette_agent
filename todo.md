@@ -15,6 +15,20 @@ environment, verified commits and human reproduction steps are maintained in
 - [x] Verify assigned Simulator images, refs, stale errors and unsupported provider (39 CLI calls; 9 inspected images).
 - [x] Teardown owned resources and publish inspected evidence-backed [Draft PR #32](https://github.com/r0227n/marionette_agent/pull/32).
 - [ ] Human verification (pending).
+
+# Issue #9 progress
+
+Owner: sole Issue #9 worker, branch `feature/issue-9-doctor`.
+
+No existing todo.md or AGENTS-designated progress file was present at implementation start.
+Detailed acceptance evidence and reproduction steps are recorded in
+[issue-9.md](packages/marionette_agent/docs/verification/issue-9.md).
+
+- [x] Inspect base/worktree, dependency behavior, and reserved device ownership.
+- [x] Implement doctor and pass automated checks (179 tests, analyze clean).
+- [x] Verify example on reserved Simulator (50 CLI calls; five images inspected; teardown complete).
+- Publication status and inspected Draft PR URL are recorded in the coordinator's `worker-9-result.md`.
+- [ ] Human verification (pending).
 # Issue #10 progress
 
 - Owner: Issue #10 sole worker (coordinator-requested gpt-6-astra, medium).
