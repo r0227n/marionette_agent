@@ -14,6 +14,7 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 | --- | --- | --- |
 | `--session <name>` | `default` | 操作するsession名。英数字で始まり、英数字・`_`・`-`だけで構成された最大64文字を指定します。 |
 | `--json` | 無効 | 成功・失敗とも、stdoutへ結果を1つのJSONオブジェクトとして出力します。シェルスクリプトやagentからの利用に適しています。 |
+| `--debug` | 無効 | request ID、session、処理段階、経過ms、結果の正規化error codeをstderrへ追加します。通常診断は維持します。 |
 | `--timeout <ms>` | `30000` | ファイル読込、daemon起動、キュー待ち、接続、処理を含む期限を正の整数のミリ秒で指定します。 |
 | `--content-boundaries` | 無効 | snapshot要素行とlogs entryに呼出し固有の境界を付けます。JSONではmetadataを追加します。 |
 | `--max-output <chars>` | 無制限 | 正の整数。snapshot/logsの項目列をUnicode code point数で制限します。 |
@@ -25,7 +26,13 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 marionette-agent --help
 marionette-agent --version
 marionette-agent snapshot --session demo --timeout 10000 --json
+marionette-agent --debug snapshot --session demo --json
+marionette-agent snapshot --session demo --debug
 ```
+
+詳細診断のstageは`cliParsed`、`runtimePrepare`、`daemonOpen`、必要時の`daemonStart`、`daemonReady`、`requestSend`、`daemonDispatch`、`sessionQueue`、`commandExecute`、`daemonResult`、`cliResult`です。到達した段階だけを出力し、結果のcodeは成功なら`OK`、失敗なら`TIMEOUT`などです。elapsedMsはCLI・IPC・daemon dispatch・session queueの各区間開始からの経過時間です。daemon側の診断は応答受信時にまとめて表示されます。応答を受け取れないtimeoutではCLI側の最終結果を確認してください。
+
+`--debug`はコマンドの前後で利用でき、要求ごとにdaemonへ伝わります。並行sessionには影響しません。認証URI、入力値、selector値、アプリtext、stack traceは追加診断に出しません。stdoutのJSON包絡は変わりません。session名自体は診断に表示されるため、秘密値をsession名に使用しないでください。 `close --all`の部分失敗では診断にも`CLOSE_FAILED`を保持します。
 
 通常のテキスト出力はstdout、診断ログはstderrへ出力されます。`--json`の結果は次の包絡形式です。
 
