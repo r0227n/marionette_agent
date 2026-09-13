@@ -162,3 +162,5 @@ restartは同sessionの現在の録画を確定してから、明示したplatfo
 doctor --quickはhost/runtime/daemonを検査し、依存・端末一覧・VM probeをskippedにします。offlineはVM probeを省略します。fixは既存の自身所有runtime directoryのmodeだけを0700へ修復します。他所有者、symlink、SDK/package導入、socket削除、daemonや端末の起動は扱いません。通常doctorは読み取りのみです。
 
 install／upgradeは指定した**ローカルcheckout**のCLIをDart AOTコンパイルし、既存directory内のmarionette-agentへ配置します。installは既存ファイルを拒否し、upgradeは既存通常ファイルをコンパイル成功後に置換します。ネットワークから最新版を取得したりFlutter SDKを更新したりしません。事前に目的のcheckout・依存・Dart SDKを用意してください。通常sourceは実行中packageから解決し、コンパイル済みCLIからの実行では `--source` を指定します。
+
+同じcheckoutの`skills/`と`skill-data/`も隣接する専用`.marionette-agent-*`bundleへ配置し、バイナリは対応するbundleを参照します。バイナリとbundleを一緒に移動すれば元checkoutがなくても利用できます。upgradeでは新しいbundleを用意し、旧bundleは実行中の旧版用に保持します。新規配置が失敗した場合は新bundleを回収し、既存バイナリを維持します。詳細は[同梱Skillの参照](cli-reference.ja.md#同梱skillの参照)を参照してください。
