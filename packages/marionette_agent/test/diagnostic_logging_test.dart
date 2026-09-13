@@ -34,6 +34,12 @@ void main() {
       expect(lines.last, contains('requestId=none session=none'));
       expect(lines.last, endsWith('code=INTERNAL_ERROR'));
       expect(lines.join(), isNot(contains('secret')));
+      DebugDiagnostics(
+        enabled: true,
+        requestId: 'close',
+        session: null,
+      ).emit(DebugStage.cliResult, code: 'CLOSE_FAILED');
+      expect(lines.last, endsWith('code=CLOSE_FAILED'));
     },
   );
 

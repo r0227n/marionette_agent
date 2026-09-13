@@ -37,6 +37,11 @@ Future<void> main(List<String> args) async {
       SessionManager(
         () => FakeBackend()
           ..elements = [
+            ElementInfo(key: 'visible', visible: true),
+            ElementInfo(key: 'hidden', visible: false),
+            ElementInfo(key: 'unknown'),
+            ElementInfo(key: 'duplicate'),
+            ElementInfo(key: 'duplicate'),
             ElementInfo(
               key: 'input',
               text: 'app-secret-text',

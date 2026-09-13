@@ -101,3 +101,7 @@ Final close exited 0; daemon socket and metadata were confirmed absent. Runner h
 
 For human reproduction, start this branch's example from reset state with a fresh private URI and runtime, repeat the plan's commands in both modes, explicitly reconnect after timeout and close before changing URI. Expect counter 0, 1, 2, unchanged after timeout, and the codes above. Clear input, close, quit the runner, then shutdown the owned device.
 No unresolved implementation or agent verification items; human verification remains pending.
+
+## PR #28 integration review (2026-09-13)
+
+Integrated develop through PR #27, preserving both debug and visibility IPC fixtures. Preserved CLOSE_FAILED in normalized debug diagnostics for close --all and added a regression assertion. dart format, dart analyze and all 189 tests passed. Existing Simulator results and before/after/timeout images were reviewed; no new Simulator run was needed for the diagnostic code allowlist correction. Human verification remains unclaimed.

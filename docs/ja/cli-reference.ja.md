@@ -32,7 +32,7 @@ marionette-agent snapshot --session demo --debug
 
 詳細診断のstageは`cliParsed`、`runtimePrepare`、`daemonOpen`、必要時の`daemonStart`、`daemonReady`、`requestSend`、`daemonDispatch`、`sessionQueue`、`commandExecute`、`daemonResult`、`cliResult`です。到達した段階だけを出力し、結果のcodeは成功なら`OK`、失敗なら`TIMEOUT`などです。elapsedMsはCLI・IPC・daemon dispatch・session queueの各区間開始からの経過時間です。daemon側の診断は応答受信時にまとめて表示されます。応答を受け取れないtimeoutではCLI側の最終結果を確認してください。
 
-`--debug`はコマンドの前後で利用でき、要求ごとにdaemonへ伝わります。並行sessionには影響しません。認証URI、入力値、selector値、アプリtext、stack traceは追加診断に出しません。stdoutのJSON包絡は変わりません。session名自体は診断に表示されるため、秘密値をsession名に使用しないでください。
+`--debug`はコマンドの前後で利用でき、要求ごとにdaemonへ伝わります。並行sessionには影響しません。認証URI、入力値、selector値、アプリtext、stack traceは追加診断に出しません。stdoutのJSON包絡は変わりません。session名自体は診断に表示されるため、秘密値をsession名に使用しないでください。 `close --all`の部分失敗では診断にも`CLOSE_FAILED`を保持します。
 
 通常のテキスト出力はstdout、診断ログはstderrへ出力されます。`--json`の結果は次の包絡形式です。
 
@@ -87,7 +87,7 @@ daemon全体の設定は起動時に固定されます。省略した要求は�
 
 ## 対象を指定するオプション
 
-要素を操作する`tap`、`fill`、`swipe`、`scroll`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`ではrefを受理せず、selectorオプションのどれか1つだけを指定します。
+要素を操作する`tap`、`fill`、`swipe`、`scroll`と状態を読む`is visible`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`ではrefを受理せず、selectorオプションのどれか1つだけを指定します。
 
 | 指定方法 | 説明 |
 | --- | --- |
@@ -98,6 +98,17 @@ daemon全体の設定は起動時に固定されます。省略した要求は�
 | `--type <value>` | Flutter要素のtypeと完全一致させます。一意に一致する必要があります。 |
 
 操作コマンドのselectorは実行時の観測で一意に一致する必要があります。0件なら`TARGET_NOT_FOUND`、複数件なら`AMBIGUOUS_TARGET`です。waitの条件判定は後述の契約に従います。新しいsnapshot、再接続、切断、またはUI操作を行うと、それ以前のrefは失効します。UI操作後は再度snapshotを取得してください。
+
+## is visible
+
+```sh
+marionette-agent is visible @e1
+marionette-agent is visible --key tap_button --json
+```
+
+対象を一度再観測し、textでは`Visible: true` / `Visible: false` / `Visible: unknown`を返します。JSONの`data`はそれぞれ`{"known":true,"value":true}` / `{"known":true,"value":false}` / `{"known":false,"value":null}`です。未観測はfalseではありません。
+
+selectorの0件は`TARGET_NOT_FOUND`、複数件は`AMBIGUOUS_TARGET`、古いrefは`STALE_REF`、未対応selectorは`UNSUPPORTED_CAPABILITY`です。成功時にUI操作やrefの失効・再発行は行わず、既存のsnapshot世代を保ちます。backendがfalse/nullを観測できるかはアプリとbindingに依存します。
 
 ## sessionと接続
 
@@ -128,7 +139,7 @@ marionette-agent --session demo session show
 marionette-agent session show --session demo --json
 ```
 
-### `close`
+### `close [--all]`
 
 選択sessionの録画があれば動画を確定し、接続を切断して破棄します。Flutterアプリ自体は終了しません。sessionが存在しない場合も成功します。録画があった場合はdata.recordingに最終状態を返します。
 
@@ -137,6 +148,19 @@ marionette-agent --session demo close
 ```
 
 最後のsessionを閉じるとdaemonも終了します。
+
+全sessionを後始末する場合は次を実行します。`--session`との併用はできません。
+
+```sh
+marionette-agent close --all --timeout 30000 --json
+marionette-agent session list
+```
+
+`close --all`はsession:nullを返し、成功時のdata.sessionsへ名前順のsession別Resultを格納します。daemon不在でも空配列で成功します。アプリは起動したまま、全refは失効し、次の利用には明示connectとsnapshotが必要です。
+
+受付後の新規要求とqueue待ちはnot_sentとして拒否します。実行中操作は共通期限まで待ち、期限で中断した送信済み操作はunknownです。切断失敗でも他sessionを後始末し、部分結果はerror.details.sessionsに返します（textにも表示）。全体終了コードは期限超過があれば5、その他の切断失敗は1、全成功は0です。送信済み操作を自動再送しないでください。停止中に競合したconnectは拒否されるか、要求送信前なら次daemonへ接続する場合があります。
+
+録画確定の期限超過時も全体closeはdaemonを終了し、有界cleanupへ引き継ぎます。選択sessionだけのcloseとは異なりsessionを保持しません。詳細は[SPECの契約](../SPEC.md#close---all)を参照してください。
 
 ## 観測
 
@@ -157,6 +181,24 @@ Snapshot 3
 @e8 TextField key="text_input"
 - Semantics "Status" (no unique actionable selector)
 ```
+
+### `get text` / `get box` / `get count`
+
+全snapshotを出力せずに属性や一致件数を確認します。
+
+```sh
+marionette-agent --session demo get text @e1
+marionette-agent --session demo get box --key tap_button --json
+marionette-agent --session demo get count --type Text --json
+```
+
+text/boxはrefまたはselectorを1つ指定します。再観測で単一対象を確認し、selectorが0件なら`TARGET_NOT_FOUND`、複数件なら`AMBIGUOUS_TARGET`、未発行・消失・属性変更したrefなら`STALE_REF`です。由来未確認型のtextだけで対象を指定すると`UNRESOLVABLE_TARGET`です。key/typeで指定すればその観測textを取得できます。
+
+成功dataはtextが`{"text":string|null}`、boxが`{"bounds":{"x":number,"y":number,"width":number,"height":number}|null,"unit":"flutter_logical_pixels"}`です。boundsはFlutter論理座標で、スクリーンショットの物理pixelではありません。欠損値はnullで返し、実際の空文字やゼロは保持します。入力欄のvalue属性ではありません。
+
+countはselectorのみを受理し、refは`INVALID_ARGUMENT`です。成功dataは`{"count":integer,"selector":{kind:value}}`で、0件・複数件も正常結果です。完全一致の観測候補を数えます。textは既知型だけでなく由来未確認型も含むため、上流操作matcherの一致数・操作可能性は保証しません。未対応selector（固定bindingのidentifierなど）は`UNSUPPORTED_CAPABILITY`です。
+
+成功したgetは既存refを維持し、世代更新・refの再発行をしません。続けて同じrefを操作できますが、後続操作時にもstale判定は行われます。text表示でも属性は構造化表示され、`--json`では共通JSON包絡のdataへ格納します。
 
 ### `wait`
 

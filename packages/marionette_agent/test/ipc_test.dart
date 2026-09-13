@@ -203,6 +203,42 @@ void main() {
     },
     timeout: Timeout(const Duration(seconds: 60)),
   );
+
+  test(
+    'visibility IPC preserves nullable values and target failures',
+    () async {
+      await cli(['connect', 'http://localhost:1/']);
+      for (final entry in {
+        'visible': true,
+        'hidden': false,
+        'unknown': null,
+      }.entries) {
+        expect(body(await cli(['is', 'visible', '--key', entry.key]))['data'], {
+          'known': entry.value != null,
+          'value': entry.value,
+        });
+      }
+      for (final entry in {
+        'absent': 'TARGET_NOT_FOUND',
+        'duplicate': 'AMBIGUOUS_TARGET',
+      }.entries) {
+        final result = await cli(['is', 'visible', '--key', entry.key]);
+        expect(result.exitCode, isNot(0));
+        expect(body(result)['error']['code'], entry.value);
+      }
+      expect(
+        body(await cli(['is', 'visible', '@e999']))['error']['code'],
+        'STALE_REF',
+      );
+      expect(
+        body(
+          await cli(['is', 'visible', '--identifier', 'x']),
+        )['error']['code'],
+        'UNSUPPORTED_CAPABILITY',
+      );
+    },
+    timeout: Timeout(const Duration(seconds: 60)),
+  );
   test('compiled executable starts the same binary in daemon mode', () async {
     final executable = '${runtime.path}/cli';
     final build = await Process.run(Platform.resolvedExecutable, [

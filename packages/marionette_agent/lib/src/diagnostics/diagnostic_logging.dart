@@ -46,6 +46,7 @@ class DebugDiagnostics {
       'NOT_CONNECTED',
       'SESSION_CONFLICT',
       'CONNECTION_LOST',
+      'CLOSE_FAILED',
       'TARGET_NOT_FOUND',
       'AMBIGUOUS_TARGET',
       'STALE_REF',
