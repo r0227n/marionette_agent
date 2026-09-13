@@ -1,0 +1,4 @@
+interface:
+  display_name: "Marionette Video Evidence"
+  short_description: "動作確認の実録画に操作対象・見る場所・観測結果を表示する"
+  default_prompt: "$marionette-video-evidence を使い、marionette_agentの動作確認動画を、見る場所と操作結果が分かるエビデンスへ編集してください。"
