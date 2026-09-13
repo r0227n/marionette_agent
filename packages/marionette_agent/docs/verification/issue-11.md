@@ -172,3 +172,9 @@ before restarting with DISABLE_MAPPED_SCREENSHOT=true, then run the script with
 MARIONETTE_TEST_UNSUPPORTED=true. Each script closes its CLI session; finish the
 runner with q and shut down only your assigned device. Never reuse published
 evidence paths for a new run, because saves are intentionally exclusive.
+
+## PR review integration verification (2026-09-13)
+
+Integrated develop through PR #31. `dart format .`, `dart analyze`, and all 225 Dart tests passed. The example passed Flutter analysis and all 6 widget tests.
+
+Fresh Simulator verification of the integrated annotation implementation passed all 22 portrait smoke calls. An additional filtered snapshot produced exactly one annotation; the screenshot preserved its ref, and tapping that ref changed the counter to 1. Visually inspected the annotated main screen, About screen, filtered annotation, and resulting counter. Local evidence: `/tmp/mra-review32.uupw5lru/evidence/` (`portrait-results.json`, `filtered-results.json`, and screenshots). Annotation verification ran at e9ffc1c; the later merge only imported doctor changes and documentation. The runner and app were stopped, Simulator shut down, runtime socket removed, private URI deleted, and lease released. Human verification remains pending.
