@@ -148,6 +148,7 @@ class CommonOptions {
     final independent =
         args.flag('help') ||
         args.flag('version') ||
+        args.command?.name == 'doctor' ||
         (args.command?.name == 'workflow' &&
             args.command?.command?.name != 'run') ||
         (args.command?.name == 'session' &&
@@ -177,6 +178,7 @@ class CommonOptions {
     var json = false;
     var debug = false;
     var independent =
+        commands.firstOrNull == 'doctor' ||
         (commands.firstOrNull == 'workflow' && !commands.contains('run')) ||
         (commands.firstOrNull == 'session' && commands.contains('list'));
     for (var i = 0; i < arguments.length; i++) {

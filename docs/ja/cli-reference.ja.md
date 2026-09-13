@@ -1,5 +1,31 @@
 # marionette-agent CLI リファレンス
 
+## `doctor` 環境診断
+
+```sh
+marionette-agent doctor
+marionette-agent doctor --json
+marionette-agent doctor --probe-uri "$VM_URI" --timeout 10000 --json
+```
+
+接続やdaemonなしで実行できます。macOS/Dart対応範囲、runtimeの所有者/0700/path長、
+daemon応答/protocol、CLI固定依存の宣言とlockfile、利用可能なiOS Simulatorを調べます。
+`MARIONETTE_AGENT_RUNTIME_DIR`で検査対象を選びます。未作成runtimeは正常な未実施扱いです。
+修復・socket削除・daemon自動起動・Simulator起動・package再導入は行いません。
+
+VM Serviceへの接続は`--probe-uri`を明示した時だけです。URIは出力しませんが、shell履歴や
+process引数の共有には注意してください。既存sessionとrefを変更せず、probe専用接続を終了時に解放します。
+binding versionは実応答がある場合だけ報告します。registeredExtensionsは実登録の観測であり、
+操作成功を保証しません。binding未観測はunknownで、固定依存のversionから推測しません。
+
+textは各checkの状態・理由・Next・詳細、JSONは`data.checks`に同じ内容を返します。
+`success`は確認済み、`failure`は不適合、`unknown`は観測失敗/timeout、`skipped`は未実施です。
+`data.exitCode`およびprocess終了値はfailure/unknownがあれば1、それ以外0。
+診断結果を返せた場合は異常checkがあってもenvelopeは`ok:true`、`session:null`です。
+引数不正は通常の終了2。doctor内の期限切れはcheckのunknown/終了1であり、通常操作の終了5とは異なります。
+`--timeout`は全体期限で、未着手checkも期限切れならunknown。daemon handshake待ちは最大1秒です。
+各checkの`nextStep`を確認し、必要な復旧操作は利用者が別途実行してください。
+
 ## 基本構文
 
 ```text
@@ -515,3 +541,5 @@ macOSの標準コマンドにはfirst-frame通知がないため、startは起�
 `--platform web` / `linux` / `windows` はUNSUPPORTED_CAPABILITY（終了コード6）です。未知のplatform名はINVALID_ARGUMENT（終了コード2）になります。未対応platformはdaemon起動前に拒否し、別方式へ自動fallbackしません。後続対応: [Web #16](https://github.com/r0227n/marionette_agent/issues/16)、[Linux #17](https://github.com/r0227n/marionette_agent/issues/17)、[Windows #18](https://github.com/r0227n/marionette_agent/issues/18)。
 
 録画データはdaemon内の内部パッケージが直接保存します。通常終了とSIGINT/SIGTERMは録画確定を最大60秒待ち、期限超過時は所有する録画プロセスを強制停止します。追加の後処理待ちは最大5秒です。未確定動画は成功扱いにせず、保存先と同じ親ディレクトリの`.marionette-record-*`内の動画と予約先を復旧用に残します。OSで進行中のファイルI/Oの取り消しや、切断されたAndroid端末の強制停止は保証できません。SIGKILLやホスト停止後の自動復元はありません。Androidの画面回転を伴う録画は保証しません。
+
+`doctor`は構文・引数エラーでもsession非依存で、JSONの`session`は`null`です。
