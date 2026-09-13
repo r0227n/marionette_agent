@@ -32,6 +32,7 @@ class CommonOptions {
     this.idleTimeoutMs,
     this.screenshotFormat = ScreenshotFormat.png,
     this.screenshotQuality = defaultScreenshotQuality,
+    this.screenshotDir,
     this.special,
   });
   final String session;
@@ -45,6 +46,9 @@ class CommonOptions {
   final int? idleTimeoutMs;
   final ScreenshotFormat screenshotFormat;
   final int screenshotQuality;
+
+  /// Local to this CLI invocation; not persisted or sent to the daemon.
+  final String? screenshotDir;
   final String? special;
   static const defaultIdleTimeoutMs = 3600000;
   static const defaultScreenshotQuality = 90;
@@ -94,6 +98,11 @@ class CommonOptions {
       'screenshot-quality',
       help:
           'JPEG only: integer 0-100 (default $defaultScreenshotQuality; 0 maps to quality 1)',
+    )
+    ..addOption(
+      'screenshot-dir',
+      valueHelp: 'path',
+      help: 'Existing directory for generated screenshot names; explicit screenshot path wins (default temporary)',
     )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
     ..addFlag('version', negatable: false, help: 'Show version');
@@ -176,6 +185,11 @@ class CommonOptions {
       }
       screenshotQuality = quality;
     }
+    final screenshotDir = args.option('screenshot-dir');
+    if (screenshotDir != null &&
+        (screenshotDir.isEmpty || screenshotDir.contains('\u0000'))) {
+      invalid('Expected a non-empty screenshot directory path without NUL');
+    }
     return CommonOptions(
       session: session,
       json: args.flag('json'),
@@ -184,6 +198,7 @@ class CommonOptions {
       debug: args.flag('debug'),
       timeoutMs: duration(args.option('timeout')!),
       contentBoundaries: args.flag('content-boundaries'),
+      screenshotDir: screenshotDir,
       maxOutput: args.option('max-output') == null
           ? null
           : positiveInteger(args.option('max-output')!),

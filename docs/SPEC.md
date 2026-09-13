@@ -84,6 +84,7 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | `--idle-timeout <duration>` | daemon全体のidle期限。既定1h、0で無効。整数msまたはms/s/m/h接尾辞 |
 | `--screenshot-format png\|jpeg` | screenshotの保存形式。既定png。backendはPNGのまま、CLI側でJPEGへ変換 |
 | `--screenshot-quality <0-100>` | JPEG指定時だけ受理する整数。省略時90。PNG指定時・単独指定・範囲外はINVALID_ARGUMENT |
+| `--screenshot-dir <path>` | path省略のscreenshotを保存する既存directory。既定未指定。明示pathを優先し、両方省略時は従来の一時保存 |
 | `--help` / `--version` | 接続なしで利用可能 |
 
 共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。対話入力は要求しない。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
@@ -126,7 +127,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | 明示した始点から終点へスワイプ |
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | 要素の出現または消失を観測だけで待つ |
-| `screenshot [--annotate] [path]` | PNG（既定）またはJPEGを排他的に保存。注釈は対応providerと直近の有効snapshotが必要 |
+| `screenshot [--annotate] [path]` | PNG（既定）またはJPEGを排他的に保存。明示path > `--screenshot-dir` > 一時ファイル。注釈は対応providerと直近の有効snapshotが必要 |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
 | `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
 | `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
@@ -147,7 +148,7 @@ scrollは初版では指定領域を既存swipe機構で操作する。direction
 - 注釈なしの既定PNGは復号検証後にbackendの元バイト列を保存し、寸法と透過を保持する。JPEGはCLI側でPNGを復号し、各画素のRGBを白背景へalpha合成してから不可逆圧縮する。寸法は変えない。PNG内の背景色指定は使用しない。
 - `--screenshot-format`は小文字の`png`または`jpeg`。`--screenshot-quality`はJPEG指定時だけ0〜100の整数を受理し、既定90。固定encoderの品質0は最低品質1と同じ圧縮になる。品質100もlosslessではない。
 - pathの拡張子はPNGなら`.png`、JPEGなら`.jpg`または`.jpeg`。大文字小文字を区別せず、指定した綴りは維持する。形式は拡張子から推測しない。不一致・未知の拡張子は接続前にINVALID_ARGUMENT。拡張子がなければPNGは`.png`、JPEGは`.jpg`を付加する。
-- path省略時は専用の非公開一時directoryに`screen.png`または`screen.jpg`を保存する。複数画像はbackendの順で、指定名の拡張子直前へ`-1`、`-2`…を付ける。例: `screen.jpeg`→`screen-1.jpeg`、`screen-2.jpeg`。自動名も同じ連番規則。
+- pathと`--screenshot-dir`を両方省略時は専用の非公開一時directoryに`screen.png`または`screen.jpg`を保存する。複数画像はbackendの順で、指定名の拡張子直前へ`-1`、`-2`…を付ける。例: `screen.jpeg`→`screen-1.jpeg`、`screen-2.jpeg`。自動名も同じ連番規則。
 - 共通`--timeout`は取得・転送・復号・白背景合成・JPEG変換・保存を含む元の絶対期限。codec処理前後・合成中・保存中に期限を確認し、期限後に成功を返さない。同期codecや進行中のOS I/Oの即時中断は保証しない。
 - 全画像の復号・変換が成功してから全保存先を排他的に予約し、書き込む。既存file/directory/symlinkはIO_ERRORで拒否する。途中の変換失敗は出力を作らず、予約・書込みの失敗やTIMEOUTではこの要求が作成した全fileと自動作成directoryの削除を試みる。既存fileを削除・上書きしない。OSがcleanupを拒否した場合は部分artifactが残る場合があり、成功pathsは返さない。意図的な予約後の差し替えは従来どおり保証外。
 
@@ -251,7 +252,17 @@ outcomeはnot_sent・failed・unknown。送信後の通信断・タイムアウ�
 | 6 | 機能不足: UNSUPPORTED_CAPABILITY |
 | 1 | その他: BACKEND_ERROR、IO_ERROR、INTERNAL_ERROR |
 
-screenshotのdataはpaths配列。複数画像は連番で保存し、通常利用で既存ファイルの上書きを避けるため、全保存先を排他的に作成してから画像を書き込む。既存のファイル・ディレクトリ・symlinkは拒否する。意図的な競合プロセスによる、保存先の予約後の差し替えまでは保証しない。画像が空なら失敗。logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
+### screenshotの保存
+
+screenshotのdataは絶対pathの`paths`配列。保存先は明示path、共通`--screenshot-dir <path>`、従来の非公開一時directoryの順に選ぶ。明示pathがあればdirectoryの存在や権限を調べず、その場所へ保存する。directory設定は呼出しごとで、daemon／sessionには保存せず、他コマンドの動作にも影響しない。空文字またはNULを含むdirectory指定はINVALID_ARGUMENT。
+
+明示pathとdirectoryの相対pathは呼出元CLIのcwdを基準に正規化する。明示pathの親と指定directoryは事前作成を必須とし、自動作成しない。指定directoryの不存在、通常file、directory自身のsymlink（danglingを含む）、保存に必要な権限の不足はIO_ERROR。祖先directoryのsymlinkは解決を許す。directoryのtype確認後に意図的に差し替えられる競合までは保証しない。
+
+directory指定時はその直下に`screen-<128bit乱数の32桁hex>.png`（JPEGは`.jpg`）を生成する。連続／同時撮影でも各要求で別名を生成し、排他的作成で上書きを防ぐ。万一生成名が既存pathと衝突した場合もIO_ERRORとして拒否する。両方省略時は従来どおり一意な`marionette-screenshot-*`一時directory内の`screen.png`または`screen.jpg`へ保存する。
+
+複数画像は指定名／生成名の拡張子の前へ`-1`、`-2`の連番を付ける（拡張子なしは選択形式に応じて`.png`または`.jpg`を追加）。全PNGを復号検証し、全保存先を排他的に作成してから画像を書き込む。既存のfile・directory・symlinkは拒否する。途中失敗時はこの要求が作成した画像fileを削除し、一時保存の場合はこの要求の一時directoryも削除する。指定directoryと既存artifactは削除しない。cleanupの失敗で元のエラーを置き換えず、成功pathを返さない。保存先の予約後に別プロセスが意図的に差し替える競合までは保証しない。画像が空または不正PNGならBACKEND_ERROR、保存期限超過はTIMEOUT、その他の保存失敗はIO_ERROR。readであるscreenshotのこれらのエラーは従来どおりoutcome:not_sentとなる。
+
+logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
 
 `screenshot --annotate`は、直近snapshotで実際に公開された操作可能refだけを`@eN`ラベルと枠として新しいPNGへ合成し、JPEG指定時は合成後にJPEGへ変換する。既存PNGを入力に取らず、元画像のbytesも変更しない。保存先は注釈画像の新規pathであり、通常のscreenshotと同じ排他的保存・全体deadlineを使う。成功dataはpathsに加えてannotated=true、generation、annotationCount、skippedAnnotationsを返す。refの採番・更新・失効は行わない。snapshotが無効、またはcapture前後の再観測で対象の一意性・属性が変わった場合はSTALE_REFとし、画像を保存しない。観測とcaptureは上流APIでは原子的でないため、途中で変化して元へ戻るアニメーションまで検出する保証はない。静止した画面で使用する。
 

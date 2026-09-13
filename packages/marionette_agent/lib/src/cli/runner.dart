@@ -144,6 +144,7 @@ Future<int> runCli(
             deadline,
             format: invocation.options.screenshotFormat,
             quality: invocation.options.screenshotQuality,
+            screenshotDir: invocation.options.screenshotDir,
           ),
         );
       }
