@@ -1,4 +1,5 @@
 import 'package:marionette_agent/src/backend/backend.dart';
+import 'package:marionette_agent/src/backend/connection_uri.dart';
 import 'package:marionette_agent/src/backend/marionette_backend.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_mcp/src/vm_service/vm_service_connector.dart';

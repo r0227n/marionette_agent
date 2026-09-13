@@ -2,15 +2,15 @@ import 'dart:async';
 
 import 'package:args/args.dart';
 import 'package:marionette_agent/src/backend/backend.dart';
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/cli/target_options.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
-import 'package:marionette_agent/src/snapshot/snapshot_service.dart';
+import 'package:marionette_agent/src/snapshot/target.dart';
 import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
 
 ElementInfo button({
   String key = 'save',

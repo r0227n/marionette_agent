@@ -2,7 +2,8 @@ import 'package:marionette_agent/marionette_agent.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
 
 class RecordingBackend extends FakeBackend {
   TapTarget? tapped;

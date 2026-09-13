@@ -1,38 +1,15 @@
-import 'package:args/args.dart';
-import 'package:marionette_agent/marionette_agent.dart';
-
+import '../backend/backend.dart';
+import '../protocol/protocol.dart';
+import '../snapshot/target.dart';
 import 'arguments.dart';
-
-/// Targeted tap/fill grammar; fill input remains an opaque string.
-CliCommand actionCommand({bool fill = false}) {
-  final parser = ArgParser();
-  addSelectorOptions(parser);
-  if (!fill) {
-    parser.addOption('x');
-    parser.addOption('y');
-  }
-  return CliCommand(parser, (args) {
-    final params = <String, dynamic>{
-      for (final name in [
-        ...SelectorKind.values.map((k) => k.name),
-        if (!fill) ...['x', 'y'],
-      ])
-        if (args.wasParsed(name)) name: args.option(name),
-    };
-    final rest = args.rest.toList();
-    if (fill) {
-      if (rest.isEmpty) invalid('Usage: fill <ref|selector> <text>');
-      params['input'] = rest.removeLast();
-    }
-    if (rest.length > 1) invalid('Specify one target');
-    if (rest.isNotEmpty) params['ref'] = rest.single;
-    _Action.parse(params, fill: fill);
-    return params;
-  });
-}
+import 'command_context.dart';
 
 Future<Json> handleTap(CommandContext context, Json params) {
-  final action = _Action.parse(params, fill: false);
+  final action = ActionRequest.parse(params, fill: false);
+  return executeTap(context, action);
+}
+
+Future<Json> executeTap(CommandContext context, ActionRequest action) {
   if (action.point case final Point point) {
     return context.performCoordinates(
       (backend) => backend.tap(CoordinateTarget(point)),
@@ -45,20 +22,24 @@ Future<Json> handleTap(CommandContext context, Json params) {
 }
 
 Future<Json> handleFill(CommandContext context, Json params) {
-  final action = _Action.parse(params, fill: true);
+  final action = ActionRequest.parse(params, fill: true);
+  return executeFill(context, action);
+}
+
+Future<Json> executeFill(CommandContext context, ActionRequest action) {
   return context.performTarget(
     action.query!,
     (backend, selector) => backend.fill(selector, action.input!),
   );
 }
 
-class _Action {
-  _Action({this.query, this.point, this.input});
+class ActionRequest {
+  ActionRequest({this.query, this.point, this.input});
   final TargetQuery? query;
   final Point? point;
   final String? input;
 
-  static _Action parse(Json params, {required bool fill}) {
+  static ActionRequest parse(Json params, {required bool fill}) {
     final allowed = {
       'ref',
       ...SelectorKind.values.map((k) => k.name),
@@ -75,10 +56,10 @@ class _Action {
           !params.containsKey('y')) {
         invalid('Specify both x and y without a target');
       }
-      return _Action(
+      return ActionRequest(
         point: Point(finiteNumber(params['x']), finiteNumber(params['y'])),
       );
     }
-    return _Action(query: decodeTarget(params), input: input as String?);
+    return ActionRequest(query: decodeTarget(params), input: input as String?);
   }
 }

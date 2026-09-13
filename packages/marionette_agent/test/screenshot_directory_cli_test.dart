@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:image/image.dart' as image;
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
 import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
@@ -10,6 +9,8 @@ import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+
+import 'support/fake_backend.dart';
 
 void main() {
   test('product CLI saves text/JSON paths in its cwd and keeps directory options local', () async {

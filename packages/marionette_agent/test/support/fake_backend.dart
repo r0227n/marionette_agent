@@ -1,5 +1,5 @@
-import 'backend.dart';
-import '../protocol/protocol.dart';
+import 'package:marionette_agent/src/backend/backend.dart';
+import 'package:marionette_agent/src/protocol/protocol.dart';
 
 /// Controllable backend for downstream command and concurrency tests.
 /// Hooks run before completion, allowing barriers, failures and late responses.

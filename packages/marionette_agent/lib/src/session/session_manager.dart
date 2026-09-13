@@ -1,20 +1,19 @@
 import 'dart:async';
 
-import '../diagnostics/diagnostic_logging.dart';
-
-import '../output/content.dart';
 import '../backend/backend.dart';
-import '../backend/marionette_backend.dart';
-import '../commands/registry.dart';
+import '../backend/connection_uri.dart';
 import '../commands/batch.dart';
 import '../commands/command_context.dart';
-import '../snapshot/snapshot_service.dart';
+import '../commands/registry.dart';
+import '../diagnostics/diagnostic_logging.dart';
+import '../output/content.dart';
 import '../protocol/protocol.dart';
-import 'session.dart';
-import 'action_policy.dart';
 import '../recording/record_service.dart';
-import '../workflow/workflow_runner.dart';
+import '../snapshot/snapshot_service.dart';
 import '../workflow/model.dart';
+import '../workflow/workflow_runner.dart';
+import 'action_policy.dart';
+import 'session.dart';
 
 /// Manages URI ownership and session lifetime. I/O from different sessions can run concurrently.
 class SessionManager {

@@ -1,6 +1,6 @@
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
-import '../snapshot/snapshot_service.dart';
+import '../snapshot/target.dart';
 
 /// Shared target decoding for CLI grammar and daemon-side parameter validation.
 TargetQuery decodeTarget(Json params) {

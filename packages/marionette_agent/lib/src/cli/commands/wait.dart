@@ -1,12 +1,11 @@
 import 'package:args/args.dart';
 
-import '../backend/backend.dart';
-import '../commands/wait.dart';
-import '../snapshot/snapshot_service.dart';
-import 'common_options.dart';
-import '../protocol/protocol.dart';
-import 'parser.dart';
-import 'target_options.dart';
+import '../../backend/backend.dart';
+import '../../commands/wait.dart';
+import '../../protocol/protocol.dart';
+import '../../snapshot/target.dart';
+import '../command.dart';
+import '../target_options.dart';
 
 /// Standalone wait grammar. The root --timeout option owns the total deadline.
 CliCommand waitCommand() {
@@ -42,7 +41,7 @@ CliCommand waitCommand() {
       if (args.wasParsed('state') || args.wasParsed('poll-interval')) {
         invalid('Duration wait does not accept target options');
       }
-      return {'milliseconds': CommonOptions.duration(value, allowZero: true)};
+      return {'milliseconds': parseDurationMs(value, allowZero: true)};
     }
     if (args.rest.isNotEmpty) {
       invalid(

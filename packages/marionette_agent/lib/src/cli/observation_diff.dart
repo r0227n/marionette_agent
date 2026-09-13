@@ -1,9 +1,8 @@
 import 'dart:convert';
+import 'dart:collection';
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:args/args.dart';
 import 'package:collection/collection.dart';
 // ignore: implementation_imports
 import 'package:image/src/formats/png_decoder.dart';
@@ -14,67 +13,6 @@ import 'package:image/src/image/image.dart';
 
 import '../protocol/protocol.dart';
 import 'artifact_writer.dart';
-import 'parser.dart';
-
-CliCommand diffCommand() => CliCommand(
-  ArgParser()
-    ..addCommand(
-      'snapshot',
-      ArgParser()..addOption('baseline', mandatory: true),
-    )
-    ..addCommand(
-      'screenshot',
-      ArgParser()
-        ..addOption('baseline', mandatory: true)
-        ..addOption('output')
-        ..addOption('threshold', defaultsTo: '0'),
-    ),
-  (args) {
-    final child = args.command;
-    if (args.rest.isNotEmpty || child == null || child.rest.isNotEmpty) {
-      invalid('Usage: diff snapshot|screenshot --baseline <path>');
-    }
-    final path = child.option('baseline')!;
-    if (path.isEmpty) invalid('Baseline path must not be empty');
-    return {
-      'action': child.name,
-      'baseline': path,
-      if (child.name == 'screenshot') ...{
-        'output': child.option('output'),
-        'threshold': parseThreshold(child.option('threshold')!),
-      },
-    };
-  },
-);
-
-int parseThreshold(String value) {
-  final threshold = int.tryParse(value);
-  if (threshold == null || threshold < 0 || threshold > 255) {
-    invalid('Threshold must be an integer from 0 to 255');
-  }
-  return threshold;
-}
-
-Future<Uint8List> readBaseline(String path, DateTime deadline) async {
-  try {
-    final stat = await FileStat.stat(path);
-    if (stat.type != FileSystemEntityType.file ||
-        stat.size > 32 * 1024 * 1024) {
-      invalid('Baseline must be a regular file of at most 32 MiB');
-    }
-    final remaining = deadline.difference(DateTime.now());
-    if (remaining <= Duration.zero) {
-      throw const AgentError('TIMEOUT', 'Baseline deadline exceeded');
-    }
-    return await File(path).readAsBytes().timeout(remaining);
-  } on AgentError {
-    rethrow;
-  } on TimeoutException {
-    throw const AgentError('TIMEOUT', 'Baseline deadline exceeded');
-  } catch (_) {
-    throw const AgentError('IO_ERROR', 'Cannot read baseline');
-  }
-}
 
 Future<Json> compareObservation(
   Json params,
@@ -112,22 +50,37 @@ Future<Json> compareObservation(
     }).toList();
     final old = rows(decoded['elements'] as List);
     final next = rows(current['elements'] as List);
-    final remaining = next.toList();
+    const equality = DeepCollectionEquality();
+    final counts = HashMap<Json, int>(
+      equals: equality.equals,
+      hashCode: equality.hash,
+    );
+    for (final row in next) {
+      check();
+      counts[row] = (counts[row] ?? 0) + 1;
+    }
     final removed = <Json>[];
     for (final row in old) {
       check();
-      final index = remaining.indexWhere(
-        (other) => const DeepCollectionEquality().equals(row, other),
-      );
-      if (index < 0) {
+      final count = counts[row] ?? 0;
+      if (count == 0) {
         removed.add(row);
       } else {
-        remaining.removeAt(index);
+        counts[row] = count - 1;
+      }
+    }
+    final added = <Json>[];
+    for (final row in next) {
+      check();
+      final count = counts[row] ?? 0;
+      if (count > 0) {
+        added.add(row);
+        counts[row] = count - 1;
       }
     }
     return {
-      'changed': removed.isNotEmpty || remaining.isNotEmpty,
-      'added': remaining,
+      'changed': removed.isNotEmpty || added.isNotEmpty,
+      'added': added,
       'removed': removed,
       if (current['generation'] != null) 'generation': current['generation'],
     };

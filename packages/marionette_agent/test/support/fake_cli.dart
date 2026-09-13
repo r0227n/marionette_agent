@@ -1,18 +1,18 @@
-import 'package:marionette_agent/src/cli/common_options.dart';
-
 import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:logging/logging.dart';
-import 'package:marionette_agent/src/backend/fake_backend.dart';
+import 'package:marionette_agent/src/backend/backend.dart';
+import 'package:marionette_agent/src/cli/common_options.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
 import 'package:marionette_agent/src/cli/runner.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
-import 'package:marionette_agent/src/backend/backend.dart';
 import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/diagnostics/diagnostic_logging.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
+
+import 'fake_backend.dart';
 
 Future<void> main(List<String> args) async {
   configureDiagnosticLogging();
@@ -57,8 +57,8 @@ Future<void> main(List<String> args) async {
       args,
       parser: CliParser(
         commands: {
-          'count': CliCommand(ArgParser(), CliParser.noArguments),
-          'log': CliCommand(ArgParser(), CliParser.noArguments),
+          'count': CliCommand(ArgParser(), noArguments),
+          'log': CliCommand(ArgParser(), noArguments),
         },
       ),
     );

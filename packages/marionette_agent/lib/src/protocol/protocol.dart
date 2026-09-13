@@ -1,9 +1,10 @@
 import 'dart:convert';
 
-import '../cli/common_options.dart';
-
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
 const protocolVersion = 6;
+
+/// Default daemon idle lifetime in milliseconds; explicit 0 disables it.
+const defaultIdleTimeoutMs = 3600000;
 
 /// Version for result envelopes rendered to stdout.
 const schemaVersion = 1;
@@ -87,7 +88,56 @@ Never invalid([String message = 'Invalid arguments']) => throw AgentError(
 );
 
 /// Session-name constraints to avoid uncontrolled strings in paths and socket names.
-void validateSession(String name) => CommonOptions.validateSession(name);
+bool validSession(String name) =>
+    RegExp(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$').hasMatch(name);
+
+void validateSession(String name) {
+  if (!validSession(name)) invalid('Invalid session name');
+}
+
+int? outputLimit(Object? value) {
+  if (value == null) return null;
+  if (value is! int || value <= 0) invalid('Expected a positive integer');
+  return value;
+}
+
+int positiveInteger(String value) {
+  final result = int.tryParse(value);
+  if (!RegExp(r'^[0-9]+$').hasMatch(value) || result == null) {
+    invalid('Expected a positive integer');
+  }
+  return outputLimit(result)!;
+}
+
+int parseDurationMs(
+  String value, {
+  bool allowZero = false,
+  bool units = false,
+}) {
+  final match = RegExp(units ? r'^([0-9]+)(ms|s|m|h)?$' : r'^([0-9]+)$')
+      .firstMatch(value);
+  if (match == null) invalid('Invalid duration');
+  final count = BigInt.parse(match.group(1)!);
+  final unit = units ? match.group(2) : null;
+  final multiplier = switch (unit) {
+    's' => 1000,
+    'm' => 60000,
+    'h' => 3600000,
+    _ => 1,
+  };
+  final ms = count * BigInt.from(multiplier);
+  // Duration uses microseconds; DateTime must also represent the deadline.
+  if (ms > BigInt.from(9223372036854775) || (!allowZero && ms == BigInt.zero)) {
+    invalid('Duration is out of range');
+  }
+  final result = ms.toInt();
+  try {
+    DateTime.now().add(Duration(milliseconds: result));
+  } on ArgumentError {
+    invalid('Duration is out of range');
+  }
+  return result;
+}
 
 /// Public result envelope must hold either success data or error, never both.
 class Result {
@@ -185,7 +235,7 @@ class Request {
         json['deadline'] is! int) {
       invalid('Invalid IPC request');
     }
-    final maxOutput = CommonOptions.outputLimit(json['maxOutput']);
+    final maxOutput = outputLimit(json['maxOutput']);
     if (json['debug'] != null && json['debug'] is! bool) {
       invalid('Invalid debug policy');
     }

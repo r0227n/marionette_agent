@@ -7,7 +7,7 @@ import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
+import 'support/requests.dart';
 
 void main() {
   late Directory directory;

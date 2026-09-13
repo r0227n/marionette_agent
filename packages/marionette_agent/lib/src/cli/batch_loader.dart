@@ -6,22 +6,16 @@ import 'package:args/args.dart';
 
 import '../commands/batch.dart';
 import '../protocol/protocol.dart';
+import 'common_options.dart';
+import 'input_file.dart';
 import 'parser.dart';
-import 'diff_command.dart';
-
-CliCommand batchCommand() => CliCommand(ArgParser(), (args) {
-  if (args.rest.length != 1 || args.rest.single.isEmpty) {
-    invalid('Usage: batch <JSON-file|->');
-  }
-  return {'path': args.rest.single};
-});
 
 Future<Json> loadBatch(String path, DateTime deadline, CliParser parser) async {
   Object? decoded;
   try {
     final bytes = path == '-'
         ? await _readStdin(deadline)
-        : await readBaseline(path, deadline);
+        : await readInputFile(path, deadline);
     decoded = jsonDecode(utf8.decode(bytes));
   } on AgentError {
     rethrow;
@@ -48,11 +42,17 @@ Future<Json> loadBatch(String path, DateTime deadline, CliParser parser) async {
     if (parsed.options.any((name) => parsed.wasParsed(name))) {
       invalid('Batch entries inherit common options; put them on batch itself');
     }
-    final invocation = parser.parse(argv);
-    if (!batchCommands.contains(invocation.command)) {
+    CommonOptions.rejectDuplicateOptions(parser.parser, argv);
+    final command = parsed.command;
+    if (parsed.rest.isNotEmpty ||
+        command == null ||
+        !batchCommands.contains(command.name)) {
       invalid('Batch command is not supported');
     }
-    steps.add({'command': invocation.command, 'params': invocation.params});
+    steps.add({
+      'command': command.name,
+      'params': parser.definitions[command.name]!.decode(command),
+    });
   }
   return {'steps': steps};
 }

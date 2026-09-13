@@ -2,81 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
-import 'parser.dart';
 
 const skillDirectories = ['skills', 'skill-data'];
-const skillsUsage =
-    '''marionette-agent skills - List and retrieve bundled skill content
-
-Usage: marionette-agent skills [subcommand] [options]
-
-  list                       List available skills (default)
-  get <name> [name...]        Output SKILL.md including frontmatter
-  get <name> --full           Include references/ and templates/ files
-  get --all                  Output every visible skill (accepts --full)
-  path [name]                Print skill directory paths; does not download
-
-  --json                     Output structured JSON
-  --help, -h                 Show this help
-
-Examples:
-  marionette-agent skills get core
-  marionette-agent skills get core --full
-  marionette-agent skills get simulator-verify --full
-  marionette-agent skills get --all
-  marionette-agent skills path core
-  marionette-agent skills list --json
-
-Environment:
-  MARIONETTE_AGENT_SKILLS_DIR  Override with one existing skills directory
-
-Bundled content matches the installed CLI. No daemon or connection is required.
-''';
-
-CliCommand skillsCommand() => CliCommand(
-  ArgParser()
-    ..addCommand('list')
-    ..addCommand(
-      'get',
-      ArgParser()
-        ..addFlag('full', negatable: false)
-        ..addFlag('all', negatable: false),
-    )
-    ..addCommand('path'),
-  (args) {
-    final child = args.command;
-    if (args.rest.isNotEmpty) invalid(skillsUsage);
-    switch (child?.name) {
-      case null:
-      case 'list':
-        if (child != null) CliParser.noArguments(child);
-        return {'action': 'list'};
-      case 'get':
-        if (child!.rest.isEmpty && !child.flag('all')) {
-          invalid(
-            'No skill name provided. Usage: marionette-agent skills get <name>',
-          );
-        }
-        return {
-          'action': 'get',
-          'names': child.rest,
-          'all': child.flag('all'),
-          'full': child.flag('full'),
-        };
-      case 'path':
-        if (child!.rest.length > 1) {
-          invalid('Usage: marionette-agent skills path [name]');
-        }
-        return {'action': 'path', 'name': child.rest.firstOrNull};
-      default:
-        invalid(skillsUsage);
-    }
-  },
-);
 
 /// Resolve installed assets from the executable, or Dart assets from the package.
 /// Never use the caller's cwd to discover a different package's instructions.
@@ -150,21 +80,20 @@ class BundledSkill {
 /// Match agent-browser's small frontmatter reader, including indented descriptions.
 /// This intentionally does not interpret arbitrary YAML tags or values.
 BundledSkill? parseSkill(Directory directory, String content) {
-  final trimmed = content.trimLeft();
-  if (!trimmed.startsWith('---')) return null;
-  final end = trimmed.indexOf('\n---', 3);
+  final lines = const LineSplitter().convert(content.trimLeft());
+  if (lines.isEmpty || lines.first.trimRight() != '---') return null;
+  final end = lines.indexWhere((line) => line.trimRight() == '---', 1);
   if (end < 0) return null;
-  final lines = trimmed.substring(3, end).split('\n');
   String? name;
   var description = '';
   var hidden = false;
-  for (var i = 0; i < lines.length; i++) {
+  for (var i = 1; i < end; i++) {
     final line = lines[i];
     if (line.startsWith('name:')) {
       name = line.substring(5).trim();
     } else if (line.startsWith('description:')) {
       description = line.substring(12).trim();
-      while (i + 1 < lines.length &&
+      while (i + 1 < end &&
           (lines[i + 1].startsWith('  ') || lines[i + 1].startsWith('\t'))) {
         description += ' ${lines[++i].trim()}';
       }
@@ -172,7 +101,7 @@ BundledSkill? parseSkill(Directory directory, String content) {
       hidden = ['true', 'yes'].contains(line.substring(7).trim());
     }
   }
-  return name == null
+  return name == null || name.isEmpty
       ? null
       : BundledSkill(name, description, hidden, directory, content);
 }

@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:image/image.dart' as image;
 import 'package:logging/logging.dart';
 import 'package:marionette_agent/src/backend/backend.dart';
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/backend/marionette_backend.dart';
 import 'package:marionette_agent/src/cli/artifact_writer.dart';
 import 'package:marionette_agent/src/cli/parser.dart' hide Invocation;
@@ -20,6 +19,7 @@ import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
 import '../integration_test/support/evidence.dart';
+import 'support/fake_backend.dart';
 
 void main() {
   test('repeated verification runs save the same image name without clobbering evidence', () async {

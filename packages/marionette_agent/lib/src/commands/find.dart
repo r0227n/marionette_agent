@@ -1,14 +1,10 @@
-import 'package:args/args.dart';
-
 import '../backend/backend.dart';
-import '../cli/parser.dart';
-import '../cli/target_options.dart';
 import '../protocol/protocol.dart';
 import 'actions.dart';
 import 'command_context.dart';
 import 'interactions.dart';
 
-const _fields = [
+const findFields = [
   'key',
   'identifier',
   'text',
@@ -17,52 +13,11 @@ const _fields = [
   'label',
   'placeholder',
 ];
-const _positions = ['first', 'last', 'nth'];
+const findPositions = ['first', 'last', 'nth'];
 
-CliCommand findCommand() {
-  final parser = ArgParser();
-  for (final name in [..._fields, ..._positions]) {
-    final child = ArgParser()
-      ..addFlag('exact', negatable: false)
-      ..addOption('name');
-    if (_positions.contains(name)) addSelectorOptions(child);
-    parser.addCommand(name, child);
-  }
-  return CliCommand(parser, (args) {
-    final child = args.command;
-    if (child == null || args.rest.isNotEmpty) {
-      invalid('Usage: find <attribute|first|last|nth> ...');
-    }
-    final rest = child.rest.toList();
-    final params = <String, Object?>{
-      'by': child.name,
-      'exact': child.flag('exact'),
-    };
-    if (_fields.contains(child.name) || child.name == 'nth') {
-      if (rest.isEmpty) invalid('Missing find value or index');
-      params[child.name == 'nth' ? 'index' : 'value'] = child.name == 'nth'
-          ? int.tryParse(rest.removeAt(0))
-          : rest.removeAt(0);
-    }
-    if (_positions.contains(child.name)) {
-      for (final kind in SelectorKind.values) {
-        if (child.wasParsed(kind.name)) {
-          params[kind.name] = child.option(kind.name);
-        }
-      }
-    }
-    if (child.option('name') != null) params['name'] = child.option('name');
-    if (rest.isNotEmpty) params['action'] = rest.removeAt(0);
-    if (rest.isNotEmpty) params['input'] = rest.removeAt(0);
-    if (rest.isNotEmpty) invalid('Unexpected find arguments');
-    _validate(params);
-    return params;
-  });
-}
-
-void _validate(Json params) {
+void validateFind(Json params) {
   final by = params['by'];
-  final positional = _positions.contains(by);
+  final positional = findPositions.contains(by);
   final allowed = {
     'by',
     'exact',
@@ -73,7 +28,7 @@ void _validate(Json params) {
     if (by == 'nth') 'index',
     if (!positional) 'value',
   };
-  if ((!_fields.contains(by) && !positional) ||
+  if ((!findFields.contains(by) && !positional) ||
       params.keys.any((key) => !allowed.contains(key)) ||
       params['exact'] is! bool) {
     invalid('Invalid find arguments');
@@ -120,8 +75,8 @@ void _validate(Json params) {
 }
 
 Future<Json> handleFind(CommandContext context, Json params) async {
-  _validate(params);
-  final positional = _positions.contains(params['by']);
+  validateFind(params);
+  final positional = findPositions.contains(params['by']);
   final field = positional
       ? SelectorKind.values
             .firstWhere((kind) => params.containsKey(kind.name))
@@ -175,12 +130,22 @@ Future<Json> handleFind(CommandContext context, Json params) async {
       'matchedCount': matchesList.length,
     };
   }
-  final selector = await context.uniqueSelector(element);
-  final target = {
-    ...selector.toJson(),
+  final target = await context.uniqueTarget(element);
+  if (action == 'tap' || action == 'click') {
+    return executeTap(context, ActionRequest(query: target));
+  }
+  if (action == 'fill') {
+    return executeFill(
+      context,
+      ActionRequest(query: target, input: params['input'] as String),
+    );
+  }
+  final interaction = InteractionRequest.parse(action as String, {
+    ...target.selector.toJson(),
     if (params.containsKey('input')) 'input': params['input'],
-  };
-  if (action == 'tap' || action == 'click') return handleTap(context, target);
-  if (action == 'fill') return handleFill(context, target);
-  return handleInteraction(context, action as String, target);
+  });
+  return executeInteraction(
+    context,
+    InteractionRequest(action, target, interaction.arguments),
+  );
 }

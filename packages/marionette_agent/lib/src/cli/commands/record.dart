@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 
-import '../protocol/protocol.dart';
-import '../recording/record_service.dart';
-import 'parser.dart';
+import '../../protocol/protocol.dart';
+import '../../recording/record_service.dart';
+import '../command.dart';
 
 CliCommand recordCommand() => CliCommand(
   ArgParser()

@@ -7,7 +7,8 @@ import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
 
 void main() {
   test('get grammar validates targets and documents units', () {

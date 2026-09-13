@@ -2,7 +2,7 @@
 
 本書は、`marionette_agent`へコマンドを追加・変更するときに守る実装契約を、現在のコードに基づいて説明します。利用者向けのCLI構文は[CLIリファレンス](cli-reference.ja.md)、製品全体の契約は[製品仕様](../SPEC.md)、構成と依存方向は[アーキテクチャ](../ARCHITECTURE.md)、workflow固有の契約は[workflow v1仕様](workflow-file-spec.ja.md)を参照してください。
 
-対象バージョンは`marionette_agent 0.0.1`、公開結果の`schemaVersion`は1、IPCの`protocolVersion`は4です。`marionette_mcp`は0.6.0に固定されています。
+対象バージョンは`marionette_agent 0.0.1`、公開結果の`schemaVersion`は1、IPCの`protocolVersion`は6です。`marionette_mcp`は0.6.0に固定されています。
 
 ## 実装境界
 
@@ -18,7 +18,7 @@ CLI引数
   → Backend（型付きMarionette操作）
 ```
 
-通常のコマンド実装は`package:marionette_agent/marionette_agent.dart`から公開型をimportします。上流の`package:marionette_mcp/src/`を直接importできる製品コードは`lib/src/backend/marionette_backend.dart`だけです。コマンドhandlerは上流のresponse mapやconnector例外を扱いません。
+内部handlerはbackend・protocol・commands・snapshotの必要な定義を直接importします。CLI/argsや公開barrelはimportしません。外部のCLI組立用には`package:marionette_agent/marionette_agent.dart`から型を公開します。構文定義は`cli/commands/`、その共通型は`cli/command.dart`に置きます。上流の`package:marionette_mcp/src/`を直接importできる製品コードは`lib/src/backend/marionette_backend.dart`だけです。コマンドhandlerは上流のresponse mapやconnector例外を扱いません。
 
 主な依存の用途は次のとおりです。
 
@@ -38,7 +38,7 @@ recordはVM Serviceに依存しない例外で、SessionManagerの共通session 
 
 通常コマンドは、同じ名前をCLIとdaemonの両方へ登録します。
 
-1. `CliParser`の定義へ`CliCommand(ArgParser, decode)`を追加します。
+1. `cli/commands/`に構文を定義し、`catalog.dart`へ`CliCommand(ArgParser, decode)`を登録します。
 2. `coreCommands()`へ`register(name, handler)`を追加します。
 3. 製品entrypointが使用するparserとregistryの両方に登録されていることを確認します。
 
@@ -74,10 +74,12 @@ final commands = coreCommands()
 
 引数の構築と検証は、`CommandContext`のmutation経路へ入る前に完了させます。mutation開始後の引数エラーはrefをすでに失効させ、操作送信後の失敗として分類される可能性があります。
 
-要素対象は次のどちらか正確に1つです。
+外部入力の要素対象は次のどちらか正確に1つです。
 
 - `RefQuery`: `@e1`形式のref。
 - `SelectorQuery`: `key`、`identifier`、`text`、`type`のうち1属性による完全一致。
+
+内部のfindでは`ObservedQuery`で選択時属性を保持します。外部JSONからこの型を生成する入力はありません。
 
 ref、selector、座標を混在させてはいけません。selector値は空文字を拒否します。数値文字列とJSON数値は`finiteNumber`で有限の`double`へ変換します。
 
@@ -98,6 +100,8 @@ ref、selector、座標を混在させてはいけません。selector値は空�
 | `snapshot()` | backendを観測し、公開snapshotを置き換えて新しいrefを発行する |
 | `observeTarget(query)` | 共通の再観測・一意性・stale判定で1要素を返す。非表示も受理し、refを維持する |
 | `performTarget(query, callback)` | 対象を再観測して一意性と属性を検証し、全refを失効させてからcallbackを1回実行する |
+| `performTargets(queries, callback)` | 複数対象を同じ観測で検証し、全refを失効させてからcallbackを1回実行する |
+| `uniqueTarget(element)` | 一意なmatcherと選択時属性をObservedQueryに保持し、送信直前に再検証できる形で返す |
 | `performCoordinates(callback)` | 全refを失効させてから、座標操作のcallbackを1回実行する |
 | `read(callback)` | refを維持したread-only処理。`await`の前後で接続世代とdeadlineを検証する |
 | `check()` | workflowの親停止状態を含め、現在の処理が結果を公開できるか確認する |
@@ -127,7 +131,7 @@ timeoutした`Future`自体は停止できないため、すべてのreadとmuta
 
 `SnapshotService`はdaemon単位でsnapshot generationとref番号を単調増加させます。新しい公開snapshotを取得すると、そのsessionの以前のrefはすべて失効します。ref番号はsession間でも再利用しません。
 
-公開snapshotは、取得できた`type`、`text`、`key`、`identifier`、`bounds`、`visible`だけを返します。非表示要素には`reason: "not_visible"`を付けます。表示中でも一意で安全なselectorを作れない要素には`reason: "no_unique_supported_selector"`を付け、refを発行しません。
+公開snapshotは、取得できた`type`、`text`、`key`、`identifier`、`bounds`、`visible`を返します。任意providerの型付き属性は[追加コマンド仕様](cli-parity.ja.md)に従います。非表示要素には`reason: "not_visible"`を付けます。表示中でも一意で安全なselectorを作れない要素には`reason: "no_unique_supported_selector"`を付け、refを発行しません。
 
 固定binding 0.6.0が操作に使えるselectorは`key`、`text`、`type`です。`identifier`は観測結果に存在しても操作には未対応で、`UNSUPPORTED_CAPABILITY`になります。textを安全に操作へ使えるのは、現在のadapterがmatcherとの対応を確認している`Text`、`RichText`、`EditableText`、`TextField`、`TextFormField`だけです。
 
@@ -149,7 +153,7 @@ connect / disconnect / checkConnection / inspect
 tap / fill / swipe / captureScreenshots / readLogs
 ```
 
-`MarionetteBackend`はVM Service URIを正規化し、HTTP(S)をWS(S)へ変換して末尾を`/ws`にします。pathとqueryは接続に保持しますが、状態表示ではhostとport以外を秘匿します。上流responseは`status == "Success"`と構造を検証し、生のmessage、例外、入力文字列を上位層へ転送しません。
+`backend/connection_uri.dart`はVM Service URIを正規化し、HTTP(S)をWS(S)へ変換して末尾を`/ws`にします。pathとqueryは接続に保持しますが、状態表示ではhostとport以外を秘匿します。MarionetteBackendは上流responseの`status == "Success"`と構造を検証し、生のmessage、例外、入力文字列を上位層へ転送しません。
 
 `scroll`は独立したbackend primitiveではなく、要素指定の`swipe`を使用します。成功結果には通常の`requiresSnapshot`に加えて`"command":"scroll"`を含めます。
 

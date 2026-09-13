@@ -4,51 +4,14 @@ import 'dart:io';
 import 'package:image/image.dart' as img;
 import 'package:marionette_agent/marionette_agent.dart';
 import 'package:marionette_agent/src/cli/artifact_writer.dart';
-import 'package:marionette_agent/src/cli/diff_command.dart';
+import 'package:marionette_agent/src/cli/observation_diff.dart';
 import 'package:marionette_agent/src/cli/renderer.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
 import 'screenshot_annotation_test.dart' show geometry;
-
-class InteractiveFake extends FakeBackend
-    implements InteractionBackend, ClipboardBackend {
-  @override
-  Set<String> interactions = {
-    'dblclick',
-    'press',
-    'type',
-    'check',
-    'uncheck',
-    'focus',
-    'hover',
-    'select',
-    'scrollintoview',
-    'drag',
-    'keydown',
-    'keyup',
-    'keyboard.inserttext',
-    'clipboard.read',
-    'clipboard.write',
-    'clipboard.copy',
-    'clipboard.paste',
-  };
-  Json? lastArguments;
-  @override
-  Future<void> interact(
-    String action, {
-    Selector? target,
-    Json arguments = const {},
-  }) async {
-    calls.add(action);
-    lastArguments = arguments;
-    await hooks[action]?.call();
-  }
-
-  @override
-  Future<String?> readClipboard() async => 'clipboard';
-}
+import 'support/interactive_backend.dart';
+import 'support/requests.dart';
 
 void main() {
   late InteractiveFake backend;

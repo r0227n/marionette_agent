@@ -5,19 +5,18 @@ import 'dart:math';
 
 import 'package:marionette_agent_util/marionette_agent_util.dart';
 
-import '../cli/common_options.dart';
-import '../protocol/protocol.dart';
 import '../diagnostics/diagnostic_logging.dart';
+import '../protocol/protocol.dart';
 import '../session/session_manager.dart';
-import 'runtime.dart';
 import '../workflow/model.dart';
+import 'runtime.dart';
 
 /// JSON line-delimited server with daemon lifetime protected by an OS lock.
 class DaemonServer {
   DaemonServer(
     this.runtime,
     this.manager, {
-    this.idleTimeoutMs = CommonOptions.defaultIdleTimeoutMs,
+    this.idleTimeoutMs = defaultIdleTimeoutMs,
   });
   final int idleTimeoutMs;
   Timer? _idleTimer;

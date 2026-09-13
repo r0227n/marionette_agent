@@ -46,6 +46,8 @@ marionette-agent skills --help
 
 `list`が既定で、名前と説明を名前順に返します。`get`はfrontmatterを含む全文を指定順に返し、`--full`で`references/`と`templates/`直下のテキストも追加します。補助ファイルの再帰探索や実行は行いません。`--all`は非表示でない全Skillを名前順に選び、明示した名前より優先します。`path`は探索対象ディレクトリ一覧、名前付きでは該当Skillのディレクトリを表示します。
 
+空のnameや、独立した`---`行で囲まれていないfrontmatterは不正なSkillとして一覧・取得対象から除外します。改行はLFとCRLFを受理します。`skills --config <path>`で設定ファイルが存在しない・JSONが不正・未知optionを含む場合も、skills専用のエラー形式と終了コード1を返します。textモードはstderrだけに説明を出し、JSONモードはstdoutへ1 objectを返します。
+
 同梱する`core`は基本操作、`simulator-verify`はSimulatorの準備・実動作確認・証跡・後片付けのガイドです。`skills/marionette-agent/SKILL.md`は`skills get core`へ案内する導入用stubで、`hidden: true`により一覧や`--all`には出ません。`skills get marionette-agent`と`skills path marionette-agent`では明示的に取得できます。
 
 checkoutでは`packages/marionette_agent/skills/`と`packages/marionette_agent/skill-data/`に保存します。`install/upgrade`はバイナリの隣に専用の隠しbundleを配置します。配布先へ移動する際は対応する`.marionette-agent-*`ディレクトリも一緒に移動してください。`skills path`で使用中のbundleを確認できます。upgrade前のbundleは自動削除しません。旧バイナリを使うプロセスや配布物がなくなったことを確認してから不要分を整理できます。
@@ -82,6 +84,8 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 | `--config`、`--namespace`、`--session-name`、`--restore`、`state` | 設定と接続状態の管理 |
 | `batch`、`--action-policy`、`--confirm-actions`、`--confirm-interactive`、`confirm/deny` | 連続実行と操作確認 |
 | `doctor --quick/--offline/--fix`、`install/upgrade` | 診断とローカルcheckoutからのCLI配置 |
+
+`find`のactionは選択時属性を送信前まで保持し、変化した対象をSTALE_REF／not_sentで拒否します。`drag`は両対象を同じ観測で検証してから1回送信します。`batch`の共通オプションは親で解決し、子コマンドで環境値を再検証しません。詳しい条件は[追加コマンド仕様](cli-parity.ja.md)を参照してください。
 
 ### 共通オプション
 

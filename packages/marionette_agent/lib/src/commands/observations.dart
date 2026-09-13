@@ -1,33 +1,8 @@
-import 'package:args/args.dart';
-import 'package:marionette_agent/marionette_agent.dart';
-
+import '../backend/backend.dart';
+import '../protocol/protocol.dart';
+import '../snapshot/target.dart';
 import 'arguments.dart';
-
-CliCommand snapshotCommand() {
-  final parser = ArgParser()
-    ..addFlag('interactive', negatable: false)
-    ..addFlag('compact', negatable: false)
-    ..addOption('depth');
-  addSelectorOptions(parser);
-  return CliCommand(parser, (args) {
-    if (args.rest.isNotEmpty) invalid('Snapshot accepts only selector options');
-    final params = <String, dynamic>{
-      for (final kind in SelectorKind.values)
-        if (args.wasParsed(kind.name)) kind.name: args.option(kind.name),
-    };
-    if (args.flag('interactive')) params['interactive'] = true;
-    if (args.flag('compact')) params['compact'] = true;
-    if (args.option('depth') != null) {
-      final depth = int.tryParse(args.option('depth')!);
-      if (depth == null || depth < 0) {
-        invalid('Depth must be a non-negative integer');
-      }
-      params['depth'] = depth;
-    }
-    snapshotFilter(params);
-    return params;
-  });
-}
+import 'command_context.dart';
 
 Selector? snapshotFilter(Json params) {
   final options = {'interactive', 'compact', 'depth'};
@@ -66,29 +41,7 @@ Future<Json> handleSnapshot(CommandContext context, Json params) =>
       depth: params['depth'] as int?,
     );
 
-CliCommand screenshotCommand() {
-  final parser = ArgParser()..addFlag('annotate', negatable: false);
-  addSelectorOptions(parser);
-  return CliCommand(parser, (args) {
-    final rest = args.rest.toList();
-    final params = <String, Object?>{};
-    for (final kind in SelectorKind.values) {
-      if (args.wasParsed(kind.name)) params[kind.name] = args.option(kind.name);
-    }
-    if (rest.isNotEmpty && rest.first.startsWith('@')) {
-      params['ref'] = rest.removeAt(0);
-    }
-    if (rest.length > 1 || (rest.isNotEmpty && rest.single.isEmpty)) {
-      invalid('Usage: screenshot [ref|selector] [--annotate] [path]');
-    }
-    if (rest.isNotEmpty) params['path'] = rest.single;
-    if (args.flag('annotate')) params['annotate'] = true;
-    _screenshotTarget(params);
-    return params;
-  });
-}
-
-TargetQuery? _screenshotTarget(Json params) {
+TargetQuery? screenshotTarget(Json params) {
   final target = {...params}
     ..remove('path')
     ..remove('annotate');
@@ -107,7 +60,7 @@ TargetQuery? _screenshotTarget(Json params) {
 
 /// Images cross IPC; the CLI owns local path resolution and writing.
 Future<Json> handleScreenshot(CommandContext context, Json params) async {
-  final target = _screenshotTarget(params);
+  final target = screenshotTarget(params);
   if ((params.containsKey('annotate') && params['annotate'] is! bool) ||
       (params.containsKey('path') &&
           (params['path'] is! String || (params['path'] as String).isEmpty))) {

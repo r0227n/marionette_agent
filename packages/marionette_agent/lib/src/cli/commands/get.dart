@@ -1,9 +1,9 @@
 import 'package:args/args.dart';
 
-import '../backend/backend.dart';
-import '../protocol/protocol.dart';
-import 'parser.dart';
-import 'target_options.dart';
+import '../../backend/backend.dart';
+import '../../protocol/protocol.dart';
+import '../command.dart';
+import '../target_options.dart';
 
 CliCommand getCommand() {
   final parser = ArgParser();

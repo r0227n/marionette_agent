@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import '../backend/backend.dart';
-import '../cli/common_options.dart';
 import '../protocol/protocol.dart';
-import '../snapshot/snapshot_service.dart' show SelectorQuery, RefQuery;
+import '../snapshot/target.dart' show SelectorQuery, RefQuery;
 import 'arguments.dart';
 import 'command_context.dart';
 
@@ -19,7 +18,7 @@ Future<Json> handleWait(CommandContext context, Json params) async {
     if (params.length != 1 || ms is! int || ms < 0) {
       invalid('Invalid wait duration');
     }
-    CommonOptions.duration('$ms', allowZero: true);
+    parseDurationMs('$ms', allowZero: true);
     // Read boundary applies the same connection and absolute deadline contract.
     await context.read((_) => Future<void>.delayed(Duration(milliseconds: ms)));
     return {'waitedMs': ms, 'requiresSnapshot': false};

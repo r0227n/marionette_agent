@@ -1,6 +1,6 @@
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
-import '../snapshot/snapshot_service.dart' show SelectorQuery, TargetQuery;
+import '../snapshot/target.dart' show SelectorQuery, TargetQuery;
 import 'arguments.dart';
 import 'command_context.dart';
 

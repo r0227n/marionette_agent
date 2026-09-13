@@ -2,7 +2,7 @@ import 'package:args/args.dart';
 
 import '../backend/backend.dart';
 import '../commands/arguments.dart';
-import '../snapshot/snapshot_service.dart';
+import '../snapshot/target.dart';
 
 /// Add shared selector options to individual command ArgParsers.
 void addSelectorOptions(ArgParser parser) {

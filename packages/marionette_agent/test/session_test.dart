@@ -1,24 +1,14 @@
 import 'dart:async';
 
 import 'package:marionette_agent/src/backend/backend.dart';
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/commands/registry.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
-Request request(
-  String command, {
-  String session = 'a',
-  Json params = const {},
-  int ms = 2000,
-}) => Request(
-  requestId: 'test',
-  session: session,
-  command: command,
-  params: params,
-  deadline: DateTime.now().add(Duration(milliseconds: ms)),
-);
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
+
 void main() {
   late List<FakeBackend> backends;
   late CommandRegistry registry;

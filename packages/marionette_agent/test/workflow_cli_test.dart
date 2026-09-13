@@ -2,20 +2,20 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:marionette_agent/src/backend/backend.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
 import 'package:marionette_agent/src/cli/workflow_loader.dart';
-import 'package:marionette_agent/src/backend/backend.dart';
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
-import 'package:marionette_agent/src/daemon/server.dart';
-import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:marionette_agent/src/daemon/client.dart';
 import 'package:marionette_agent/src/daemon/runtime.dart';
+import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
+import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
 import 'workflow_model_test.dart' show doc, invalidArg;
-import 'session_test.dart' show request;
 
 void main() {
   late Directory directory;

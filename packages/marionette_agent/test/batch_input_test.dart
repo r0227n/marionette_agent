@@ -1,9 +1,35 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:marionette_agent/src/cli/batch_loader.dart';
+import 'package:marionette_agent/src/cli/parser.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'batch entries inherit options without revalidating overridden environment',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'mra-batch-options-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final path = '${directory.path}/batch.json';
+      await File(path).writeAsString('[["snapshot"],["wait","0"]]');
+      final parser = CliParser(
+        environment: {
+          'MARIONETTE_AGENT_SESSION': '',
+          'MARIONETTE_AGENT_TIMEOUT_MS': 'invalid',
+        },
+      );
+      parser.parse(['--session', 'valid', '--timeout', '5000', 'batch', path]);
+      final batch = await loadBatch(
+        path,
+        DateTime.now().add(const Duration(seconds: 5)),
+        parser,
+      );
+      expect((batch['steps'] as List).length, 2);
+    },
+  );
   test(
     'batch cancels stalled stdin and exits by its deadline without a daemon',
     () async {

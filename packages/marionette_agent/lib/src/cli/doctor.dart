@@ -8,6 +8,7 @@ import 'package:yaml/yaml.dart';
 
 import '../backend/doctor_probe.dart';
 import '../protocol/protocol.dart';
+import 'process_runner.dart';
 
 typedef DiagnosticProcess = Future<ProcessResult> Function(
   String,
@@ -29,7 +30,7 @@ class Doctor {
        dartVersion = dartVersion ?? Platform.version,
        runtimePath =
            runtimePath ?? Platform.environment['MARIONETTE_AGENT_RUNTIME_DIR'],
-       process = process ?? runDiagnosticProcess,
+       process = process ?? runProcessUntil,
        probe = probe ?? probeVmService;
 
   final String os, dartVersion;
@@ -390,45 +391,6 @@ class Doctor {
           : 0,
       'checks': checks,
     };
-  }
-}
-
-Duration remaining(DateTime deadline) {
-  final duration = deadline.difference(DateTime.now());
-  if (duration <= Duration.zero) throw TimeoutException('Diagnostic deadline');
-  return duration;
-}
-
-Future<ProcessResult> runDiagnosticProcess(
-  String executable,
-  List<String> args,
-  DateTime deadline,
-) async {
-  var expired = false;
-  final starting = Process.start(executable, args);
-  unawaited(
-    starting.then((child) {
-      if (expired) child.kill(ProcessSignal.sigkill);
-    }, onError: (Object _) {}),
-  );
-  final Process child;
-  try {
-    child = await starting.timeout(remaining(deadline));
-  } finally {
-    expired = true;
-  }
-  final output = utf8.decoder.bind(child.stdout).join();
-  final error = utf8.decoder.bind(child.stderr).join();
-  try {
-    final code = await child.exitCode.timeout(remaining(deadline));
-    return ProcessResult(
-      child.pid,
-      code,
-      await output.timeout(remaining(deadline)),
-      await error.timeout(remaining(deadline)),
-    );
-  } finally {
-    child.kill(ProcessSignal.sigkill);
   }
 }
 
