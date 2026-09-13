@@ -1,13 +1,13 @@
 # Issue #16 — Webディスプレイ録画の検証記録
 
-状態: 実装と自動テスト、iOS回帰、Webの基本録画は確認済み。**Webの入力・遷移・OSダイアログを含む動画、実Chromeのタブ終了、実環境の権限拒否は未確認。Draft PRは未作成。** 人間確認も未実施。
+状態: 実装と自動テスト、iOS回帰、Webの基本録画は確認済み。**Webの入力・遷移・OSダイアログを含む動画、実Chromeのタブ終了、実環境の権限拒否は未確認。利用者の公開指示により、未確認項目を残したDraft PRとして提出する。** 人間確認も未実施。
 
 ## 対象
 
 - Issue: https://github.com/r0227n/marionette_agent/issues/16
 - branch: `feature/issue-16-web-recording`
 - base: `7958647`（最新origin/developをfetchして作成、録画基盤PR #19を含む）
-- 検証対象: この記録と同時にcommitする作業差分（baseは上記）。
+- 検証対象: code commit `3fb6e142d588d5d7687383ff26c82320668bac83`。以後の変更は公開状況を反映する本記録のみ。
 - worktree: `/Users/r0227n/Dev/marionette_agent-worktrees/feature-issue-16-web-recording`
 - gtr hook: `ran`。utilの`dart pub get`も実行済み。
 - 2026-09-13、macOS 26.5.2 / Chrome 152.0.7977.83、Flutter 3.47.2 / Dart 3.13.2 / marionette_flutter 0.6.0。
@@ -53,7 +53,7 @@
 
 重複stopは同じstoppedを返し、既存MOVへのstartはIO_ERROR / exit 1、1msの期限はTIMEOUT / exit 5（送信前not_sent）だった。後続statusは以前のstoppedを保持し、closeは成功した。
 
-UI操作ツールは通常profileのChromeを選択し、専用profileへの切替・screenshot取得ができなかった。利用可能なbrowser surfaceにもChromeはなく、`createBrowserTab("chrome", ...)`はBrowser is not available。利用者へ検証ウインドウの前面表示を依頼中。別アプリを動かした画像で対象タブの操作確認を代用していない。
+UI操作ツールは通常profileのChromeを選択し、専用profileへの切替・screenshot取得ができなかった。利用可能なbrowser surfaceにもChromeはなく、`createBrowserTab("chrome", ...)`はBrowser is not available。利用者へ前面表示を依頼した後、未確認項目を残して公開するよう指示を受けた。別アプリを動かした画像で対象タブの操作確認を代用していない。
 
 ## 続行と人間の再現手順
 
