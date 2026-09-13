@@ -22,6 +22,7 @@ class Doctor {
     String? dartVersion,
     String? runtimePath,
     this.packageRoot,
+    this.namespace,
     DiagnosticProcess? process,
     Future<Json> Function(String, DateTime)? probe,
   }) : os = os ?? Platform.operatingSystem,
@@ -32,12 +33,18 @@ class Doctor {
        probe = probe ?? probeVmService;
 
   final String os, dartVersion;
-  final String? runtimePath;
+  final String? runtimePath, namespace;
   final Uri? packageRoot;
   final DiagnosticProcess process;
   final Future<Json> Function(String, DateTime) probe;
 
-  Future<Json> run(DateTime deadline, {String? probeUri}) async {
+  Future<Json> run(
+    DateTime deadline, {
+    String? probeUri,
+    bool quick = false,
+    bool offline = false,
+    bool fix = false,
+  }) async {
     final checks = <Json>[];
     void add(
       String id,
@@ -56,6 +63,21 @@ class Doctor {
     }
 
     Future<void> check(String id, Future<void> Function() body) async {
+      if ((quick &&
+              {
+                'dependencies.fixed',
+                'simulators.ios',
+                'probe.vmService',
+              }.contains(id)) ||
+          (offline && id == 'probe.vmService')) {
+        add(
+          id,
+          'skipped',
+          'Skipped by the selected diagnostic mode.',
+          'Run doctor without --quick/--offline for this check.',
+        );
+        return;
+      }
       if (!deadline.isAfter(DateTime.now())) {
         add(
           id,
@@ -112,6 +134,7 @@ class Doctor {
         throw const FormatException();
       }
       directory = runtimePath ?? '/tmp/mra-$uid';
+      if (namespace != null) directory = '$directory-$namespace';
       final valid =
           p.isAbsolute(directory!) && utf8.encode(directory!).length <= 80;
       add(
@@ -152,13 +175,37 @@ class Doctor {
         );
         return;
       }
-      final stat = await process(
+      var stat = await process(
         '/usr/bin/stat',
         os == 'macos'
             ? ['-f', '%u:%Lp', directory!]
             : ['-c', '%u:%a', directory!],
         deadline,
       );
+      if (fix &&
+          stat.exitCode == 0 &&
+          '${stat.stdout}'.trim().startsWith('$uid:') &&
+          '${stat.stdout}'.trim() != '$uid:700') {
+        final repaired = await process('/bin/chmod', [
+          '700',
+          directory!,
+        ], deadline);
+        if (repaired.exitCode == 0) {
+          stat = await process(
+            '/usr/bin/stat',
+            os == 'macos'
+                ? ['-f', '%u:%Lp', directory!]
+                : ['-c', '%u:%a', directory!],
+            deadline,
+          );
+          add(
+            'runtime.repair',
+            'success',
+            'Restored owned runtime directory permissions to 0700.',
+            'No daemon or application was restarted.',
+          );
+        }
+      }
       safe = stat.exitCode == 0 && '${stat.stdout}'.trim() == '$uid:700';
       add(
         'runtime.directory',

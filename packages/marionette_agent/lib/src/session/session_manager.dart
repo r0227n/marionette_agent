@@ -6,10 +6,12 @@ import '../output/content.dart';
 import '../backend/backend.dart';
 import '../backend/marionette_backend.dart';
 import '../commands/registry.dart';
+import '../commands/batch.dart';
 import '../commands/command_context.dart';
 import '../snapshot/snapshot_service.dart';
 import '../protocol/protocol.dart';
 import 'session.dart';
+import 'action_policy.dart';
 import '../recording/record_service.dart';
 import '../workflow/workflow_runner.dart';
 import '../workflow/model.dart';
@@ -113,6 +115,7 @@ class SessionManager {
       var started = false;
       final future = session.queue
           .run(() async {
+            final incoming = request;
             started = true;
             debug.emit(DebugStage.commandExecute);
             request.checkDeadline();
@@ -122,36 +125,14 @@ class SessionManager {
                 'Daemon is shutting down',
               );
             }
-            if (request.command == 'record') return recordings.handle(request);
-            Json? recording;
-            if (request.command == 'close') {
-              if (request.params.isNotEmpty) invalid();
-              recording = await recordings.close(request);
-            }
-            Json data;
-            if (request.command == 'workflow') {
-              data = await WorkflowExecution(
-                request,
-                session,
-                snapshots,
-                commands,
-              ).run();
-            } else {
-              final execution = Execution(request, session);
-              data = await execution.bound(() => _execute(execution));
-            }
-            data = limitContent(data, request.maxOutput, request.outputJson);
-            if (request.maxOutput != null) {
-              snapshots.retainPublished(session, data);
-            }
-            return {...data, 'recording': ?recording};
+            final authorized = authorizeRequest(incoming, session);
+            return _runAuthorized(authorized, session);
           })
           .whenComplete(() {
             session.pending--;
             if (!hasPending) onQueueIdle?.call();
-            // Rejections before URI acquisition are temporary reservations, not active connections.
-            // Keep the same queue while requests continue, and retain sessions that actually attempted connect for recovery.
-            if ((session.closed || session.uri == null) &&
+            if ((session.closed ||
+                    (session.uri == null && session.approval == null)) &&
                 session.pending == 0 &&
                 !recordings.contains(session.name) &&
                 identical(sessions[session.name], session)) {
@@ -190,6 +171,35 @@ class SessionManager {
         const AgentError('INTERNAL_ERROR', 'Request failed'),
       );
     }
+  }
+
+  Future<Json> _runAuthorized(Request request, Session session) async {
+    if (request.command == 'deny') return {'denied': true};
+    if (request.command == 'record') return recordings.handle(request);
+    Json? recording;
+    if (request.command == 'close') {
+      if (request.params.isNotEmpty) invalid();
+      recording = await recordings.close(request);
+    }
+    Json data;
+    if (request.command == 'batch') {
+      data = await executeBatch(request, session, snapshots, commands);
+    } else if (request.command == 'workflow') {
+      data = await WorkflowExecution(
+        request,
+        session,
+        snapshots,
+        commands,
+      ).run();
+    } else {
+      final execution = Execution(request, session);
+      data = await execution.bound(() => _execute(execution));
+    }
+    data = limitContent(data, request.maxOutput, request.outputJson);
+    if (request.maxOutput != null) {
+      snapshots.retainPublished(session, data);
+    }
+    return {...data, 'recording': ?recording};
   }
 
   /// Intake is synchronous: no later connect or command can reserve a session.
@@ -342,6 +352,13 @@ class SessionManager {
         session.uri = null;
         session.closed = true;
         return {'closed': true};
+      case 'state':
+        if (request.params.length != 1 ||
+            request.params['action'] != 'export') {
+          invalid('Invalid state request');
+        }
+        context.requireConnected();
+        return {'uri': session.uri.toString()};
       case 'session':
         if (request.params.length != 1 || request.params['action'] != 'show') {
           invalid('Usage: session list|show');

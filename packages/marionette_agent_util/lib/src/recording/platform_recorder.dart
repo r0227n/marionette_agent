@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'recorder.dart';
+import 'frame_rate_recorder.dart';
 import 'web_recorder.dart';
 import '../platform_exception.dart';
 
@@ -16,6 +17,9 @@ class PlatformScreenRecorder implements ScreenRecorder {
     String stagingPath,
     DateTime deadline,
   ) async {
+    if (target.fps != null) {
+      return startAtFrameRate(this, target, stagingPath, deadline);
+    }
     switch (target.platform) {
       case RecordingPlatform.web:
         return WebScreenRecorder(this).start(target, stagingPath, deadline);

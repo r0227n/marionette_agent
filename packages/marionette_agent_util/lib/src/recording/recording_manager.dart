@@ -337,6 +337,12 @@ void _check(DateTime deadline) {
 
 /// Validate before invoking tools, including direct callers and IPC adapters.
 void validateTarget(RecordingTarget target, String path) {
+  if (target.fps != null && (target.fps! < 1 || target.fps! > 60)) {
+    throw const PlatformException(
+      'INVALID_ARGUMENT',
+      'FPS must be from 1 to 60',
+    );
+  }
   final valid = switch (target.platform) {
     RecordingPlatform.linux ||
     RecordingPlatform.windows => throw const PlatformException(
@@ -388,6 +394,7 @@ class _Entry {
   Map<String, Object?> get info => {
     'recordingState': state,
     'platform': target.platform.name,
+    if (target.fps != null) 'fps': target.fps,
     'device': target.device,
     'path': path,
     'startedAt': started?.toUtc().toIso8601String(),

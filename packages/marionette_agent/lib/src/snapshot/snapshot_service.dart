@@ -95,10 +95,28 @@ class SnapshotService {
 
   /// Invalidate stale refs and expose only data and uniquely actionable refs.
 
-  Future<Json> publish(Execution context, {Selector? filter}) async {
+  Future<Json> publish(
+    Execution context, {
+    Selector? filter,
+    bool interactive = false,
+    bool compact = false,
+    int? depth,
+  }) async {
     context.requireConnected();
     context.session.invalidate();
     final elements = await context.read((backend) => backend.inspect());
+    if (depth != null && elements.any((element) => element.depth == null)) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Binding does not provide element depth',
+      );
+    }
+    if (interactive && elements.any((element) => element.interactive == null)) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Binding does not identify interactive elements',
+      );
+    }
     final selectors = context.session.backend!.selectors;
     final refs = <String, _Reference>{};
     final rows = <Json>[];
@@ -142,7 +160,15 @@ class SnapshotService {
       // Filtering affects delivery only, after full-observation safety and numbering.
       if (filter == null ||
           element.candidateValue(filter.kind) == filter.value) {
-        rows.add(row);
+        if ((!interactive || element.interactive == true) &&
+            (depth == null || element.depth! <= depth) &&
+            (!compact ||
+                row.containsKey('ref') ||
+                element.text?.isNotEmpty == true ||
+                element.inputValue != null ||
+                element.label?.isNotEmpty == true)) {
+          rows.add(row);
+        }
       }
     }
     context.check();
@@ -150,6 +176,12 @@ class SnapshotService {
     context.session.observation = observation;
     final result = <String, dynamic>{
       'generation': observation.generation,
+      if (interactive || compact || depth != null)
+        'options': {
+          'interactive': interactive,
+          'compact': compact,
+          'depth': depth,
+        },
       if (filter != null)
         'filter': {
           'kind': filter.kind.name,
@@ -159,7 +191,7 @@ class SnapshotService {
         },
       'elements': rows,
     };
-    if (filter != null) retainPublished(context.session, result);
+    retainPublished(context.session, result);
     return result;
   }
 
@@ -264,6 +296,41 @@ class SnapshotService {
       );
     }
     return ResolvedElement(selector, element);
+  }
+
+  Selector referenceSelector(Execution context, RefQuery ref) {
+    context.requireConnected();
+    final observation = context.session.observation;
+    final reference = observation is _Observation
+        ? observation.refs[ref.ref]
+        : null;
+    if (reference == null) {
+      throw const AgentError(
+        'STALE_REF',
+        'Ref is not valid in this session',
+        hint: 'Run snapshot again',
+      );
+    }
+    return reference.selector;
+  }
+
+  Future<Selector> uniqueSelector(
+    Execution context,
+    ElementInfo element,
+  ) async {
+    for (final kind in context.session.backend!.selectors) {
+      final value = element.value(kind);
+      if (value == null || value.isEmpty) continue;
+      final selector = Selector(kind, value);
+      final matches = await count(context, selector);
+      if (matches.length == 1 && matches.single.sameAs(element)) {
+        return selector;
+      }
+    }
+    throw const AgentError(
+      'UNRESOLVABLE_TARGET',
+      'Selected element has no unique supported matcher',
+    );
   }
 
   /// Count selector candidates without requiring uniqueness.

@@ -24,6 +24,11 @@ enum ScreenshotFormat {
 class CommonOptions {
   const CommonOptions({
     this.session = 'default',
+    this.namespace,
+    this.restore,
+    this.actionPolicy,
+    this.confirmActions,
+    this.confirmInteractive = false,
     this.json = false,
     this.debug = false,
     this.timeoutMs = 30000,
@@ -36,6 +41,8 @@ class CommonOptions {
     this.special,
   });
   final String session;
+  final String? namespace, restore, actionPolicy, confirmActions;
+  final bool confirmInteractive;
   final bool json;
   final bool debug;
   final int timeoutMs;
@@ -56,11 +63,31 @@ class CommonOptions {
   static ArgParser createParser(Map<String, String> environment) => ArgParser()
     ..addOption(
       'session',
+      aliases: ['session-name'],
       defaultsTo:
           environment['MARIONETTE_AGENT_SESSION'] ??
           const CommonOptions().session,
       help: 'Session name (CLI > MARIONETTE_AGENT_SESSION > default)',
     )
+    ..addOption(
+      'restore',
+      help: 'Reconnect using a private state file before this command',
+    )
+    ..addOption('config', help: 'JSON file containing common option defaults')
+    ..addOption(
+      'action-policy',
+      help: 'JSON allow/deny/confirm policy, retained by the session',
+    )
+    ..addOption(
+      'confirm-actions',
+      help: 'Comma-separated command names requiring confirmation',
+    )
+    ..addFlag(
+      'confirm-interactive',
+      negatable: false,
+      help: 'Ask on a terminal when confirmation is required',
+    )
+    ..addOption('namespace', help: 'Isolate daemon state under a named runtime')
     ..addFlag('json', negatable: false, help: 'One JSON result on stdout')
     ..addFlag(
       'debug',
@@ -162,6 +189,8 @@ class CommonOptions {
   static CommonOptions parse(ArgResults args) {
     final session = args.option('session')!;
     validateSession(session);
+    final namespace = args.option('namespace');
+    if (namespace != null) validateSession(namespace);
     if (args.flag('help') && args.flag('version')) {
       invalid('Choose help or version');
     }
@@ -192,6 +221,11 @@ class CommonOptions {
     }
     return CommonOptions(
       session: session,
+      namespace: namespace,
+      restore: args.option('restore'),
+      actionPolicy: args.option('action-policy'),
+      confirmActions: args.option('confirm-actions'),
+      confirmInteractive: args.flag('confirm-interactive'),
       json: args.flag('json'),
       screenshotFormat: screenshotFormat,
       screenshotQuality: screenshotQuality,
@@ -228,7 +262,12 @@ class CommonOptions {
     final independent =
         args.flag('help') ||
         args.flag('version') ||
-        args.command?.name == 'doctor' ||
+        [
+          'doctor',
+          'device',
+          'install',
+          'upgrade',
+        ].contains(args.command?.name) ||
         (args.command?.name == 'workflow' &&
             args.command?.command?.name != 'run') ||
         (args.command?.name == 'session' &&
@@ -258,7 +297,12 @@ class CommonOptions {
     var json = false;
     var debug = false;
     var independent =
-        commands.firstOrNull == 'doctor' ||
+        [
+          'doctor',
+          'device',
+          'install',
+          'upgrade',
+        ].contains(commands.firstOrNull) ||
         (commands.firstOrNull == 'workflow' && !commands.contains('run')) ||
         (commands.firstOrNull == 'session' && commands.contains('list'));
     for (var i = 0; i < arguments.length; i++) {
@@ -269,11 +313,12 @@ class CommonOptions {
         continue;
       }
       final split = token.indexOf('=');
-      final name = token.startsWith('--')
+      var name = token.startsWith('--')
           ? token.substring(2, split < 0 ? null : split)
           : token == '-h'
           ? 'help'
           : null;
+      if (name == 'session-name') name = 'session';
       final option = grammar.options[name] ?? parser.options[name];
       if (option == null) continue;
       String? value;
@@ -307,11 +352,12 @@ class CommonOptions {
         grammar = child;
         continue;
       }
-      final name = arg.startsWith('--')
+      var name = arg.startsWith('--')
           ? arg.substring(2).split('=').first
           : arg == '-h'
           ? 'help'
           : null;
+      if (name == 'session-name') name = 'session';
       final option = grammar.options[name] ?? parser.options[name];
       if (option == null) {
         if (RegExp(r'^-h+$').hasMatch(arg)) {

@@ -82,10 +82,21 @@ class ElementInfo {
     Json? bounds,
     this.visible,
     this.textMatchable = false,
+    this.inputValue,
+    this.enabled,
+    this.checked,
+    this.role,
+    this.label,
+    this.placeholder,
+    this.depth,
+    this.interactive,
   }) : bounds = bounds == null ? null : Map.unmodifiable(bounds);
   final String? type, text, key, identifier;
   final Json? bounds;
   final bool? visible;
+  final String? inputValue, role, label, placeholder;
+  final bool? enabled, checked, interactive;
+  final int? depth;
 
   /// True only when discovery text is known to follow the backend matcher.
   final bool textMatchable;
@@ -107,6 +118,14 @@ class ElementInfo {
     if (identifier != null) 'identifier': identifier,
     if (bounds != null) 'bounds': bounds,
     if (visible != null) 'visible': visible,
+    if (inputValue != null) 'inputValue': inputValue,
+    if (enabled != null) 'enabled': enabled,
+    if (checked != null) 'checked': checked,
+    if (role != null) 'role': role,
+    if (label != null) 'label': label,
+    if (placeholder != null) 'placeholder': placeholder,
+    if (depth != null) 'depth': depth,
+    if (interactive != null) 'interactive': interactive,
   };
   bool sameAs(ElementInfo other) =>
       const DeepCollectionEquality().equals(toJson(), other.toJson()) &&
@@ -166,4 +185,18 @@ class MappedScreenshot {
   const MappedScreenshot(this.image, this.geometry);
   final String image;
   final ScreenshotGeometry geometry;
+}
+
+/// Optional operations. Unsupported providers fail before any UI send.
+abstract interface class InteractionBackend {
+  Set<String> get interactions;
+  Future<void> interact(
+    String action, {
+    Selector? target,
+    Json arguments = const {},
+  });
+}
+
+abstract interface class ClipboardBackend {
+  Future<String?> readClipboard();
 }

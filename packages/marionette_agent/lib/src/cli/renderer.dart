@@ -10,13 +10,27 @@ String render(
   required bool json,
   bool contentBoundaries = false,
 }) {
-  if (contentBoundaries && result.data != null) {
+  if (contentBoundaries &&
+      (result.data != null || result.error?.details != null)) {
     final random = Random.secure();
     final nonce = List.generate(
       16,
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
     Json mark(Json data) {
+      if (data['results'] is List) {
+        data = {
+          ...data,
+          'results': [
+            for (final entry in data['results'] as List)
+              if (entry is Map)
+                {
+                  ...entry,
+                  if (entry['data'] is Map) 'data': mark(asJson(entry['data'])),
+                },
+          ],
+        };
+      }
       if (data['finalSnapshot'] case final Map snapshot) {
         return {...data, 'finalSnapshot': mark(asJson(snapshot))};
       }
@@ -33,7 +47,21 @@ String render(
             };
     }
 
-    result = Result.success(result.session, mark(result.data!));
+    if (result.data != null) {
+      result = Result.success(result.session, mark(result.data!));
+    } else {
+      final error = result.error!;
+      result = Result.failure(
+        result.session,
+        AgentError(
+          error.code,
+          error.message,
+          hint: error.hint,
+          outcome: error.outcome,
+          details: mark(error.details!),
+        ),
+      );
+    }
   }
   if (json) return jsonEncode(result.toJson());
   final error = result.error;
@@ -43,7 +71,14 @@ String render(
       '${error.code}: ${error.message}',
       if (details?['sessions'] is List)
         const JsonEncoder.withIndent('  ').convert(details),
-      if (details != null && details['sessions'] == null) ...[
+      if (details?['confirmationId'] is String) ...[
+        'Confirmation: ${details!['confirmationId']}',
+        'Command: ${details['command']}',
+      ] else if (details?['completed'] is int) ...[
+        'Batch: ${details!['completed']} commands completed; failed index ${details['failedIndex']}',
+        for (final entry in details['results'] as List)
+          '${entry['command']}:\n${render(Result.success(result.session, asJson(entry['data'])), json: false)}',
+      ] else if (details != null && details['sessions'] == null) ...[
         if (details['progressKnown'] == true)
           'Workflow ${details['workflow'] ?? '-'}: ${details['completedSteps']} steps completed'
         else
@@ -70,7 +105,16 @@ String render(
   if (data['help'] case final String help) return help;
   if (data['version'] case final String version) return version;
   if (data.containsKey('known') && data.containsKey('value')) {
-    return 'Visible: ${data['known'] == true ? data['value'] : 'unknown'}';
+    final property = data['property'] as String? ?? 'visible';
+    final label = '${property[0].toUpperCase()}${property.substring(1)}';
+    return '$label: ${data['known'] == true ? data['value'] : 'unknown'}';
+  }
+  if (data['completed'] is int && data['results'] is List) {
+    return [
+      'Batch: ${data['completed']} commands completed',
+      for (final entry in data['results'] as List)
+        '${entry['command']}:\n${render(Result.success(result.session, asJson(entry['data'])), json: false)}',
+    ].join('\n');
   }
   if (data['completedSteps'] case final int count) {
     final snapshot = data['finalSnapshot'];

@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../cli/common_options.dart';
 
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
-const protocolVersion = 5;
+const protocolVersion = 6;
 
 /// Version for result envelopes rendered to stdout.
 const schemaVersion = 1;
@@ -142,6 +142,7 @@ class Request {
     this.maxOutput,
     this.outputJson = false,
     this.debug = false,
+    this.policy,
   });
   final String requestId;
   final String session;
@@ -151,6 +152,7 @@ class Request {
   final int? maxOutput;
   final bool outputJson;
   final bool debug;
+  final Json? policy;
   Duration get remaining => deadline.difference(DateTime.now());
   void checkDeadline() {
     if (remaining <= Duration.zero) {
@@ -168,6 +170,7 @@ class Request {
     'maxOutput': maxOutput,
     'outputJson': outputJson,
     'debug': debug,
+    if (policy != null) 'policy': policy,
   };
   factory Request.fromJson(Json json) {
     if (json['protocolVersion'] != protocolVersion) {
@@ -197,6 +200,7 @@ class Request {
       maxOutput: maxOutput,
       outputJson: json['outputJson'] == true,
       debug: json['debug'] == true,
+      policy: json['policy'] == null ? null : asJson(json['policy']),
       command: json['command'] as String,
       params: asJson(json['params']),
       deadline: DateTime.fromMillisecondsSinceEpoch(json['deadline'] as int),

@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import '../backend/backend.dart';
+import '../cli/common_options.dart';
 import '../protocol/protocol.dart';
-import '../snapshot/snapshot_service.dart' show SelectorQuery;
+import '../snapshot/snapshot_service.dart' show SelectorQuery, RefQuery;
 import 'arguments.dart';
 import 'command_context.dart';
 
@@ -13,6 +14,38 @@ const maximumWaitPollIntervalMs = 1000;
 
 /// Shared standalone/workflow handler. It never publishes refs or retries UI actions.
 Future<Json> handleWait(CommandContext context, Json params) async {
+  if (params.containsKey('milliseconds')) {
+    final ms = params['milliseconds'];
+    if (params.length != 1 || ms is! int || ms < 0) {
+      invalid('Invalid wait duration');
+    }
+    CommonOptions.duration('$ms', allowZero: true);
+    // Read boundary applies the same connection and absolute deadline contract.
+    await context.read((_) => Future<void>.delayed(Duration(milliseconds: ms)));
+    return {'waitedMs': ms, 'requiresSnapshot': false};
+  }
+  if (params.containsKey('ref')) {
+    final ref = params['ref'];
+    if (ref is! String) invalid('Invalid wait ref');
+    if (params.keys.any(
+      (key) => !{'ref', 'state', 'pollIntervalMs'}.contains(key),
+    )) {
+      invalid('Invalid wait ref arguments');
+    }
+    WaitRequest.parse({
+      'key': 'validation-only',
+      if (params.containsKey('state')) 'state': params['state'],
+      if (params.containsKey('pollIntervalMs'))
+        'pollIntervalMs': params['pollIntervalMs'],
+    });
+    final query = RefQuery(ref);
+    final selector = await context.referenceSelector(query);
+    if ((params['state'] ?? 'exists') == 'exists') {
+      await context.observeTarget(query);
+    }
+    params = {...params}..remove('ref');
+    params.addAll(selector.toJson());
+  }
   final request = WaitRequest.parse(params);
   await waitForTarget(context, request);
   return {'state': request.state, 'requiresSnapshot': true};

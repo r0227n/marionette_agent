@@ -11,7 +11,7 @@ marionette-agent doctor --probe-uri "$VM_URI" --timeout 10000 --json
 接続やdaemonなしで実行できます。macOS/Dart対応範囲、runtimeの所有者/0700/path長、
 daemon応答/protocol、CLI固定依存の宣言とlockfile、利用可能なiOS Simulatorを調べます。
 `MARIONETTE_AGENT_RUNTIME_DIR`で検査対象を選びます。未作成runtimeは正常な未実施扱いです。
-修復・socket削除・daemon自動起動・Simulator起動・package再導入は行いません。
+通常実行は修復を行いません。`--quick`・`--offline`・所有runtimeの権限だけを修復する`--fix`は[追加機能](cli-parity.ja.md)を参照してください。
 
 VM Serviceへの接続は`--probe-uri`を明示した時だけです。URIは出力しませんが、shell履歴や
 process引数の共有には注意してください。既存sessionとrefを変更せず、probe専用接続を終了時に解放します。
@@ -34,7 +34,20 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 
 共通オプションはコマンドの前後どちらにも記述できます。同じオプションを複数回指定すると引数エラーになります。
 
-label/role/hint/placeholder/tooltip selectorと入力値・enabled/checked取得コマンドは未実装です。snapshotのtextは入力値や状態を保証しません。固定依存の制約と将来案は [Semantics selector・状態取得設計](../semantics-selector-state-design.md) を参照してください。
+入力値・enabled/checked、意味によるfind、snapshotの出力制御、追加の入力・操作・待機・差分・録画・運用機能は[Flutter向け追加コマンド](cli-parity.ja.md)を参照してください。型付き情報が必要な機能には任意のFlutter補助パッケージを使います。snapshotの表示textから入力値・状態は推測しません。
+
+| 追加コマンド・オプション | 用途 |
+| --- | --- |
+| `snapshot --interactive/--compact/--depth` | 観測の出力制御 |
+| `get value`、`is enabled/checked`、`find` | 型付き状態と意味・位置による検索 |
+| `click`、`dblclick`、`type`、`focus`、`press`、`keydown/up`、`keyboard` | 入力とキー操作 |
+| `hover`、`check/uncheck`、`select`、`drag`、`scrollintoview` | Flutter対象への追加操作 |
+| `wait <ms/ref>`、`clipboard` | 時間・ref待機と接続先clipboard |
+| `screenshot <ref/selector>`、`diff snapshot/screenshot` | 部分画像と差分 |
+| `record restart --fps`、`device list` | 録画の再開始・フレームレート・端末一覧 |
+| `--config`、`--namespace`、`--session-name`、`--restore`、`state` | 設定と接続状態の管理 |
+| `batch`、`--action-policy`、`--confirm-actions`、`--confirm-interactive`、`confirm/deny` | 連続実行と操作確認 |
+| `doctor --quick/--offline/--fix`、`install/upgrade` | 診断とローカルcheckoutからのCLI配置 |
 
 ### 共通オプション
 
@@ -79,7 +92,7 @@ marionette-agent --session demo fill --key text_input -- '--not-an-option'
 
 ### 環境変数によるsessionとtimeoutの既定値
 
-`--session`は`MARIONETTE_AGENT_SESSION`、`--timeout`は`MARIONETTE_AGENT_TIMEOUT_MS`へフォールバックします。それぞれ **明示CLI > 環境変数 > 組込み既定値** の順です。同じruntime directoryを使う独立CLIプロセス間で同じ環境sessionを利用できます。
+`--session`は`MARIONETTE_AGENT_SESSION`、`--timeout`は`MARIONETTE_AGENT_TIMEOUT_MS`へフォールバックします。それぞれ **明示CLI > 環境変数 > 明示config > 組込み既定値** の順です。同じruntime directoryを使う独立CLIプロセス間で同じ環境sessionを利用できます。
 
 ```bash
 export MARIONETTE_AGENT_SESSION=demo
@@ -94,7 +107,7 @@ marionette-agent close
 
 構文エラーでも、有効な環境sessionまたは明示sessionとJSONモードを回復します。不正なsessionとsession非依存コマンドの応答sessionはnullです。オプションの値や`--`以降の文字列は共通オプションとして再解釈しません。timeoutにはキュー待ちも含まれ、環境値もCLI指定と同じ絶対期限になります。
 
-configファイル、認証情報、session id、idle-timeout用の環境fallbackはありません。runtime directoryは従来の`MARIONETTE_AGENT_RUNTIME_DIR`で指定します。
+`--config`で共通オプションを設定できます。認証情報、session id、idle-timeout用の環境fallbackはありません。runtime directoryは従来の`MARIONETTE_AGENT_RUNTIME_DIR`で指定します。
 
 ### 未信頼コンテンツと出力量
 

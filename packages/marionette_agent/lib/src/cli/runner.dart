@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
 import 'dart:math';
+
+import 'package:marionette_agent_util/marionette_agent_util.dart';
 
 import '../daemon/client.dart';
 import '../daemon/runtime.dart';
@@ -7,6 +10,11 @@ import '../diagnostics/diagnostic_logging.dart';
 import '../protocol/protocol.dart';
 import 'parser.dart';
 import 'doctor.dart';
+import 'diff_command.dart';
+import 'batch_command.dart';
+import 'state_command.dart';
+import 'install_command.dart';
+import 'policy_file.dart';
 import 'common_options.dart';
 import 'artifact_writer.dart';
 import 'renderer.dart';
@@ -55,8 +63,12 @@ Future<int> runCli(
     );
     diagnostics.emit(DebugStage.cliParsed);
     final deadline = started.add(Duration(milliseconds: invocation.timeoutMs));
+    final policy = await loadPolicy(invocation.options, deadline);
     Json params = invocation.params;
     Json? localData;
+    if (invocation.command == 'batch') {
+      params = await loadBatch(params['path'] as String, deadline, cliParser);
+    }
     if (workflow) {
       if (params['action'] == 'schema') {
         localData = {
@@ -100,10 +112,26 @@ Future<int> runCli(
         'Workflow validation deadline exceeded',
       );
     }
-    if (invocation.command == 'doctor') {
-      final data = await Doctor().run(
+    if (['install', 'upgrade'].contains(invocation.command)) {
+      result = Result.success(
+        null,
+        await installCli(params, invocation.command, deadline),
+      );
+    } else if (invocation.command == 'device') {
+      try {
+        result = Result.success(null, {
+          'devices': await listDevices(params['platform'] as String, deadline),
+        });
+      } on PlatformException catch (error) {
+        throw AgentError(error.code, error.message);
+      }
+    } else if (invocation.command == 'doctor') {
+      final data = await Doctor(namespace: invocation.options.namespace).run(
         deadline,
         probeUri: params['probeUri'] as String?,
+        quick: params['quick'] == true,
+        offline: params['offline'] == true,
+        fix: params['fix'] == true,
       );
       diagnosticExitCode = data['exitCode'] as int;
       result = Result.success(null, data);
@@ -114,8 +142,49 @@ Future<int> runCli(
     } else if (invocation.command == 'version') {
       result = Result.success(null, {'version': version});
     } else {
+      final baseline = invocation.command == 'diff'
+          ? await readBaseline(params['baseline'] as String, deadline)
+          : null;
       diagnostics.emit(DebugStage.runtimePrepare);
-      final runtime = await RuntimeDirectory.prepare();
+      final runtime = await RuntimeDirectory.prepare(
+        namespace: invocation.options.namespace,
+      );
+      final client = DaemonClient(
+        runtime,
+        launchCommand: launchCommand,
+        idleTimeoutMs: invocation.options.idleTimeoutMs,
+      );
+      var command = invocation.command;
+      var requestParams = params;
+      if (invocation.options.restore != null) {
+        final uri = await loadConnectionState(
+          invocation.options.restore!,
+          deadline,
+        );
+        final connected = await client.send(
+          Request(
+            requestId: requestId,
+            session: invocation.session,
+            command: 'connect',
+            params: {'uri': uri},
+            deadline: deadline,
+          ),
+        );
+        if (connected.error != null) throw connected.error!;
+      }
+      if (command == 'state') {
+        if (params['action'] == 'load') {
+          command = 'connect';
+          requestParams = {
+            'uri': await loadConnectionState(
+              params['path'] as String,
+              deadline,
+            ),
+          };
+        } else {
+          requestParams = {'action': 'export'};
+        }
+      }
       result =
           await DaemonClient(
             runtime,
@@ -125,16 +194,69 @@ Future<int> runCli(
             Request(
               requestId: requestId,
               debug: debug,
+              policy: policy,
               session: invocation.session,
-              command: invocation.command,
-              params: params,
-              maxOutput: invocation.options.maxOutput,
+              command: command == 'diff'
+                  ? (params['action'] == 'snapshot'
+                        ? 'diff-snapshot'
+                        : 'screenshot')
+                  : command,
+              params: command == 'diff' ? {} : requestParams,
+              maxOutput: command == 'diff'
+                  ? null
+                  : invocation.options.maxOutput,
               outputJson: invocation.json,
               deadline: started.add(
                 Duration(milliseconds: invocation.timeoutMs),
               ),
             ),
           );
+      if (result.error?.code == 'CONFIRMATION_REQUIRED' &&
+          invocation.options.confirmInteractive &&
+          stdin.hasTerminal) {
+        final id = result.error!.details!['confirmationId'] as String;
+        stderr.write('Confirm ${result.error!.details!['command']}? [y/N] ');
+        String answer;
+        try {
+          answer = await stdin
+              .transform(utf8.decoder)
+              .transform(const LineSplitter())
+              .first
+              .timeout(deadline.difference(DateTime.now()));
+        } catch (_) {
+          answer = '';
+        }
+        result = await client.send(
+          Request(
+            requestId: requestId,
+            session: invocation.session,
+            command: answer.trim().toLowerCase() == 'y' ? 'confirm' : 'deny',
+            params: {'id': id},
+            deadline: deadline,
+            maxOutput: invocation.options.maxOutput,
+            outputJson: json,
+            debug: debug,
+          ),
+        );
+      }
+      if (invocation.command == 'state' &&
+          params['action'] == 'save' &&
+          result.error == null) {
+        result = Result.success(
+          session,
+          await saveConnectionState(
+            params['path'] as String,
+            result.data!,
+            deadline,
+          ),
+        );
+      }
+      if (baseline != null && result.error == null) {
+        result = Result.success(
+          session,
+          await compareObservation(params, baseline, result.data!, deadline),
+        );
+      }
       if (invocation.command == 'screenshot' && result.error == null) {
         result = Result.success(
           session,

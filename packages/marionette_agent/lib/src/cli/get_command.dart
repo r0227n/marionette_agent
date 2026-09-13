@@ -7,7 +7,7 @@ import 'target_options.dart';
 
 CliCommand getCommand() {
   final parser = ArgParser();
-  for (final action in ['text', 'box', 'count']) {
+  for (final action in ['text', 'value', 'box', 'count']) {
     final command = ArgParser();
     addSelectorOptions(command);
     parser.addCommand(action, command);
@@ -15,7 +15,9 @@ CliCommand getCommand() {
   return CliCommand(parser, (args) {
     final action = args.command;
     if (action == null) {
-      invalid('Usage: get text|box <ref|selector> | get count <selector>');
+      invalid(
+        'Usage: get text|value|box <ref|selector> | get count <selector>',
+      );
     }
     final ref = action.rest.isEmpty ? null : action.rest.singleOrNull;
     if (action.rest.length > 1) {

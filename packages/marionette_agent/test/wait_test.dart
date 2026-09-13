@@ -36,10 +36,10 @@ void main() {
     expect(parser.usage, contains('wait observes only'));
   });
 
-  test('wait grammar rejects refs, coordinates, bad selectors and options', () {
+  test('wait grammar rejects malformed refs, coordinates, bad selectors and options', () {
     for (final arguments in [
       ['wait'],
-      ['wait', '@e1'],
+      ['wait', '@invalid'],
       ['wait', '--x', '1', '--y', '2'],
       ['wait', '--key', 'a', '--type', 'Text'],
       ['wait', '--key', 'a', '--state', 'visible'],
@@ -148,7 +148,7 @@ void main() {
             .where((call) => call == 'inspect')
             .length;
         for (final params in <Json>[
-          {'ref': ref},
+          {'ref': '@invalid'},
           {'x': 1, 'y': 2},
           {'key': 'base', 'type': 'Button'},
           {'key': 'base', 'state': 'visible'},

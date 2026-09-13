@@ -22,8 +22,35 @@ class CommandContext {
   void check() => _execution.check();
 
   /// Fetch a new public snapshot. This emits refs, unlike pre-observation.
-  Future<Json> snapshot({Selector? filter}) =>
-      _snapshots.publish(_execution, filter: filter);
+  Future<Json> snapshot({
+    Selector? filter,
+    bool interactive = false,
+    bool compact = false,
+    int? depth,
+  }) => _snapshots.publish(
+    _execution,
+    filter: filter,
+    interactive: interactive,
+    compact: compact,
+    depth: depth,
+  );
+
+  Future<void> requireInteraction(String action) => read((backend) async {
+    if (backend is! InteractionBackend ||
+        !(backend as InteractionBackend).interactions.contains(action)) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Binding does not support this interaction',
+      );
+    }
+  });
+
+  Future<Selector> referenceSelector(RefQuery ref) async =>
+      _snapshots.referenceSelector(_execution, ref);
+
+  /// Resolve a selection to a unique supported matcher, never an index or coordinate fallback.
+  Future<Selector> uniqueSelector(ElementInfo element) =>
+      _snapshots.uniqueSelector(_execution, element);
 
   /// Re-observe one target without changing the published refs.
   Future<ElementInfo> observeTarget(TargetQuery query) =>
@@ -53,6 +80,10 @@ class CommandContext {
     await _execution.mutate((backend) => operation(backend, selector));
     return {'requiresSnapshot': true};
   }
+
+  /// A non-UI side effect still records delivery while preserving observed refs.
+  Future<void> performEffect(Future<void> Function(Backend) operation) =>
+      _execution.mutate(operation, invalidate: false);
 
   /// Shared dispatch path for explicit coordinate mode. Build Point values ahead of call.
   Future<Json> performCoordinates(
