@@ -40,7 +40,17 @@ class CliParser {
       if (args.rest.length != 1) invalid('Usage: connect <uri>');
       return {'uri': args.rest.single};
     }),
-    'close': CliCommand(ArgParser(), noArguments),
+    'close': CliCommand(
+      ArgParser()..addFlag(
+        'all',
+        negatable: false,
+        help: 'Close every session and stop the daemon.',
+      ),
+      (args) {
+        noArguments(args);
+        return args['all'] == true ? {'all': true} : {};
+      },
+    ),
     'snapshot': CliCommand(ArgParser(), noArguments),
     'session': CliCommand(
       ArgParser()
@@ -63,7 +73,8 @@ class CliParser {
   String get usage =>
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
-      'connect <uri> | session list | session show | close | snapshot\n'
+      'connect <uri> | session list | session show | close [--all] | snapshot\n'
+      'close --all stops all sessions; cannot combine with --session. Apps keep running.\n'
       'swipe <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>\n'
       'Directions describe finger movement; verify the result with snapshot.\n'
@@ -107,11 +118,13 @@ class CliParser {
     }
     final command = args.command;
     if (command == null) invalid('A command is required');
-    return Invocation(
-      options,
-      command.name!,
-      definitions[command.name]!.decode(command),
-    );
+    final params = definitions[command.name]!.decode(command);
+    if (command.name == 'close' &&
+        params['all'] == true &&
+        args.wasParsed('session')) {
+      invalid('close --all cannot be combined with --session');
+    }
+    return Invocation(options, command.name!, params);
   }
 }
 
@@ -128,7 +141,8 @@ class Invocation {
       command == 'help' ||
           command == 'version' ||
           (command == 'workflow' && params['action'] != 'run') ||
-          (command == 'session' && params['action'] == 'list')
+          (command == 'session' && params['action'] == 'list') ||
+          (command == 'close' && params['all'] == true)
       ? null
       : session;
 }

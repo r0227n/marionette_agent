@@ -67,7 +67,8 @@ class DaemonClient {
   /// Include startup wait in the deadline. Never retry after request send even on disconnect.
   Future<Result> send(Request request) async {
     final resultSession =
-        request.command == 'session' && request.params['action'] == 'list'
+        ((request.command == 'session' && request.params['action'] == 'list') ||
+            (request.command == 'close' && request.params['all'] == true))
         ? null
         : request.session;
     var sent = false;
@@ -105,7 +106,9 @@ class DaemonClient {
             return Result.success(null, {'sessions': []});
           }
           if (request.command == 'close') {
-            return Result.success(request.session, {'closed': true});
+            return request.params['all'] == true
+                ? Result.success(null, {'closed': true, 'sessions': []})
+                : Result.success(request.session, {'closed': true});
           }
           throw const AgentError(
             'NOT_CONNECTED',
