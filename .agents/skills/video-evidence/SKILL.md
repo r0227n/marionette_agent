@@ -1,15 +1,15 @@
 ---
-name: marionette-video-evidence
-description: Edit marionette_agent Simulator verification recordings with FFmpeg to show the operation, where to look, and the observed result. Use when preparing annotated 動作確認動画 or swipe evidence for this repository's PRs.
+name: video-evidence
+description: Edit marionette_agent iOS, Android, and Web verification recordings with FFmpeg to show the operation, where to look, and the observed result. Use when preparing annotated 動作確認動画 or swipe evidence for this repository's PRs.
 ---
 
-# Marionette Video Evidence
+# Video Evidence
 
-`marionette_agent` の実録画から、操作対象と確認箇所が分かる動画を作る。このリポジトリのmacOS／iOS Simulator検証用。編集はローカルのFFmpeg／ffprobeで行い、文字描画にはmacOS標準のAppKitを使える。
+`marionette_agent` の実録画から、操作対象と確認箇所が分かる動画を作る。このリポジトリのiOS・Android・Web検証用。編集はmacOS／LinuxのFFmpegとPythonで行い、AppKit・GUI・`drawtext`を必要としない。Codex CloudなどのLinux環境には録画済みファイルを渡せる。依存の準備やDocker利用時は [実行環境と録画元](references/environments.md) を読む。
 
 ## 1. 証拠と確認観点を揃える
 
-入力は録画、実行したCLIの引数・応答、操作前後のsnapshot、期待する画面変化。録画がない、または操作の前後が欠ける場合は [simulator-verify](../simulator-verify/SKILL.md) で対象checkoutの `example/` を起動し、製品CLIから操作・`record start`／`record stop`を実行する。端末の割当・runtime分離・終了処理は同skillに従う。
+入力は録画、実行したCLIの引数・応答、操作前後のsnapshot、期待する画面変化。録画がない、または操作の前後が欠ける場合は [録画元別の経路](references/environments.md#録画元) で撮影する。iOS Simulator検証は [simulator-verify](../simulator-verify/SKILL.md) で対象checkoutの `example/` を起動し、製品CLIから操作・録画する。端末の割当・runtime分離・終了処理は同skillに従う。Webの操作ログは既存のブラウザー操作手段から受け取り、Marionette CLIによる操作と区別する。
 
 各場面について次を文章にする。
 
@@ -27,7 +27,7 @@ swipeの成功応答はページ切替を保証しない。たとえば `page_vi
 
 計画には元動画、検証commit、要求区間 `[in_ms, out_ms)`、操作と結果、注釈の表示区間、枠の矩形、出力先を含める。元動画時刻と、最初の採用フレームを0とした出力時刻を分ける。指定が「計画だけ」ならここで `planned` として返す。
 
-矩形は実寸PNGで確認した**動画の物理pixel**。CLIの `get box` はFlutter論理pixelなので直接転用しない。録画の回転や寸法が変わる場合は対応関係を確定してから進める。
+矩形は実寸PNGで確認した**動画の物理pixel**。CLIの `get box` はFlutter論理pixel、WebのDOM座標はCSS pixelなので直接転用しない。device pixel ratio、ブラウザーの余白、録画範囲を実画像と照合する。録画の回転や寸法が変わる場合は対応関係を確定してから進める。
 
 ## 3. 確認箇所を編集で示す
 
@@ -47,6 +47,6 @@ swipeの成功応答はページ切替を保証しない。たとえば `page_vi
 
 ## 5. PRへ引き渡す
 
-編集済み動画・確認済みPNGの絶対パス、各場面の元時刻→出力時刻、「どこを見ればよいか」、CLI検証記録を [pr-create](../pr-create/SKILL.md) へ渡す。PR公開は依頼された範囲で行う。PR本文ではFFmpeg／Swiftのコマンドやログを転載せず、編集方法と検証結果を文章で説明する。
+編集済み動画・確認済みPNGの絶対パス、各場面の元時刻→出力時刻、「どこを見ればよいか」、CLI検証記録を [pr-create](../pr-create/SKILL.md) へ渡す。PR公開は依頼された範囲で行う。PR本文ではFFmpeg／Pythonのコマンドやログを転載せず、編集方法と検証結果を文章で説明する。
 
 原動画・探索PNG・認証URI・raw runnerログは私有領域に保持し、自動添付しない。必要な添付は編集済み候補を実際に確認して選ぶ。人間の動作確認は未実施として残す。
