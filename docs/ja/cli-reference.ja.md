@@ -448,6 +448,8 @@ JSONの`data.entries`がログ配列、`data.configured`が収集設定の判定
 
 ## workflow
 
+exampleアプリを使うiOS/Androidの全コマンド検証は、[動作確認ワークフローと実行手順](../../packages/marionette_agent/examples/workflows/README.md)を参照してください。
+
 workflowは、JSONまたはYAMLファイルに記述した`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`を順番に実行します。最初の失敗で停止し、成功済みstepのrollbackや自動再実行は行いません。
 
 以下の`packages/marionette_agent/examples/workflows/`を使う例は、リポジトリルートから実行します。

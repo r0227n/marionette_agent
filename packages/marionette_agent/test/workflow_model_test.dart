@@ -50,6 +50,20 @@ void main() {
       3,
     );
   });
+  test('all-actions acceptance workflow binds and covers every action', () {
+    final plan = WorkflowPlan.decode(
+      parseWorkflowText(
+        File('examples/workflows/all-actions.yaml').readAsStringSync(),
+        'yaml',
+      ),
+      inputs: <String, dynamic>{},
+    );
+    expect(
+      plan.steps.map((step) => step.action).toSet(),
+      workflowActions.toSet(),
+    );
+    expect(plan.steps.last.action, 'snapshot');
+  });
   test('JSON and safe YAML normalize equally including literal punctuation and BOM', () {
     const yaml = '''schemaVersion: 1
 name: example
