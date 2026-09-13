@@ -13,4 +13,4 @@ export 'src/commands/core_commands.dart';
 export 'src/commands/registry.dart';
 export 'src/protocol/protocol.dart';
 export 'src/snapshot/snapshot_service.dart'
-    show TargetQuery, RefQuery, SelectorQuery;
+    show TargetQuery, RefQuery, SelectorQuery, ResolvedElement;

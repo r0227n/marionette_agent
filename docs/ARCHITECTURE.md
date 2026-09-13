@@ -4,6 +4,8 @@
 
 ## 構成
 
+`is visible`は`CommandContext.observeTarget`から`SnapshotService.observeTarget`を利用し、sessionのread境界でinspectする。操作用resolveと対象再観測・一意性・stale判定を共有し、操作用resolveのみ非表示を拒否する。コマンドはnullableなvisibleをknown/valueへ変換するだけで、mutationや公開snapshot/ref更新を行わない。単体およびIPC fixtureでtrue/false/nullと対象解決エラーを検証する。
+
 ```text
 AI Agent / Shell
   → Dart CLI（解析・workflow読込／検証・出力・ファイル保存）
@@ -84,6 +86,8 @@ UI操作は、引数・session確認→対象解決と再観測→ref失効→�
 送信後の通信断・timeoutはoutcome: unknown。connectorを破棄しdisconnectedにする。Dart Futureのtimeoutだけでは上流処理が取り消されないため、接続世代を照合し、遅延応答が新しい状態を書き換えないようにする。
 
 ## snapshotとref解決
+
+get handlerはCLIとIPCで対象を検証し、CommandContext経由でSnapshotServiceのread経路を使用する。resolveReadは再観測・一意性・text由来・refの属性比較を共有し、操作resolverはさらにvisibleを検証する。どちらもrefを発行せず、getはmutationを呼ばない。countは一意性必須resolverを使わず、capability確認後にinspectのcandidateValue完全一致を集計する。未知型textも候補件数へ含めるが、操作可能とみなさない。欠損属性のnullとboundsのFlutter論理pixel単位はhandlerの結果schemaで明示する。
 
 SnapshotServiceは要素情報を正規化し、RefStoreはref→観測世代・selector・要素属性を保持する。key、identifier、対応確認済みtext、typeの順で一意な候補を選ぶ。公開snapshotと内部の事前観測は分離し、事前検証が新しいrefを発行しないようにする。
 
@@ -172,3 +176,9 @@ Requestは`maxOutput`と`outputJson`をparams外に持つ。`output/content.dart
 DaemonClientは起動時idle値を内部daemon引数で渡す。既定値・内部引数の検証もCommonOptionsを利用する。handshakeとprivate metadataは確定したidleTimeoutMsを含み、clientは明示値との不一致を要求送信前に拒否する。起動lock取得後の再openでも同じ照合を行う。省略時に既存値を上書きせず、設定のためだけのdaemon再起動も行わない。
 
 DaemonServerはclient受信／配送とSessionManagerのpendingを監視し、全queueが空になってからidle timerを開始する。期限切れqueue entryも実際にdrainするまでpendingから除かない。queue完了通知はhealth probe後のtimer未設定を回復するが、既存のidle intervalは延長しない。health probe実行中の期限到達は完了まで延期する。timerは通常のcloseへ合流するため、record確定・全session破棄・socket削除・寿命lock解放を共有する。
+
+## 全session終了（Issue #6）
+
+CLI parserはclose --allをparams:{all:true}へ変換し、共通--sessionの明示との併用を拒否する。DaemonClientは不在時にsession:nullと空sessionsを返す。SessionManagerは受付時の同期予約と既存session queueを管理の直列化境界とし、stoppingを立てて対象を固定する。queue内の実行前検査は待機要求をnot_sentで拒否する。既存queueへのbarrierで実行中の完了を共通期限まで待ち、各sessionの録画確定とdisconnectを並行して集計する。
+
+Session.interruptは現在のExecutionだけを起こし、Execution.boundは自身のsentからunknown/not_sentを決める。完了時にlistenerを削除する。世代失効は従来のdiscardに集約し、そのFutureを全体closeだけが期限付きで待って切断失敗を観測する。workflowも各childの同じboundを使い進捗を保持する。集約結果の配送はDaemonServerの既存onEmpty、shutdown、socket削除と寿命lock解放へ合流し、非受信clientの有界破棄を維持する。公開結果と競合の正本はSPECのclose --all節。
