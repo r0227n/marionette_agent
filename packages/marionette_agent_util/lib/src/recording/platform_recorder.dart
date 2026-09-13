@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'recorder.dart';
+import 'web_recorder.dart';
 import '../platform_exception.dart';
 
 /// All OS commands, device checks and process signaling live in this package.
@@ -17,6 +18,7 @@ class PlatformScreenRecorder implements ScreenRecorder {
   ) async {
     switch (target.platform) {
       case RecordingPlatform.web:
+        return WebScreenRecorder(this).start(target, stagingPath, deadline);
       case RecordingPlatform.linux:
       case RecordingPlatform.windows:
         throw const PlatformException(

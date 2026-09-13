@@ -1,3 +1,5 @@
+import 'web_target.dart';
+
 /// Recording targets, independent of the host OS.
 enum RecordingPlatform { ios, android, macos, web, linux, windows }
 
@@ -5,9 +7,20 @@ class RecordingTarget {
   const RecordingTarget(this.platform, this.device);
   final RecordingPlatform platform;
 
-  /// Simulator UDID, adb serial, or one-based macOS display index.
+  /// Simulator UDID, adb serial, display index, or explicit Web display/page pair.
   final String device;
-  String get key => '${platform.name}:$device';
+  String get key {
+    if (platform == RecordingPlatform.web) {
+      final web = WebRecordingTarget.parse(device);
+      if (web != null) return 'macos:${web.display}';
+    }
+    return '${platform.name}:$device';
+  }
+
+  String get extension =>
+      platform == RecordingPlatform.macos || platform == RecordingPlatform.web
+      ? '.mov'
+      : '.mp4';
 }
 
 /// Backends write into a private staging directory owned by the manager.

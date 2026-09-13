@@ -137,7 +137,7 @@ void main() {
   test('unsupported platforms throw through CLI contract without launching tools', () async {
     // Keep a session alive so independent invalid requests share this manager.
     await call('connect', params: {'uri': 'http://localhost:1/'});
-    for (final platform in ['web', 'linux', 'windows']) {
+    for (final platform in ['linux', 'windows']) {
       final result = await call('record', params: start(platform));
       expect(result.error!.code, 'UNSUPPORTED_CAPABILITY');
       expect(result.exitCode, 6);
@@ -145,6 +145,80 @@ void main() {
     expect(recorder.starts, 0);
     expect(await File('${dir.path}/video.mp4').exists(), false);
   });
+  test(
+    'web uses common session API and keeps VM operations available',
+    () async {
+      final params = {
+        ...start('web'),
+        'device': 'display:1@ws://127.0.0.1:9222/devtools/page/ABC123',
+        'path': '${dir.path}/web.mov',
+      };
+      expect((await call('record', params: params)).exitCode, 0);
+      expect(
+        (await call(
+          'connect',
+          params: {'uri': 'http://localhost:1/'},
+        )).exitCode,
+        0,
+      );
+      expect((await call('snapshot')).exitCode, 0);
+      final observation = manager.sessions['a']!.observation;
+      expect(
+        (await call(
+          'record',
+          params: {'action': 'status'},
+        )).data!['recordingState'],
+        'recording',
+      );
+      expect(manager.sessions['a']!.observation, same(observation));
+      final conflict = await call(
+        'record',
+        session: 'b',
+        params: {
+          ...start('macos'),
+          'device': '1',
+          'path': '${dir.path}/conflict.mov',
+        },
+      );
+      expect(conflict.error!.code, 'SESSION_CONFLICT');
+      expect(
+        (await call('close')).data!['recording'],
+        containsPair('recordingState', 'stopped'),
+      );
+    },
+  );
+  test(
+    'web parser accepts explicit display/page and rejects invalid targets',
+    () {
+      final parser = CliParser();
+      const device = 'display:1@ws://127.0.0.1:9222/devtools/page/ABC123';
+      final parsed = parser.parse([
+        'record',
+        'start',
+        'web.mov',
+        '--platform',
+        'web',
+        '--device',
+        device,
+      ]);
+      expect(parsed.params['device'], device);
+      expect(parsed.params['path'], File('web.mov').absolute.path);
+      expect(
+        () => parser.parse([
+          'record',
+          'start',
+          'web.mp4',
+          '--platform',
+          'web',
+          '--device',
+          device,
+        ]),
+        throwsA(
+          isA<AgentError>().having((e) => e.code, 'code', 'INVALID_ARGUMENT'),
+        ),
+      );
+    },
+  );
   test('VM connection retirement does not stop device recording', () async {
     await call('connect', params: {'uri': 'http://localhost:1/'});
     await call('record', params: start());
@@ -185,7 +259,7 @@ void main() {
       '022CF629-91E1-48F0-816B-2D86B8CD1D38',
     ]);
     expect(parsed.params['path'], File('demo.mp4').absolute.path);
-    for (final platform in ['web', 'linux', 'windows']) {
+    for (final platform in ['linux', 'windows']) {
       expect(
         () => parser.parse([
           'record',

@@ -195,6 +195,7 @@ CLI parser → RecordService（共通引数検証・エラー変換）
             → RecordingManager（owner・端末排他・保存・終了）
               → ScreenRecorder / RecordingHandle
                 → iOS: simctl / Android: adb / macOS: screencapture
+                → Web: Chrome CDP lifecycle + macOS screencapture
 ```
 
 CLIは同一repo内の`../marionette_agent_util`へpath依存し、両パッケージはpublish_to:noneとする。配布は両パッケージを含むcheckoutからの起動またはCLIのコンパイル済みバイナリを使用する。隣接する参考リポジトリへのpath依存は導入しない。
@@ -203,7 +204,7 @@ record startとconnectだけがdaemonを自動起動できる。sessionは録画
 
 RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に返す。startのbackend待ちは要求期限と30秒上限で打ち切り、遅れて生成されたhandleの停止・予約回収は追跡付きcleanupとして継続する。start時の終了競合や停止失敗でも、handleの終了確認まではdevice予約を解放しない。stopの要求期限超過後も終了処理を保持し、終わるまで同じdeviceへ別録画を開始しない。Androidの自動終了も同じfinalizationへ合流する。closeでは録画を確定してから所有権を解放する。daemonのSIGINT/SIGTERMではRecordingManager.disposeが開始待ち・停止・保存・追跡cleanup全体を60秒に制限する。期限超過時はRecordingHandle.abortで所有プロセスを強制停止し、ファイル読込をキャンセルして出力を閉じる（追加待ちは最大5秒）。stagingと未確定の予約先を保持し、遅延完了で動画を公開しない。Androidは固有remote pathとPIDを照合して強制停止を試みるが、端末切断時の成功は保証しない。OSで進行中のI/Oは取り消しを保証できないため削除と競合させない。
 
-出力先予約、private staging、iOSのSIGINT、Androidの固有remote file名とcmdline照合付きPIDへのSIGINT、adb pull、macOSの起動生存確認・停止はutil内に閉じ込める。CLIのstdoutへ子プロセスの出力を流さず、失敗はPlatformException→AgentErrorへ変換する。未対応web/linux/windowsもutilでthrowし、CLI parserとdaemonの両方で共通検証する。
+出力先予約、private staging、iOSのSIGINT、Androidの固有remote file名とcmdline照合付きPIDへのSIGINT、adb pull、macOSの起動生存確認・停止はutil内に閉じ込める。CLIのstdoutへ子プロセスの出力を流さず、失敗はPlatformException→AgentErrorへ変換する。未対応linux/windowsもutilでthrowし、CLI parserとdaemonの両方で共通検証する。
 
 単体テストは保存保護・端末排他・開始失敗・停止期限・異常終了・終了競合、CLIテストは未接続録画session・ref保持・通信断後の継続・close・未対応platformを検証する。`integration_test/record_smoke.dart`は製品CLIで開始→接続→操作→動画確定→重複stop→上書き拒否→close確定を確認する。実動画を復号して画面変化を確認する。
 
@@ -224,3 +225,13 @@ DaemonServerはclient受信／配送とSessionManagerのpendingを監視し、�
 CLI parserはclose --allをparams:{all:true}へ変換し、共通--sessionの明示との併用を拒否する。DaemonClientは不在時にsession:nullと空sessionsを返す。SessionManagerは受付時の同期予約と既存session queueを管理の直列化境界とし、stoppingを立てて対象を固定する。queue内の実行前検査は待機要求をnot_sentで拒否する。既存queueへのbarrierで実行中の完了を共通期限まで待ち、各sessionの録画確定とdisconnectを並行して集計する。
 
 Session.interruptは現在のExecutionだけを起こし、Execution.boundは自身のsentからunknown/not_sentを決める。完了時にlistenerを削除する。世代失効は従来のdiscardに集約し、そのFutureを全体closeだけが期限付きで待って切断失敗を観測する。workflowも各childの同じboundを使い進捗を保持する。集約結果の配送はDaemonServerの既存onEmpty、shutdown、socket削除と寿命lock解放へ合流し、非受信clientの有界破棄を維持する。公開結果と競合の正本はSPECのclose --all節。
+
+## Webディスプレイ録画（Issue #16）
+
+`web_target.dart`が`display:<index>@<local page endpoint>`の閉じた構文を定義する。RecordingTargetのkeyはWebも`macos:<display>`へ写し、RecordingManagerの同期予約でWeb同士・macosとの物理対象排他を共有する。extensionはRecordingTargetが持ち、Web/macOSはMOV、iOS/AndroidはMP4としてvalidationとstaging名を一致させる。
+
+`WebScreenRecorder`は専用HttpClient（proxyなし）で明示したloopback pageに接続し、Browser.getVersion・Target.getTargetInfo・Inspector.enableを期限内に確認する。CDPのrawエラーは公開せず、許可された説明へ変換する。遅延WebSocket upgradeは閉じる。Chromeとの接続は監視専用で、ページ操作・画像転送・VM Serviceには使わない。
+
+Chrome検証後に同じPlatformScreenRecorderのmacos backendへ明示したdisplayを渡す。wrapper handleはtab終了・crash・接続断を失敗としてnative stopへ合流させる。開始中切断時も後から返ったnative handleを停止する。nativeのisRunning/endedを保持して、終了未確認のdisplay予約を解放しない。通常stop/abortで自分のCDP接続だけを閉じ、Chromeや他のタブを終了しない。CLI側は従来のRecordServiceとsession queue、共通エラー変換をそのまま使う。
+
+Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。

@@ -582,7 +582,7 @@ marionette-agent --session demo close
 
 上のstartは各環境の例です。同じsessionで同時に実行せず、先にstopしてください。iOSはmacOS/Xcode、Androidはplatform-tools、macOSは実行元アプリの画面収録許可が必要です。iOS実機は未対応です。ホストはmacOSを対象とします。
 
-- `start <path> --platform <platform> --device <id>`: 全引数必須。保存先の親directoryは作成済みである必要があります。相対pathは呼出元cwd基準。iOS/Androidは`.mp4`、macOSは`.mov`を指定します。既存file・directory・symlinkは上書きしません。
+- `start <path> --platform <platform> --device <id>`: 全引数必須。保存先の親directoryは作成済みである必要があります。相対pathは呼出元cwd基準。iOS/Androidは`.mp4`、macOS/Webは`.mov`を指定します。既存file・directory・symlinkは上書きしません。
 - `status`: recordingStateと保存先、対象、開始日時、経過時間、確定後のbytesを返します。録画なしはidleです。停止後もcloseまでは最終状態を参照できます。
 - `stop`: 録画停止と動画の確定・回収まで待ちます。重複stopは同じ結果を返します。録画がない場合はidleとして成功します。
 - `close`: 録画を確定してsessionを破棄します。確定期限超過時はsessionを保持するため、statusで確認して再度closeできます。録画が失敗していても、最終状態をdata.recordingに含めてsessionを破棄します。
@@ -595,8 +595,34 @@ marionette-agent --session demo close
 
 macOSの標準コマンドにはfirst-frame通知がないため、startは起動後1秒の生存を確認して返します。実際の動画生成はstopで検証します。iOSは最初のフレーム、Androidは動画headerの生成を開始確認に使います。macOSのメインディスプレイ録画は製品CLIで検証済みです。
 
-`--platform web` / `linux` / `windows` はUNSUPPORTED_CAPABILITY（終了コード6）です。未知のplatform名はINVALID_ARGUMENT（終了コード2）になります。未対応platformはdaemon起動前に拒否し、別方式へ自動fallbackしません。後続対応: [Web #16](https://github.com/r0227n/marionette_agent/issues/16)、[Linux #17](https://github.com/r0227n/marionette_agent/issues/17)、[Windows #18](https://github.com/r0227n/marionette_agent/issues/18)。
+`--platform linux` / `windows` はUNSUPPORTED_CAPABILITY（終了コード6）です。未知のplatform名はINVALID_ARGUMENT（終了コード2）になります。未対応platformはdaemon起動前に拒否し、別方式へ自動fallbackしません。後続対応: [Linux #17](https://github.com/r0227n/marionette_agent/issues/17)、[Windows #18](https://github.com/r0227n/marionette_agent/issues/18)。
 
 録画データはdaemon内の内部パッケージが直接保存します。通常終了とSIGINT/SIGTERMは録画確定を最大60秒待ち、期限超過時は所有する録画プロセスを強制停止します。追加の後処理待ちは最大5秒です。未確定動画は成功扱いにせず、保存先と同じ親ディレクトリの`.marionette-record-*`内の動画と予約先を復旧用に残します。OSで進行中のファイルI/Oの取り消しや、切断されたAndroid端末の強制停止は保証できません。SIGKILLやホスト停止後の自動復元はありません。Androidの画面回転を伴う録画は保証しません。
+
+### Web: ChromeとOSダイアログを含むディスプレイ録画
+
+macOS上の可視Google Chromeが対象です。Chromeを専用profileで起動し、録画対象のdisplayへ配置してください。画面収録許可はmacOS設定で実行元アプリに与えます。許可やdebug接続が拒否された場合は構造化エラーとなり、別方式へ切り替えません。
+
+```sh
+# 例: 他用途と重複しないportと新しい専用profileを選ぶ
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --user-data-dir=/tmp/mra-chrome-profile --remote-debugging-address=127.0.0.1 \
+  --remote-debugging-port=9222
+# /json/listを読み、対象URLのtype=pageを人間が選ぶ。先頭タブを自動選択しない。
+curl --noproxy '*' http://127.0.0.1:9222/json/list
+# 以下のIDは、選んだwebSocketDebuggerUrlに含まれる実際の大文字英数字IDへ置き換える
+marionette-agent --session web-demo record start ./web.mov --platform web \
+  --device 'display:1@ws://127.0.0.1:9222/devtools/page/ACTUALID' --json
+# Chromeで入力・画面遷移・OSダイアログ表示を行う
+marionette-agent --session web-demo record status --json
+marionette-agent --session web-demo record stop --json
+marionette-agent --session web-demo close --json
+```
+
+保存形式は音声なしMOVです。1はメインdisplayで、1〜999を指定できます。指定display全体のChrome UI・OSダイアログ・他アプリを含みます。タブだけの映像ではありません。Chromeの配置は自動確認・変更せず、別displayへ移動しても追従しません。隠れた画面は録画されず、覆うウインドウが写ります。
+
+同一daemonの同一displayはWebの別タブやmacos録画と排他です。対象タブの終了・クラッシュ・debug接続断はCONNECTION_LOST（終了コード3）で録画を停止します。statusはfailedとrecoveryPath、stopはエラー、closeは失敗情報付きの最終状態を返します。動画が未確定なら復旧用pathを確認してください。開始期限・停止期限・既存file保護は共通のrecord契約です。
+
+macOS以外、Chrome以外、headlessはUNSUPPORTED_CAPABILITY。接続できないChromeはCONNECTION_LOST、protocol拒否・画面収録拒否・無効displayはIO_ERRORとhintを返します。deviceにlocalhostやremote host、認証情報、query、fragmentは指定できません。Webのtap/fillは本変更で追加していないため、Webアプリの操作にはChromeまたは既存のブラウザー操作手段を使います。詳細は[方式比較と前提](../web-recording.md)を参照してください。
 
 `doctor`は構文・引数エラーでもsession非依存で、JSONの`session`は`null`です。
