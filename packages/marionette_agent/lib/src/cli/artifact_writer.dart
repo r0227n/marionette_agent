@@ -9,6 +9,7 @@ import 'package:image/src/formats/png_decoder.dart' show PngDecoder;
 import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
+import 'screenshot_annotation.dart';
 
 /// Decode before writing, reserve each destination exclusively, and roll back
 /// this request's files on failure. Existing files are not normally overwritten.
@@ -29,6 +30,7 @@ Future<Json> saveScreenshots(
     throw const AgentError('BACKEND_ERROR', 'No screenshots returned');
   }
   final images = <Uint8List>[];
+  AnnotatedScreenshot? annotated;
   try {
     for (final value in payloads) {
       checkDeadline();
@@ -41,6 +43,16 @@ Future<Json> saveScreenshots(
     rethrow;
   } catch (_) {
     throw const AgentError('BACKEND_ERROR', 'Invalid PNG screenshot');
+  }
+  if (data.containsKey('annotations')) {
+    if (images.length != 1) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Multiple screenshot view correspondence is not supported',
+      );
+    }
+    annotated = annotateScreenshot(images.single, data, checkDeadline);
+    images[0] = annotated.bytes;
   }
   Directory? temporary;
   final created = <File>[];
@@ -76,7 +88,15 @@ Future<Json> saveScreenshots(
       await created[i].writeAsBytes(images[i], flush: true);
     }
     checkDeadline();
-    return {'paths': paths};
+    return {
+      'paths': paths,
+      if (annotated != null) ...{
+        'annotated': true,
+        'generation': (data['annotations'] as Map)['generation'],
+        'annotationCount': annotated.count,
+        'skippedAnnotations': annotated.skipped,
+      },
+    };
   } catch (error) {
     for (final file in created) {
       try {
