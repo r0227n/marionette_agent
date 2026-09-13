@@ -103,3 +103,7 @@ dart "$MRA_VERIFY_CLI" close --json
 - [ ] 人間がPRの変更・手順・画面を確認した
 
 統合時の注意: #12/#13のscreenshot変更を取り込んでいない。共通parser/helpと同じ仕様書への編集は競合候補となるため、developへの統合時に整合性を確認する。
+
+## PR review integration verification (2026-09-13)
+
+Integrated develop through PR #32. Format and analysis passed; all 232 Dart tests passed, including isolated environment precedence and queue-deadline cases. A product CLI probe with environment session/timeout plus `doctor --bad --json --debug` returned INVALID_ARGUMENT with session:null and secret-safe diagnostics, preserving the sessionless doctor contract. Reviewed the original 24-call Simulator evidence and counter screenshot (0 → 1 → 2); environment-selection implementation is unchanged by integration. Human verification remains pending.
