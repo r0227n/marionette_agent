@@ -1,5 +1,38 @@
 # marionette_agent — 製品仕様
 
+## 環境診断 doctor (Issue #9)
+
+`doctor [--probe-uri <uri>]` は接続不要のローカル診断。sessionはnull。
+runtime作成・permission変更・socket削除・daemon起動/停止・package導入・Simulator起動を行わない。
+既存session/backend/refへ要求を配送せず、daemonではhandshakeだけを読み接続を破棄する。
+handshakeだけの照会ではdaemonの既存idle期限を更新しない。
+
+成功した診断実行のenvelopeは`ok:true`、dataは`doctor:true`、`exitCode`、`checks`。
+各checkは`id`、`status`、`reason`、利用者が実行する`nextStep`、`details`を持つ。
+statusは`success`(条件確認済み)、`failure`(不適合を確認)、`unknown`(timeout/観測失敗)、
+`skipped`(対象不在/明示probeなし/前提不成立)。failureまたはunknownが1件でもあれば終了1、
+それ以外は終了0。これは診断コマンド固有の集計であり、引数エラー等は通常のerror契約を使う。
+`--timeout`は全checkを含む全体期限。期限切れcheckと残りはunknownとして終了1。
+
+check IDと対象:
+- `host.os`: macOS。`host.dart`: 実行SDKが>=3.13.2 <4.0.0。
+- `runtime.socketPath`: 既存runtimeと同じ絶対path/80 UTF-8 bytes上限、socket `/s` のbyte数。
+- `runtime.directory`: symlink不可、現在user所有、0700。不存在はskippedで作成しない。
+- `daemon.ipc`: 安全確認済みdirectoryのsocketに受動接続、protocolVersion一致とreadyを確認。
+  不在はskipped、拒否/不一致はfailure、無応答はunknown。最大1秒か残り期限の短い方。
+- `dependencies.fixed`: CLI packageのpubspec/lockのmarionette_mcp、image、yaml固定version比較。
+  ファイル不在/取得不可はunknown。実bindingやインストール済み実体のversion保証ではない。
+- `simulators.ios`: `xcrun simctl list devices available --json`でiOS端末の名前/UDID/runtime/stateを観測。
+  0台はfailure、照会失敗はunknown。起動/修復はしない。
+- `probe.vmService`: `--probe-uri`指定時だけ独立したVM clientを作成し、getVersion/getVM/getIsolateと
+  登録済み`ext.flutter.marionette.getVersion`だけを照会。未指定はskipped、接続/RPC異常はfailure、
+  timeoutはunknown。binding versionは有効な応答がある時だけ、capabilityは実際に登録されたextension名のみ。
+  未観測versionはnull/unknown、未観測bindingはunknown。登録確認は操作成功の保証ではない。
+
+probeの認証URI・remote exception・入力文字列は結果/診断へ出力しない。probe終了/失敗/期限切れでは
+独立接続を解放し、遅れて成立した接続も閉じる。外部照会processは期限切れで終了させる。
+実macOS/Simulator受入検証は[Issue #9記録](../packages/marionette_agent/docs/verification/issue-9.md)を参照。
+
 状態: `marionette_agent 0.0.1` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法の詳細は[日本語CLIリファレンス](ja/cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.md)を参照する。
 
 ## 目的と対象
@@ -42,24 +75,29 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 
 | オプション | 契約 |
 | --- | --- |
-| `--session <name>` | 省略時は `default`。英数字で始まる英数字・`_`・`-`、最大64文字 |
+| `--session <name>` | 省略時は `MARIONETTE_AGENT_SESSION`、未設定なら `default`。英数字で始まる英数字・`_`・`-`、最大64文字 |
 | `--json` | stdoutへ1つのJSONオブジェクトを出力 |
+| `--timeout <ms>` | DurationとDateTimeで表現可能な正の整数。省略時は `MARIONETTE_AGENT_TIMEOUT_MS`、未設定なら30,000ms。待ち行列・接続・処理を含む期限。範囲外はINVALID_ARGUMENT |
 | `--debug` | 値なしflag、既定無効。request ID・session・処理段階・経過ms・終了時の正規化error codeをstderrへ出力 |
-| `--timeout <ms>` | DurationとDateTimeで表現可能な正の整数。既定30,000ms。待ち行列・接続・処理を含む期限。範囲外はINVALID_ARGUMENT |
 | `--content-boundaries` | 値なしflag、既定無効。snapshot要素／logs entryを未信頼コンテンツとして識別 |
 | `--max-output <chars>` | 正の整数、既定無制限。snapshot／logsの項目列をUnicode code point数で制限 |
 | `--idle-timeout <duration>` | daemon全体のidle期限。既定1h、0で無効。整数msまたはms/s/m/h接尾辞 |
+| `--screenshot-format png\|jpeg` | screenshotの保存形式。既定png。backendはPNGのまま、CLI側でJPEGへ変換 |
+| `--screenshot-quality <0-100>` | JPEG指定時だけ受理する整数。省略時90。PNG指定時・単独指定・範囲外はINVALID_ARGUMENT |
+| `--screenshot-dir <path>` | path省略のscreenshotを保存する既存directory。既定未指定。明示pathを優先し、両方省略時は従来の一時保存 |
 | `--help` / `--version` | 接続なしで利用可能 |
 
 共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。対話入力は要求しない。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
 
-構文エラーでも、有効に指定されたsessionとJSONモードを応答へ反映する。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
+sessionとtimeoutはそれぞれ明示CLI > 環境変数 > 既定値の順で選び、選択された値だけに既存の名前・正整数・Duration／DateTime範囲検証を適用する。環境変数の空文字も設定済みとして扱い、不正ならINVALID_ARGUMENTとする。明示CLIで上書きされた環境値は空文字・不正値でも検証しない。明示CLIの欠損・重複・不正値は環境値へ戻さず引数エラーとする。環境変数はCLI呼出しごとに解決し、選択したtimeoutはqueue待ちを含む既存の絶対deadlineへ変換する。configファイル、認証情報、session id、idle-timeoutの環境fallbackは提供しない。
+
+構文エラーでも、有効に選択されたsession（環境値を含む）とJSONモードを応答へ反映する。不正なsessionはnull、session非依存コマンドもnullとする。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
 
 `--debug`は構文エラーを含めopt-inで診断を追加し、通常診断とstdoutの既存envelopeは維持する。CLIからdaemonへ要求単位で伝え、並行sessionで設定・診断を共有しない。処理段階はCLI解析、runtime準備、daemon接続・起動・ready、送信、dispatch、session queue、command実行、結果。各プロセス内の処理区間開始からの単調な経過時間をmsで表示し、結果には成功の`OK`または正規化error codeを付ける。認証URI、fill入力、selector値、アプリ表示text、error message/details、stack traceは詳細診断に含めない。
 
 ### 共通安全オプション
 
-共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。`--debug`を含む共通オプションはhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。
+共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。`--debug`を含む共通オプションはhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数のfallbackはsessionとtimeoutだけに適用し、設定ファイルのfallbackはない。screenshot形式・品質は画像保存時だけ使用し、他コマンドの出力は変更しない。
 
 `--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
 
@@ -89,7 +127,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | 明示した始点から終点へスワイプ |
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | 要素の出現または消失を観測だけで待つ |
-| `screenshot [path]` | PNGを保存し絶対パスを返す。省略時は一時ファイル |
+| `screenshot [--annotate] [path]` | PNG（既定）またはJPEGを排他的に保存。明示path > `--screenshot-dir` > 一時ファイル。注釈は対応providerと直近の有効snapshotが必要 |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
 | `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
 | `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
@@ -104,6 +142,15 @@ scrollは初版では指定領域を既存swipe機構で操作する。direction
 単独`wait`の`state`は`exists`が既定で、`gone`も指定できる。`poll-interval`は50〜1,000msの整数、既定100ms。最初の観測は即時に行い、全体期限は共通`--timeout`を使う。`exists`は一致が正確に1件かつ`visible != false`で成功し、複数一致はAMBIGUOUS_TARGET。`gone`は0件で成功し、1件以上なら待つ。text照合では由来未確認の候補も衝突へ含め、唯一の候補が由来未確認ならUNRESOLVABLE_TARGETとする。
 
 `wait`は同一session queueで`inspect`だけをpollし、UI操作を送信せず、公開snapshot／refを発行・更新・失効しない。成功dataは待機した`state`と`requiresSnapshot:true`を返し、実際の画面状態と最新refを後続`snapshot`で確認するよう案内する。wait中のtimeoutまたは通信断はreadの既存契約どおり`outcome:not_sent`で接続世代とrefを破棄する。queue内で実行開始前に期限切れとなった要求は観測せず、接続とrefを維持する。
+
+### screenshotの形式・保存
+
+- 注釈なしの既定PNGは復号検証後にbackendの元バイト列を保存し、寸法と透過を保持する。JPEGはCLI側でPNGを復号し、各画素のRGBを白背景へalpha合成してから不可逆圧縮する。寸法は変えない。PNG内の背景色指定は使用しない。
+- `--screenshot-format`は小文字の`png`または`jpeg`。`--screenshot-quality`はJPEG指定時だけ0〜100の整数を受理し、既定90。固定encoderの品質0は最低品質1と同じ圧縮になる。品質100もlosslessではない。
+- pathの拡張子はPNGなら`.png`、JPEGなら`.jpg`または`.jpeg`。大文字小文字を区別せず、指定した綴りは維持する。形式は拡張子から推測しない。不一致・未知の拡張子は接続前にINVALID_ARGUMENT。拡張子がなければPNGは`.png`、JPEGは`.jpg`を付加する。
+- pathと`--screenshot-dir`を両方省略時は専用の非公開一時directoryに`screen.png`または`screen.jpg`を保存する。複数画像はbackendの順で、指定名の拡張子直前へ`-1`、`-2`…を付ける。例: `screen.jpeg`→`screen-1.jpeg`、`screen-2.jpeg`。自動名も同じ連番規則。
+- 共通`--timeout`は取得・転送・復号・白背景合成・JPEG変換・保存を含む元の絶対期限。codec処理前後・合成中・保存中に期限を確認し、期限後に成功を返さない。同期codecや進行中のOS I/Oの即時中断は保証しない。
+- 全画像の復号・変換が成功してから全保存先を排他的に予約し、書き込む。既存file/directory/symlinkはIO_ERRORで拒否する。途中の変換失敗は出力を作らず、予約・書込みの失敗やTIMEOUTではこの要求が作成した全fileと自動作成directoryの削除を試みる。既存fileを削除・上書きしない。OSがcleanupを拒否した場合は部分artifactが残る場合があり、成功pathsは返さない。意図的な予約後の差し替えは従来どおり保証外。
 
 ### workflow v1
 
@@ -205,7 +252,23 @@ outcomeはnot_sent・failed・unknown。送信後の通信断・タイムアウ�
 | 6 | 機能不足: UNSUPPORTED_CAPABILITY |
 | 1 | その他: BACKEND_ERROR、IO_ERROR、INTERNAL_ERROR |
 
-screenshotのdataはpaths配列。複数画像は連番で保存し、通常利用で既存ファイルの上書きを避けるため、全保存先を排他的に作成してから画像を書き込む。既存のファイル・ディレクトリ・symlinkは拒否する。意図的な競合プロセスによる、保存先の予約後の差し替えまでは保証しない。画像が空なら失敗。logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
+### screenshotの保存
+
+screenshotのdataは絶対pathの`paths`配列。保存先は明示path、共通`--screenshot-dir <path>`、従来の非公開一時directoryの順に選ぶ。明示pathがあればdirectoryの存在や権限を調べず、その場所へ保存する。directory設定は呼出しごとで、daemon／sessionには保存せず、他コマンドの動作にも影響しない。空文字またはNULを含むdirectory指定はINVALID_ARGUMENT。
+
+明示pathとdirectoryの相対pathは呼出元CLIのcwdを基準に正規化する。明示pathの親と指定directoryは事前作成を必須とし、自動作成しない。指定directoryの不存在、通常file、directory自身のsymlink（danglingを含む）、保存に必要な権限の不足はIO_ERROR。祖先directoryのsymlinkは解決を許す。directoryのtype確認後に意図的に差し替えられる競合までは保証しない。
+
+directory指定時はその直下に`screen-<128bit乱数の32桁hex>.png`（JPEGは`.jpg`）を生成する。連続／同時撮影でも各要求で別名を生成し、排他的作成で上書きを防ぐ。万一生成名が既存pathと衝突した場合もIO_ERRORとして拒否する。両方省略時は従来どおり一意な`marionette-screenshot-*`一時directory内の`screen.png`または`screen.jpg`へ保存する。
+
+複数画像は指定名／生成名の拡張子の前へ`-1`、`-2`の連番を付ける（拡張子なしは選択形式に応じて`.png`または`.jpg`を追加）。全PNGを復号検証し、全保存先を排他的に作成してから画像を書き込む。既存のfile・directory・symlinkは拒否する。途中失敗時はこの要求が作成した画像fileを削除し、一時保存の場合はこの要求の一時directoryも削除する。指定directoryと既存artifactは削除しない。cleanupの失敗で元のエラーを置き換えず、成功pathを返さない。保存先の予約後に別プロセスが意図的に差し替える競合までは保証しない。画像が空または不正PNGならBACKEND_ERROR、保存期限超過はTIMEOUT、その他の保存失敗はIO_ERROR。readであるscreenshotのこれらのエラーは従来どおりoutcome:not_sentとなる。
+
+logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
+
+`screenshot --annotate`は、直近snapshotで実際に公開された操作可能refだけを`@eN`ラベルと枠として新しいPNGへ合成し、JPEG指定時は合成後にJPEGへ変換する。既存PNGを入力に取らず、元画像のbytesも変更しない。保存先は注釈画像の新規pathであり、通常のscreenshotと同じ排他的保存・全体deadlineを使う。成功dataはpathsに加えてannotated=true、generation、annotationCount、skippedAnnotationsを返す。refの採番・更新・失効は行わない。snapshotが無効、またはcapture前後の再観測で対象の一意性・属性が変わった場合はSTALE_REFとし、画像を保存しない。観測とcaptureは上流APIでは原子的でないため、途中で変化して元へ戻るアニメーションまで検出する保証はない。静止した画面で使用する。
+
+固定`marionette_flutter: 0.6.0`の通常screenshot応答だけでは、画像とview、倍率、向きの対応を検証できない。注釈には別途opt-inの`marionette_agent.captureMappedScreenshot` providerが必要である。これは画像とgeometry v1を同時に返す限定契約であり、固定binding一般の注釈対応を意味しない。exampleのdebug構成はこのproviderを実装する。単一view、原点(0,0)、論理boundsに対する回転0、明示した論理幅・高さとPNG幅・高さだけを対応対象とする。portrait/landscapeは各時点の寸法を使い、画像を回転推測しない。未登録、複数view/画像、回転、寸法不一致などはUNSUPPORTED_CAPABILITYとし、注釈を保存しない。倍率をboundsや画像の外観から推測しない。
+
+boundsが欠損・非有限ならmissing_or_invalid_bounds、幅/高さが非正または一部でもview外ならbounds_outside_viewとしてそのrefを省略し、skippedAnnotationsへ記録する。boundsを画面内へclampしない。ラベルは互いに重ならない位置へ配置し、移動したラベルは線で対象に結ぶ。配置領域不足はlabel_space_exhaustedとして省略する。操作可能refが0件でも有効snapshotとgeometryがあればannotationCount=0で保存できる。
 
 ## 検証基準
 
@@ -213,7 +276,7 @@ screenshotのdataはpaths配列。複数画像は連番で保存し、通常利�
 2. 2つのsessionの接続・ref・切断が分離され、同一sessionの並行要求が直列化される。
 3. 古いref、曖昧な対象、通信断、timeoutが規定のJSONと終了コードになり、操作が自動再送されない。
 4. PageViewの切替とDismissibleのdismissをswipeで確認し、座標方式もSimulatorで検証する。
-5. wait、scroll、PNG保存、ログ取得が共通のsession・deadline・エラー契約を通して動作する。
+5. wait、scroll、PNG/JPEG保存、ログ取得が共通のsession・deadline・エラー契約を通して動作する。
 6. workflowのJSON／YAML検証、binding、queue占有、wait、停止時の進捗、最終snapshot引き継ぎを自動テストとSimulatorで確認する。
 7. コード変更時は`packages/marionette_agent`でformat、analyze、関連testを実行する。CLI契約を変えた場合は`example/`をiOS Simulatorで起動し、製品CLIの結果と操作後の画面状態を確認する。
 
@@ -223,7 +286,7 @@ screenshotのdataはpaths配列。複数画像は連番で保存し、通常利�
 
 label/role/hint/placeholder/tooltipによる共通selectorと、入力値・enabled/checkedのread-only取得は未実装。[Issue #14設計案](semantics-selector-state-design.md)に固定binding 0.6.0の取得/照合能力、型付きDTO、unknownと重複の契約案、上流依存を記録する。Semantics由来の表示textや診断文字列を入力値・状態の代用にしない。設計案は現行CLIの受理構文や実装済み契約を増やさない。
 
-record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、アプリ起動管理、独自拡張、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
+record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、アプリ起動管理、任意の独自拡張を呼び出すCLI、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。注釈画像に必要な固定名のgeometry providerのみbackend内部の限定例外とする。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
 
 ## 端末画面録画
 

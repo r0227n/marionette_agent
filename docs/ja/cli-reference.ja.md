@@ -1,5 +1,31 @@
 # marionette-agent CLI リファレンス
 
+## `doctor` 環境診断
+
+```sh
+marionette-agent doctor
+marionette-agent doctor --json
+marionette-agent doctor --probe-uri "$VM_URI" --timeout 10000 --json
+```
+
+接続やdaemonなしで実行できます。macOS/Dart対応範囲、runtimeの所有者/0700/path長、
+daemon応答/protocol、CLI固定依存の宣言とlockfile、利用可能なiOS Simulatorを調べます。
+`MARIONETTE_AGENT_RUNTIME_DIR`で検査対象を選びます。未作成runtimeは正常な未実施扱いです。
+修復・socket削除・daemon自動起動・Simulator起動・package再導入は行いません。
+
+VM Serviceへの接続は`--probe-uri`を明示した時だけです。URIは出力しませんが、shell履歴や
+process引数の共有には注意してください。既存sessionとrefを変更せず、probe専用接続を終了時に解放します。
+binding versionは実応答がある場合だけ報告します。registeredExtensionsは実登録の観測であり、
+操作成功を保証しません。binding未観測はunknownで、固定依存のversionから推測しません。
+
+textは各checkの状態・理由・Next・詳細、JSONは`data.checks`に同じ内容を返します。
+`success`は確認済み、`failure`は不適合、`unknown`は観測失敗/timeout、`skipped`は未実施です。
+`data.exitCode`およびprocess終了値はfailure/unknownがあれば1、それ以外0。
+診断結果を返せた場合は異常checkがあってもenvelopeは`ok:true`、`session:null`です。
+引数不正は通常の終了2。doctor内の期限切れはcheckのunknown/終了1であり、通常操作の終了5とは異なります。
+`--timeout`は全体期限で、未着手checkも期限切れならunknown。daemon handshake待ちは最大1秒です。
+各checkの`nextStep`を確認し、必要な復旧操作は利用者が別途実行してください。
+
 ## 基本構文
 
 ```text
@@ -14,13 +40,16 @@ label/role/hint/placeholder/tooltip selectorと入力値・enabled/checked取得
 
 | オプション | 既定値 | 説明 |
 | --- | --- | --- |
-| `--session <name>` | `default` | 操作するsession名。英数字で始まり、英数字・`_`・`-`だけで構成された最大64文字を指定します。 |
+| `--session <name>` | 環境変数 → `default` | 操作するsession名。英数字で始まり、英数字・`_`・`-`だけで構成された最大64文字を指定します。 |
 | `--json` | 無効 | 成功・失敗とも、stdoutへ結果を1つのJSONオブジェクトとして出力します。シェルスクリプトやagentからの利用に適しています。 |
+| `--timeout <ms>` | 環境変数 → `30000` | ファイル読込、daemon起動、キュー待ち、接続、処理を含む期限を正の整数のミリ秒で指定します。 |
 | `--debug` | 無効 | request ID、session、処理段階、経過ms、結果の正規化error codeをstderrへ追加します。通常診断は維持します。 |
-| `--timeout <ms>` | `30000` | ファイル読込、daemon起動、キュー待ち、接続、処理を含む期限を正の整数のミリ秒で指定します。 |
 | `--content-boundaries` | 無効 | snapshot要素行とlogs entryに呼出し固有の境界を付けます。JSONではmetadataを追加します。 |
 | `--max-output <chars>` | 無制限 | 正の整数。snapshot/logsの項目列をUnicode code point数で制限します。 |
 | `--idle-timeout <duration>` | `1h` | daemon全体の無操作期限。整数msまたはms/s/m/h接尾辞。`0`で自動終了を無効にします。 |
+| `--screenshot-format png\|jpeg` | `png` | screenshotの保存形式。JPEGはCLI側で変換します。 |
+| `--screenshot-quality <0-100>` | JPEGでは`90` | JPEG指定時だけ受け付ける整数。PNG指定時・単独指定は引数エラーです。 |
+| `--screenshot-dir <path>` | 未指定 | path省略のscreenshotを保存する既存directory。明示pathがあればそちらを優先します。 |
 | `--help`, `-h` | — | ヘルプを表示します。接続は不要です。 |
 | `--version` | — | CLIのバージョンを表示します。接続は不要です。 |
 
@@ -47,6 +76,25 @@ marionette-agent snapshot --session demo --debug
 ```bash
 marionette-agent --session demo fill --key text_input -- '--not-an-option'
 ```
+
+### 環境変数によるsessionとtimeoutの既定値
+
+`--session`は`MARIONETTE_AGENT_SESSION`、`--timeout`は`MARIONETTE_AGENT_TIMEOUT_MS`へフォールバックします。それぞれ **明示CLI > 環境変数 > 組込み既定値** の順です。同じruntime directoryを使う独立CLIプロセス間で同じ環境sessionを利用できます。
+
+```bash
+export MARIONETTE_AGENT_SESSION=demo
+export MARIONETTE_AGENT_TIMEOUT_MS=10000
+marionette-agent connect "$VM_URI"
+marionette-agent snapshot --json
+marionette-agent session show --session other --timeout 30000 --json
+marionette-agent close
+```
+
+選択された値だけを検証します。session名は上表の名前規則、timeoutは正整数かつDuration／DateTimeで表現可能な範囲が必要です。空文字、空白、timeoutの0・負数・小数・単位付き値・範囲外はINVALID_ARGUMENT（終了コード2）です。不正値を既定値に戻しません。明示CLIに隠れた環境値は不正でも無視しますが、明示CLIの欠損・重複・不正値は環境値で補いません。
+
+構文エラーでも、有効な環境sessionまたは明示sessionとJSONモードを回復します。不正なsessionとsession非依存コマンドの応答sessionはnullです。オプションの値や`--`以降の文字列は共通オプションとして再解釈しません。timeoutにはキュー待ちも含まれ、環境値もCLI指定と同じ絶対期限になります。
+
+configファイル、認証情報、session id、idle-timeout用の環境fallbackはありません。runtime directoryは従来の`MARIONETTE_AGENT_RUNTIME_DIR`で指定します。
 
 ### 未信頼コンテンツと出力量
 
@@ -340,17 +388,52 @@ marionette-agent --session demo snapshot
 
 ## 画像とログ
 
-### `screenshot [path]`
+### `screenshot [--annotate] [path]`
 
-現在の画面をPNGとして保存し、保存した絶対パスを返します。pathを省略すると非公開の一時ディレクトリへ保存します。相対pathはコマンドを実行したカレントディレクトリ基準です。
+現在の画面をPNG（既定）またはJPEGとして保存し、text／JSONとも`paths`配列に保存した絶対パスを返します。保存先の優先順位は次のとおりです。
+
+1. 明示した`path`。`--screenshot-dir`の存在や権限は調べません。
+2. `--screenshot-dir <path>`で指定したdirectoryの直下。`screen-<32桁の乱数hex>.png`（JPEGは`.jpg`）という名前を呼出しごとに生成します。
+3. 両方省略時は従来どおり非公開の一時directory内の`screen.png`または`screen.jpg`。
+
+相対pathとdirectoryはコマンドを実行したカレントdirectory基準です。`--screenshot-dir`は共通オプションなのでコマンドの前後に指定でき、この呼出しのscreenshotだけに適用されます。daemon／sessionに保存されず、他コマンドには影響しません。空文字、NULを含むpath、値の欠損、重複指定は`INVALID_ARGUMENT`です。
 
 ```bash
 mkdir -p ./artifacts
 marionette-agent --session demo screenshot ./artifacts/screen.png
+marionette-agent --session demo --screenshot-dir ./artifacts screenshot
+marionette-agent --session demo screenshot --screenshot-dir ./artifacts --json
 marionette-agent --session demo screenshot --json
+marionette-agent --session demo screenshot ./artifacts/screen.jpg --screenshot-format jpeg --json
+marionette-agent --screenshot-format jpeg --screenshot-quality 75 --session demo screenshot ./artifacts/compact.jpeg
 ```
 
-既存ファイルは上書きしません。保存先の親ディレクトリは事前に作成してください。複数画像が返された場合は、指定名へ連番を付けて保存します。
+注釈なしのPNGは元のバイト列・寸法・透過を維持します。JPEGは同じ寸法で、透過部分を白背景に合成してから不可逆圧縮します。PNGの背景色指定は使用しません。品質は0〜100の整数、JPEGで省略すると90です。0はencoderの最低品質1と同じ圧縮で、100もlosslessではありません。小数、範囲外、PNGでの品質指定、品質だけの指定は`INVALID_ARGUMENT`（終了コード2）です。
+
+拡張子はPNGなら`.png`、JPEGなら`.jpg`または`.jpeg`を指定します。大文字小文字は区別せず綴りを保持します。拡張子から形式を自動選択しないので、既定PNGに`screen.jpg`を渡した場合も接続前の引数エラーです。未知の拡張子も拒否します。拡張子がなければ`.png`または`.jpg`を付加します。pathと`--screenshot-dir`を両方省略時の自動名は`screen.png`または`screen.jpg`です。
+
+複数画像ではbackendから返された順に`screen-1.png`、`screen-2.png`、または`screen-1.jpeg`、`screen-2.jpeg`のように拡張子直前へ連番を付けます。自動名も同じ規則です。保存先の親ディレクトリは事前に作成してください。全画像を変換して全保存先を排他的に予約し、既存file・directory・symlinkは`IO_ERROR`で拒否します。上書きしません。
+
+共通`--timeout`には取得・転送から復号・変換・保存までを含めます。変換失敗時は保存せず、予約・書込み後の失敗や期限切れではこの呼出しが作った全画像と自動directoryの削除を試みます。OSが削除を拒否すると部分ファイルが残る場合があります。失敗時には成功pathsを返しません。同期codecと進行中のOS I/Oの即時中断、予約後に別プロセスが意図的に保存先を差し替える競合は保証しません。
+
+形式・品質は共通オプションなのでhelp/versionや他のコマンドでも受理・検証しますが、screenshot以外の出力には適用しません。
+指定directoryと明示pathの親directoryは事前に作成してください。CLIは自動作成しません。指定directoryの不存在、通常file、directory自身のsymlink（リンク切れを含む）、保存に必要な権限の不足は`IO_ERROR`（終了コード1）です。祖先directoryのsymlinkは利用できます。
+
+連続／同時撮影は呼出しごとに別名を生成し、既存file・directory・symlinkは上書きしません。万一生成名が既存pathと衝突した場合も`IO_ERROR`です。複数画像は指定名／生成名の拡張子の前に`-1`、`-2`を付けます（例: `screen-<32桁hex>-1.png`、`screen-<32桁hex>-2.png`）。拡張子なしの明示pathには選択形式に応じて`.png`または`.jpg`を付け、複数画像では連番も付けます。
+
+全PNGを検証し、全保存先を排他的に予約してから書き込みます。途中失敗時はこの要求が作成したfileをcleanupし、成功pathを返しません。指定directoryと既存artifactは削除しません。画像が空／不正なら`BACKEND_ERROR`、保存期限超過は`TIMEOUT`、その他の保存失敗は`IO_ERROR`です。これらのoutcomeは`not_sent`です。cleanupの失敗で元のエラーは置き換えません。保存先の確認・予約後に別プロセスが意図的にpathを差し替える競合までは保証しません。
+
+`--annotate`は直近の有効snapshotの操作可能refだけを`@eN`ラベルで画像へ合成します。固定binding 0.6.0だけでは対応metadataが不足するため、opt-inの`marionette_agent.captureMappedScreenshot` providerが必要です。exampleのdebugアプリはこれを登録します。一般のMarionetteアプリが自動的に対応するわけではありません。
+
+```bash
+marionette-agent --session demo snapshot --json
+marionette-agent --session demo screenshot ./artifacts/original.png
+marionette-agent --session demo screenshot --annotate ./artifacts/annotated.png --json
+```
+
+注釈画像は新しい出力先へ保存し、原画像・既存保存先を上書きしません。refは更新も失効もしません。成功dataには`paths`、`annotated: true`、`generation`、`annotationCount`、`skippedAnnotations`を返します。bounds欠損は`missing_or_invalid_bounds`、画面から一部でも外れるboundsは`bounds_outside_view`、ラベル配置領域不足は`label_space_exhausted`として省略します。
+
+古い/未取得snapshotやcapture前後に対象が変わった場合は`STALE_REF`です。provider未登録、画像/view対応不明、複数画像、相対回転、PNG寸法不一致は`UNSUPPORTED_CAPABILITY`です。単一viewのportrait/landscapeに対応し、倍率を推測しません。アニメーション中ではなく静止した画面で使用してください。全体timeoutは合成・保存まで共通です。JPEG指定時はPNGへ注釈を合成してからJPEGへ変換します。注釈のmetadataとref保持はPNGの場合と同じです。
 
 ### `logs`
 
@@ -541,3 +624,5 @@ marionette-agent --session web-demo close --json
 同一daemonの同一displayはWebの別タブやmacos録画と排他です。対象タブの終了・クラッシュ・debug接続断はCONNECTION_LOST（終了コード3）で録画を停止します。statusはfailedとrecoveryPath、stopはエラー、closeは失敗情報付きの最終状態を返します。動画が未確定なら復旧用pathを確認してください。開始期限・停止期限・既存file保護は共通のrecord契約です。
 
 macOS以外、Chrome以外、headlessはUNSUPPORTED_CAPABILITY。接続できないChromeはCONNECTION_LOST、protocol拒否・画面収録拒否・無効displayはIO_ERRORとhintを返します。deviceにlocalhostやremote host、認証情報、query、fragmentは指定できません。Webのtap/fillは本変更で追加していないため、Webアプリの操作にはChromeまたは既存のブラウザー操作手段を使います。詳細は[方式比較と前提](../web-recording.md)を参照してください。
+
+`doctor`は構文・引数エラーでもsession非依存で、JSONの`session`は`null`です。

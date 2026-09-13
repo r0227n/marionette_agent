@@ -1,5 +1,22 @@
 # marionette_agent — アーキテクチャ
 
+## doctor境界 (Issue #9)
+
+`cli/runner.dart`はdoctorを`RuntimeDirectory.prepare`より前にローカル配送する。
+`cli/doctor.dart`がhost/runtimeのread-only検査、固定依存の宣言/lock比較、Simulator列挙、
+check状態と終了コード集計を所有する。外部processとprobeはfixtureへ差し替え可能。
+daemon socketは所有者/0700確認後に接続し、既存protocol decoderでhandshakeだけを読む。
+DaemonClient、SessionManager、runtime準備、command dispatchを呼ばない。
+DaemonServerはhandshakeだけのclientが切断した時に元のidle期限を再利用する。
+要求をdispatchした場合だけ新しい無操作区間を開始し、doctorによる寿命の延長を防ぐ。
+
+`backend/doctor_probe.dart`は公開vm_service APIで独立clientを作り、既存backendのURI正規化を再利用する。
+上流internal APIのimportを追加せず、観測したextension登録とbinding versionだけを返す。
+URI・remote error本文を境界の外へ返さない。finallyと遅延完了handlerで接続を解放する。
+各process/RPCは全体deadlineの残り時間を使い、IPCには最大1秒の上限も設ける。
+診断結果は共通Resultのdataに入れ、runnerがdoctorのdata.exitCodeをprocess終了値に適用する。
+text rendererはcheck状態/理由/次手順/details、JSONは共通envelopeを表示する。
+
 本書は[SPEC.md](SPEC.md)の`marionette_agent 0.0.1`契約を実現する現行構成を定義する。単独コマンドとworkflow v1は実装済み。コマンド追加時の具体的な不変条件は[実装契約](ja/command-contract.ja.md)を参照する。
 
 ## 構成
@@ -55,11 +72,18 @@ protocolはDartの値とJSONだけを扱う。コマンド層はBackend interfac
 | fill | enterText |
 | swipe / 初版scroll | swipe |
 | screenshot | takeScreenshots |
+| screenshot --annotate | callCustomExtensionで固定名marionette_agent.captureMappedScreenshotを呼ぶ（opt-in providerが必要） |
 | logs | getLogs |
 
 adapterはURI正規化、wire変換、response検証、例外分類を担当する。HTTP→WS、HTTPS→WSSへ変換するとき認証path/queryを保持し、`/ws` を重複追加しない。機能不足はUNSUPPORTED_CAPABILITY。成功メッセージ文字列だけで成否を判定しない。
 
 Backend interfaceはconnect、disconnect、inspect、tap、fill、swipe、captureScreenshots、readLogsを型付き引数・結果で提供する。上流mapは境界で閉じる。scrollは同じswipe primitiveを使い、helpと出力はscrollとして返す。
+
+注釈captureは任意のBackendへ必須メソッドを追加せず、別のMappedScreenshotBackend能力として定義する。MarionetteBackendは固定名provider応答のsupported/status、単一画像、ScreenshotGeometry v1を検証し、MappedScreenshot DTOへ変換する。geometryはversion=1、viewCount=1、空でないviewId、originX=originY=rotation=0、正の整数pixelWidth/pixelHeight、有限で正のlogicalWidth/logicalHeightを要求する。CLIはIPC後にもgeometryと実PNG寸法を照合し、x方向pixelWidth/logicalWidth、y方向pixelHeight/logicalHeightを適用する。向きや倍率を画像またはboundsから推測しない。
+
+固定binding 0.6.0はRenderViewのlayerをFlutterView.physicalSizeへ描画し、maxScreenshotSize設定時にはfloorした寸法へresizeする。失敗viewを画像配列から除くため、配列indexをview IDと見なせない。ElementInfo.boundsはRenderBox.localToGlobal(Offset.zero)とsizeであり、通常応答は対応metadataを含まない。このため通常takeScreenshotsの結果を注釈へ流用しない。example/lib/mapped_screenshot.dartはdebug時にopt-in providerを登録し、単一RenderViewのlayerから未resize画像とそのviewの明示geometryを一緒に返す。capture中のview数・identity・physicalSize・devicePixelRatio変更は非対応として返す。上流パッケージの変更、隣接repoへのpath依存、overlay注入は不要。一般binding対応には同等のcapture metadata契約の上流提供が必要であり、現時点ではexample provider構成だけが実環境検証対象である。
+
+SnapshotService.annotationTargetsは公開済みrefsを再観測して照合する読み取り専用経路である。capture前後に照合し、refを新規発行・失効しない。CLIのscreenshot_annotationは純粋なPNG合成境界で、bounds不備とラベル配置不足を明示的に省略する。artifact_writerが元bytesとは別のPNGを排他的に保存し、同じdeadlineをdecode・合成・encode・保存まで確認する。一般の独自拡張CLIは引き続き対象外で、固定名providerはSPECの限定例外である。
 
 ## IPCとdaemon起動
 
@@ -72,6 +96,10 @@ OSの排他ロックで起動を直列化し、取得後に稼働daemonを再確
 古いsocketは生存確認とロックのもとで回収し、PIDだけを根拠に別プロセスをkillしない。最後のcloseと新規connectは管理キューで直列化する。終了中へのconnectは送信前なら再接続できるが、送信後のUI操作は再送しない。
 
 IPCのサイズ上限は初版で1フレーム64MiB。画像はbase64としてdaemonからCLIへ返し、超過は明示エラー。screenshotのファイル保存は呼出元CLIが担い、相対パスは呼出元のcwdで解決する。recordは例外としてutilがdaemon内で保存し、CLIは絶対pathを渡す。
+
+`--screenshot-dir`は`cli/common_options.dart`で登録・空文字／NUL検証し、`CommonOptions.screenshotDir`からrunner経由で`cli/artifact_writer.dart`へ渡す。IPC paramsやdaemon設定には追加しない。writerが明示path > directory > 一時保存を選び、pathがある場合はdirectoryへ触れない。directoryは事前作成済みの実directoryに限定し、自動作成やdirectory自身のsymlink追跡はしない（祖先のsymlinkは許可）。相対指定は呼出元cwdで正規化し、返却pathを絶対化する。
+
+directory指定では直下に128bitの`Random.secure`のhexを含むPNG名を要求ごとに生成する。既存の複数画像の連番化・全画像検証・全宛先の排他的予約・書込み・失敗時cleanupを共用する。生成名の衝突も既存pathとしてIO_ERRORにし、上書きや再撮影をしない。指定directoryはcleanup対象に含めない。未指定時の一意な一時directoryと`screen.png`は維持する。受入検証は`screenshot_directory_test.dart`で競合・保存失敗、`screenshot_cli_test.dart`で製品CLIのtext/JSONとcwd・呼出し間の設定分離を確認する。
 
 応答配送の期限は要求deadline+250msとし、受信しないクライアントのsocketも切断する。最後のclose後も配送・切断を無期限に待たず、250msの猶予で残るクライアントを破棄してdaemonの寿命ロックを解放する。最終応答の送信開始後は別のエラーフレームを追加しない。
 
@@ -124,7 +152,7 @@ FakeBackendの合格はSimulator検証の代わりにしない。コード変更
 
 ## 実装で利用する既存機能
 
-引数解析・usageはargs、属性比較はcollection、パス構築はpath、PNG復号検証はimage、RPCエラー定義はvm_serviceを使う。IPCはdart:ioのUnix socketとOSファイルロック、dart:convertのUTF-8/LineSplitter/JSONを利用する。独自処理はsession寿命、ref検証、期限・送信結果の契約、フレーム上限など製品固有の部分に限定する。
+引数解析・usageはargs、属性比較はcollection、パス構築はpath、PNG復号検証とJPEG変換はimage、RPCエラー定義はvm_serviceを使う。IPCはdart:ioのUnix socketとOSファイルロック、dart:convertのUTF-8/LineSplitter/JSONを利用する。独自処理はsession寿命、ref検証、期限・送信結果の契約、フレーム上限など製品固有の部分に限定する。
 
 上流connectorのisConnectedだけでは通信断を検知できないため、状態照会と1秒間隔のhealth probeをsessionキュー上で実行する。CLIの要求期限後はdaemonのTIMEOUT応答を届けるため最大250msのIPC猶予を設けるが、backend実行期限は延長しない。
 
@@ -139,6 +167,14 @@ wait stepは単独waitと同じ登録済みread handlerを使い、ElementInfo.c
 IPC protocolVersionは5（要求単位のdebug policy追加。4で共通出力policyとidle設定handshake追加）。requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
 
 workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/progressKnown:falseとsession名を保持する。CLIのローカル検証はparseと意味検証後も絶対deadlineを確認し、期限を過ぎた成功を返さない。
+
+## ScreenshotのCLI側変換（Issue #13）
+
+`cli/common_options.dart`が形式・品質のroot登録、既定PNG／JPEG品質90、値検証と拡張子規則を所有する。`CliParser`はscreenshotのpathを接続前に検証し、拡張子省略時に選択形式の拡張子を付加する。help/versionと全サブコマンドも共通定義を継承する。形式・品質はInvocationのCommonOptionsからrunnerへ渡し、IPC paramsやbackend adapterへ追加しない。workflow内のscreenshot対応やprotocolVersion変更は行わない。
+
+`cli/artifact_writer.dart`はbackendのPNGを全件復号検証し、注釈を指定した場合はgeometryに従いPNGへ合成してから出力形式へ進む。注釈なしのPNGなら元のバイト列、JPEGなら白背景へ合成した8-bit RGBを固定image 4.9.1のJpegEncoderへ渡す。RGBA／grayscale alpha／palette／16-bitを画素の正規化値で処理し、透過を捨てる前に合成する。encoderに透過の合成を任せないため、JPEG端部のpaddingによる反復合成も避ける。品質0はencoderの最低品質1へ丸められる。imageの内部importは従来のPNG decoderと同じ境界へ集約し、依存更新時は画像fixtureを再検証する。
+
+runnerはCLI開始時の共通絶対deadlineをそのままwriterへ渡す。復号・合成・encode後にも期限を確認してから、従来の全宛先の排他的予約と書込みへ進む。同期codec自体は中断しないが、遅れて得た画像を成功として公開しない。予約後の失敗・TIMEOUTではこの要求の予約file・書込み済みfile・自動directoryを回収する。OSによるcleanup失敗時は残存し得るが、成功pathsを返さず元のエラーを保持する。テストの時計注入により変換後・予約後・書込み後の期限切れをhost負荷によらず検証する。
 
 ## 入出力の安全境界
 
@@ -172,9 +208,11 @@ RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に
 
 単体テストは保存保護・端末排他・開始失敗・停止期限・異常終了・終了競合、CLIテストは未接続録画session・ref保持・通信断後の継続・close・未対応platformを検証する。`integration_test/record_smoke.dart`は製品CLIで開始→接続→操作→動画確定→重複stop→上書き拒否→close確定を確認する。実動画を復号して画面変化を確認する。
 
-## 共通安全オプション（Issue #2）
+## 共通オプション（Issue #2・#8）
 
 `cli/common_options.dart`が既存・新規の全共通オプションの名前、help、既定値、ArgParser登録、重複検出、構文エラー回復、値検証とCommonOptionsを所有する。CliParserはrootへ一度登録し、argsの継承によって全command／subcommandへ適用する。個別command parserに定義を複写しない。IPCのsessionと出力上限の再検証も同じ値検証へ委譲する。
+
+CliParserは呼出元のPlatform.environment（テストでは注入したmap）をCommonOptions.createParserへ渡す。session／timeoutのArgParser既定値を環境変数 > 組込み既定値で設定し、argsが明示CLIを優先する。検証は選択後にだけ実行し、空値を未設定として扱わない。構文エラー回復も同じparserのsession既定値を使い、環境解決を重複実装しない。runnerは選択されたtimeoutを解析開始前の時刻からの絶対deadlineへ変換する既存経路を使い、daemonやsession queueは環境変数を再解決しない。
 
 Requestは`maxOutput`と`outputJson`をparams外に持つ。`output/content.dart`の項目serializerをdaemonの制限とCLIの表示が共有し、code point予算を一致させる。SessionManagerはqueue内で公開snapshotを完成させた後に制限し、SnapshotService.retainPublishedで返却generationの省略refを削除してからqueueを解放する。workflow finalSnapshotもこの経路を通る。未公開refを後続要求から利用できる時間窓を作らない。nonceはrendererだけがCLI呼出しごとに生成し、JSONでは対象dataにmetadataとして付加する。
 

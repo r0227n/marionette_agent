@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:args/args.dart';
 
 import 'common_options.dart';
@@ -21,14 +23,23 @@ class CliCommand {
 /// args owns tokenization, subcommands, option values, -- and usage rendering.
 /// Only the product's duplicate-option and value constraints are custom.
 class CliParser {
-  CliParser({Map<String, CliCommand> commands = const {}}) {
+  CliParser({
+    Map<String, CliCommand> commands = const {},
+    Map<String, String>? environment,
+  }) : parser = CommonOptions.createParser(
+         environment ?? Platform.environment,
+       ) {
     definitions.addAll(commands);
     for (final entry in definitions.entries) {
       parser.addCommand(entry.key, entry.value.parser);
     }
   }
-  final parser = CommonOptions.createParser();
+  final ArgParser parser;
   final definitions = <String, CliCommand>{
+    'doctor': CliCommand(ArgParser()..addOption('probe-uri'), (args) {
+      if (args.rest.isNotEmpty) invalid('Usage: doctor [--probe-uri <uri>]');
+      return {'probeUri': args['probe-uri']};
+    }),
     'workflow': workflowCommand(),
     'record': recordCommand(),
     'tap': actionCommand(),
@@ -77,6 +88,7 @@ class CliParser {
   String get usage =>
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
+      'doctor [--probe-uri <uri>] (read-only; no connection required)\n'
       'snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]\n'
       'Snapshot filters observed values; zero/multiple matches are valid. Full observation determines ref safety.\n'
       'get text|box <ref|selector> | get count <selector>\n'
@@ -89,8 +101,14 @@ class CliParser {
       'tap <ref|selector> | tap --x <n> --y <n> | fill <ref|selector> <text>\n'
       'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
       'scroll uses finger movement direction; reaching content is not guaranteed.\n'
-      'screenshot [path] | logs\n'
+      'screenshot [--annotate] [path] | logs\n'
+      '  --annotate requires a valid snapshot and an opt-in mapped screenshot provider.\n'
+      'Screenshot destination: explicit path > --screenshot-dir > temporary directory.\n'
+      'Screenshot directories must exist; --screenshot-dir must not be a symlink.\n'
       'is visible <ref|selector> (true, false, or unknown; preserves refs)\n'
+      'Screenshot extensions: .png or .jpg/.jpeg; missing extension is appended.\n'
+      'Multiple images: name-1.ext, name-2.ext; existing files are refused.\n'
+      'Path and directory omitted: private screen.png/screen.jpg; conversion uses --timeout.\n'
       'wait <selector> [--state exists|gone] [--poll-interval <ms>]\n'
       'wait observes only; run snapshot before the next UI operation.\n'
       'record start <path> --platform ios|android|macos|web --device <id>\n'
@@ -102,7 +120,9 @@ class CliParser {
       'sensitive forbids defaults; snapshots may reveal values displayed by the app.\n'
       'Workflow stops on failure; completed steps must not be replayed automatically.\n'
       'Selectors: --key <value> | --identifier <value> | --text <value> | --type <value>\n'
-      'Common options work before or after commands. Use -- for literal arguments.';
+      'Common options work before or after commands. Use -- for literal arguments.\n'
+      'Session/timeout validate only the selected CLI, environment or default value.\n'
+      'Empty or invalid selected values are INVALID_ARGUMENT; overridden environment values are ignored.';
 
   Invocation parse(
     List<String> arguments, {
@@ -136,6 +156,11 @@ class CliParser {
     final command = args.command;
     if (command == null) invalid('A command is required');
     final params = definitions[command.name]!.decode(command);
+    if (command.name == 'screenshot' && params['path'] is String) {
+      params['path'] = options.screenshotFormat.destinationPath(
+        params['path'] as String,
+      );
+    }
     if (command.name == 'close' &&
         params['all'] == true &&
         args.wasParsed('session')) {
@@ -156,6 +181,7 @@ class Invocation {
   final Json params;
   String? get resultSession =>
       command == 'help' ||
+          command == 'doctor' ||
           command == 'version' ||
           (command == 'workflow' && params['action'] != 'run') ||
           (command == 'session' && params['action'] == 'list') ||

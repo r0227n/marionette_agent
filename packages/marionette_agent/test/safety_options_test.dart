@@ -59,6 +59,8 @@ void main() {
           '--json',
           '--session',
           'demo',
+          '--screenshot-dir',
+          'artifacts/screens',
         ];
         for (final args in [
           [...flags, ...command],
@@ -70,6 +72,7 @@ void main() {
           expect(value.idleTimeoutMs, 180000);
           expect(value.session, 'demo');
           expect(value.json, isTrue);
+          expect(value.screenshotDir, 'artifacts/screens');
           expect(value.debug, isTrue);
         }
       }
@@ -80,6 +83,8 @@ void main() {
       expect(CliParser().usage, contains('--content-boundaries'));
       expect(CliParser().usage, contains('--max-output'));
       expect(CliParser().usage, contains('--idle-timeout'));
+      expect(CliParser().usage, contains('--screenshot-dir'));
+      expect(CliParser().parse(['screenshot']).options.screenshotDir, isNull);
     },
   );
 
@@ -147,6 +152,10 @@ void main() {
         ['snapshot', '--content-boundaries=true'],
         ['snapshot', '--no-content-boundaries'],
         ['snapshot', '--max-output=0'],
+        ['--screenshot-dir=a', 'screenshot', '--screenshot-dir', 'b'],
+        ['screenshot', '--screenshot-dir'],
+        ['screenshot', '--screenshot-dir='],
+        ['screenshot', '--screenshot-dir', 'a\u0000b'],
       ]) {
         String? name;
         var json = false;
@@ -178,6 +187,23 @@ void main() {
         invalidArgument,
       );
       expect(recoveredJson, isFalse);
+      expect(
+        () => CliParser().parse([
+          'screenshot',
+          '--screenshot-dir',
+          '--json',
+          '--bad',
+        ], onOutput: (_, j) => recoveredJson = j),
+        invalidArgument,
+      );
+      expect(recoveredJson, isFalse);
+      final screenshot = CliParser().parse([
+        'screenshot',
+        '--',
+        '--screenshot-dir',
+      ]);
+      expect(screenshot.params['path'], '--screenshot-dir.png');
+      expect(screenshot.options.screenshotDir, isNull);
       expect(
         CliParser()
             .parse(['fill', '@e1', '--', '--content-boundaries'])
