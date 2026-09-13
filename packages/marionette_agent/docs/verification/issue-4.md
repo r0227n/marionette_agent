@@ -63,3 +63,7 @@ dart run integration_test/get_smoke.dart
 5. スクリプトのclose後にdaemon終了を確認し、runnerへqを送り終了。所有bundleのみ停止し、割当Simulatorをshutdownする。
 
 - [ ] 人間が上記を再現し、変更内容と画面を確認した
+
+## PR #27 integration review (2026-09-13)
+
+Merged develop through PR #26 and unified get/is read resolution. dart format, dart analyze and all 184 tests passed. On iPhone 17 Pro / iOS 26.2 (022CF629-91E1-48F0-816B-2D86B8CD1D38), the existing get_smoke.dart passed all 29 CLI calls; before/after images were opened and showed count 0 → 1. Additional is visible → get text → tap using the same ref → get text confirmed count 1 → 2. Evidence: `/tmp/mra-review27.8031lav_/evidence`. Sessions/daemon and owned app/runner stopped; Simulator shut down. Reproduce using the existing get smoke instructions above, then query is visible before tapping a fresh snapshot ref.

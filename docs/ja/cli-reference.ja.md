@@ -80,7 +80,7 @@ daemon全体の設定は起動時に固定されます。省略した要求は�
 
 ## 対象を指定するオプション
 
-要素を操作する`tap`、`fill`、`swipe`、`scroll`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`ではrefを受理せず、selectorオプションのどれか1つだけを指定します。
+要素を操作する`tap`、`fill`、`swipe`、`scroll`と状態を読む`is visible`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`ではrefを受理せず、selectorオプションのどれか1つだけを指定します。
 
 | 指定方法 | 説明 |
 | --- | --- |
@@ -91,6 +91,17 @@ daemon全体の設定は起動時に固定されます。省略した要求は�
 | `--type <value>` | Flutter要素のtypeと完全一致させます。一意に一致する必要があります。 |
 
 操作コマンドのselectorは実行時の観測で一意に一致する必要があります。0件なら`TARGET_NOT_FOUND`、複数件なら`AMBIGUOUS_TARGET`です。waitの条件判定は後述の契約に従います。新しいsnapshot、再接続、切断、またはUI操作を行うと、それ以前のrefは失効します。UI操作後は再度snapshotを取得してください。
+
+## is visible
+
+```sh
+marionette-agent is visible @e1
+marionette-agent is visible --key tap_button --json
+```
+
+対象を一度再観測し、textでは`Visible: true` / `Visible: false` / `Visible: unknown`を返します。JSONの`data`はそれぞれ`{"known":true,"value":true}` / `{"known":true,"value":false}` / `{"known":false,"value":null}`です。未観測はfalseではありません。
+
+selectorの0件は`TARGET_NOT_FOUND`、複数件は`AMBIGUOUS_TARGET`、古いrefは`STALE_REF`、未対応selectorは`UNSUPPORTED_CAPABILITY`です。成功時にUI操作やrefの失効・再発行は行わず、既存のsnapshot世代を保ちます。backendがfalse/nullを観測できるかはアプリとbindingに依存します。
 
 ## sessionと接続
 
@@ -121,7 +132,7 @@ marionette-agent --session demo session show
 marionette-agent session show --session demo --json
 ```
 
-### `close`
+### `close [--all]`
 
 選択sessionの録画があれば動画を確定し、接続を切断して破棄します。Flutterアプリ自体は終了しません。sessionが存在しない場合も成功します。録画があった場合はdata.recordingに最終状態を返します。
 
@@ -130,6 +141,19 @@ marionette-agent --session demo close
 ```
 
 最後のsessionを閉じるとdaemonも終了します。
+
+全sessionを後始末する場合は次を実行します。`--session`との併用はできません。
+
+```sh
+marionette-agent close --all --timeout 30000 --json
+marionette-agent session list
+```
+
+`close --all`はsession:nullを返し、成功時のdata.sessionsへ名前順のsession別Resultを格納します。daemon不在でも空配列で成功します。アプリは起動したまま、全refは失効し、次の利用には明示connectとsnapshotが必要です。
+
+受付後の新規要求とqueue待ちはnot_sentとして拒否します。実行中操作は共通期限まで待ち、期限で中断した送信済み操作はunknownです。切断失敗でも他sessionを後始末し、部分結果はerror.details.sessionsに返します（textにも表示）。全体終了コードは期限超過があれば5、その他の切断失敗は1、全成功は0です。送信済み操作を自動再送しないでください。停止中に競合したconnectは拒否されるか、要求送信前なら次daemonへ接続する場合があります。
+
+録画確定の期限超過時も全体closeはdaemonを終了し、有界cleanupへ引き継ぎます。選択sessionだけのcloseとは異なりsessionを保持しません。詳細は[SPECの契約](../SPEC.md#close---all)を参照してください。
 
 ## 観測
 

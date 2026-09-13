@@ -140,6 +140,11 @@ class SnapshotService {
     return resolved.selector;
   }
 
+  Future<ElementInfo> observeTarget(
+    Execution context,
+    TargetQuery target,
+  ) async => (await resolveRead(context, target)).element;
+
   /// Read-only target resolution. It re-observes and validates refs without
   /// invalidating them, so successful state queries keep the current snapshot.
   Future<ResolvedElement> resolveRead(
