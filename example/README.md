@@ -13,6 +13,11 @@
 
 入力欄の外側をtapするとキーボードを閉じられる。初期状態に戻すにはアプリを再起動する。
 
+Snapshot filter検証用に、keyを持たない2つの`SnapshotLabel`（Semantics派生型）を表示する。
+`Filter label A` / `Filter label B`は表示textであり、操作用text matcherの確認済み型ではない。
+同型の重複をfilter外に残し、`--text 'Filter label A'`へ絞っても安全でないrefが発行されないことを確認する。
+同じ文言の子Textもあるため、表示textの複数一致も検証できる。identifierの公開可否は実payloadで確認する。
+
 ## 2つの独立したアプリを起動
 
 `flutter devices`で2つのiOS SimulatorのUDIDを確認する。別Simulatorなら同じbundle IDでもプロセス・VM Service・画面状態が独立する。各runnerは別ターミナルで実行する。

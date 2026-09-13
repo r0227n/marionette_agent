@@ -41,7 +41,9 @@ String render(
     final details = error.details;
     return [
       '${error.code}: ${error.message}',
-      if (details != null) ...[
+      if (details?['sessions'] is List)
+        const JsonEncoder.withIndent('  ').convert(details),
+      if (details != null && details['sessions'] == null) ...[
         if (details['progressKnown'] == true)
           'Workflow ${details['workflow'] ?? '-'}: ${details['completedSteps']} steps completed'
         else
@@ -56,6 +58,9 @@ String render(
   final data = result.data!;
   if (data['help'] case final String help) return help;
   if (data['version'] case final String version) return version;
+  if (data.containsKey('known') && data.containsKey('value')) {
+    return 'Visible: ${data['known'] == true ? data['value'] : 'unknown'}';
+  }
   if (data['completedSteps'] case final int count) {
     final snapshot = data['finalSnapshot'];
     return 'Workflow ${data['workflow']}: $count steps completed'
@@ -70,8 +75,11 @@ String render(
     final items = data[field] as List;
     final boundary = data['contentBoundary'] as Map?;
     final source = field == 'elements' ? 'snapshot' : 'logs';
+    final filter = data['filter'] as Map?;
     return [
       field == 'elements' ? 'Snapshot ${data['generation']}' : 'Logs',
+      if (filter != null)
+        'Filter: ${filter['kind']}=${jsonEncode(filter['value'])}; matchedCount: ${filter['matchedCount']}; totalCount: ${filter['totalCount']}',
       if (field == 'entries' && data['configured'] != null)
         'Configured: ${data['configured']}',
       if (field == 'entries' && data['limitation'] != null)

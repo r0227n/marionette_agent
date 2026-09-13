@@ -1,6 +1,41 @@
 import 'package:args/args.dart';
 import 'package:marionette_agent/marionette_agent.dart';
 
+CliCommand snapshotCommand() {
+  final parser = ArgParser();
+  addSelectorOptions(parser);
+  return CliCommand(parser, (args) {
+    if (args.rest.isNotEmpty) invalid('Snapshot accepts only selector options');
+    final params = <String, dynamic>{
+      for (final kind in SelectorKind.values)
+        if (args.wasParsed(kind.name)) kind.name: args.option(kind.name),
+    };
+    snapshotFilter(params);
+    return params;
+  });
+}
+
+Selector? snapshotFilter(Json params) {
+  if (params.isEmpty) return null;
+  final kinds = SelectorKind.values.where(
+    (kind) => params.containsKey(kind.name),
+  );
+  if (params.length != 1 || kinds.length != 1) {
+    invalid(
+      'Snapshot accepts exactly one key, identifier, text, or type filter',
+    );
+  }
+  final kind = kinds.single;
+  final value = params[kind.name];
+  if (value is! String || value.isEmpty) {
+    invalid('Filter must be a nonempty string');
+  }
+  return Selector(kind, value);
+}
+
+Future<Json> handleSnapshot(CommandContext context, Json params) =>
+    context.snapshot(filter: snapshotFilter(params));
+
 CliCommand screenshotCommand() =>
     CliCommand(ArgParser()..addFlag('annotate', negatable: false), (args) {
       if (args.rest.length > 1 ||
