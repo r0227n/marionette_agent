@@ -115,3 +115,7 @@ device, and remove the private URI file. URI values must not be pasted into publ
 
 Human verification remains pending. Agent acceptance has passed. Registered extensions
 are observations, not a claim that every listed operation is supported by this CLI.
+
+## PR #31 integration review (2026-09-13)
+
+Integrated develop through PR #30, preserving debug diagnostics and passive-probe idle timing. Fixed doctor syntax/argument error envelopes to remain sessionless; added regression coverage. The initial new test used an option-value case that is valid grammar; corrected it to an actually missing option value. Re-ran doctor tests (16 passed), format/analyze and the complete suite successfully. Actual local doctor host/dependency/Simulator diagnostics passed; doctor --bad --json now returns session:null and INVALID_ARGUMENT. Existing Simulator probe results and screen/ref preservation evidence were reviewed.

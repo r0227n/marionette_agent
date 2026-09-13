@@ -3,6 +3,7 @@ import 'dart:math';
 
 import '../daemon/client.dart';
 import '../daemon/runtime.dart';
+import '../diagnostics/diagnostic_logging.dart';
 import '../protocol/protocol.dart';
 import 'parser.dart';
 import 'doctor.dart';
@@ -20,7 +21,11 @@ Future<int> runCli(
   List<String>? launchCommand,
 }) async {
   final started = DateTime.now();
+  final elapsed = Stopwatch()..start();
   var json = false;
+  var debug = false;
+  final requestId = '$pid-${Random.secure().nextInt(1 << 32)}';
+  DebugDiagnostics? diagnostics;
   var boundaries = false;
   String? session = const CommonOptions().session;
   Result result;
@@ -32,6 +37,7 @@ Future<int> runCli(
     final invocation = cliParser.parse(
       args,
       onCommand: (command) => workflow = command == 'workflow',
+      onDebug: (value) => debug = value,
       onOutput: (name, useJson) {
         session = name;
         json = useJson;
@@ -41,6 +47,13 @@ Future<int> runCli(
     workflow = invocation.command == 'workflow';
     json = invocation.json;
     session = invocation.resultSession;
+    diagnostics = DebugDiagnostics(
+      elapsed: elapsed,
+      enabled: debug,
+      requestId: requestId,
+      session: session,
+    );
+    diagnostics.emit(DebugStage.cliParsed);
     final deadline = started.add(Duration(milliseconds: invocation.timeoutMs));
     Json params = invocation.params;
     Json? localData;
@@ -101,6 +114,7 @@ Future<int> runCli(
     } else if (invocation.command == 'version') {
       result = Result.success(null, {'version': version});
     } else {
+      diagnostics.emit(DebugStage.runtimePrepare);
       final runtime = await RuntimeDirectory.prepare();
       result =
           await DaemonClient(
@@ -109,7 +123,8 @@ Future<int> runCli(
             idleTimeoutMs: invocation.options.idleTimeoutMs,
           ).send(
             Request(
-              requestId: '$pid-${Random.secure().nextInt(1 << 32)}',
+              requestId: requestId,
+              debug: debug,
               session: invocation.session,
               command: invocation.command,
               params: params,
@@ -144,6 +159,14 @@ Future<int> runCli(
       const AgentError('INTERNAL_ERROR', 'CLI failed'),
     );
   }
+  (diagnostics ??
+          DebugDiagnostics(
+            elapsed: elapsed,
+            enabled: debug,
+            requestId: requestId,
+            session: session,
+          ))
+      .emit(DebugStage.cliResult, code: result.error?.code ?? 'OK');
   stdout.writeln(render(result, json: json, contentBoundaries: boundaries));
   if (!json && result.error?.code == 'INVALID_ARGUMENT') {
     stdout.writeln(cliParser.usage);

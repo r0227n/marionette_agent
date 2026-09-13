@@ -148,10 +148,17 @@ class DaemonServer {
       final diagnostics = <DiagnosticEntry>[];
       dispatched = true;
       _idleDeadline = null;
-      final response = await captureDiagnostics(
-        diagnostics,
-        () => manager.handle(request),
-      );
+      final response = await captureDiagnostics(diagnostics, () async {
+        final debug = DebugDiagnostics(
+          enabled: request.debug,
+          requestId: request.requestId,
+          session: request.session,
+        );
+        debug.emit(DebugStage.daemonDispatch);
+        final result = await manager.handle(request);
+        debug.emit(DebugStage.daemonResult, code: result.error?.code ?? 'OK');
+        return result;
+      });
       final frame = encodeFrame({
         'requestId': request.requestId,
         'diagnostics': diagnostics.map((entry) => entry.toJson()).toList(),

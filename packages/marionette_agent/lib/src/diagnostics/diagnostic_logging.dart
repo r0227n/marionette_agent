@@ -6,6 +6,65 @@ import 'package:logging/logging.dart';
 final _uriPattern = RegExp(r'\b(?:https?|wss?)://[^\s]+', caseSensitive: false);
 final _collectorKey = Object();
 
+enum DebugStage {
+  cliParsed,
+  runtimePrepare,
+  daemonOpen,
+  daemonStart,
+  daemonReady,
+  requestSend,
+  daemonDispatch,
+  sessionQueue,
+  commandExecute,
+  daemonResult,
+  cliResult,
+}
+
+/// Only metadata is accepted: never pass command parameters or error messages.
+class DebugDiagnostics {
+  DebugDiagnostics({
+    required this.enabled,
+    required this.requestId,
+    required this.session,
+    Stopwatch? elapsed,
+  }) : _elapsed = elapsed ?? (Stopwatch()..start());
+  final bool enabled;
+  final String requestId;
+  final String? session;
+  final Stopwatch _elapsed;
+
+  void emit(DebugStage stage, {String? code}) {
+    if (!enabled) return;
+    String label(String? value) =>
+        value != null &&
+            RegExp(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$').hasMatch(value)
+        ? value
+        : 'none';
+    const codes = {
+      'OK',
+      'INVALID_ARGUMENT',
+      'NOT_CONNECTED',
+      'SESSION_CONFLICT',
+      'CONNECTION_LOST',
+      'CLOSE_FAILED',
+      'TARGET_NOT_FOUND',
+      'AMBIGUOUS_TARGET',
+      'STALE_REF',
+      'UNRESOLVABLE_TARGET',
+      'TIMEOUT',
+      'UNSUPPORTED_CAPABILITY',
+      'IO_ERROR',
+      'INTERNAL_ERROR',
+      'BACKEND_ERROR',
+    };
+    Logger('marionette_agent.debug').info(
+      'requestId=${label(requestId)} session=${label(session)} '
+      'stage=${stage.name} elapsedMs=${_elapsed.elapsedMilliseconds}'
+      '${code == null ? '' : ' code=${codes.contains(code) ? code : 'INTERNAL_ERROR'}'}',
+    );
+  }
+}
+
 String _redact(String value) => value
     .replaceAll(_uriPattern, '<redacted-uri>')
     .replaceAll('\r', r'\r')

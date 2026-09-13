@@ -72,6 +72,21 @@ void main() {
       throwsA(isA<AgentError>()),
     );
   });
+  test('doctor argument errors remain sessionless in output recovery', () {
+    for (final args in [
+      ['doctor', '--bad', '--json'],
+      ['doctor', 'unexpected', '--json'],
+      ['doctor', '--timeout', '0', '--json'],
+      ['doctor', '--probe-uri'],
+    ]) {
+      String? session = 'not-called';
+      expect(
+        () => CliParser().parse(args, onOutput: (name, _) => session = name),
+        throwsA(isA<AgentError>()),
+      );
+      expect(session, isNull);
+    }
+  });
   test('absent runtime stays absent and default doctor never probes', () async {
     final missing = '${dir.path}/absent';
     final result = await doctor(

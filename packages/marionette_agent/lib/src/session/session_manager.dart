@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../diagnostics/diagnostic_logging.dart';
+
 import '../output/content.dart';
 import '../backend/backend.dart';
 import '../backend/marionette_backend.dart';
@@ -37,13 +39,23 @@ class SessionManager {
 
   /// Reserve session at intake and execute requests in selected session queue.
   Future<Result> handle(Request request) async {
+    final debug = DebugDiagnostics(
+      enabled: request.debug,
+      requestId: request.requestId,
+      session: request.session,
+    );
     final independent =
         request.command == 'session' && request.params['action'] == 'list';
-    final resultSession = independent ? null : request.session;
+    final all = request.command == 'close' && request.params['all'] == true;
+    final resultSession = independent || all ? null : request.session;
     try {
       request.checkDeadline();
       if (stopping) {
         throw const AgentError('CONNECTION_LOST', 'Daemon is shutting down');
+      }
+      if (all) {
+        if (request.params.length != 1) invalid();
+        return await _closeAll(request);
       }
       if (independent) {
         if (request.params.length != 1) invalid();
@@ -77,7 +89,7 @@ class SessionManager {
       final existing = sessions[request.session];
       if (existing == null && request.command == 'close') {
         if (request.params.isNotEmpty) invalid();
-        if (sessions.isEmpty) {
+        if (sessions.isEmpty && !stopping) {
           stopping = true;
           onEmpty?.call();
         }
@@ -97,11 +109,19 @@ class SessionManager {
       final session = existing ?? Session(request.session);
       sessions[request.session] = session;
       session.pending++;
+      debug.emit(DebugStage.sessionQueue);
       var started = false;
       final future = session.queue
           .run(() async {
             started = true;
+            debug.emit(DebugStage.commandExecute);
             request.checkDeadline();
+            if (stopping) {
+              throw const AgentError(
+                'CONNECTION_LOST',
+                'Daemon is shutting down',
+              );
+            }
             if (request.command == 'record') return recordings.handle(request);
             Json? recording;
             if (request.command == 'close') {
@@ -136,7 +156,7 @@ class SessionManager {
                 !recordings.contains(session.name) &&
                 identical(sessions[session.name], session)) {
               sessions.remove(session.name);
-              if (sessions.isEmpty) {
+              if (sessions.isEmpty && !stopping) {
                 stopping = true;
                 onEmpty?.call();
               }
@@ -170,6 +190,97 @@ class SessionManager {
         const AgentError('INTERNAL_ERROR', 'Request failed'),
       );
     }
+  }
+
+  /// Intake is synchronous: no later connect or command can reserve a session.
+  Future<Result> _closeAll(Request request) async {
+    stopping = true;
+    final targets = sessions.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final results = await Future.wait(
+      targets.map((session) async {
+        AgentError? failure;
+        try {
+          await session.queue.run(() async {}).timeout(request.remaining);
+          request.checkDeadline();
+          await recordings
+              .close(
+                Request(
+                  requestId: request.requestId,
+                  session: session.name,
+                  command: 'close',
+                  params: {},
+                  deadline: request.deadline,
+                ),
+              )
+              .timeout(request.remaining);
+        } on TimeoutException {
+          failure = const AgentError(
+            'TIMEOUT',
+            'Close deadline exceeded',
+            outcome: Outcome.unknown,
+          );
+        } on AgentError catch (error) {
+          failure = error.code == 'TIMEOUT'
+              ? error.withOutcome(Outcome.unknown)
+              : error;
+        } catch (_) {
+          failure = const AgentError(
+            'BACKEND_ERROR',
+            'Session cleanup failed',
+            outcome: Outcome.failed,
+          );
+        }
+        // Retire even on drain failure; running sent operations retain unknown,
+        // while queued requests are rejected before dispatch.
+        session.interrupt();
+        final disposal = session.discard();
+        session.closed = true;
+        session.uri = null;
+        try {
+          await disposal.timeout(request.remaining);
+        } on TimeoutException {
+          failure ??= const AgentError(
+            'TIMEOUT',
+            'Disconnect deadline exceeded',
+            outcome: Outcome.unknown,
+          );
+        } catch (_) {
+          failure ??= const AgentError(
+            'BACKEND_ERROR',
+            'Disconnect failed',
+            outcome: Outcome.failed,
+          );
+        }
+        return failure == null
+            ? Result.success(session.name, {'closed': true})
+            : Result.failure(session.name, failure);
+      }),
+    );
+    sessions.clear();
+    _owners.clear();
+    onEmpty?.call();
+    final data = <String, Object?>{
+      'closed': true,
+      'sessions': results.map((result) => result.toJson()).toList(),
+    };
+    if (results.every((result) => result.error == null)) {
+      return Result.success(null, data);
+    }
+    final unknown = results.any(
+      (result) => result.error?.outcome == Outcome.unknown,
+    );
+    return Result.failure(
+      null,
+      AgentError(
+        results.any((result) => result.error?.code == 'TIMEOUT')
+            ? 'TIMEOUT'
+            : 'CLOSE_FAILED',
+        'Some sessions could not be confirmed closed',
+        outcome: unknown ? Outcome.unknown : Outcome.failed,
+        details: data,
+      ),
+    );
   }
 
   Future<Json> _execute(Execution context) async {
