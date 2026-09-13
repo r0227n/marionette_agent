@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../cli/common_options.dart';
 
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
-const protocolVersion = 4;
+const protocolVersion = 5;
 
 /// Version for result envelopes rendered to stdout.
 const schemaVersion = 1;
@@ -141,6 +141,7 @@ class Request {
     required this.deadline,
     this.maxOutput,
     this.outputJson = false,
+    this.debug = false,
   });
   final String requestId;
   final String session;
@@ -149,6 +150,7 @@ class Request {
   final DateTime deadline;
   final int? maxOutput;
   final bool outputJson;
+  final bool debug;
   Duration get remaining => deadline.difference(DateTime.now());
   void checkDeadline() {
     if (remaining <= Duration.zero) {
@@ -165,6 +167,7 @@ class Request {
     'deadline': deadline.millisecondsSinceEpoch,
     'maxOutput': maxOutput,
     'outputJson': outputJson,
+    'debug': debug,
   };
   factory Request.fromJson(Json json) {
     if (json['protocolVersion'] != protocolVersion) {
@@ -180,6 +183,9 @@ class Request {
       invalid('Invalid IPC request');
     }
     final maxOutput = CommonOptions.outputLimit(json['maxOutput']);
+    if (json['debug'] != null && json['debug'] is! bool) {
+      invalid('Invalid debug policy');
+    }
     if (json['outputJson'] != null && json['outputJson'] is! bool) {
       invalid('Invalid output policy');
     }
@@ -190,6 +196,7 @@ class Request {
       session: name,
       maxOutput: maxOutput,
       outputJson: json['outputJson'] == true,
+      debug: json['debug'] == true,
       command: json['command'] as String,
       params: asJson(json['params']),
       deadline: DateTime.fromMillisecondsSinceEpoch(json['deadline'] as int),

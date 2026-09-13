@@ -44,6 +44,7 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | --- | --- |
 | `--session <name>` | 省略時は `default`。英数字で始まる英数字・`_`・`-`、最大64文字 |
 | `--json` | stdoutへ1つのJSONオブジェクトを出力 |
+| `--debug` | 値なしflag、既定無効。request ID・session・処理段階・経過ms・終了時の正規化error codeをstderrへ出力 |
 | `--timeout <ms>` | DurationとDateTimeで表現可能な正の整数。既定30,000ms。待ち行列・接続・処理を含む期限。範囲外はINVALID_ARGUMENT |
 | `--content-boundaries` | 値なしflag、既定無効。snapshot要素／logs entryを未信頼コンテンツとして識別 |
 | `--max-output <chars>` | 正の整数、既定無制限。snapshot／logsの項目列をUnicode code point数で制限 |
@@ -54,9 +55,11 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 
 構文エラーでも、有効に指定されたsessionとJSONモードを応答へ反映する。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
 
+`--debug`は構文エラーを含めopt-inで診断を追加し、通常診断とstdoutの既存envelopeは維持する。CLIからdaemonへ要求単位で伝え、並行sessionで設定・診断を共有しない。処理段階はCLI解析、runtime準備、daemon接続・起動・ready、送信、dispatch、session queue、command実行、結果。各プロセス内の処理区間開始からの単調な経過時間をmsで表示し、結果には成功の`OK`または正規化error codeを付ける。認証URI、fill入力、selector値、アプリ表示text、error message/details、stack traceは詳細診断に含めない。
+
 ### 共通安全オプション
 
-共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。新しい3オプションもhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。
+共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。`--debug`を含む共通オプションはhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数や設定ファイルのfallbackはない。
 
 `--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
 

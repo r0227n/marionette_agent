@@ -105,19 +105,26 @@ class CliParser {
     List<String> arguments, {
     void Function(String? session, bool json)? onOutput,
     void Function(String? command)? onCommand,
+    void Function(bool)? onDebug,
   }) {
     final ArgResults args;
     try {
       args = parser.parse(arguments);
     } on ArgParserException catch (error) {
       onCommand?.call(error.commands.firstOrNull);
-      CommonOptions.recoverOutput(parser, arguments, error.commands, onOutput);
+      CommonOptions.recoverOutput(
+        parser,
+        arguments,
+        error.commands,
+        onOutput,
+        onDebug,
+      );
       invalid('Invalid command syntax');
     } on FormatException {
       invalid('Invalid command syntax');
     }
     onCommand?.call(args.command?.name);
-    CommonOptions.reportOutput(args, onOutput);
+    CommonOptions.reportOutput(args, onOutput, onDebug);
     CommonOptions.rejectDuplicateOptions(parser, arguments);
     final options = CommonOptions.parse(args);
     if (options.special != null) {

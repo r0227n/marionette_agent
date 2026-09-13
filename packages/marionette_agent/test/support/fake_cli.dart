@@ -42,6 +42,11 @@ Future<void> main(List<String> args) async {
             ElementInfo(key: 'unknown'),
             ElementInfo(key: 'duplicate'),
             ElementInfo(key: 'duplicate'),
+            ElementInfo(
+              key: 'input',
+              text: 'app-secret-text',
+              type: 'TextField',
+            ),
           ],
         registry,
       ),
