@@ -13,6 +13,12 @@ import 'package:image/src/formats/png_decoder.dart' show PngDecoder;
 import 'package:image/src/image/image.dart' show Image;
 import 'package:path/path.dart' as p;
 
+// ignore: implementation_imports
+import 'package:image/src/formats/png_encoder.dart' show PngEncoder;
+// ignore: implementation_imports
+import 'package:image/src/transform/copy_crop.dart' show copyCrop;
+
+import '../backend/screenshot_geometry.dart';
 import '../protocol/protocol.dart';
 import 'common_options.dart';
 import 'screenshot_annotation.dart';
@@ -62,6 +68,55 @@ Future<Json> saveScreenshots(
       'BACKEND_ERROR',
       'Cannot decode or convert PNG screenshot',
     );
+  }
+  if (data.containsKey('crop')) {
+    final geometry = ScreenshotGeometry.decode(data['geometry']);
+    final bounds = data['crop'];
+    if (images.length != 1 ||
+        bounds is! Map ||
+        [
+          'x',
+          'y',
+          'width',
+          'height',
+        ].any((key) => bounds[key] is! num || !(bounds[key] as num).isFinite)) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Crop requires one mapped image and finite target bounds',
+      );
+    }
+    final x = (bounds['x'] as num).toDouble(),
+        y = (bounds['y'] as num).toDouble();
+    final w = (bounds['width'] as num).toDouble(),
+        h = (bounds['height'] as num).toDouble();
+    final image = PngDecoder().decode(images.single)!;
+    if (image.width != geometry.width ||
+        image.height != geometry.height ||
+        x < 0 ||
+        y < 0 ||
+        w <= 0 ||
+        h <= 0 ||
+        x + w > geometry.logicalWidth ||
+        y + h > geometry.logicalHeight) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Target bounds must be wholly inside the mapped view',
+      );
+    }
+    final left = (x * image.width / geometry.logicalWidth).floor();
+    final top = (y * image.height / geometry.logicalHeight).floor();
+    final right = ((x + w) * image.width / geometry.logicalWidth).ceil();
+    final bottom = ((y + h) * image.height / geometry.logicalHeight).ceil();
+    images[0] = PngEncoder().encode(
+      copyCrop(
+        image,
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
+      ),
+    );
+    checkDeadline();
   }
   if (data.containsKey('annotations')) {
     if (images.length != 1) {
@@ -161,6 +216,7 @@ Future<Json> saveScreenshots(
     checkDeadline();
     return {
       'paths': paths,
+      if (data.containsKey('crop')) 'cropped': true,
       if (annotated != null) ...{
         'annotated': true,
         'generation': (data['annotations'] as Map)['generation'],

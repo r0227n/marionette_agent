@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:vm_service/vm_service.dart';
@@ -44,10 +45,17 @@ String redactUri(Uri uri) => Uri(
 ).toString();
 
 /// The only production module allowed to import upstream internal APIs.
-class MarionetteBackend implements Backend, MappedScreenshotBackend {
+class MarionetteBackend
+    implements
+        Backend,
+        MappedScreenshotBackend,
+        InteractionBackend,
+        ClipboardBackend {
   MarionetteBackend({VmServiceConnector? connector})
     : _connector = connector ?? VmServiceConnector();
   final VmServiceConnector _connector;
+  bool _extended = false;
+  Set<String> _extraInteractions = const {};
   @override
   Set<SelectorKind> get selectors => const {
     SelectorKind.key,
@@ -109,10 +117,99 @@ class MarionetteBackend implements Backend, MappedScreenshotBackend {
   }
 
   @override
-  Future<void> connect(Uri uri) =>
-      _call(() => _connector.connect(uri.toString()));
+  Future<void> connect(Uri uri) => _call(() async {
+    await _connector.connect(uri.toString());
+    final extensions = await _connector.listExtensions();
+    final list = extensions['extensions'];
+    _extended =
+        list is List &&
+        list.any(
+          (entry) =>
+              entry is Map && entry['name'] == 'marionette_agent.inspect',
+        );
+    if (_extended) {
+      final response = validateResponse(
+        await _connector.callCustomExtension('marionette_agent.inspect'),
+      );
+      if (response['version'] != 1 ||
+          response['interactions'] is! List ||
+          (response['interactions'] as List).any((entry) => entry is! String)) {
+        throw const AgentError(
+          'UNSUPPORTED_CAPABILITY',
+          'Unsupported typed observation provider',
+        );
+      }
+      _extraInteractions = (response['interactions'] as List)
+          .cast<String>()
+          .toSet();
+    }
+  });
   @override
-  Future<void> disconnect() => _call(_connector.disconnect);
+  Set<String> get interactions => {'dblclick', 'press', ..._extraInteractions};
+
+  @override
+  Future<void> interact(
+    String action, {
+    Selector? target,
+    Json arguments = const {},
+  }) {
+    if (_extraInteractions.contains(action)) {
+      return _call(() async {
+        await extensionInteraction(
+          action,
+          target: target,
+          arguments: arguments,
+        );
+      });
+    }
+    switch (action) {
+      case 'dblclick':
+        return _action(() => _connector.doubleTap(_selector(target!)));
+      case 'press':
+        return _action(
+          () => _connector.pressKey(
+            arguments['key'] as String,
+            modifiers: (arguments['modifiers'] as List).cast<String>().join(
+              ',',
+            ),
+          ),
+        );
+      default:
+        throw const AgentError(
+          'UNSUPPORTED_CAPABILITY',
+          'Binding does not support this interaction',
+        );
+    }
+  }
+
+  @override
+  Future<void> disconnect() => _call(() async {
+    try {
+      if (_extraInteractions.contains('keyboard.release')) {
+        await extensionInteraction('keyboard.release')
+            .timeout(const Duration(seconds: 1));
+      }
+    } catch (_) {
+      /* Always disconnect even if the app cannot release input. */
+    } finally {
+      await _connector.disconnect();
+    }
+  });
+
+  @override
+  Future<String?> readClipboard() => _call(() async {
+    if (!_extraInteractions.contains('clipboard.read')) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Binding does not provide target clipboard access',
+      );
+    }
+    final result = await extensionInteraction('clipboard.read');
+    if (result['text'] != null && result['text'] is! String) {
+      throw const AgentError('BACKEND_ERROR', 'Invalid clipboard response');
+    }
+    return result['text'] as String?;
+  });
   @override
   Future<void> checkConnection() => _call(() async {
     await _connector.getVersion();
@@ -138,13 +235,31 @@ class MarionetteBackend implements Backend, MappedScreenshotBackend {
     }
     return value.map((raw) {
       final e = _elementObject(raw);
-      for (final key in ['type', 'text', 'key', 'identifier']) {
+      for (final key in [
+        'type',
+        'text',
+        'key',
+        'identifier',
+        'inputValue',
+        'role',
+        'label',
+        'placeholder',
+      ]) {
         if (e[key] != null && e[key] is! String) {
           throw const AgentError('BACKEND_ERROR', 'Invalid element attribute');
         }
       }
-      if (e['visible'] != null && e['visible'] is! bool) {
+      if ([
+        'visible',
+        'enabled',
+        'checked',
+        'interactive',
+      ].any((key) => e[key] != null && e[key] is! bool)) {
         throw const AgentError('BACKEND_ERROR', 'Invalid visibility');
+      }
+      if (e['depth'] != null &&
+          (e['depth'] is! int || (e['depth'] as int) < 0)) {
+        throw const AgentError('BACKEND_ERROR', 'Invalid element depth');
       }
       Json? bounds;
       if (e['bounds'] != null) {
@@ -167,6 +282,14 @@ class MarionetteBackend implements Backend, MappedScreenshotBackend {
         identifier: e['identifier'] as String?,
         bounds: bounds,
         visible: e['visible'] as bool?,
+        inputValue: e['inputValue'] as String?,
+        enabled: e['enabled'] as bool?,
+        checked: e['checked'] as bool?,
+        role: e['role'] as String?,
+        label: e['label'] as String?,
+        placeholder: e['placeholder'] as String?,
+        depth: e['depth'] as int?,
+        interactive: e['interactive'] as bool?,
         // The wire format does not identify Semantics subclasses or custom
         // extractors. Only these exact types have a verified matcher source
         // in binding 0.6.0. Other types can still use keys or unique types.
@@ -204,7 +327,11 @@ class MarionetteBackend implements Backend, MappedScreenshotBackend {
       });
   @override
   Future<List<ElementInfo>> inspect() => _call(
-    () async => decodeElements(await _connector.getInteractiveElements()),
+    () async => decodeElements(
+      _extended
+          ? await _connector.callCustomExtension('marionette_agent.inspect')
+          : await _connector.getInteractiveElements(),
+    ),
   );
   @override
   Future<void> tap(TapTarget target) {
@@ -271,6 +398,39 @@ class MarionetteBackend implements Backend, MappedScreenshotBackend {
       throw const AgentError('BACKEND_ERROR', 'Invalid logs response');
     }
     return LogBatch(logs.cast<String>(), configured: true);
+  });
+
+  Future<Json> extensionInteraction(
+    String action, {
+    Selector? target,
+    Json arguments = const {},
+  }) => _call(() async {
+    final response = validateResponse(
+      await _connector.callCustomExtension('marionette_agent.interact', {
+        'request': jsonEncode({
+          'action': action,
+          if (target != null) 'target': target.toJson(),
+          'arguments': arguments,
+        }),
+      }),
+    );
+    final code = response['errorCode'];
+    if (code != null) {
+      const allowed = {
+        'INVALID_ARGUMENT',
+        'UNSUPPORTED_CAPABILITY',
+        'TARGET_NOT_FOUND',
+        'AMBIGUOUS_TARGET',
+        'UNRESOLVABLE_TARGET',
+        'BACKEND_ERROR',
+      };
+      throw AgentError(
+        allowed.contains(code) ? code as String : 'BACKEND_ERROR',
+        'Typed provider rejected the interaction',
+        outcome: Outcome.failed,
+      );
+    }
+    return {...response}..remove('status');
   });
 
   @override

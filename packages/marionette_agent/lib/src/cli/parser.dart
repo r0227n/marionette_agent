@@ -12,6 +12,15 @@ import 'record_command.dart';
 import 'wait_command.dart';
 import 'get_command.dart';
 import '../commands/is_visible.dart';
+import '../commands/interactions.dart';
+import '../commands/find.dart';
+import 'diff_command.dart';
+import 'config_file.dart';
+import 'state_command.dart';
+import 'install_command.dart';
+import 'batch_command.dart';
+import '../commands/keyboard.dart';
+import '../commands/drag.dart';
 
 /// Register ArgParser grammar and conversion from validated args to protocol params.
 class CliCommand {
@@ -26,7 +35,8 @@ class CliParser {
   CliParser({
     Map<String, CliCommand> commands = const {},
     Map<String, String>? environment,
-  }) : parser = CommonOptions.createParser(
+  }) : environment = environment ?? Platform.environment,
+       parser = CommonOptions.createParser(
          environment ?? Platform.environment,
        ) {
     definitions.addAll(commands);
@@ -35,20 +45,70 @@ class CliParser {
     }
   }
   final ArgParser parser;
+  final Map<String, String> environment;
   final definitions = <String, CliCommand>{
-    'doctor': CliCommand(ArgParser()..addOption('probe-uri'), (args) {
-      if (args.rest.isNotEmpty) invalid('Usage: doctor [--probe-uri <uri>]');
-      return {'probeUri': args['probe-uri']};
-    }),
+    'device': CliCommand(
+      ArgParser()..addCommand(
+        'list',
+        ArgParser()..addOption(
+          'platform',
+          allowed: ['ios', 'android'],
+          defaultsTo: 'ios',
+        ),
+      ),
+      (args) {
+        final child = args.command;
+        if (child == null || args.rest.isNotEmpty || child.rest.isNotEmpty) {
+          invalid('Usage: device list [--platform ios|android]');
+        }
+        return {'platform': child.option('platform')};
+      },
+    ),
+    'doctor': CliCommand(
+      ArgParser()
+        ..addOption('probe-uri')
+        ..addFlag('quick', negatable: false)
+        ..addFlag('offline', negatable: false)
+        ..addFlag('fix', negatable: false),
+      (args) {
+        if (args.rest.isNotEmpty) invalid('Usage: doctor [--probe-uri <uri>]');
+        return {
+          'probeUri': args['probe-uri'],
+          if (args.flag('quick')) 'quick': true,
+          if (args.flag('offline')) 'offline': true,
+          if (args.flag('fix')) 'fix': true,
+        };
+      },
+    ),
     'workflow': workflowCommand(),
     'record': recordCommand(),
     'tap': actionCommand(),
+    'click': actionCommand(),
+    for (final action in [...targetInteractions, ...keyboardInteractions])
+      action: interactionCommand(action),
     'fill': actionCommand(fill: true),
     'scroll': swipeCommand(coordinates: false),
     'screenshot': screenshotCommand(),
     'logs': CliCommand(ArgParser(), noArguments),
     'wait': waitCommand(),
     'get': getCommand(),
+    'find': findCommand(),
+    'diff': diffCommand(),
+    'batch': batchCommand(),
+    'state': stateCommand(),
+    'install': installCommand(),
+    'upgrade': installCommand(),
+    for (final command in ['confirm', 'deny'])
+      command: CliCommand(ArgParser(), (args) {
+        if (args.rest.length != 1 ||
+            !RegExp(r'^[0-9a-f]{32}$').hasMatch(args.rest.single)) {
+          invalid('Specify one confirmation id');
+        }
+        return {'id': args.rest.single};
+      }),
+    'keyboard': keyboardCommand(),
+    'drag': dragCommand(),
+    'clipboard': clipboardCommand(),
     'is': isCommand(),
     'swipe': swipeCommand(),
     'connect': CliCommand(ArgParser(), (args) {
@@ -122,7 +182,21 @@ class CliParser {
       'Selectors: --key <value> | --identifier <value> | --text <value> | --type <value>\n'
       'Common options work before or after commands. Use -- for literal arguments.\n'
       'Session/timeout validate only the selected CLI, environment or default value.\n'
-      'Empty or invalid selected values are INVALID_ARGUMENT; overridden environment values are ignored.';
+      'Empty or invalid selected values are INVALID_ARGUMENT; overridden environment values are ignored.\n'
+      'Additional Flutter commands (see docs/ja/cli-parity.ja.md):\n'
+      'snapshot --interactive --compact --depth <n> | get value | is enabled|checked\n'
+      'find role|label|placeholder|text|key|identifier|type <value> [action] [input] [--exact] [--name <label>]\n'
+      'find first|last <selector> [action] | find nth <index> <selector> [action]\n'
+      'click|dblclick|focus|hover|check|uncheck|scrollintoview <ref|selector>\n'
+      'type|select <ref|selector> <input> | press <key-combination> | keydown|keyup <key>\n'
+      'keyboard press|type|inserttext <input> | clipboard read|write <text>|copy|paste\n'
+      'drag <from-ref> <to-ref> | drag --from-key <key> --to-key <key>\n'
+      'wait <milliseconds|ref> | screenshot <ref|selector> [path]\n'
+      'diff snapshot|screenshot --baseline <path> [--threshold <0-255> --output <path>]\n'
+      'record restart <path> --platform <platform> --device <id> | record start/restart --fps <1-60>\n'
+      'device list [--platform ios|android] | batch <JSON-file|->\n'
+      'state save|load <path> (connection only) | confirm|deny <confirmation-id>\n'
+      'doctor --quick|--offline|--fix | install|upgrade [--source <package-directory>] <bin-directory>';
 
   Invocation parse(
     List<String> arguments, {
@@ -132,7 +206,11 @@ class CliParser {
   }) {
     final ArgResults args;
     try {
-      args = parser.parse(arguments);
+      final selected = parser.parse(arguments);
+      CommonOptions.reportOutput(selected, onOutput, onDebug);
+      final defaults = configArguments(parser, selected, environment);
+      arguments = [...defaults, ...arguments];
+      args = defaults.isEmpty ? selected : parser.parse(arguments);
     } on ArgParserException catch (error) {
       onCommand?.call(error.commands.firstOrNull);
       CommonOptions.recoverOutput(
@@ -182,6 +260,9 @@ class Invocation {
   String? get resultSession =>
       command == 'help' ||
           command == 'doctor' ||
+          command == 'device' ||
+          command == 'install' ||
+          command == 'upgrade' ||
           command == 'version' ||
           (command == 'workflow' && params['action'] != 'run') ||
           (command == 'session' && params['action'] == 'list') ||

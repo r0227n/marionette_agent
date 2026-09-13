@@ -84,6 +84,58 @@ void main() {
     await manager.dispose();
     await dir.delete(recursive: true);
   });
+  test('record confirmation survives without a Flutter connection', () async {
+    final pending = await manager.handle(
+      Request(
+        requestId: 'pending-record',
+        session: 'a',
+        command: 'record',
+        params: start(),
+        policy: {
+          'confirm': ['record'],
+        },
+        deadline: DateTime.now().add(const Duration(seconds: 3)),
+      ),
+    );
+    expect(pending.error!.code, 'CONFIRMATION_REQUIRED');
+    expect(recorder.starts, 0);
+    expect(emptied, false);
+    final confirmed = await call(
+      'confirm',
+      params: {'id': pending.error!.details!['confirmationId']},
+    );
+    expect(confirmed.exitCode, 0);
+    expect(recorder.starts, 1);
+    expect((await call('close')).exitCode, 0);
+    expect(emptied, true);
+  });
+  test('restart finalizes old recording and rejects existing destinations before stop', () async {
+    final initial = await call('record', params: {...start(), 'fps': 15});
+    expect(initial.data!['fps'], 15);
+    final first = recorder.lastHandle!;
+    final existing = await call(
+      'record',
+      params: {...start(), 'action': 'restart'},
+    );
+    expect(existing.error!.code, 'IO_ERROR');
+    expect(first.isRunning, true);
+    expect(recorder.starts, 1);
+    final restarted = await call(
+      'record',
+      params: {
+        ...start(),
+        'action': 'restart',
+        'path': '${dir.path}/next.mp4',
+        'fps': 30,
+      },
+    );
+    expect(restarted.exitCode, 0);
+    expect(restarted.data!['fps'], 30);
+    expect(first.isRunning, false);
+    expect(recorder.starts, 2);
+    expect(await File('${dir.path}/video.mp4').readAsString(), 'video fixture');
+  });
+
   test(
     'record-only session persists, allows connect and preserves refs',
     () async {

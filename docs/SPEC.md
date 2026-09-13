@@ -3,7 +3,7 @@
 ## 環境診断 doctor (Issue #9)
 
 `doctor [--probe-uri <uri>]` は接続不要のローカル診断。sessionはnull。
-runtime作成・permission変更・socket削除・daemon起動/停止・package導入・Simulator起動を行わない。
+通常実行はruntime作成・permission変更・socket削除・daemon起動/停止・package導入・Simulator起動を行わない。追加の`--quick/--offline/--fix`は後述のFlutter向け拡張に従う。
 既存session/backend/refへ要求を配送せず、daemonではhandshakeだけを読み接続を破棄する。
 handshakeだけの照会ではdaemonの既存idle期限を更新しない。
 
@@ -87,9 +87,9 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 | `--screenshot-dir <path>` | path省略のscreenshotを保存する既存directory。既定未指定。明示pathを優先し、両方省略時は従来の一時保存 |
 | `--help` / `--version` | 接続なしで利用可能 |
 
-共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。対話入力は要求しない。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
+共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。通常は対話入力を要求せず、明示した`--confirm-interactive`だけがTTYで確認する。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
 
-sessionとtimeoutはそれぞれ明示CLI > 環境変数 > 既定値の順で選び、選択された値だけに既存の名前・正整数・Duration／DateTime範囲検証を適用する。環境変数の空文字も設定済みとして扱い、不正ならINVALID_ARGUMENTとする。明示CLIで上書きされた環境値は空文字・不正値でも検証しない。明示CLIの欠損・重複・不正値は環境値へ戻さず引数エラーとする。環境変数はCLI呼出しごとに解決し、選択したtimeoutはqueue待ちを含む既存の絶対deadlineへ変換する。configファイル、認証情報、session id、idle-timeoutの環境fallbackは提供しない。
+sessionとtimeoutはそれぞれ明示CLI > 環境変数 > 明示config > 既定値の順で選び、選択された値だけに既存の名前・正整数・Duration／DateTime範囲検証を適用する。環境変数の空文字も設定済みとして扱い、不正ならINVALID_ARGUMENTとする。明示CLIで上書きされた環境値は空文字・不正値でも検証しない。明示CLIの欠損・重複・不正値は環境値へ戻さず引数エラーとする。環境変数はCLI呼出しごとに解決し、選択したtimeoutはqueue待ちを含む既存の絶対deadlineへ変換する。configは明示`--config`で提供する。認証情報、session id、idle-timeoutの環境fallbackは提供しない。
 
 構文エラーでも、有効に選択されたsession（環境値を含む）とJSONモードを応答へ反映する。不正なsessionはnull、session非依存コマンドもnullとする。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
 
@@ -97,7 +97,7 @@ sessionとtimeoutはそれぞれ明示CLI > 環境変数 > 既定値の順で選
 
 ### 共通安全オプション
 
-共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。`--debug`を含む共通オプションはhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数のfallbackはsessionとtimeoutだけに適用し、設定ファイルのfallbackはない。screenshot形式・品質は画像保存時だけ使用し、他コマンドの出力は変更しない。
+共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。`--debug`を含む共通オプションはhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数のfallbackはsessionとtimeoutだけに適用し、明示設定ファイルの値を環境変数より下位の既定値として使う。screenshot形式・品質は画像保存時だけ使用し、他コマンドの出力は変更しない。
 
 `--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
 
@@ -284,9 +284,18 @@ boundsが欠損・非有限ならmissing_or_invalid_bounds、幅/高さが非正
 
 ## 対象外・将来範囲
 
-label/role/hint/placeholder/tooltipによる共通selectorと、入力値・enabled/checkedのread-only取得は未実装。[Issue #14設計案](semantics-selector-state-design.md)に固定binding 0.6.0の取得/照合能力、型付きDTO、unknownと重複の契約案、上流依存を記録する。Semantics由来の表示textや診断文字列を入力値・状態の代用にしない。設計案は現行CLIの受理構文や実装済み契約を増やさない。
+role/label/placeholderはfindに対応し、get value/is enabled/is checkedを追加した。通常selectorはkey/identifier/text/typeのまま維持する。hint/tooltip、完全なSemanticsツリー、永続的target IDは未対応。[Issue #14設計案](semantics-selector-state-design.md)は元のstock binding調査と将来設計として保持する。
 
-record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、アプリ起動管理、任意の独自拡張を呼び出すCLI、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。注釈画像に必要な固定名のgeometry providerのみbackend内部の限定例外とする。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
+record以外のAndroid／実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、アプリ起動管理、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaとMCP対象外の方針は維持する。
+
+## Flutter向け拡張
+
+[追加コマンド仕様](ja/cli-parity.ja.md)を本仕様の一部とする。snapshotのinteractive/compact/depth、型付きget/is、find、追加interaction、ref/時間wait、crop/diff、clipboard、config/namespace、接続state、batch/policy、record restart/fps、device list、doctor追加モード、install/upgradeの構文・出力・対応範囲を定義する。
+
+任意の `marionette_agent_flutter` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
+
+IPC protocolVersionは6。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、新規コマンドのdataだけを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
+
 
 ## 端末画面録画
 

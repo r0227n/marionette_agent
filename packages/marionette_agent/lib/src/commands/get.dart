@@ -7,6 +7,13 @@ import 'command_context.dart';
 Future<Json> handleGet(CommandContext context, Json params) async {
   final request = GetRequest.parse(params);
   switch (request.action) {
+    case 'value':
+      final resolved = await context.resolveRead(request.target!);
+      return {
+        'property': 'value',
+        'known': resolved.element.inputValue != null,
+        'value': resolved.element.inputValue,
+      };
     case 'text':
       final resolved = await context.resolveRead(request.target!);
       return {'text': resolved.element.text};
@@ -33,7 +40,7 @@ class GetRequest {
 
   static GetRequest parse(Json params) {
     final action = params['action'];
-    if (action != 'text' && action != 'box' && action != 'count') {
+    if (!['text', 'value', 'box', 'count'].contains(action)) {
       invalid('Usage: get text|box <ref|selector> | get count <selector>');
     }
     final allowed = {

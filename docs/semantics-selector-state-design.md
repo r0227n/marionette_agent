@@ -1,5 +1,7 @@
 # Semantics selector・値と状態取得の設計案 (Issue #14)
 
+> 更新: 本書はstock binding 0.6.0の調査と将来設計の記録です。任意のFlutter providerを使う現行の限定実装は[追加コマンド仕様](ja/cli-parity.ja.md)を参照してください。完全Semanticsツリー・永続target IDの設計完了を意味しません。
+
 状態: 固定依存のソース調査とSimulator実payload・画面照合済み。これは将来案であり、CLI機能の実装完了を示さない。現在の契約は [SPEC](SPEC.md)、実装境界は [ARCHITECTURE](ARCHITECTURE.md)。[検証記録と再現手順](../packages/marionette_agent/docs/verification/issue-14.md) に実施結果と人間の確認手順を記録する。
 
 ## 調査対象と根拠

@@ -4,7 +4,8 @@ import 'web_target.dart';
 enum RecordingPlatform { ios, android, macos, web, linux, windows }
 
 class RecordingTarget {
-  const RecordingTarget(this.platform, this.device);
+  const RecordingTarget(this.platform, this.device, {this.fps});
+  final int? fps;
   final RecordingPlatform platform;
 
   /// Simulator UDID, adb serial, display index, or explicit Web display/page pair.

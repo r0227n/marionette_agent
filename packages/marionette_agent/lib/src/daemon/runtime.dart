@@ -13,16 +13,23 @@ class RuntimeDirectory {
   final String path;
   String get socket => p.join(path, 's');
   String get metadata => p.join(path, 'daemon.json');
-  static Future<RuntimeDirectory> prepare({String? directory}) async {
+  static Future<RuntimeDirectory> prepare({
+    String? directory,
+    String? namespace,
+  }) async {
     final id = await Process.run('/usr/bin/id', ['-u']);
     if (id.exitCode != 0) {
       throw const AgentError('IO_ERROR', 'Cannot determine runtime owner');
     }
     final uid = (id.stdout as String).trim();
-    final path =
+    var path =
         directory ??
         Platform.environment['MARIONETTE_AGENT_RUNTIME_DIR'] ??
         '/tmp/mra-$uid';
+    if (namespace != null) {
+      validateSession(namespace);
+      path = '$path-$namespace';
+    }
     if (!p.isAbsolute(path) || utf8.encode(path).length > 80) {
       throw const AgentError(
         'IO_ERROR',

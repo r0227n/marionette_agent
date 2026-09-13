@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../backend/backend.dart';
+import 'action_policy.dart';
 import '../protocol/protocol.dart';
 
 /// A failed job never poisons later work. Expired queued jobs never execute.
@@ -24,6 +25,8 @@ class Session {
   int epoch = 0;
   int pending = 0;
   bool closed = false;
+  Json? policy;
+  PendingAction? approval;
   // Set by SnapshotService; lifecycle owns invalidation, not command handlers.
   Object? observation;
   void invalidate() {
@@ -41,6 +44,7 @@ class Session {
   /// Invalidate delayed response immediately and dispose the old connection asynchronously.
   Future<void> discard() {
     epoch++;
+    approval = null;
     status = 'disconnected';
     invalidate();
     final old = backend;
@@ -101,7 +105,10 @@ class Execution {
   }
 
   /// Invalidate all refs right before send; dispatch one action per request.
-  Future<void> mutate(Future<void> Function(Backend) call) async {
+  Future<void> mutate(
+    Future<void> Function(Backend) call, {
+    bool invalidate = true,
+  }) async {
     requireConnected();
     if (sent) {
       throw const AgentError(
@@ -109,7 +116,7 @@ class Execution {
         'A command may dispatch only one UI operation',
       );
     }
-    session.invalidate();
+    if (invalidate) session.invalidate();
     sent = true;
     await call(session.backend!);
     check();

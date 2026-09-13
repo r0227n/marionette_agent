@@ -19,7 +19,7 @@ void main() {
     expect(parser.usage, contains('is visible'));
     for (final args in [
       ['is'],
-      ['is', 'enabled', '@e1'],
+      ['is', 'selected', '@e1'],
       ['is', 'visible'],
       ['is', 'visible', '@e1', 'extra'],
       ['is', 'visible', '@e1', '--key', 'a'],

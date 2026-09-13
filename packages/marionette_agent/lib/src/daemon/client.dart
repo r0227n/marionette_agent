@@ -57,6 +57,9 @@ class DaemonClient {
       return _Connection(socket, frames);
     } on SocketException {
       socket?.destroy();
+      // Socket.connect also reports its timeout as SocketException. A spent
+      // request deadline is not evidence that the daemon/session is absent.
+      request.checkDeadline();
       return null;
     } catch (_) {
       socket?.destroy();
@@ -100,7 +103,8 @@ class DaemonClient {
       connection = await _open(request);
       if (connection == null) {
         final startsRecording =
-            request.command == 'record' && request.params['action'] == 'start';
+            request.command == 'record' &&
+            ['start', 'restart'].contains(request.params['action']);
         if (request.command != 'connect' && !startsRecording) {
           if (request.command == 'record' &&
               request.params.length == 1 &&

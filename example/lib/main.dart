@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'mapped_screenshot.dart';
+import 'advanced_controls.dart';
+
+import 'package:marionette_agent_flutter/marionette_agent_flutter.dart';
 
 final PrintLogCollector operationLogCollector = PrintLogCollector();
 
@@ -11,6 +14,9 @@ void main() {
     MarionetteBinding.ensureInitialized(
       MarionetteConfiguration(logCollector: operationLogCollector),
     );
+    if (!const bool.fromEnvironment('DISABLE_AGENT_EXTENSIONS')) {
+      registerAgentExtensions();
+    }
     if (!const bool.fromEnvironment('DISABLE_MAPPED_SCREENSHOT')) {
       registerMappedScreenshot();
     }
@@ -67,6 +73,11 @@ class _MarionetteAgentExampleScreenState
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             TextButton(
+              key: const ValueKey('advanced_tab'),
+              onPressed: () => setState(() => _tab = 2),
+              child: const Text('Advanced'),
+            ),
+            TextButton(
               key: const ValueKey('controls_tab'),
               onPressed: () => setState(() => _tab = 0),
               child: const Text('Controls'),
@@ -84,7 +95,9 @@ class _MarionetteAgentExampleScreenState
           ],
         ),
       ),
-      body: _tab == 1
+      body: _tab == 2
+          ? const AdvancedControls()
+          : _tab == 1
           ? const Center(
               child: Text('Workflow fixture', key: ValueKey('about_content')),
             )

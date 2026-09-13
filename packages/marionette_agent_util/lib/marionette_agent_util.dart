@@ -7,3 +7,5 @@ export 'src/recording/recording_manager.dart';
 
 export 'src/platform_exception.dart';
 export 'src/lifecycle/termination_signals.dart';
+
+export 'src/devices.dart';

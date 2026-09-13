@@ -76,3 +76,7 @@ dart run integration_test/workflow_smoke.dart
 実装CLIによる20呼出しで、template/binding検証、JSON/YAML実行、最終refの別CLI使用、13 charactersへの変化、不存在targetで2step目停止・Tap count 1を確認する。証跡と3枚のPNGを出力する。
 
 W07でタブ往復後の確認を追加し、現在のworkflow_smokeは24呼出しとなる。Controlsはタブから戻ると再生成されるため、入力表示はNot edited、ページ表示はCurrent page 1へ戻る。入力欄が空であることと併せて4枚目のPNGに記録する。
+
+## 追加コマンドのfixture
+
+Advancedタブ（key: `advanced_tab`）に型付き入力・状態・double-tap・hover・キーイベント・drag/drop・mounted offscreen要素を配置する。`lib/advanced_controls.dart`と[追加コマンド仕様](../docs/ja/cli-parity.ja.md)を参照。`marionette_agent_flutter`のdebug providerを登録済みで、`DISABLE_AGENT_EXTENSIONS=true`でstock bindingのみの挙動を検証できる。
