@@ -114,3 +114,7 @@ Bは同じworktreeルートで開き、新しい`MRA_I12_DIR`を用いて上記�
 
 - [x] 全体テスト・Simulator受入・全画像確認・所有資源解放済み
 - [ ] 人間による動作確認（未実施のまま引き渡す）
+
+## PR review integration verification (2026-09-13)
+
+Integrated develop through PR #33. Format and analysis passed; all 242 Dart tests passed. Fresh Simulator verification used the final integrated example with the #34 CLI (5088e76): 8 calls confirmed filtered annotation saves directly into the configured directory, a nonexistent directory returns IO_ERROR without invalidating the ref, tapping that ref changes the counter from 0 to 1, and an explicit path overrides a nonexistent directory. Visually inspected both the generated annotation and resulting counter. Evidence: `/tmp/mra-review35.q6ap53rg/evidence/pr34-results.json`, `pr34-annotated.png`, `pr34-after.png`. The #34 session/daemon were closed; the coordinator retains its owned Simulator/runner solely for the sequential #35 verification and will release them afterward. Human verification remains pending.
