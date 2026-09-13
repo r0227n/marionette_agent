@@ -215,6 +215,8 @@ screenshotのdataはpaths配列。複数画像は連番で保存し、通常利�
 
 ## 対象外・将来範囲
 
+label/role/hint/placeholder/tooltipによる共通selectorと、入力値・enabled/checkedのread-only取得は未実装。[Issue #14設計案](semantics-selector-state-design.md)に固定binding 0.6.0の取得/照合能力、型付きDTO、unknownと重複の契約案、上流依存を記録する。Semantics由来の表示textや診断文字列を入力値・状態の代用にしない。設計案は現行CLIの受理構文や実装済み契約を増やさない。
+
 record以外のAndroid／実機対応、他ホストOSの正式対応、iOS実機録画、Web／Linux／Windows録画、アプリ起動管理、独自拡張、hot reload/restart、double-tap／long-press／pinch、キー入力、scroll-to、session永続復元。workflowの条件分岐、loop、並列実行、include、任意コード実行、screenshot／logs組み込みもv1の対象外。MCP対応は本プロジェクトの対象に含めない。
 
 ## 端末画面録画
