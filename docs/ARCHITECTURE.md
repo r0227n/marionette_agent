@@ -73,6 +73,8 @@ protocolはDartの値とJSONだけを扱い、CLIやargsには依存しない。
 
 `cli/commands/skills.dart`がskillsの文法、`cli/help.dart`がhelp、`cli/skill_catalog.dart`がpackage/環境変数からの探索、frontmatter解析、catalogと専用text/JSON出力を所有する。catalogはCLI parserに依存しない。`cli/runner.dart`は引数解析後、policy読込・RuntimeDirectory.prepareより前に実行して返る。成功時も失敗時もIPCへ渡さず、session/refを参照しない。`--debug`は既存診断を使う。
 
+CliParserは最初の構文解析で識別したコマンドをconfig読込より前に呼出元へ通知する。これによりconfigの失敗もskills等の出力契約へ分類できる。frontmatterは独立した開始・終了行を検証してからその区間だけを読み、空のnameはcatalogへ登録しない。
+
 `skills/`の導入用stubと`skill-data/`の実行時ガイドをDartパッケージ内に置く。Dart起動ではIsolate.resolvePackageUri、手動コンパイルでは実行ファイルを基準とする配布rootを使う。`installer.dart`はソースの両ディレクトリを新規bundleへコピーし、相対bundle名をDart環境定数としてコンパイルする。成功したバイナリだけを切り替え、失敗時は新規bundleを回収する。既存版のbundleは保持する。実行時に展開・生成・ダウンロードする経路を持たない。
 
 Skillの互換JSONは`SkillsOutput`の専用境界で生成し、protocolのResult/schemaVersionは変更しない。コマンド詳細、探索優先順位、配布時に同伴するbundleの契約は[SPEC](SPEC.md#同梱skillの配信)を参照。

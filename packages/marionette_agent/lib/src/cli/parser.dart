@@ -40,6 +40,7 @@ class CliParser {
     final ArgResults args;
     try {
       final selected = parser.parse(arguments);
+      onCommand?.call(selected.command?.name);
       CommonOptions.reportOutput(selected, onOutput, onDebug);
       final defaults = configArguments(parser, selected, environment);
       arguments = [...defaults, ...arguments];

@@ -199,6 +199,25 @@ void main() {
   });
 
   test(
+    'discovery requires complete frontmatter delimiters and a nonempty name',
+    () {
+      skill('skills/valid', 'valid');
+      write('skills/empty/SKILL.md', '---\nname:   \n---\n');
+      write('skills/open/SKILL.md', '---invalid\nname: opening\n---\n');
+      write('skills/close/SKILL.md', '---\nname: closing\n---invalid\n');
+      write('skills/crlf/SKILL.md', '---\r\nname: crlf\r\n---\r\n');
+      final catalog = SkillCatalog([dir('skills')]);
+      expect(catalog.discover().map((s) => s.name), ['crlf', 'valid']);
+      expect(
+        (catalog.run({'action': 'get', 'all': true}).data as List).map(
+          (s) => s['name'],
+        ),
+        ['crlf', 'valid'],
+      );
+    },
+  );
+
+  test(
     'get preserves content, caller order and direct supplementary text files',
     () {
       skill('skills/a', 'alpha');
@@ -320,6 +339,32 @@ void main() {
         'MARIONETTE_AGENT_RUNTIME_DIR': dir('runtime').path,
         'MARIONETTE_AGENT_SKILLS_DIR': dir('absent').path,
         ...env,
+      },
+    );
+
+    test(
+      'config loading errors retain the skills output and exit contract',
+      () async {
+        for (final config in ['missing', 'invalid-json', 'unknown-option']) {
+          if (config == 'invalid-json') write(config, '{');
+          if (config == 'unknown-option') write(config, '{"unknown":true}');
+          final args = ['skills', 'list', '--config', file(config).path];
+          final result = await cli([...args, '--json']);
+          expect(
+            result.exitCode,
+            1,
+            reason: '${result.stdout}\n${result.stderr}',
+          );
+          expect(result.stderr, isEmpty);
+          final body = jsonDecode(result.stdout as String) as Map;
+          expect(body.keys, unorderedEquals(['success', 'error']));
+          expect(body['success'], false);
+          final text = await cli(args);
+          expect(text.exitCode, 1);
+          expect(text.stdout, isEmpty);
+          expect(text.stderr, '${body['error']}\n');
+          expect(dir('runtime').existsSync(), false);
+        }
       },
     );
 

@@ -32,3 +32,20 @@
 - 実環境シナリオは [critical_review_smoke.dart](../packages/marionette_agent/integration_test/critical_review_smoke.dart)。fixture再起動後、CLIの結果と画面を照合する。最終実行記録と確認方法は [検証記録](../packages/marionette_agent/docs/verification/critical-review.md) に記載する。
 
 選択から送信までのアプリ側の原子性や永続的な要素identityは追加していない。同一属性の別要素への置換は現行backendで検出できない。競合条件は決定的なfakeによる回帰確認、Simulatorは実際の操作成功と画面変化の確認を担当する。
+
+## develop統合後の再レビュー（2026-09-13）
+
+`origin/develop` の `3ddda48`（同梱skillsとvideo-evidence追加）を取り込み、`installer.dart`、`parser.dart`、`runner.dart` の3ファイルで競合を解決した。再レビューの比較基点はこのdevelop。初回の対象解決・batch・差分修正と、追加されたskillsのローカル実行・AOT配布・設定解析を確認した。
+
+### Standards
+
+skillsの構文とcatalogがparserを経由して循環依存する配置を、そのまま再導入しないよう統合した。構文を `cli/commands/skills.dart`、helpを `cli/help.dart`、読取と出力を `cli/skill_catalog.dart` に配置し、installerはparserをimportせずbundleをコピーする。依存方向と共通mutation経路に新しい未修正の違反は見つからなかった。
+
+### Spec
+
+| 優先度 | 再現した問題 | 修正 |
+| --- | --- | --- |
+| P2 | `skills list --config <不存在path> --json` がskills専用形式ではなくschemaVersion付きの通常形式、終了コード2を返す。textモードではstdoutにエラーと全体helpまで出る | 最初の構文解析でコマンドを識別した直後、config読込より前にrunnerへ通知する。不在・不正JSON・未知optionの3条件をJSON/text両方で確認し、専用形式・終了1・runtime未生成を保証 |
+| P2 | frontmatter開始・終了行のprefixしか検査しておらず、`---invalid`や空のnameが一覧・全件取得に入る | 独立した開始・終了行と非空nameを検査。正しいLF/CRLFのガイドを保ち、不正な3種類を除外 |
+
+2件とも新規回帰テストが修正前に失敗し、修正後に成功した。全303テスト成功。最終CLI実測と人間の確認手順は [develop統合の検証記録](../packages/marionette_agent/docs/verification/critical-review-develop.md) を参照。

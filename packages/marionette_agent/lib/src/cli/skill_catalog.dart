@@ -80,21 +80,20 @@ class BundledSkill {
 /// Match agent-browser's small frontmatter reader, including indented descriptions.
 /// This intentionally does not interpret arbitrary YAML tags or values.
 BundledSkill? parseSkill(Directory directory, String content) {
-  final trimmed = content.trimLeft();
-  if (!trimmed.startsWith('---')) return null;
-  final end = trimmed.indexOf('\n---', 3);
+  final lines = const LineSplitter().convert(content.trimLeft());
+  if (lines.isEmpty || lines.first.trimRight() != '---') return null;
+  final end = lines.indexWhere((line) => line.trimRight() == '---', 1);
   if (end < 0) return null;
-  final lines = trimmed.substring(3, end).split('\n');
   String? name;
   var description = '';
   var hidden = false;
-  for (var i = 0; i < lines.length; i++) {
+  for (var i = 1; i < end; i++) {
     final line = lines[i];
     if (line.startsWith('name:')) {
       name = line.substring(5).trim();
     } else if (line.startsWith('description:')) {
       description = line.substring(12).trim();
-      while (i + 1 < lines.length &&
+      while (i + 1 < end &&
           (lines[i + 1].startsWith('  ') || lines[i + 1].startsWith('\t'))) {
         description += ' ${lines[++i].trim()}';
       }
@@ -102,7 +101,7 @@ BundledSkill? parseSkill(Directory directory, String content) {
       hidden = ['true', 'yes'].contains(line.substring(7).trim());
     }
   }
-  return name == null
+  return name == null || name.isEmpty
       ? null
       : BundledSkill(name, description, hidden, directory, content);
 }

@@ -2,6 +2,8 @@
 
 2026-09-13、`feature/cli-critical-review` で実施。[レビュー結果](../../../../docs/cli-critical-review.md) の修正を対象とする。人間による確認は未実施。
 
+この文書は初回43呼び出しの記録。develop統合後はscriptを47呼び出しへ拡張し、[再検証記録](critical-review-develop.md) に追加確認を記載した。
+
 ## 自動検証
 
 - 整形と静的解析に問題なし。全291テスト成功。

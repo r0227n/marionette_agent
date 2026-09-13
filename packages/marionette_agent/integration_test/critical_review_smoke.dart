@@ -59,8 +59,10 @@ Future<void> main() async {
       '${args.first}: expected $expected, got ${result.exitCode}',
     );
     final envelope = jsonDecode(output) as Map<String, dynamic>;
-    return (envelope[expected == 0 ? 'data' : 'error'] as Map)
-        .cast<String, dynamic>();
+    final payload = envelope[expected == 0 ? 'data' : 'error'];
+    return payload is Map
+        ? payload.cast<String, dynamic>()
+        : {'value': payload};
   }
 
   Map row(Map snapshot, String key) => (snapshot['elements'] as List)
@@ -79,9 +81,29 @@ Future<void> main() async {
     await cli(['--version']);
     await cli(['doctor', '--quick']);
     await cli(['workflow', 'schema', 'tap']);
+    check(
+      (await cli(['skills', '--help']))['help'].contains('skills get'),
+      'Skills help is registered in the merged CLI',
+    );
+    check(
+      (await cli(['skills', 'path', 'core']))['name'] == 'core',
+      'Bundled skills resolve without a connection',
+    );
+    check(!Directory(runtime).existsSync(), 'Skills did not create runtime');
     await cli(['connect', uri]);
     final initial = await cli(['snapshot']);
     final ref = row(initial, 'tap_button')['ref'] as String;
+    await cli(['skills', 'path', 'core']);
+    final configError = await cli([
+      'skills',
+      'list',
+      '--config',
+      p.join(private.path, 'absent-config.json'),
+    ], expected: 1);
+    check(
+      configError['value'] is String,
+      'Skills config error uses its own envelope',
+    );
     await cli(['tap', ref]);
     check(
       (await cli(['tap', ref], expected: 4))['code'] == 'STALE_REF',
