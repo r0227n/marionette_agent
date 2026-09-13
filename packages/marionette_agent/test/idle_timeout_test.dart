@@ -240,6 +240,53 @@ void main() {
   );
 
   test(
+    'repeated passive doctor handshakes do not renew idle lifetime',
+    () async {
+      final server = DaemonServer(
+        runtime,
+        SessionManager(FakeBackend.new, coreCommands()),
+        idleTimeoutMs: 600,
+      );
+      var ended = false;
+      final running = server.run().whenComplete(() {
+        ended = true;
+      });
+      addTearDown(() async {
+        await server.close();
+        await running;
+      });
+      await eventually(() => File(runtime.metadata).existsSync());
+      final watch = Stopwatch()..start();
+      var handshakes = 0;
+      while (!ended && watch.elapsed < const Duration(milliseconds: 1500)) {
+        Socket? socket;
+        try {
+          socket = await Socket.connect(
+            InternetAddress(runtime.socket, type: InternetAddressType.unix),
+            0,
+          );
+          expect(
+            (await decodeFrames(socket).first)['protocolVersion'],
+            protocolVersion,
+          );
+          handshakes++;
+        } on SocketException {
+          break;
+        } finally {
+          socket?.destroy();
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+      expect(handshakes, greaterThan(1));
+      expect(
+        ended,
+        true,
+        reason: 'Passive handshakes must not keep an idle daemon alive',
+      );
+    },
+  );
+
+  test(
     'queue drain arms idle after a handshake disconnects during a health probe',
     () async {
       final entered = Completer<void>(), release = Completer<void>();

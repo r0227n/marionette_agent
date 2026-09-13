@@ -7,6 +7,7 @@ class CommonOptions {
   const CommonOptions({
     this.session = 'default',
     this.json = false,
+    this.debug = false,
     this.timeoutMs = 30000,
     this.contentBoundaries = false,
     this.maxOutput,
@@ -15,6 +16,7 @@ class CommonOptions {
   });
   final String session;
   final bool json;
+  final bool debug;
   final int timeoutMs;
   final bool contentBoundaries;
   final int? maxOutput;
@@ -33,6 +35,11 @@ class CommonOptions {
       help: 'Session name (CLI > MARIONETTE_AGENT_SESSION > default)',
     )
     ..addFlag('json', negatable: false, help: 'One JSON result on stdout')
+    ..addFlag(
+      'debug',
+      negatable: false,
+      help: 'Request stages and timing on stderr (default off)',
+    )
     ..addOption(
       'timeout',
       defaultsTo:
@@ -119,6 +126,7 @@ class CommonOptions {
     return CommonOptions(
       session: session,
       json: args.flag('json'),
+      debug: args.flag('debug'),
       timeoutMs: duration(args.option('timeout')!),
       contentBoundaries: args.flag('content-boundaries'),
       maxOutput: args.option('max-output') == null
@@ -143,11 +151,14 @@ class CommonOptions {
   static void reportOutput(
     ArgResults args,
     void Function(String?, bool)? output,
+    void Function(bool)? debug,
   ) {
+    debug?.call(args.flag('debug'));
     final name = args.option('session')!;
     final independent =
         args.flag('help') ||
         args.flag('version') ||
+        args.command?.name == 'doctor' ||
         (args.command?.name == 'workflow' &&
             args.command?.command?.name != 'run') ||
         (args.command?.name == 'session' &&
@@ -170,11 +181,14 @@ class CommonOptions {
     List<String> arguments,
     List<String> commands,
     void Function(String?, bool)? output,
+    void Function(bool)? reportDebug,
   ) {
     var grammar = parser;
     String? session = parser.options['session']!.defaultsTo as String?;
     var json = false;
+    var debug = false;
     var independent =
+        commands.firstOrNull == 'doctor' ||
         (commands.firstOrNull == 'workflow' && !commands.contains('run')) ||
         (commands.firstOrNull == 'session' && commands.contains('list'));
     for (var i = 0; i < arguments.length; i++) {
@@ -203,8 +217,10 @@ class CommonOptions {
       if (!identical(option, parser.options[name])) continue;
       if (name == 'session') session = value;
       if (name == 'json' && split < 0) json = true;
+      if (name == 'debug' && split < 0) debug = true;
       if (name == 'help' || name == 'version') independent = true;
     }
+    reportDebug?.call(debug);
     output?.call(
       independent || session == null || !validSession(session) ? null : session,
       json,

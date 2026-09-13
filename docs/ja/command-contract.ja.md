@@ -96,6 +96,7 @@ ref、selector、座標を混在させてはいけません。selector値は空�
 | API | 現在の動作 |
 | --- | --- |
 | `snapshot()` | backendを観測し、公開snapshotを置き換えて新しいrefを発行する |
+| `observeTarget(query)` | 共通の再観測・一意性・stale判定で1要素を返す。非表示も受理し、refを維持する |
 | `performTarget(query, callback)` | 対象を再観測して一意性と属性を検証し、全refを失効させてからcallbackを1回実行する |
 | `performCoordinates(callback)` | 全refを失効させてから、座標操作のcallbackを1回実行する |
 | `read(callback)` | refを維持したread-only処理。`await`の前後で接続世代とdeadlineを検証する |
@@ -151,6 +152,10 @@ tap / fill / swipe / captureScreenshots / readLogs
 `MarionetteBackend`はVM Service URIを正規化し、HTTP(S)をWS(S)へ変換して末尾を`/ws`にします。pathとqueryは接続に保持しますが、状態表示ではhostとport以外を秘匿します。上流responseは`status == "Success"`と構造を検証し、生のmessage、例外、入力文字列を上位層へ転送しません。
 
 `scroll`は独立したbackend primitiveではなく、要素指定の`swipe`を使用します。成功結果には通常の`requiresSnapshot`に加えて`"command":"scroll"`を含めます。
+
+## is visible
+
+`is visible`は`observeTarget`で得たnullableなvisibleを`known`と`value`へ変換します。true/falseはいずれも既知、nullは`known:false,value:null`です。公開snapshotを作らず、UI mutationを送らず、成功時は同じrefを再利用できます。対象解決エラーは通常の共通契約に従います。
 
 ## wait
 

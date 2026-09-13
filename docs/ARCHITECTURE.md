@@ -1,8 +1,27 @@
 # marionette_agent — アーキテクチャ
 
+## doctor境界 (Issue #9)
+
+`cli/runner.dart`はdoctorを`RuntimeDirectory.prepare`より前にローカル配送する。
+`cli/doctor.dart`がhost/runtimeのread-only検査、固定依存の宣言/lock比較、Simulator列挙、
+check状態と終了コード集計を所有する。外部processとprobeはfixtureへ差し替え可能。
+daemon socketは所有者/0700確認後に接続し、既存protocol decoderでhandshakeだけを読む。
+DaemonClient、SessionManager、runtime準備、command dispatchを呼ばない。
+DaemonServerはhandshakeだけのclientが切断した時に元のidle期限を再利用する。
+要求をdispatchした場合だけ新しい無操作区間を開始し、doctorによる寿命の延長を防ぐ。
+
+`backend/doctor_probe.dart`は公開vm_service APIで独立clientを作り、既存backendのURI正規化を再利用する。
+上流internal APIのimportを追加せず、観測したextension登録とbinding versionだけを返す。
+URI・remote error本文を境界の外へ返さない。finallyと遅延完了handlerで接続を解放する。
+各process/RPCは全体deadlineの残り時間を使い、IPCには最大1秒の上限も設ける。
+診断結果は共通Resultのdataに入れ、runnerがdoctorのdata.exitCodeをprocess終了値に適用する。
+text rendererはcheck状態/理由/次手順/details、JSONは共通envelopeを表示する。
+
 本書は[SPEC.md](SPEC.md)の`marionette_agent 0.0.1`契約を実現する現行構成を定義する。単独コマンドとworkflow v1は実装済み。コマンド追加時の具体的な不変条件は[実装契約](ja/command-contract.ja.md)を参照する。
 
 ## 構成
+
+`is visible`は`CommandContext.observeTarget`から`SnapshotService.observeTarget`を利用し、sessionのread境界でinspectする。操作用resolveと対象再観測・一意性・stale判定を共有し、操作用resolveのみ非表示を拒否する。コマンドはnullableなvisibleをknown/valueへ変換するだけで、mutationや公開snapshot/ref更新を行わない。単体およびIPC fixtureでtrue/false/nullと対象解決エラーを検証する。
 
 ```text
 AI Agent / Shell
@@ -85,11 +104,17 @@ UI操作は、引数・session確認→対象解決と再観測→ref失効→�
 
 ## snapshotとref解決
 
+snapshotのCLI decoderとcommand handlerは同じfilter検証を使い、任意の単一selectorをCommandContextからSnapshotServiceへ渡す。SnapshotServiceは全観測で一意性とref採番を確定してからElementInfo.candidateValueによる完全一致で返却行を絞る。textの表示値と操作照合の信頼性を分離し、操作未対応identifierも観測filterには使える。filter metadata（kind/value/matchedCount/totalCount）はこの段階で確定する。retainPublishedでfilter外のrefを削除し、その後SessionManagerのmax-output制限がさらに返却refを絞る。省略前の全体集計は維持し、filterで隠れた衝突を操作可能と誤認しない。
+
+get handlerはCLIとIPCで対象を検証し、CommandContext経由でSnapshotServiceのread経路を使用する。resolveReadは再観測・一意性・text由来・refの属性比較を共有し、操作resolverはさらにvisibleを検証する。どちらもrefを発行せず、getはmutationを呼ばない。countは一意性必須resolverを使わず、capability確認後にinspectのcandidateValue完全一致を集計する。未知型textも候補件数へ含めるが、操作可能とみなさない。欠損属性のnullとboundsのFlutter論理pixel単位はhandlerの結果schemaで明示する。
+
 SnapshotServiceは要素情報を正規化し、RefStoreはref→観測世代・selector・要素属性を保持する。key、identifier、対応確認済みtext、typeの順で一意な候補を選ぶ。公開snapshotと内部の事前観測は分離し、事前検証が新しいrefを発行しないようにする。
 
 公開snapshotはselectorごとの一致数を先に集計する線形処理とし、256要素ごとに期限・接続世代を確認してイベントループへ制御を戻す。固定bindingのtextは既知の5型だけを照合可能とする。未知の型はSemantics派生型と区別できないため表示だけに使い、key/typeで操作する。不正な観測objectはadapter内でBACKEND_ERRORへ分類する。
 
 ElementInfo.valueは信頼できるselector候補、candidateValueは衝突し得る観測値を返す。textの重複集計・再観測・waitにはcandidateValueを使って未知の型も数え、単独の由来未確認textはUNRESOLVABLE_TARGETとする。
+
+ここでの`ElementInfo.value`はselector候補の取得であり、入力値のread APIではない。[Issue #14の将来設計](semantics-selector-state-design.md)はdisplay、照合根拠、型付き値/状態を分離する。固定bindingのraw診断属性はstring化・省略され得るため、adapterが型付きstateとして公開できる根拠にはしない。Semantics階層とWidgetの対応ID、属性の由来、操作別capabilityは上流依存として残る。現行DTO/CLIへの追加実装は本設計に含めない。
 
 Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示用textがTextMatcherに対応しない場合がある。配列添字をselectorにせず、対象を確定できなければ読み取り情報と理由を返す。上流は最初の一致を選ぶため、契約テストには重複・Semanticsラッパー・非表示要素を含める。
 
@@ -128,7 +153,7 @@ SessionManagerはworkflowを単独Execution.boundの外で分岐し、WorkflowEx
 
 wait stepは単独waitと同じ登録済みread handlerを使い、ElementInfo.candidateValueによる一致をinspectでpollし、単独のtext候補は由来の信頼性も確認する。CommandContext.checkで計算後の期限も確認し、公開refを生成しない。全stepが既存CommandRegistryを直接呼び、SessionManagerへstep単位で再帰しない。最終snapshot候補は後続mutationで破棄し、失敗時は返さない。
 
-IPC protocolVersionは4（共通出力policyとidle設定handshake追加）。requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
+IPC protocolVersionは5（要求単位のdebug policy追加。4で共通出力policyとidle設定handshake追加）。requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
 
 workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/progressKnown:falseとsession名を保持する。CLIのローカル検証はparseと意味検証後も絶対deadlineを確認し、期限を過ぎた成功を返さない。
 
@@ -137,6 +162,8 @@ workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/pro
 - 画像保存は全宛先をDartの排他的ファイル作成で予約してから書き込む。既存ファイル・ディレクトリ・symlinkを上書きせず、途中失敗時はこの要求で作成したファイルを削除する。予約後に別プロセスが保存先を意図的に差し替える競合までは保証しない。
 - workflowのpath入力は通常ファイルに限定し、FIFO等は開く前に引数エラーにする。ストリーム入力は期限付きstdin (`-`)を使う。
 - diagnosticsのZoneには終了可能なcollectorを入れ、要求完了時にListへの参照を外す。接続時に登録したlistenerの後発ログは通常のstderr経路へ戻す。
+
+`--debug`の定義・構文エラー時の回復はCommonOptionsが所有する。Request.debugはbool（省略時false）で、daemon全体の設定にはしない。DebugDiagnosticsは固定enumのstage、制限したrequest ID/session、StopwatchのelapsedMs、許可した正規化codeだけを既存logging経路に追加する。CLI解析・runtime・IPC startup/sendとdaemon dispatch/queue/execute/resultを観測できる。daemon側のイベントは既存request Zoneで収集してresponseのdiagnosticsへ入れ、呼出元stderrで再発行する。通常診断と公開JSON schemaVersion=1は変更しない。経過時間はCLI・IPC・daemon dispatch・session queueそれぞれの区間開始から計測するため、区間をまたぐ値の差は所要時間として扱わない。CLIの最終結果が全体の成否を表す。
 - ref/selectorの排他・型・空文字と有限数の検証は`commands/arguments.dart`へ集約し、CLIのtarget parserとdaemonの操作handlerで共有する。
 - 通常コマンドを含む全エラーのテキスト出力にoutcomeを表示し、workflowには進捗既知性、完了step数、失敗stepも付加する。daemonは要求処理開始後の応答生成失敗をunknownへ分類する。
 
@@ -172,3 +199,9 @@ Requestは`maxOutput`と`outputJson`をparams外に持つ。`output/content.dart
 DaemonClientは起動時idle値を内部daemon引数で渡す。既定値・内部引数の検証もCommonOptionsを利用する。handshakeとprivate metadataは確定したidleTimeoutMsを含み、clientは明示値との不一致を要求送信前に拒否する。起動lock取得後の再openでも同じ照合を行う。省略時に既存値を上書きせず、設定のためだけのdaemon再起動も行わない。
 
 DaemonServerはclient受信／配送とSessionManagerのpendingを監視し、全queueが空になってからidle timerを開始する。期限切れqueue entryも実際にdrainするまでpendingから除かない。queue完了通知はhealth probe後のtimer未設定を回復するが、既存のidle intervalは延長しない。health probe実行中の期限到達は完了まで延期する。timerは通常のcloseへ合流するため、record確定・全session破棄・socket削除・寿命lock解放を共有する。
+
+## 全session終了（Issue #6）
+
+CLI parserはclose --allをparams:{all:true}へ変換し、共通--sessionの明示との併用を拒否する。DaemonClientは不在時にsession:nullと空sessionsを返す。SessionManagerは受付時の同期予約と既存session queueを管理の直列化境界とし、stoppingを立てて対象を固定する。queue内の実行前検査は待機要求をnot_sentで拒否する。既存queueへのbarrierで実行中の完了を共通期限まで待ち、各sessionの録画確定とdisconnectを並行して集計する。
+
+Session.interruptは現在のExecutionだけを起こし、Execution.boundは自身のsentからunknown/not_sentを決める。完了時にlistenerを削除する。世代失効は従来のdiscardに集約し、そのFutureを全体closeだけが期限付きで待って切断失敗を観測する。workflowも各childの同じboundを使い進捗を保持する。集約結果の配送はDaemonServerの既存onEmpty、shutdown、socket削除と寿命lock解放へ合流し、非受信clientの有界破棄を維持する。公開結果と競合の正本はSPECのclose --all節。

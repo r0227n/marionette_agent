@@ -30,8 +30,16 @@ class Session {
     observation = null;
   }
 
+  // Only active executions register here; completed requests retain no listener.
+  final _shutdownListeners = <void Function()>{};
+  void interrupt() {
+    for (final listener in _shutdownListeners.toList()) {
+      listener();
+    }
+  }
+
   /// Invalidate delayed response immediately and dispose the old connection asynchronously.
-  void discard() {
+  Future<void> discard() {
     epoch++;
     status = 'disconnected';
     invalidate();
@@ -39,8 +47,11 @@ class Session {
     backend = null;
     if (old != null) {
       // Generation is retired immediately. Disposal may wait for upstream I/O.
-      unawaited(old.disconnect().catchError((Object _) {}));
+      final disposal = Future<void>.sync(old.disconnect);
+      unawaited(disposal.catchError((Object _) {}));
+      return disposal;
     }
+    return Future.value();
   }
 }
 
@@ -114,8 +125,14 @@ class Execution {
   /// Watch the deadline and classify outcomes using only this step's dispatch.
   Future<T> bound<T>(Future<T> Function() operation) async {
     check();
+    final interrupted = Completer<T>();
+    void interrupt() => interrupted.completeError(
+      const AgentError('CONNECTION_LOST', 'Connection generation retired'),
+    );
+    session._shutdownListeners.add(interrupt);
     try {
-      return await Future.sync(operation).timeout(request.remaining);
+      return await Future.any<T>([Future.sync(operation), interrupted.future])
+          .timeout(request.remaining);
     } on TimeoutException {
       retire();
       throw AgentError(
@@ -140,6 +157,7 @@ class Execution {
         outcome: sent ? Outcome.unknown : Outcome.notSent,
       );
     } finally {
+      session._shutdownListeners.remove(interrupt);
       _finished = true;
     }
   }
