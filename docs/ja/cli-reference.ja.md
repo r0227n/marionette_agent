@@ -132,7 +132,7 @@ marionette-agent --session demo session show
 marionette-agent session show --session demo --json
 ```
 
-### `close`
+### `close [--all]`
 
 選択sessionの録画があれば動画を確定し、接続を切断して破棄します。Flutterアプリ自体は終了しません。sessionが存在しない場合も成功します。録画があった場合はdata.recordingに最終状態を返します。
 
@@ -141,6 +141,19 @@ marionette-agent --session demo close
 ```
 
 最後のsessionを閉じるとdaemonも終了します。
+
+全sessionを後始末する場合は次を実行します。`--session`との併用はできません。
+
+```sh
+marionette-agent close --all --timeout 30000 --json
+marionette-agent session list
+```
+
+`close --all`はsession:nullを返し、成功時のdata.sessionsへ名前順のsession別Resultを格納します。daemon不在でも空配列で成功します。アプリは起動したまま、全refは失効し、次の利用には明示connectとsnapshotが必要です。
+
+受付後の新規要求とqueue待ちはnot_sentとして拒否します。実行中操作は共通期限まで待ち、期限で中断した送信済み操作はunknownです。切断失敗でも他sessionを後始末し、部分結果はerror.details.sessionsに返します（textにも表示）。全体終了コードは期限超過があれば5、その他の切断失敗は1、全成功は0です。送信済み操作を自動再送しないでください。停止中に競合したconnectは拒否されるか、要求送信前なら次daemonへ接続する場合があります。
+
+録画確定の期限超過時も全体closeはdaemonを終了し、有界cleanupへ引き継ぎます。選択sessionだけのcloseとは異なりsessionを保持しません。詳細は[SPECの契約](../SPEC.md#close---all)を参照してください。
 
 ## 観測
 

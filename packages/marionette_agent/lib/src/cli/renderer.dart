@@ -41,7 +41,9 @@ String render(
     final details = error.details;
     return [
       '${error.code}: ${error.message}',
-      if (details != null) ...[
+      if (details?['sessions'] is List)
+        const JsonEncoder.withIndent('  ').convert(details),
+      if (details != null && details['sessions'] == null) ...[
         if (details['progressKnown'] == true)
           'Workflow ${details['workflow'] ?? '-'}: ${details['completedSteps']} steps completed'
         else
