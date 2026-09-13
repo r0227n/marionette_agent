@@ -58,6 +58,9 @@ String render(
   final data = result.data!;
   if (data['help'] case final String help) return help;
   if (data['version'] case final String version) return version;
+  if (data.containsKey('known') && data.containsKey('value')) {
+    return 'Visible: ${data['known'] == true ? data['value'] : 'unknown'}';
+  }
   if (data['completedSteps'] case final int count) {
     final snapshot = data['finalSnapshot'];
     return 'Workflow ${data['workflow']}: $count steps completed'
