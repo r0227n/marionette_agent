@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:marionette_agent_util/marionette_agent_util.dart';
@@ -8,19 +8,20 @@ import '../daemon/client.dart';
 import '../daemon/runtime.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import '../protocol/protocol.dart';
-import 'parser.dart';
-import 'doctor.dart';
-import 'diff_command.dart';
-import 'batch_command.dart';
-import 'state_command.dart';
-import 'install_command.dart';
-import 'policy_file.dart';
-import 'common_options.dart';
-import 'artifact_writer.dart';
-import 'renderer.dart';
-import 'workflow_loader.dart';
 import '../workflow/model.dart';
 import '../workflow/schema_catalog.dart';
+import 'artifact_writer.dart';
+import 'batch_loader.dart';
+import 'common_options.dart';
+import 'connection_state.dart';
+import 'doctor.dart';
+import 'input_file.dart';
+import 'installer.dart';
+import 'observation_diff.dart';
+import 'parser.dart';
+import 'policy_file.dart';
+import 'renderer.dart';
+import 'workflow_loader.dart';
 
 /// Handles parsing, one-shot IPC, and final stdout response, then returns exit code.
 Future<int> runCli(
@@ -143,7 +144,7 @@ Future<int> runCli(
       result = Result.success(null, {'version': version});
     } else {
       final baseline = invocation.command == 'diff'
-          ? await readBaseline(params['baseline'] as String, deadline)
+          ? await readInputFile(params['baseline'] as String, deadline)
           : null;
       diagnostics.emit(DebugStage.runtimePrepare);
       final runtime = await RuntimeDirectory.prepare(
@@ -185,32 +186,23 @@ Future<int> runCli(
           requestParams = {'action': 'export'};
         }
       }
-      result =
-          await DaemonClient(
-            runtime,
-            launchCommand: launchCommand,
-            idleTimeoutMs: invocation.options.idleTimeoutMs,
-          ).send(
-            Request(
-              requestId: requestId,
-              debug: debug,
-              policy: policy,
-              session: invocation.session,
-              command: command == 'diff'
-                  ? (params['action'] == 'snapshot'
-                        ? 'diff-snapshot'
-                        : 'screenshot')
-                  : command,
-              params: command == 'diff' ? {} : requestParams,
-              maxOutput: command == 'diff'
-                  ? null
-                  : invocation.options.maxOutput,
-              outputJson: invocation.json,
-              deadline: started.add(
-                Duration(milliseconds: invocation.timeoutMs),
-              ),
-            ),
-          );
+      result = await client.send(
+        Request(
+          requestId: requestId,
+          debug: debug,
+          policy: policy,
+          session: invocation.session,
+          command: command == 'diff'
+              ? (params['action'] == 'snapshot'
+                    ? 'diff-snapshot'
+                    : 'screenshot')
+              : command,
+          params: command == 'diff' ? {} : requestParams,
+          maxOutput: command == 'diff' ? null : invocation.options.maxOutput,
+          outputJson: invocation.json,
+          deadline: deadline,
+        ),
+      );
       if (result.error?.code == 'CONFIRMATION_REQUIRED' &&
           invocation.options.confirmInteractive &&
           stdin.hasTerminal) {

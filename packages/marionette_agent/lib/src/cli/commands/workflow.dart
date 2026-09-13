@@ -1,8 +1,8 @@
 import 'package:args/args.dart';
 
-import '../protocol/protocol.dart';
-import 'parser.dart';
-import 'workflow_loader.dart';
+import '../../protocol/protocol.dart';
+import '../command.dart';
+import '../workflow_loader.dart';
 
 CliCommand workflowCommand() {
   final parser = ArgParser()..addCommand('schema');

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:marionette_agent/src/backend/doctor_probe.dart';
 import 'package:marionette_agent/src/cli/doctor.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
+import 'package:marionette_agent/src/cli/process_runner.dart';
 import 'package:marionette_agent/src/cli/renderer.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:test/test.dart';
@@ -255,7 +256,7 @@ void main() {
   test('external check process is bounded by deadline', () async {
     final watch = Stopwatch()..start();
     await expectLater(
-      runDiagnosticProcess('/bin/sleep', [
+      runProcessUntil('/bin/sleep', [
         '10',
       ], DateTime.now().add(const Duration(milliseconds: 100))),
       throwsA(isA<TimeoutException>()),

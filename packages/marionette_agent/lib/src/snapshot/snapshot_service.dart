@@ -3,29 +3,7 @@ import 'dart:async';
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
 import '../session/session.dart';
-
-/// TargetQuery that represents exactly one of ref or selector.
-
-sealed class TargetQuery {
-  const TargetQuery();
-}
-
-/// Short refs for the latest public snapshot; never reused across sessions.
-class RefQuery extends TargetQuery {
-  RefQuery(this.ref) {
-    if (!RegExp(r'^@e[1-9][0-9]*$').hasMatch(ref)) {
-      invalid('Expected a ref such as @e1');
-    }
-  }
-  final String ref;
-}
-
-/// Backend exact-match condition; must uniquely match the pre-action observation.
-
-class SelectorQuery extends TargetQuery {
-  const SelectorQuery(this.selector);
-  final Selector selector;
-}
+import 'target.dart';
 
 /// Immutable ref and observed attributes kept only in public snapshots.
 class _Reference {
@@ -243,8 +221,33 @@ class SnapshotService {
   Future<ResolvedElement> resolveRead(
     Execution context,
     TargetQuery target,
+  ) async => (await resolveAll(context, [target])).single;
+
+  /// Validate all targets against the same observation. No UI work occurs here.
+  Future<List<ResolvedElement>> resolveAll(
+    Execution context,
+    List<TargetQuery> targets,
   ) async {
     context.requireConnected();
+    final references = targets
+        .map((target) => _reference(context, target))
+        .toList();
+    for (final reference in references) {
+      _requireSelector(context, reference.selector);
+    }
+    final elements = await context.read((backend) => backend.inspect());
+    final resolved = [
+      for (final reference in references)
+        _resolve(reference.selector, reference.element, elements),
+    ];
+    context.check();
+    return resolved;
+  }
+
+  ({Selector selector, ElementInfo? element}) _reference(
+    Execution context,
+    TargetQuery target,
+  ) {
     _Reference? reference;
     final Selector selector;
     switch (target) {
@@ -261,8 +264,18 @@ class SnapshotService {
         selector = reference.selector;
       case SelectorQuery(selector: final selected):
         selector = selected;
+      case ObservedQuery(:final selector, :final element):
+        return (selector: selector, element: element);
     }
-    final matches = await count(context, selector);
+    return (selector: selector, element: reference?.element);
+  }
+
+  ResolvedElement _resolve(
+    Selector selector,
+    ElementInfo? expected,
+    List<ElementInfo> elements,
+  ) {
+    final matches = _matches(elements, selector);
     if (matches.length > 1) {
       throw const AgentError(
         'AMBIGUOUS_TARGET',
@@ -271,7 +284,7 @@ class SnapshotService {
       );
     }
     if (matches.isEmpty) {
-      if (reference != null) {
+      if (expected != null) {
         throw const AgentError(
           'STALE_REF',
           'Target disappeared or changed',
@@ -288,7 +301,7 @@ class SnapshotService {
         hint: 'Use a key or a unique supported type',
       );
     }
-    if (reference != null && !reference.element.sameAs(element)) {
+    if (expected != null && !expected.sameAs(element)) {
       throw const AgentError(
         'STALE_REF',
         'Target attributes changed',
@@ -314,17 +327,21 @@ class SnapshotService {
     return reference.selector;
   }
 
-  Future<Selector> uniqueSelector(
+  Future<ObservedQuery> uniqueTarget(
     Execution context,
     ElementInfo element,
   ) async {
-    for (final kind in context.session.backend!.selectors) {
+    context.requireConnected();
+    final elements = await context.read((backend) => backend.inspect());
+    for (final kind in SelectorKind.values) {
+      if (!context.session.backend!.selectors.contains(kind)) continue;
       final value = element.value(kind);
       if (value == null || value.isEmpty) continue;
       final selector = Selector(kind, value);
-      final matches = await count(context, selector);
+      final matches = _matches(elements, selector);
       if (matches.length == 1 && matches.single.sameAs(element)) {
-        return selector;
+        context.check();
+        return ObservedQuery(selector, element);
       }
     }
     throw const AgentError(
@@ -336,14 +353,18 @@ class SnapshotService {
   /// Count selector candidates without requiring uniqueness.
   Future<List<ElementInfo>> count(Execution context, Selector selector) async {
     context.requireConnected();
+    _requireSelector(context, selector);
+    final elements = await context.read((backend) => backend.inspect());
+    return _matches(elements, selector);
+  }
+
+  void _requireSelector(Execution context, Selector selector) {
     if (!context.session.backend!.selectors.contains(selector.kind)) {
       throw const AgentError(
         'UNSUPPORTED_CAPABILITY',
         'Binding does not support this selector',
       );
     }
-    final elements = await context.read((backend) => backend.inspect());
-    return _matches(elements, selector);
   }
 
   List<ElementInfo> _matches(List<ElementInfo> elements, Selector selector) =>
@@ -353,10 +374,4 @@ class SnapshotService {
                 element.candidateValue(selector.kind) == selector.value,
           )
           .toList();
-}
-
-class ResolvedElement {
-  const ResolvedElement(this.selector, this.element);
-  final Selector selector;
-  final ElementInfo element;
 }

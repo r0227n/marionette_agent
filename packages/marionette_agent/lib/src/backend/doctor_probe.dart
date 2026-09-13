@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:vm_service/vm_service.dart';
 
 import '../protocol/protocol.dart';
-import 'marionette_backend.dart';
+import 'connection_uri.dart';
 
 /// A separate read-only VM client; it never touches the session backend.
 Future<Json> probeVmService(String input, DateTime deadline) async {

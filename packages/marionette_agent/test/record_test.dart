@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
@@ -9,6 +8,8 @@ import 'package:marionette_agent/src/recording/record_service.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:marionette_agent_util/marionette_agent_util.dart';
 import 'package:test/test.dart';
+
+import 'support/fake_backend.dart';
 
 class Recorder implements ScreenRecorder {
   int starts = 0;

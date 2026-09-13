@@ -1,17 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
 import 'package:marionette_agent/src/daemon/client.dart';
 import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
-import 'package:marionette_agent/src/session/session_manager.dart';
-import 'package:test/test.dart';
 import 'package:marionette_agent/src/recording/record_service.dart';
+import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:marionette_agent_util/marionette_agent_util.dart';
+import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
 
 /// Separate close response completion from cleanup completion to reproduce shutdown contention reliably.
 class _DelayedDispose extends SessionManager {

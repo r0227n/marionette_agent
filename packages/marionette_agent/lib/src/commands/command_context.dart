@@ -2,6 +2,7 @@ import '../backend/backend.dart';
 import '../protocol/protocol.dart';
 import '../session/session.dart';
 import '../snapshot/snapshot_service.dart';
+import '../snapshot/target.dart';
 
 /// Shared execution boundary used by individual command implementations.
 ///
@@ -49,8 +50,8 @@ class CommandContext {
       _snapshots.referenceSelector(_execution, ref);
 
   /// Resolve a selection to a unique supported matcher, never an index or coordinate fallback.
-  Future<Selector> uniqueSelector(ElementInfo element) =>
-      _snapshots.uniqueSelector(_execution, element);
+  Future<ObservedQuery> uniqueTarget(ElementInfo element) =>
+      _snapshots.uniqueTarget(_execution, element);
 
   /// Re-observe one target without changing the published refs.
   Future<ElementInfo> observeTarget(TargetQuery query) =>
@@ -78,6 +79,22 @@ class CommandContext {
   ) async {
     final selector = await _snapshots.resolve(_execution, query);
     await _execution.mutate((backend) => operation(backend, selector));
+    return {'requiresSnapshot': true};
+  }
+
+  /// Resolve every target in one observation, then invalidate and dispatch once.
+  Future<Json> performTargets(
+    List<TargetQuery> queries,
+    Future<void> Function(Backend, List<Selector>) operation,
+  ) async {
+    final targets = await _snapshots.resolveAll(_execution, queries);
+    if (targets.any((target) => target.element.visible == false)) {
+      throw const AgentError('UNRESOLVABLE_TARGET', 'Targets must be visible');
+    }
+    await _execution.mutate(
+      (backend) =>
+          operation(backend, targets.map((target) => target.selector).toList()),
+    );
     return {'requiresSnapshot': true};
   }
 

@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import '../cli/common_options.dart';
-import '../protocol/protocol.dart';
 import '../diagnostics/diagnostic_logging.dart';
-import 'runtime.dart';
+import '../protocol/protocol.dart';
 import '../workflow/model.dart';
+import 'runtime.dart';
 
 /// Send one request per handshake. Auto-start is allowed for connect and record start.
 class DaemonClient {
@@ -136,7 +135,7 @@ class DaemonClient {
               [
                 ...launchCommand.skip(1),
                 '--internal-daemon',
-                '${idleTimeoutMs ?? CommonOptions.defaultIdleTimeoutMs}',
+                '${idleTimeoutMs ?? defaultIdleTimeoutMs}',
               ],
               mode: ProcessStartMode.detached,
               environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},

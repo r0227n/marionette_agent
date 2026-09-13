@@ -2,23 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
-import 'parser.dart';
 
-CliCommand installCommand() =>
-    CliCommand(ArgParser()..addOption('source'), (args) {
-      if (args.rest.length != 1 || args.rest.single.isEmpty) {
-        invalid(
-          'Usage: install|upgrade [--source <package-directory>] <existing-bin-directory>',
-        );
-      }
-      return {'directory': args.rest.single, 'source': args.option('source')};
-    });
-
-/// Compile the selected checkout. Never fetch code or modify the Flutter SDK.
 Future<Json> installCli(Json params, String action, DateTime deadline) async {
   Directory? staging;
   Process? process;

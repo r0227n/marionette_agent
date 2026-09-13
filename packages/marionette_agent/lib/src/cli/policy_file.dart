@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../protocol/protocol.dart';
 import '../session/action_policy.dart';
 import 'common_options.dart';
-import 'diff_command.dart';
+import 'input_file.dart';
 
 Future<Json?> loadPolicy(CommonOptions options, DateTime deadline) async {
   if (options.actionPolicy == null && options.confirmActions == null) {
@@ -14,7 +14,7 @@ Future<Json?> loadPolicy(CommonOptions options, DateTime deadline) async {
     try {
       policy = asJson(
         jsonDecode(
-          utf8.decode(await readBaseline(options.actionPolicy!, deadline)),
+          utf8.decode(await readInputFile(options.actionPolicy!, deadline)),
         ),
       );
     } on AgentError {

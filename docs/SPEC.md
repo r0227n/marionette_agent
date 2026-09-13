@@ -97,7 +97,7 @@ sessionとtimeoutはそれぞれ明示CLI > 環境変数 > 明示config > 既定
 
 ### 共通安全オプション
 
-共通オプションの定義・既定値・登録・値検証・構文エラーの出力モード回復は`cli/common_options.dart`を唯一の正本とし、全サブコマンドはrootの同じ定義を継承する。`--debug`を含む共通オプションはhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数のfallbackはsessionとtimeoutだけに適用し、明示設定ファイルの値を環境変数より下位の既定値として使う。screenshot形式・品質は画像保存時だけ使用し、他コマンドの出力は変更しない。
+共通オプションの登録・CLI既定値・優先順位・構文エラーの出力モード回復は`cli/common_options.dart`を正本とし、全サブコマンドはrootの同じ定義を継承する。session名・期限・出力上限の値域検証とdaemon idle既定値は`protocol/protocol.dart`に定義し、CLIとIPCで共用する。`--debug`を含む共通オプションはhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数のfallbackはsessionとtimeoutだけに適用し、明示設定ファイルの値を環境変数より下位の既定値として使う。screenshot形式・品質は画像保存時だけ使用し、他コマンドの出力は変更しない。
 
 `--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
 

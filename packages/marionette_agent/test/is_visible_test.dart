@@ -3,7 +3,8 @@ import 'package:marionette_agent/src/cli/renderer.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
 
 void main() {
   test('grammar accepts one target and rejects malformed requests', () {

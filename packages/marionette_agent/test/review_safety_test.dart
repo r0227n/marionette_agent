@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:marionette_agent/src/backend/backend.dart';
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/backend/marionette_backend.dart';
 import 'package:marionette_agent/src/cli/renderer.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
@@ -14,6 +13,8 @@ import 'package:marionette_agent/src/diagnostics/diagnostic_logging.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
+
+import 'support/fake_backend.dart';
 
 Request request(String command, [Json params = const {}]) => Request(
   requestId: command,

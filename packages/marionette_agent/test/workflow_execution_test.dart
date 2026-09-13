@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:marionette_agent/src/backend/backend.dart';
-import 'package:marionette_agent/src/backend/fake_backend.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
 import 'workflow_model_test.dart' show doc;
 
 Json tap(String id, [String key = 'button']) => {

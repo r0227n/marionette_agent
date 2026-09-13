@@ -49,6 +49,8 @@ marionette-agent [共通オプション] <コマンド> [コマンドオプシ�
 | `batch`、`--action-policy`、`--confirm-actions`、`--confirm-interactive`、`confirm/deny` | 連続実行と操作確認 |
 | `doctor --quick/--offline/--fix`、`install/upgrade` | 診断とローカルcheckoutからのCLI配置 |
 
+`find`のactionは選択時属性を送信前まで保持し、変化した対象をSTALE_REF／not_sentで拒否します。`drag`は両対象を同じ観測で検証してから1回送信します。`batch`の共通オプションは親で解決し、子コマンドで環境値を再検証しません。詳しい条件は[追加コマンド仕様](cli-parity.ja.md)を参照してください。
+
 ### 共通オプション
 
 | オプション | 既定値 | 説明 |

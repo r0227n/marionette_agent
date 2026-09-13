@@ -1,8 +1,6 @@
 import 'dart:convert';
 
 import 'package:marionette_agent/src/backend/backend.dart';
-import 'package:marionette_agent/src/backend/fake_backend.dart';
-import 'package:marionette_agent/src/cli/common_options.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
 import 'package:marionette_agent/src/cli/renderer.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
@@ -11,7 +9,8 @@ import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
-import 'session_test.dart' show request;
+import 'support/fake_backend.dart';
+import 'support/requests.dart';
 
 void main() {
   final invalidArgument = throwsA(
@@ -77,7 +76,7 @@ void main() {
         }
       }
       expect(CliParser().parse(['snapshot']).options.idleTimeoutMs, isNull);
-      expect(CommonOptions.defaultIdleTimeoutMs, 3600000);
+      expect(defaultIdleTimeoutMs, 3600000);
       expect(CliParser().parse(['snapshot']).options.debug, isFalse);
       expect(CliParser().usage, contains('--debug'));
       expect(CliParser().usage, contains('--content-boundaries'));

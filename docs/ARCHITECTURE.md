@@ -41,22 +41,31 @@ AI Agent / Shell
 packages/marionette_agent/
   bin/marionette_agent.dart
   lib/src/
-    cli/        # parser、text/JSON renderer、artifact writer
+    cli/        # 呼出元の解析・出力・ファイル/process処理
+      commands/ # catalogとコマンド別のArgParser構文
+      command.dart # CliCommand型。parserには依存しない
+      parser.dart  # config/環境/CLIの優先順位とInvocation生成
+      help.dart    # usageテキスト
     diagnostics/# loggingレコードの秘匿化、request単位の収集、stderr出力
     protocol/   # versioned request/response、error、DTO
     daemon/     # 起動、socket server、dispatch、期限と直列化
     session/    # lifecycle、接続所有権
-    snapshot/   # 正規化、ref、対象の事前検証
+    snapshot/   # target.dartの対象型、ref、対象の事前検証
     backend/    # Backend interface、Marionette adapter
     commands/   # 共通サービスを使う各操作
     workflow/   # schema、model、親/step実行制御
-  docs/         # 実装契約、workflow v1仕様
+  docs/verification/ # 実環境の検証記録（仕様・実装契約はroot docs/）
   examples/     # JSON／YAML workflowとinputs例
   test/         # 単体・IPC・契約テスト
+    support/    # FakeBackend、入力保持fake、共通Request fixture
   integration_test/ # SimulatorでのCLIシナリオ
 ```
 
-protocolはDartの値とJSONだけを扱う。コマンド層はBackend interfaceに依存し、上流connectorやresponse mapを直接扱わない。rendererはbackend例外を解釈しない。
+protocolはDartの値とJSONだけを扱い、CLIやargsには依存しない。commands以下はIPC paramsの検証・型付き要求・handlerを所有する。CLIの構文は同じ検証を呼ぶが、handlerからCLIへ依存を戻さない。内部は必要な定義を直接importし、公開barrel経由の循環依存を作らない。`architecture_test.dart`でdaemon各層からCLI/args/公開barrelへの依存を拒否する。
+
+コマンド層はBackend interfaceに依存し、上流connectorやresponse mapを直接扱わない。URIの正規化・秘匿化は`backend/connection_uri.dart`に置き、sessionやstate保存が具体adapterをimportせずに使う。FakeBackendは`test/support/`だけに配置し、製品の公開exportには含めない。rendererはbackend例外を解釈しない。
+
+ローカル実行は`batch_loader.dart`、`connection_state.dart`、`installer.dart`、`observation_diff.dart`へ分ける。共通の通常ファイル読込は`input_file.dart`、期限付きprocess実行は`process_runner.dart`が所有し、state/policy/batchが画像差分やdoctorの実装を読み込む必要をなくす。
 
 ## Marionette adapter
 
@@ -133,9 +142,15 @@ Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示�
 
 ## コマンド拡張境界
 
+`find`は表示条件から選んだElementInfoを`SnapshotService.uniqueTarget`へ渡す。matcher候補は1回の再観測からkey/identifier/text/typeの順に選び、`ObservedQuery`としてselectorと選択時属性を保持する。実操作の直前に通常のresolverがその属性も比較し、同じkeyでも置き換わった対象はSTALE_REF / not_sentにする。ObservedQueryは要求内だけで使用し、IPC入力や公開refとして受理しない。
+
+`drag`は`CommandContext.performTargets`から`SnapshotService.resolveAll`を呼び、両対象のref・属性・一意性・可視性を同じinspect結果で確認する。すべて通った後だけ共通mutation経路でrefを失効させ、1回送る。対象の検証失敗では操作せずrefを維持する。再観測とアプリ操作自体の原子性を保証するものではない。
+
+`batch_loader`は全argvの構文・重複option・コマンドparamsだけを解析する。親の共通オプション解決は再実行せず、上書き済みの環境session/timeoutを再検証しない。snapshot差分は構造等価な行をhashで数え、重複件数を維持して比較する。逐次総当たりの二乗時間を避け、ループ内でも同じ期限を確認する。
+
 通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはVM Service非依存のためSessionManagerの共通session queueでRecordServiceへ分岐する。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
 
-CommandContextにsession実行、対象解決、期限確認、ref失効、mutationの1回送信を集約する。handlerは独自のqueue、retry、session生成、ref保存、接続破棄を実装しない。共有型は`lib/marionette_agent.dart`から公開し、上流connectorやresponse mapをコマンド層へ漏らさない。
+CommandContextにsession実行、対象解決、期限確認、ref失効、mutationの1回送信を集約する。handlerは独自のqueue、retry、session生成、ref保存、接続破棄を実装しない。外部のCLI組立向けの型は`lib/marionette_agent.dart`から公開し、内部handlerは必要なファイルを直接importする。上流connectorやresponse mapをコマンド層へ漏らさない。
 
 workflowはSessionManagerで通常経路から分岐するが、各stepは既存CommandRegistryと新しいExecution／CommandContextを使う。1つのExecutionで複数mutationを送信したり、stepからSessionManagerを再帰呼び出ししたりしない。
 
@@ -210,13 +225,13 @@ RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に
 
 ## 共通オプション（Issue #2・#8）
 
-`cli/common_options.dart`が既存・新規の全共通オプションの名前、help、既定値、ArgParser登録、重複検出、構文エラー回復、値検証とCommonOptionsを所有する。CliParserはrootへ一度登録し、argsの継承によって全command／subcommandへ適用する。個別command parserに定義を複写しない。IPCのsessionと出力上限の再検証も同じ値検証へ委譲する。
+`cli/common_options.dart`が全共通オプションの名前、help、CLI既定値、ArgParser登録、重複検出、構文エラー回復、オプション固有の値検証とCommonOptionsを所有する。CliParserはrootへ一度登録し、argsの継承によって全command／subcommandへ適用する。個別command parserに定義を複写しない。session名・duration・出力上限の共通値域検証はprotocolに配置し、CLIもIPCも同じ関数を呼ぶ。
 
 CliParserは呼出元のPlatform.environment（テストでは注入したmap）をCommonOptions.createParserへ渡す。session／timeoutのArgParser既定値を環境変数 > 組込み既定値で設定し、argsが明示CLIを優先する。検証は選択後にだけ実行し、空値を未設定として扱わない。構文エラー回復も同じparserのsession既定値を使い、環境解決を重複実装しない。runnerは選択されたtimeoutを解析開始前の時刻からの絶対deadlineへ変換する既存経路を使い、daemonやsession queueは環境変数を再解決しない。
 
 Requestは`maxOutput`と`outputJson`をparams外に持つ。`output/content.dart`の項目serializerをdaemonの制限とCLIの表示が共有し、code point予算を一致させる。SessionManagerはqueue内で公開snapshotを完成させた後に制限し、SnapshotService.retainPublishedで返却generationの省略refを削除してからqueueを解放する。workflow finalSnapshotもこの経路を通る。未公開refを後続要求から利用できる時間窓を作らない。nonceはrendererだけがCLI呼出しごとに生成し、JSONでは対象dataにmetadataとして付加する。
 
-DaemonClientは起動時idle値を内部daemon引数で渡す。既定値・内部引数の検証もCommonOptionsを利用する。handshakeとprivate metadataは確定したidleTimeoutMsを含み、clientは明示値との不一致を要求送信前に拒否する。起動lock取得後の再openでも同じ照合を行う。省略時に既存値を上書きせず、設定のためだけのdaemon再起動も行わない。
+DaemonClientは起動時idle値を内部daemon引数で渡す。idle既定値と値域検証はprotocolの定義を共用し、内部daemon引数のCLI解析だけCommonOptionsを利用する。handshakeとprivate metadataは確定したidleTimeoutMsを含み、clientは明示値との不一致を要求送信前に拒否する。起動lock取得後の再openでも同じ照合を行う。省略時に既存値を上書きせず、設定のためだけのdaemon再起動も行わない。
 
 DaemonServerはclient受信／配送とSessionManagerのpendingを監視し、全queueが空になってからidle timerを開始する。期限切れqueue entryも実際にdrainするまでpendingから除かない。queue完了通知はhealth probe後のtimer未設定を回復するが、既存のidle intervalは延長しない。health probe実行中の期限到達は完了まで延期する。timerは通常のcloseへ合流するため、record確定・全session破棄・socket削除・寿命lock解放を共有する。
 

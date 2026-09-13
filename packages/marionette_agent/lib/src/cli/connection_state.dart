@@ -2,29 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:args/args.dart';
-
-import '../backend/marionette_backend.dart';
+import '../backend/connection_uri.dart';
 import '../protocol/protocol.dart';
-import 'parser.dart';
-import 'diff_command.dart';
-import 'doctor.dart' show runDiagnosticProcess;
-
-CliCommand stateCommand() => CliCommand(
-  ArgParser()
-    ..addCommand('save')
-    ..addCommand('load'),
-  (args) {
-    final child = args.command;
-    if (args.rest.isNotEmpty ||
-        child == null ||
-        child.rest.length != 1 ||
-        child.rest.single.isEmpty) {
-      invalid('Usage: state save|load <path>');
-    }
-    return {'action': child.name, 'path': child.rest.single};
-  },
-);
+import 'input_file.dart';
+import 'process_runner.dart';
 
 Future<String> loadConnectionState(String path, DateTime deadline) async {
   try {
@@ -38,12 +19,12 @@ Future<String> loadConnectionState(String path, DateTime deadline) async {
 
 Future<String> _loadConnectionState(String path, DateTime deadline) async {
   // Saved connection URIs contain authentication. Require private local files.
-  final stat = await runDiagnosticProcess(
+  final stat = await runProcessUntil(
     '/usr/bin/stat',
     Platform.isMacOS ? ['-f', '%u:%Lp', path] : ['-c', '%u:%a', path],
     deadline,
   );
-  final uid = await runDiagnosticProcess('/usr/bin/id', ['-u'], deadline);
+  final uid = await runProcessUntil('/usr/bin/id', ['-u'], deadline);
   final expectedOwner = '${uid.stdout}'.trim();
   if (stat.exitCode != 0 ||
       uid.exitCode != 0 ||
@@ -55,7 +36,7 @@ Future<String> _loadConnectionState(String path, DateTime deadline) async {
       'State must be an owned regular file with mode 0600',
     );
   }
-  final bytes = await readBaseline(path, deadline);
+  final bytes = await readInputFile(path, deadline);
   Object? data;
   try {
     data = jsonDecode(utf8.decode(bytes));
@@ -85,7 +66,7 @@ Future<Json> saveConnectionState(
   try {
     await file.create(exclusive: true);
     created = true;
-    final chmod = await runDiagnosticProcess('/bin/chmod', [
+    final chmod = await runProcessUntil('/bin/chmod', [
       '600',
       file.path,
     ], deadline);

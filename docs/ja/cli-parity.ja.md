@@ -37,7 +37,7 @@ get value／is enabled／is checkedは `property` と `known`、`value` を返�
 
 findはkey／identifier／text／type／role／label／placeholderで検索できます。text／type／label／placeholderは既定で大文字小文字を区別した部分一致、`--exact`で完全一致です。key／identifier／roleは完全一致。`--name`はrole検索だけでlabelを条件に加えます。first／last／nthは既存のselectorを1つ指定し、完全一致の観測順から選びます。nthは0始まりです。
 
-action省略時は `element`、`index`、`matchedCount` を返し、refを発行しません。通常の複数一致はAMBIGUOUS_TARGETです。位置選択後の操作も一意なkey/text/type等へ変換できる必要があり、同属性の要素を添字や座標へ自動フォールバックして操作しません。actionはtap／click／fill、次節の対象付き操作を使用できます。
+action省略時は `element`、`index`、`matchedCount` を返し、refを発行しません。通常の複数一致はAMBIGUOUS_TARGETです。位置選択後の操作も一意なkey/text/type等へ変換できる必要があり、同属性の要素を添字や座標へ自動フォールバックして操作しません。actionはtap／click／fill、次節の対象付き操作を使用できます。選択後も要素属性を保持し、送信前の再観測で変わった場合はSTALE_REF／not_sentとして操作を拒否します。同じkeyへの置き換わりも属性が異なれば拒否します。
 
 ## 入力・操作
 
@@ -67,7 +67,7 @@ typeは入力欄をfocusし、現在の選択範囲を置換して文字列を�
 
 pressは下げて上げる1組のキー入力です。enter/tab/escape/backspace/delete/space、arrowup/down/left/right、home/end/pageup/pagedown、a-z、0-9と、control/shift/alt/meta修飾を扱います。Ctrl/Cmd/Command/Option/Esc/Returnも別名として使えます。keydown/upは単一キーまたは修飾キーのみで、重複downと対応するdownのないupを拒否します。close時は補助providerに保持キーの解放を試みます。通信断時の解放は保証できません。
 
-check/uncheckはCheckbox／Switchの変更callbackを必要なときだけ1回呼びます。selectは文字列値のDropdownButtonの有効な項目を選びます。hoverは明示した対象への合成mouseイベント、dragは両対象を再確認した後の1回のtouchジェスチャーです。これらはFlutter内の操作で、OS全体の入力ではありません。
+check/uncheckはCheckbox／Switchの変更callbackを必要なときだけ1回呼びます。selectは文字列値のDropdownButtonの有効な項目を選びます。hoverは明示した対象への合成mouseイベント、dragは両対象のref・属性・一意性・可視性を同じ観測で再確認した後の1回のtouchジェスチャーです。これらはFlutter内の操作で、OS全体の入力ではありません。
 
 scrollintoviewは一意に観測できるmounted要素へ `Scrollable.ensureVisible` を1回適用します。未構築の遅延リスト項目を探してジェスチャーを繰り返す機能ではありません。
 
@@ -130,7 +130,7 @@ marionette-agent deny <confirmation-id>
 marionette-agent --confirm-interactive tap --key advanced_tab
 ```
 
-batchは1〜100個のargv配列を持つJSONファイル（stdinは `-`）です。例: `[["fill","--key","advanced_input","hello"],["get","value","--key","advanced_input"]]`。全CLI構文を解析してから、1つのsession queue内で順番に実行します。共通オプションはbatch自身に指定します。接続／切断、録画、ファイル保存、差分、他のbatch/workflowは内包できません。snapshot/get/is/find、入力・操作、wait、logs、clipboardに対応します。
+batchは1〜100個のargv配列を持つJSONファイル（stdinは `-`）です。例: `[["fill","--key","advanced_input","hello"],["get","value","--key","advanced_input"]]`。全CLI構文を解析してから、1つのsession queue内で順番に実行します。共通オプションはbatch自身に指定します。子コマンドで環境変数やconfigを再解決せず、親が明示CLIで上書きした不正な環境値も再検証しません。接続／切断、録画、ファイル保存、差分、他のbatch/workflowは内包できません。snapshot/get/is/find、入力・操作、wait、logs、clipboardに対応します。
 
 最初の失敗で停止し、応答を受信できた場合は `error.details` のcompleted・failedIndex・results・progressKnownに進捗を返します。通信断で応答を失った場合は進捗を確定できません。成功時はcompleted・results。rollback、再送、途中再開はしません。
 

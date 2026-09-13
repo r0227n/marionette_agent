@@ -1,10 +1,9 @@
-import 'package:marionette_agent/src/cli/common_options.dart';
-
 import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:marionette_agent/src/backend/backend.dart';
 import 'package:marionette_agent/src/backend/marionette_backend.dart';
+import 'package:marionette_agent/src/cli/common_options.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
 import 'package:marionette_agent/src/cli/runner.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
@@ -13,7 +12,7 @@ import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/diagnostics/diagnostic_logging.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
-import 'package:marionette_agent/src/snapshot/snapshot_service.dart';
+import 'package:marionette_agent/src/snapshot/target.dart';
 
 /// Test-only CLI used as a registration example for A06.
 /// Verifies a single dispatch through the shared base path, not the production tap command (B01).

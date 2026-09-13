@@ -57,7 +57,6 @@ class CommonOptions {
   /// Local to this CLI invocation; not persisted or sent to the daemon.
   final String? screenshotDir;
   final String? special;
-  static const defaultIdleTimeoutMs = 3600000;
   static const defaultScreenshotQuality = 90;
 
   static ArgParser createParser(Map<String, String> environment) => ArgParser()
@@ -134,58 +133,6 @@ class CommonOptions {
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
     ..addFlag('version', negatable: false, help: 'Show version');
 
-  static bool validSession(String name) =>
-      RegExp(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$').hasMatch(name);
-
-  static void validateSession(String name) {
-    if (!validSession(name)) invalid('Invalid session name');
-  }
-
-  static int? outputLimit(Object? value) {
-    if (value == null) return null;
-    if (value is! int || value <= 0) invalid('Expected a positive integer');
-    return value;
-  }
-
-  static int positiveInteger(String value) {
-    final result = int.tryParse(value);
-    if (!RegExp(r'^[0-9]+$').hasMatch(value) || result == null) {
-      invalid('Expected a positive integer');
-    }
-    return outputLimit(result)!;
-  }
-
-  static int duration(
-    String value, {
-    bool allowZero = false,
-    bool units = false,
-  }) {
-    final match = RegExp(units ? r'^([0-9]+)(ms|s|m|h)?$' : r'^([0-9]+)$')
-        .firstMatch(value);
-    if (match == null) invalid('Invalid duration');
-    final count = BigInt.parse(match.group(1)!);
-    final unit = units ? match.group(2) : null;
-    final multiplier = switch (unit) {
-      's' => 1000,
-      'm' => 60000,
-      'h' => 3600000,
-      _ => 1,
-    };
-    final ms = count * BigInt.from(multiplier);
-    // Duration uses microseconds; DateTime must also represent the deadline.
-    if (ms > BigInt.from(9223372036854775) ||
-        (!allowZero && ms == BigInt.zero)) {
-      invalid('Duration is out of range');
-    }
-    final result = ms.toInt();
-    try {
-      DateTime.now().add(Duration(milliseconds: result));
-    } on ArgumentError {
-      invalid('Duration is out of range');
-    }
-    return result;
-  }
-
   static CommonOptions parse(ArgResults args) {
     final session = args.option('session')!;
     validateSession(session);
@@ -230,7 +177,7 @@ class CommonOptions {
       screenshotFormat: screenshotFormat,
       screenshotQuality: screenshotQuality,
       debug: args.flag('debug'),
-      timeoutMs: duration(args.option('timeout')!),
+      timeoutMs: parseDurationMs(args.option('timeout')!),
       contentBoundaries: args.flag('content-boundaries'),
       screenshotDir: screenshotDir,
       maxOutput: args.option('max-output') == null
@@ -238,7 +185,7 @@ class CommonOptions {
           : positiveInteger(args.option('max-output')!),
       idleTimeoutMs: args.option('idle-timeout') == null
           ? null
-          : duration(
+          : parseDurationMs(
               args.option('idle-timeout')!,
               allowZero: true,
               units: true,
@@ -280,7 +227,7 @@ class CommonOptions {
 
   static int daemonIdle(List<String> args) => args.length == 1
       ? defaultIdleTimeoutMs
-      : duration(args[1], allowZero: true);
+      : parseDurationMs(args[1], allowZero: true);
 
   // Recover only output metadata, never an executable invocation. Consume
   // values using the known grammar so a literal --json/--session is not

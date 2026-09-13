@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:marionette_agent/marionette_agent.dart';
-import 'package:marionette_agent/src/cli/state_command.dart';
+import 'package:marionette_agent/src/cli/connection_state.dart';
 import 'package:test/test.dart';
 
 void main() {
