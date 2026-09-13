@@ -44,6 +44,7 @@ class CliParser {
       if (args.rest.length != 1) invalid('Usage: connect <uri>');
       return {'uri': args.rest.single};
     }),
+    'snapshot': snapshotCommand(),
     'close': CliCommand(
       ArgParser()..addFlag(
         'all',
@@ -55,7 +56,6 @@ class CliParser {
         return args['all'] == true ? {'all': true} : {};
       },
     ),
-    'snapshot': CliCommand(ArgParser(), noArguments),
     'session': CliCommand(
       ArgParser()
         ..addCommand('list')
@@ -77,6 +77,8 @@ class CliParser {
   String get usage =>
       'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
       'Commands: ${definitions.keys.join(', ')}\n'
+      'snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]\n'
+      'Snapshot filters observed values; zero/multiple matches are valid. Full observation determines ref safety.\n'
       'get text|box <ref|selector> | get count <selector>\n'
       'get preserves refs; box uses Flutter logical pixels; missing values are null.\n'
       'connect <uri> | session list | session show | close [--all] | snapshot\n'

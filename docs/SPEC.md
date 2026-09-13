@@ -151,6 +151,12 @@ sessionごとに録画確定・切断を期限内で待つ。部分失敗でも�
 
 snapshotは観測世代と要素一覧を返す。各要素には取得可能なtype、text、key、identifier、bounds、visibleを含める。存在しない属性は捏造しない。テキスト出力には対象選択に必要な情報を優先し、診断プロパティ全量を載せない。
 
+`snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]`は省略可能なfilterを1つだけ受理する。値は空でない文字列で、観測属性との大文字小文字を区別した完全一致。複数selector、ref、未知option、空値はINVALID_ARGUMENTで観測前に拒否する。filterなしの出力は従来どおり。0件・複数件も成功した新snapshotであり、旧refはすべて失効する。
+
+filterは観測用であり、`--text`は未知型を含む表示textにも一致する。`--identifier`もbackendの操作selector対応とは独立して観測済みidentifierに一致し、属性がなければ0件。表示textへの一致だけでは操作可能性を保証しない。操作には別途、対応確認済みselector・全観測結果での一意性・可視性の確認が必要となる。
+
+処理順は全要素の観測→全体での一意性確認とref採番→filter→`--max-output`。filter外の衝突もref安全性に含め、番号は表示範囲で振り直さない。filter外・出力制限で省略されたrefは利用不可（STALE_REF）。filter時だけdataに`filter: {kind, value, matchedCount, totalCount}`を追加する。kindはkey/identifier/text/type、valueは指定文字列、totalCountは全観測要素数、matchedCountは出力制限前の一致数。text形式もFilter行に同じ条件・件数を返す。filter自体はtruncatedを意味しない。`--max-output`設定時のoriginalCountはfilter後の件数（matchedCount）、omittedCountはそのうち予算で省略した件数。filter metadataは文字数予算外。workflow v1のsnapshot step構文は変更しない。
+
 refは選択sessionの直近snapshotだけで有効。新snapshot、再接続、切断で既存refを失効する。UI操作をバックエンドへ送る直前にも全refを失効し、成功・失敗・結果不明のいずれでも再snapshotを要求する。引数検証のみの失敗は失効させない。成功したwait、screenshot・logs・状態照会は失効させない。
 
 ref番号はdaemonの生存期間を通して単調増加し、sessionをまたいでも再利用しない。daemon再起動後は必ずconnectとsnapshotからやり直す。

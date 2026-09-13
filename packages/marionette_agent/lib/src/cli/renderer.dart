@@ -75,8 +75,11 @@ String render(
     final items = data[field] as List;
     final boundary = data['contentBoundary'] as Map?;
     final source = field == 'elements' ? 'snapshot' : 'logs';
+    final filter = data['filter'] as Map?;
     return [
       field == 'elements' ? 'Snapshot ${data['generation']}' : 'Logs',
+      if (filter != null)
+        'Filter: ${filter['kind']}=${jsonEncode(filter['value'])}; matchedCount: ${filter['matchedCount']}; totalCount: ${filter['totalCount']}',
       if (field == 'entries' && data['configured'] != null)
         'Configured: ${data['configured']}',
       if (field == 'entries' && data['limitation'] != null)

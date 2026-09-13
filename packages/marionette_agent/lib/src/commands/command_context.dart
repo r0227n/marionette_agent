@@ -22,7 +22,8 @@ class CommandContext {
   void check() => _execution.check();
 
   /// Fetch a new public snapshot. This emits refs, unlike pre-observation.
-  Future<Json> snapshot() => _snapshots.publish(_execution);
+  Future<Json> snapshot({Selector? filter}) =>
+      _snapshots.publish(_execution, filter: filter);
 
   /// Re-observe one target without changing the published refs.
   Future<ElementInfo> observeTarget(TargetQuery query) =>
