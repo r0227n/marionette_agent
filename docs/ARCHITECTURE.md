@@ -40,6 +40,8 @@ AI Agent / Shell
 ```text
 packages/marionette_agent/
   bin/marionette_agent.dart
+  skills/       # 外部発見用のhidden stub
+  skill-data/   # core・simulator-verifyの実行時ガイドと補助ファイル
   lib/src/
     cli/        # 呼出元の解析・出力・ファイル/process処理
       commands/ # catalogとコマンド別のArgParser構文
@@ -66,6 +68,14 @@ protocolはDartの値とJSONだけを扱い、CLIやargsには依存しない。
 コマンド層はBackend interfaceに依存し、上流connectorやresponse mapを直接扱わない。URIの正規化・秘匿化は`backend/connection_uri.dart`に置き、sessionやstate保存が具体adapterをimportせずに使う。FakeBackendは`test/support/`だけに配置し、製品の公開exportには含めない。rendererはbackend例外を解釈しない。
 
 ローカル実行は`batch_loader.dart`、`connection_state.dart`、`installer.dart`、`observation_diff.dart`へ分ける。共通の通常ファイル読込は`input_file.dart`、期限付きprocess実行は`process_runner.dart`が所有し、state/policy/batchが画像差分やdoctorの実装を読み込む必要をなくす。
+
+## Skill配信のローカル境界
+
+`cli/commands/skills.dart`がskillsの文法、`cli/help.dart`がhelp、`cli/skill_catalog.dart`がpackage/環境変数からの探索、frontmatter解析、catalogと専用text/JSON出力を所有する。catalogはCLI parserに依存しない。`cli/runner.dart`は引数解析後、policy読込・RuntimeDirectory.prepareより前に実行して返る。成功時も失敗時もIPCへ渡さず、session/refを参照しない。`--debug`は既存診断を使う。
+
+`skills/`の導入用stubと`skill-data/`の実行時ガイドをDartパッケージ内に置く。Dart起動ではIsolate.resolvePackageUri、手動コンパイルでは実行ファイルを基準とする配布rootを使う。`installer.dart`はソースの両ディレクトリを新規bundleへコピーし、相対bundle名をDart環境定数としてコンパイルする。成功したバイナリだけを切り替え、失敗時は新規bundleを回収する。既存版のbundleは保持する。実行時に展開・生成・ダウンロードする経路を持たない。
+
+Skillの互換JSONは`SkillsOutput`の専用境界で生成し、protocolのResult/schemaVersionは変更しない。コマンド詳細、探索優先順位、配布時に同伴するbundleの契約は[SPEC](SPEC.md#同梱skillの配信)を参照。
 
 ## Marionette adapter
 

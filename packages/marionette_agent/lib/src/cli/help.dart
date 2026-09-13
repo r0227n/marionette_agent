@@ -3,6 +3,9 @@ import 'package:args/args.dart';
 String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
     'Commands: ${commands.join(', ')}\n'
+    'skills [list] | skills get <name> [name...] [--full] | skills get --all [--full]\n'
+    'skills path [name] | skills --help (bundled guides; no download or connection)\n'
+    'Start with marionette-agent skills get core; use --full for references and templates.\n'
     'doctor [--probe-uri <uri>] (read-only; no connection required)\n'
     'snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]\n'
     'Snapshot filters observed values; zero/multiple matches are valid. Full observation determines ref safety.\n'
@@ -52,3 +55,31 @@ String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'device list [--platform ios|android] | batch <JSON-file|->\n'
     'state save|load <path> (connection only) | confirm|deny <confirmation-id>\n'
     'doctor --quick|--offline|--fix | install|upgrade [--source <package-directory>] <bin-directory>';
+
+const skillsUsage =
+    '''marionette-agent skills - List and retrieve bundled skill content
+
+Usage: marionette-agent skills [subcommand] [options]
+
+  list                       List available skills (default)
+  get <name> [name...]        Output SKILL.md including frontmatter
+  get <name> --full           Include references/ and templates/ files
+  get --all                  Output every visible skill (accepts --full)
+  path [name]                Print skill directory paths; does not download
+
+  --json                     Output structured JSON
+  --help, -h                 Show this help
+
+Examples:
+  marionette-agent skills get core
+  marionette-agent skills get core --full
+  marionette-agent skills get simulator-verify --full
+  marionette-agent skills get --all
+  marionette-agent skills path core
+  marionette-agent skills list --json
+
+Environment:
+  MARIONETTE_AGENT_SKILLS_DIR  Override with one existing skills directory
+
+Bundled content matches the installed CLI. No daemon or connection is required.
+''';

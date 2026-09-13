@@ -214,6 +214,7 @@ class CommonOptions {
           'device',
           'install',
           'upgrade',
+          'skills',
         ].contains(args.command?.name) ||
         (args.command?.name == 'workflow' &&
             args.command?.command?.name != 'run') ||
@@ -249,6 +250,7 @@ class CommonOptions {
           'device',
           'install',
           'upgrade',
+          'skills',
         ].contains(commands.firstOrNull) ||
         (commands.firstOrNull == 'workflow' && !commands.contains('run')) ||
         (commands.firstOrNull == 'session' && commands.contains('list'));

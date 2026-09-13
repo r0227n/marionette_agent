@@ -62,6 +62,9 @@ class CliParser {
     CommonOptions.rejectDuplicateOptions(parser, arguments);
     final options = CommonOptions.parse(args);
     if (options.special != null) {
+      if (options.special == 'help' && args.command?.name == 'skills') {
+        return Invocation(options, 'skills', {'action': 'help'});
+      }
       return Invocation(options, options.special!, {});
     }
     final command = args.command;
@@ -92,6 +95,7 @@ class Invocation {
   final Json params;
   String? get resultSession =>
       command == 'help' ||
+          command == 'skills' ||
           command == 'doctor' ||
           command == 'device' ||
           command == 'install' ||

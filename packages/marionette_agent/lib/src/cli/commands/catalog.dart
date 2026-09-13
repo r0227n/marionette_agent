@@ -16,12 +16,14 @@ import 'is_visible.dart';
 import 'keyboard.dart';
 import 'observations.dart';
 import 'record.dart';
+import 'skills.dart';
 import 'state.dart';
 import 'swipe.dart';
 import 'wait.dart';
 import 'workflow.dart';
 
 Map<String, CliCommand> builtInCommands() => {
+  'skills': skillsCommand(),
   'device': CliCommand(
     ArgParser()..addCommand(
       'list',
