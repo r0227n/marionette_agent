@@ -3,19 +3,22 @@ import 'dart:io';
 
 /// Run with MARIONETTE_RECORD_PLATFORM, MARIONETTE_RECORD_DEVICE,
 /// MARIONETTE_TEST_VM_URI_FILE and MARIONETTE_RECORD_EVIDENCE.
+/// Set MARIONETTE_LAUNCH_OPTIONS to a JSON argv array instead of a URI file
+/// to exercise managed launch and close on tester or a native runtime.
 /// Optionally set MARIONETTE_RECORD_FPS to select the recording rate.
 /// Uses only product CLI calls; preserves no VM Service credentials in evidence.
 Future<void> main() async {
   final env = Platform.environment;
   final platform = env['MARIONETTE_RECORD_PLATFORM']!;
+  final launch = env['MARIONETTE_LAUNCH_OPTIONS'];
   final device = env['MARIONETTE_RECORD_DEVICE'];
   final fps = env['MARIONETTE_RECORD_FPS'];
   final applicationFrames = platform == 'flutter';
   final output = await Directory(env['MARIONETTE_RECORD_EVIDENCE']!)
       .create(recursive: true);
-  final uri = (await File(
-    env['MARIONETTE_TEST_VM_URI_FILE']!,
-  ).readAsString()).trim();
+  final uri = launch == null
+      ? (await File(env['MARIONETTE_TEST_VM_URI_FILE']!).readAsString()).trim()
+      : null;
   final runtime = await Directory('/tmp').createTemp('mra-record-smoke-');
   await Process.run('chmod', ['700', runtime.path]);
   final script = File('bin/marionette_agent.dart').absolute.path;
@@ -34,7 +37,7 @@ Future<void> main() async {
         '--session',
         'record-smoke',
         '--timeout',
-        '60000',
+        args.first == 'launch' ? '600000' : '60000',
         ...args,
       ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
@@ -56,7 +59,17 @@ Future<void> main() async {
     () async {
       final idle = await cli(['record', 'status']);
       if (idle['recordingState'] != 'idle') throw StateError('Expected idle');
-      if (applicationFrames) await cli(['connect', uri], secret: true);
+      if (launch != null) {
+        if (!applicationFrames) {
+          throw StateError('Managed launch requires Flutter recording');
+        }
+        final options = (jsonDecode(launch) as List).cast<String>();
+        final launched = await cli(['launch', ...options]);
+        await File('${output.path}/launch.json')
+            .writeAsString(jsonEncode(launched));
+      } else if (applicationFrames) {
+        await cli(['connect', uri!], secret: true);
+      }
       final started = await cli([
         'record',
         'start',
@@ -69,7 +82,7 @@ Future<void> main() async {
       if (started['recordingState'] != 'recording') {
         throw StateError('Expected recording');
       }
-      if (!applicationFrames) await cli(['connect', uri], secret: true);
+      if (!applicationFrames) await cli(['connect', uri!], secret: true);
       // Reset the fixture so repeated runs visibly demonstrate input/count changes.
       await cli(['tap', '--key', 'about_tab']);
       await cli(['tap', '--key', 'controls_tab']);

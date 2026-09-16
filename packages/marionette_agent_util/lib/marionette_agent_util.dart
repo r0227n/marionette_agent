@@ -10,3 +10,5 @@ export 'src/platform_exception.dart';
 export 'src/lifecycle/termination_signals.dart';
 
 export 'src/devices.dart';
+
+export 'src/application/application_launcher.dart';

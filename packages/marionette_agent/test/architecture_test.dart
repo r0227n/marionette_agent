@@ -39,4 +39,16 @@ void main() {
       }
     }
   });
+  test('runtime execution commands stay inside the util package', () {
+    for (final file in Directory(
+      'lib/src',
+    ).listSync(recursive: true).whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final code = file.readAsStringSync();
+      expect(code, isNot(contains('--web-run-headless')), reason: file.path);
+      expect(code, isNot(contains('--vmservice-out-file')), reason: file.path);
+      expect(code, isNot(contains('-no-window')), reason: file.path);
+      expect(code, isNot(contains('MARIONETTE_HEADLESS=')), reason: file.path);
+    }
+  });
 }

@@ -39,7 +39,7 @@ probeの認証URI・remote exception・入力文字列は結果/診断へ出力�
 
 Dart製CLIから、Marionette対応FlutterアプリをAI Agentが観測・操作できるようにする。agent-browserのsession、snapshot、短い要素参照、構造化出力という操作体系を採用する。ブラウザー固有のコマンド互換性は目的に含めない。
 
-初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイ（ChromeのWeb検証を含む）を対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。Simulatorやアプリの起動・ビルド・インストールは利用者側で行う。
+初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイ（ChromeのWeb検証を含む）を対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。手動起動へのconnectに加えて、launchでtester／iOS／Android／macOS／Webのヘッドレス環境を明示選択して起動できる。
 
 MCPサーバー／クライアントの提供は対象外。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。
 
@@ -305,7 +305,7 @@ install/upgradeは指定checkoutの両ディレクトリをbin-directory内の�
 
 role/label/placeholderはfindに対応し、get value/is enabled/is checkedを追加した。通常selectorはkey/identifier/text/typeのまま維持する。hint/tooltip、完全なSemanticsツリー、永続的target IDは未対応。[Issue #14設計案](semantics-selector-state-design.md)は元のstock binding調査と将来設計として保持する。
 
-record以外のAndroid／実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、アプリ起動管理、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaとMCP対象外の方針は維持する。
+iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaとMCP対象外の方針は維持する。
 
 ## Flutter向け拡張
 
@@ -313,7 +313,7 @@ record以外のAndroid／実機・他ホストOSの正式対応、iOS実機録�
 
 任意の `marionette_agent_flutter` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
 
-IPC protocolVersionは6。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、新規コマンドのdataだけを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
+IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
 
 
 ## 端末画面録画
@@ -355,7 +355,7 @@ IPC protocolVersionは6。要求に任意のsession action policyを追加した
 
 対象はFlutterが描画した単一viewで、OSのキーボード・ダイアログ・ブラウザーUIやplatform viewの収録を保証しない。画面収録許可は不要だが、アプリ側のMarionette debug bindingが必要。録画停止は操作用接続・ref・押下中キーに作用しない。録画用接続が失われると失敗して再接続・再送しない。操作用接続だけの切断は録画用接続を閉じない。hot restart中の継続は保証しない。
 
-ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。CLIはアプリ・端末の起動や終了を管理しない。手順は[ヘッドレスガイド](ja/headless.ja.md)、実測結果は[Issue #20検証](../packages/marionette_agent/docs/verification/issue-20.md)を参照する。
+ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。手動起動へのconnectではアプリ・端末を所有しない。launchではutilを通して起動し、closeで所有環境を終了する。手順は[ヘッドレスガイド](ja/headless.ja.md)、実測結果は[Issue #20検証](../packages/marionette_agent/docs/verification/issue-20.md)を参照する。
 
 ### Web録画の範囲と接続
 
@@ -370,3 +370,17 @@ Chromeのpage identityをCDPで確認し、Inspector終了通知とWebSocket切�
 API比較・選定理由と参照元は[Web録画方式](web-recording.md)を参照。
 
 Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。
+
+## ハイブリッド実行環境（Issue #20追加仕様）
+
+`launch <project> --platform tester|ios|android|macos|web`はmacOSホストで選んだ環境のdebugアプリをビルド・起動し、同じsessionへ接続して最初のinspectまで確認する。標準結果の接続情報にapplication:{platform,state,pid,device?}を追加する。session show/listでも所有アプリを表示する。URIは既存の秘匿契約に従う。
+
+Flutter実行ファイルは--flutter（省略時daemon PATH）、entrypointは--target（既定lib/main.dart）。projectはCLIのcwdで絶対化する。iOSのみ--device-typeと--runtimeが必須、Androidのみ--avdと偶数--port（5554..5682）が必須。他環境のfieldと未知fieldはCLIとdaemonの両方で拒否する。SDK、AVD、project依存は利用者が事前準備し、launchは--no-pubを使う。要求timeoutはビルド・起動・接続・観測の全体期限。
+
+launchはdaemon自動起動対象で、session queueとaction policyを共有する。既存接続・所有アプリ・録画があるsession、管理中project、利用中Android portはSESSION_CONFLICT。projectのビルド出力競合を防ぐため、同一projectは実pathとOSファイルlockで排他にする。別環境への自動fallback・操作再送・自動再起動はしない。
+
+起動処理はmarionette_agent_utilに配置する。tester/web/macOSはFlutter runner、iOSは固有private device set、Androidは明示AVDの-no-window -no-snapshot -read-onlyプロセスを所有する。macOSアプリは非表示windowのopt-in対応を要する。CLIから環境変数やOSコマンドを組み立てず、utilの共通APIを呼ぶ。
+
+closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
+
+testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作と録画は既存session/record --platform flutterを共用する。手順と制約は[日本語ガイド](ja/headless.ja.md)を参照。

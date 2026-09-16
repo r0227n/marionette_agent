@@ -2,10 +2,11 @@
 
 ## 対応範囲
 
-iOS・Android・macOS・Webそれぞれの実行環境で、ウィンドウを表示せずにMarionette対応Flutterアプリを動かし、CLIから操作して録画します。Flutter testerによるプラットフォームの模倣は使いません。
+Flutter testerとiOS・Android・macOS・Webの各実行環境を明示的に選び、ウィンドウを表示せずにMarionette対応Flutterアプリを操作・録画します。
 
 | 対象 | 実行環境 | 非表示にする方法 | 録画 |
 | --- | --- | --- | --- |
+| tester | テスト用Flutterエンジン | flutter-tester | Flutter描画 → MP4 |
 | iOS | iOS Simulator | 専用device setでboot・launch | Flutter描画 → MP4 |
 | Android | Android Emulator | `-no-window` | Flutter描画 → MP4 |
 | macOS | ネイティブFlutterEngine | 非表示NSWindow + debug描画維持 | Flutter描画 → MP4 |
@@ -15,14 +16,83 @@ iOS・Android・macOS・Webそれぞれの実行環境で、ウィンドウを�
 
 ## 必要なもの
 
-- macOSホスト、XcodeとiOS Simulator、Android SDKとAVD、Google Chrome。
+- macOSホスト。選んだ環境に応じてXcodeとiOS Simulator、Android SDKとAVD、Google Chrome。
 - Flutter 3.47.2、Marionette 0.6.0と[example](../../example/)のdebugアプリ。
 - PATH上のffmpeg。PNG decoder、libx264 encoder、concat demuxer、setts bitstream filterが必要です。検証にffprobeも使います。
 - ログイン済みGUIセッション。macOSはウィンドウを非表示にできますが、WindowServerがないホストでの動作は検証していません。
 - 動画と一時PNGを保存するディスク容量。録画時間と描画量に応じて増えます。
 - 録画中にホストをスリープさせないこと。プロセスが中断すると取得・接続確認が期限切れになり、再接続が必要になる場合があります。
 
-## 起動・操作・終了
+## 実行環境を選んで起動する
+
+`launch <project> --platform tester|ios|android|macos|web`は、選んだ環境でdebugアプリを起動し、同じsessionへ接続します。testerはFlutter共通UIの反復確認、各OS／Webは対象環境での確認に使います。環境を自動切替したり、失敗した操作を別環境へ再送したりしません。
+
+Flutter SDK・各OSのSDK・Chrome・ffmpegと、projectの依存を事前に用意してください。`launch`は`--no-pub`でビルドします。初回ビルドと端末bootには共通`--timeout`を十分長く指定します。以下はリポジトリルートでの例です。
+
+```sh
+marionette-agent --session fast --timeout 600000 launch ./example --platform tester
+marionette-agent --session fast record start ./tester.mp4 --platform flutter
+marionette-agent --session fast tap --key tap_button
+marionette-agent --session fast fill --key text_input 'hybrid check'
+marionette-agent --session fast screenshot ./tester.png
+marionette-agent --session fast --timeout 60000 close
+```
+
+`launch`の成功は、起動プロセスの存在だけでなくVM Service接続とMarionetteの最初の観測まで確認した状態です。結果は接続情報に`application`（platform、state、runnerのpid、必要時device）を追加します。URIの認証部分は秘匿されます。`session show`で接続と所有アプリを確認できます。
+
+各環境へ切り替える場合は、前のsessionをcloseしてから次を起動し、同じtap/fill/record/workflowコマンドを使います。
+
+```sh
+marionette-agent --session ios --timeout 600000 launch ./example --platform ios \
+  --device-type com.apple.CoreSimulator.SimDeviceType.iPhone-Air \
+  --runtime com.apple.CoreSimulator.SimRuntime.iOS-26-2
+marionette-agent --session ios --timeout 60000 close
+
+marionette-agent --session android --timeout 600000 launch ./example --platform android \
+  --avd Pixel_9_Pro --port 5586
+marionette-agent --session android --timeout 60000 close
+
+marionette-agent --session macos --timeout 600000 launch ./example --platform macos
+marionette-agent --session macos --timeout 60000 close
+
+marionette-agent --session web --timeout 600000 launch ./example --platform web
+marionette-agent --session web --timeout 60000 close
+```
+
+| オプション | 意味 |
+| --- | --- |
+| `--platform` | 必須。tester／ios／android／macos／webを明示 |
+| `--flutter` | Flutter実行ファイル。省略時daemonのPATH上のflutter。SDKを固定する場合は絶対pathを指定 |
+| `--target` | entrypoint。project相対または絶対path。既定`lib/main.dart` |
+| `--device-type`、`--runtime` | iOSのみ必須。インストール済みSimulatorの識別子 |
+| `--avd`、`--port` | Androidのみ必須。既存AVD名と未使用の偶数port（5554〜5682） |
+
+他環境のオプション、未知field、無効値はINVALID_ARGUMENTです。起動済みsessionへのlaunchや利用中project／Android portはSESSION_CONFLICTになります。同一projectのビルド出力を共有しないよう、同時に1つの管理対象アプリだけを許可します。別projectを使う場合もruntime・session・端末・出力先を分離してください。
+
+### 起動と終了の所有権
+
+- `launch`はutilがprivate一時領域を作り、tester／Flutter runner／headless Chrome、専用iOS device set、読み取り専用Android Emulatorを所有します。共有のSimulatorやadb serverは停止しません。
+- **launchしたsessionのcloseは、録画を確定してから所有アプリ・端末を終了します。** close --all、daemonの正常終了も同じ所有権を回収します。
+- 手動起動したアプリへの`connect`は接続だけを所有します。この場合のcloseはアプリを終了しません。
+- 起動失敗・期限切れ・接続準備失敗では、所有するプロセス・端末と一時URIを回収します。期限切れの応答後も有界な回収が続く場合があり、session状態を確認してから再実行してください。
+- 実行中のアプリ終了で接続・refを失効します。自動再起動や操作の自動再送はしません。OS内の処理、SIGKILL、ホスト停止後の回収は保証しません。
+- Androidは既存AVDを`-read-only -no-snapshot -no-window`で起動します。AVD自体を作成・削除せず、保存済みデータへ変更を保存しません。十分な空き容量が必要です。
+- macOSはアプリ側にも非表示NSWindowとdebug描画維持の対応が必要です。exampleには実装済みで、utilが環境変数とDart defineを渡します。一般アプリを自動的に非表示対応へ改変する機能ではありません。
+
+### testerの範囲
+
+testerはFlutterのDartコードをテスト用エンジンで実行します。iOS／Androidのネイティブ実装やブラウザーを再現するものではありません。今回のFlutter 3.47.2ではdebug限定で、論理800×600・DPR 3の固定viewportです。OSプラグイン、権限、キーボード、Web固有コードや実機性能は各実行環境で確認します。見た目のplatform overrideはOSを変更しません。
+
+録画は他の環境と同じ`--platform flutter`を使います。画面外の要素はscrollで表示させ、swipe距離はviewportに合わせます。過去の300px swipeでPage 1に残った例と、500pxでの確認は[調査記録](../headless-feasibility-issue-20.md)に記載しています。
+
+800×600で確認した[JSON workflow](../../packages/marionette_agent/examples/workflows/headless-controls.json)と[YAML workflow](../../packages/marionette_agent/examples/workflows/headless-controls.yaml)を同梱しています。Controlsへ戻った後、200px上へscrollしてページ表示を可視範囲に置き、500px左へswipeします。最終snapshotの`page_result`が`Current page: 2`であることを確認し、同じsnapshotの`text_input`のrefを次のCLIから利用できます。この距離はexample向けで、他アプリの既定値ではありません。
+
+```sh
+marionette-agent --session fast workflow run packages/marionette_agent/examples/workflows/headless-controls.yaml
+marionette-agent --session fast snapshot
+```
+
+## 手動で起動・接続する場合
 
 macOSホスト、Flutter 3.47.2、Marionette 0.6.0、ffmpeg（PNG/libx264）で検証。OS／SDKと端末は事前に用意します。各runnerは別ターミナルで`example/`から実行し、検証に所有する端末・専用の出力先を使います。URIやFlutterログは認証情報を含むのでprivateディレクトリに保存してください。
 
@@ -111,7 +181,7 @@ Androidの確認では上記に`MARIONETTE_RECORD_FPS=2`を追加します。検
 
 ## 録画方式と制限
 
-`--fps`は1〜60、既定10です。今回のAndroidの確認は`--fps 2`、他の3環境は既定値で実施しました。1回のPNG取得・保存が完了してから次の取得までの待機間隔を指定するため、実際の取得頻度は指定値より低くなります。録画には実際の取得時刻を使い、VFR（可変フレームレート）で保存します。高速アニメーションを全フレーム記録する用途には向きません。
+`--fps`は1〜60、既定10です。今回のAndroidの確認は`--fps 2`、他の4環境は既定値で実施しました。1回のPNG取得・保存が完了してから次の取得までの待機間隔を指定するため、実際の取得頻度は指定値より低くなります。録画には実際の取得時刻を使い、VFR（可変フレームレート）で保存します。高速アニメーションを全フレーム記録する用途には向きません。
 
 startは先頭PNGを確認して返ります。stopやcloseは取得を終えてMP4を確定します。変換は最大30秒で、コマンドの要求期限を超えても有界な保存処理は続きます。TIMEOUTなら`record status`で最終結果を確認し、UI操作を自動再送しないでください。`elapsedMs`には確定待ちが含まれ、動画の再生時間とは異なります。
 
@@ -131,4 +201,4 @@ startは先頭PNGを確認して返ります。stopやcloseは取得を終えて
 
 ## 検証結果と設計
 
-4環境の実測値・動画・非表示の確認・全体テスト・後片付けは[Issue #20の検証記録](../../packages/marionette_agent/docs/verification/issue-20.md)にまとめています。[SPEC](../SPEC.md#flutterアプリのヘッドレス録画issue-20)と[ARCHITECTURE](../ARCHITECTURE.md#非表示アプリの描画録画issue-20)を実装契約として参照してください。初期のFlutter tester案の調査は[過去の調査記録](../headless-feasibility-issue-20.md)です。
+testerを含む5環境の実測値・動画・非表示の確認・全体テスト・後片付けは[Issue #20の検証記録](../../packages/marionette_agent/docs/verification/issue-20.md)にまとめています。[SPEC](../SPEC.md#flutterアプリのヘッドレス録画issue-20)と[ARCHITECTURE](../ARCHITECTURE.md#非表示アプリの描画録画issue-20)を実装契約として参照してください。初期のFlutter tester案の調査は[過去の調査記録](../headless-feasibility-issue-20.md)です。
