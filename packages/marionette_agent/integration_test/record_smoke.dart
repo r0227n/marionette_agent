@@ -3,11 +3,14 @@ import 'dart:io';
 
 /// Run with MARIONETTE_RECORD_PLATFORM, MARIONETTE_RECORD_DEVICE,
 /// MARIONETTE_TEST_VM_URI_FILE and MARIONETTE_RECORD_EVIDENCE.
+/// Optionally set MARIONETTE_RECORD_FPS to select the recording rate.
 /// Uses only product CLI calls; preserves no VM Service credentials in evidence.
 Future<void> main() async {
   final env = Platform.environment;
   final platform = env['MARIONETTE_RECORD_PLATFORM']!;
-  final device = env['MARIONETTE_RECORD_DEVICE']!;
+  final device = env['MARIONETTE_RECORD_DEVICE'];
+  final fps = env['MARIONETTE_RECORD_FPS'];
+  final applicationFrames = platform == 'flutter';
   final output = await Directory(env['MARIONETTE_RECORD_EVIDENCE']!)
       .create(recursive: true);
   final uri = (await File(
@@ -40,6 +43,7 @@ Future<void> main() async {
     records.add({
       'command': secret ? ['connect', '<VM Service URI>'] : args,
       'exitCode': result.exitCode,
+      'stderr': result.stderr,
       'result': body,
     });
     if (result.exitCode != expected) {
@@ -52,19 +56,20 @@ Future<void> main() async {
     () async {
       final idle = await cli(['record', 'status']);
       if (idle['recordingState'] != 'idle') throw StateError('Expected idle');
+      if (applicationFrames) await cli(['connect', uri], secret: true);
       final started = await cli([
         'record',
         'start',
         '${output.path}/operations.$extension',
+        if (fps != null) ...['--fps', fps],
         '--platform',
         platform,
-        '--device',
-        device,
+        if (!applicationFrames) ...['--device', device!],
       ]);
       if (started['recordingState'] != 'recording') {
         throw StateError('Expected recording');
       }
-      await cli(['connect', uri], secret: true);
+      if (!applicationFrames) await cli(['connect', uri], secret: true);
       // Reset the fixture so repeated runs visibly demonstrate input/count changes.
       await cli(['tap', '--key', 'about_tab']);
       await cli(['tap', '--key', 'controls_tab']);
@@ -103,10 +108,10 @@ Future<void> main() async {
         'record',
         'start',
         stopped['path'] as String,
+        if (fps != null) ...['--fps', fps],
         '--platform',
         platform,
-        '--device',
-        device,
+        if (!applicationFrames) ...['--device', device!],
       ], expected: 1);
       if (await File(stopped['path'] as String).length() != length) {
         throw StateError('Existing video modified');
@@ -115,10 +120,10 @@ Future<void> main() async {
         'record',
         'start',
         '${output.path}/close.$extension',
+        if (fps != null) ...['--fps', fps],
         '--platform',
         platform,
-        '--device',
-        device,
+        if (!applicationFrames) ...['--device', device!],
       ]);
       await Future<void>.delayed(const Duration(seconds: 1));
       final closed = await cli(['close']);

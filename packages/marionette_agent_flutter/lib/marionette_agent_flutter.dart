@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -639,3 +640,46 @@ final _keys = <String, (PhysicalKeyboardKey, LogicalKeyboardKey)>{
   '8': (PhysicalKeyboardKey.digit8, LogicalKeyboardKey.digit8),
   '9': (PhysicalKeyboardKey.digit9, LogicalKeyboardKey.digit9),
 };
+
+/// Keep a deliberately hidden native view rendering during debug automation.
+/// The application must opt in; this does not hide its native window. Native
+/// plugins still run on the real platform. Native lifecycle notifications stay
+/// unchanged. Dispose to stop requesting frames while the view is hidden.
+VoidCallback enableHeadlessRendering() {
+  if (!kDebugMode) return () {};
+  final observer = _HeadlessRendering();
+  final binding = WidgetsBinding.instance;
+  binding.addObserver(observer);
+  observer.didChangeAppLifecycleState(
+    binding.lifecycleState ?? AppLifecycleState.detached,
+  );
+  return () {
+    binding.removeObserver(observer);
+    observer.dispose();
+  };
+}
+
+class _HeadlessRendering with WidgetsBindingObserver {
+  Timer? _frames;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Force frames without rewriting the OS lifecycle state or reentering
+      // observer notifications. Ordinary scheduleFrame is disabled when hidden.
+      _frames ??= Timer.periodic(const Duration(milliseconds: 16), (_) {
+        WidgetsBinding.instance.scheduleForcedFrame();
+      });
+      WidgetsBinding.instance.scheduleForcedFrame();
+    } else {
+      dispose();
+    }
+  }
+
+  void dispose() {
+    _frames?.cancel();
+    _frames = null;
+  }
+}

@@ -33,6 +33,7 @@ class RecordingManager {
     required RecordingTarget target,
     required String path,
     required DateTime deadline,
+    ScreenRecorder? recorder,
   }) async {
     _check(deadline);
     if (_disposed) {
@@ -72,7 +73,11 @@ class RecordingManager {
       final startDeadline = deadline.isBefore(startupLimit)
           ? deadline
           : startupLimit;
-      starting = _recorder.start(target, entry.stagingPath!, startDeadline);
+      starting = (recorder ?? _recorder).start(
+        target,
+        entry.stagingPath!,
+        startDeadline,
+      );
       try {
         entry.handle = await starting.timeout(
           startDeadline.difference(DateTime.now()),
@@ -344,6 +349,9 @@ void validateTarget(RecordingTarget target, String path) {
     );
   }
   final valid = switch (target.platform) {
+    RecordingPlatform.flutter => RegExp(
+      r'^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$',
+    ).hasMatch(target.device),
     RecordingPlatform.linux ||
     RecordingPlatform.windows => throw const PlatformException(
       'UNSUPPORTED_CAPABILITY',

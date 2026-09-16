@@ -3,6 +3,7 @@
 library;
 
 export 'src/recording/recorder.dart';
+export 'src/recording/png_recorder.dart';
 export 'src/recording/recording_manager.dart';
 
 export 'src/platform_exception.dart';

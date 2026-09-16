@@ -17,7 +17,8 @@ class MarionetteBackend
         Backend,
         MappedScreenshotBackend,
         InteractionBackend,
-        ClipboardBackend {
+        ClipboardBackend,
+        ScreenshotConnectionBackend {
   MarionetteBackend({VmServiceConnector? connector})
     : _connector = connector ?? VmServiceConnector();
   final VmServiceConnector _connector;
@@ -81,6 +82,18 @@ class MarionetteBackend
       'Binding rejected the operation',
       outcome: Outcome.failed,
     );
+  }
+
+  @override
+  Future<ScreenshotConnection> openScreenshotConnection(Uri uri) async {
+    final isolated = MarionetteBackend();
+    try {
+      await isolated._call(() => isolated._connector.connect(uri.toString()));
+      return _MarionetteScreenshots(isolated);
+    } catch (_) {
+      await isolated._connector.disconnect().catchError((Object _) {});
+      rethrow;
+    }
   }
 
   @override
@@ -426,4 +439,14 @@ class MarionetteBackend
       ScreenshotGeometry.decode(response['geometry']),
     );
   });
+}
+
+/// This connection never discovers interaction providers or releases UI keys.
+class _MarionetteScreenshots implements ScreenshotConnection {
+  _MarionetteScreenshots(this.backend);
+  final MarionetteBackend backend;
+  @override
+  Future<List<String>> capture() => backend.captureScreenshots();
+  @override
+  Future<void> close() => backend._call(backend._connector.disconnect);
 }

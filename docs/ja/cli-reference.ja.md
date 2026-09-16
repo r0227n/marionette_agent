@@ -616,6 +616,24 @@ marionette-agent --session demo snapshot --json
 
 詳細な製品契約は[製品仕様](../SPEC.md)、workflowファイル自体の形式は[workflowファイル実行機能 — 実装仕様 v1](workflow-file-spec.ja.md)を参照してください。
 
+## Flutterアプリの録画（ヘッドレス対応）
+
+各プラットフォームの実行環境で動くMarionette debugアプリに接続し、Flutterの描画を無音MP4へ記録します。iOS Simulator、Android Emulator、macOS、Chromeの非表示起動で利用できます。[ヘッドレスガイド](headless.ja.md)を参照してください。
+
+```sh
+marionette-agent --session demo connect '<VM Service URI>'
+marionette-agent --session demo record start ./headless.mp4 --platform flutter --fps 10
+marionette-agent --session demo tap --key tap_button
+marionette-agent --session demo record stop --json
+marionette-agent --session demo close
+```
+
+`--device`は省略します。未接続はNOT_CONNECTED、device指定はINVALID_ARGUMENTです。結果の`platform`は`flutter`、`device`はsession名です。start/restartは新しい`.mp4`へのみ保存でき、status、重複stop、close時の保存は下記と同じ契約です。1sessionにつき1録画です。
+
+ffmpeg（PNGとlibx264対応）が必要です。最初のPNG取得後にstartが成功し、停止時にMP4へ変換します。`--fps`は1〜60、既定10で、取得完了後に待つ間隔を指定します。取得時間も加わるため指定fpsを保証せず、実際の取得時刻に従うVFR動画です。高速なアニメーションを取りこぼす場合があります。一時PNGを逐次保存するディスク容量と停止時の変換時間（最大30秒）が必要です。要求期限超過後の最終結果はstatusで確認してください。
+
+画面収録許可は不要です。収録範囲はFlutterの単一viewで、OSキーボード・ダイアログ・ブラウザーUI・platform viewの収録を保証しません。画像サイズ変更はUNSUPPORTED_CAPABILITY、録画用接続の切断・画像取得や変換の失敗はfailedとなり、白画像で成功に置換しません。操作用接続とrefは録画の開始・停止で変わりません。アプリと端末の起動・終了は呼出元が管理し、closeはアプリを終了しません。
+
 ## 端末画面の録画
 
 Flutterアプリだけでなく、キーボードやOS画面を含む端末／ディスプレイ全体を録画します。VM Serviceへのconnectは不要です。録画中でも同じsessionから通常の操作を実行でき、VM Serviceが切断されても録画は継続します。音声は収録せず、OSが保護するコンテンツの収録は保証しません。
@@ -676,6 +694,6 @@ marionette-agent --session web-demo close --json
 
 同一daemonの同一displayはWebの別タブやmacos録画と排他です。対象タブの終了・クラッシュ・debug接続断はCONNECTION_LOST（終了コード3）で録画を停止します。statusはfailedとrecoveryPath、stopはエラー、closeは失敗情報付きの最終状態を返します。動画が未確定なら復旧用pathを確認してください。開始期限・停止期限・既存file保護は共通のrecord契約です。
 
-macOS以外、Chrome以外、headlessはUNSUPPORTED_CAPABILITY。接続できないChromeはCONNECTION_LOST、protocol拒否・画面収録拒否・無効displayはIO_ERRORとhintを返します。deviceにlocalhostやremote host、認証情報、query、fragmentは指定できません。Webのtap/fillは本変更で追加していないため、Webアプリの操作にはChromeまたは既存のブラウザー操作手段を使います。詳細は[方式比較と前提](../web-recording.md)を参照してください。
+`--platform web`ではmacOS以外、Chrome以外、headlessはUNSUPPORTED_CAPABILITY。Flutter Webの非表示録画は`--platform flutter`を使います。接続できないChromeはCONNECTION_LOST、protocol拒否・画面収録拒否・無効displayはIO_ERRORとhintを返します。deviceにlocalhostやremote host、認証情報、query、fragmentは指定できません。Webのtap/fillは本変更で追加していないため、Webアプリの操作にはChromeまたは既存のブラウザー操作手段を使います。詳細は[方式比較と前提](../web-recording.md)を参照してください。
 
 `doctor`は構文・引数エラーでもsession非依存で、JSONの`session`は`null`です。

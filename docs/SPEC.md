@@ -318,7 +318,7 @@ IPC protocolVersionは6。要求に任意のsession action policyを追加した
 
 ## 端末画面録画
 
-`record`はFlutterの描画ではなく端末／ディスプレイ全体を収録する。VM ServiceやMarionette bindingに依存せず、releaseアプリやアプリ外の画面も対象にできる。OSが保護するコンテンツは保証しない。音声は収録しない。
+`record --platform ios/android/macos/web`は端末／ディスプレイ全体を収録する。VM ServiceやMarionette bindingに依存せず、releaseアプリやアプリ外の画面も対象にできる。OSが保護するコンテンツは保証しない。音声は収録しない。
 
 | platform | device | 形式・前提 |
 | --- | --- | --- |
@@ -326,9 +326,10 @@ IPC protocolVersionは6。要求に任意のsession action policyを追加した
 | android | オンライン・認証済みadb serial | `.mp4`、Android platform-tools。Emulator／実機の標準screenrecord |
 | macos | 1から始まるディスプレイ番号 | `.mov`、macOS標準screencaptureと実行元アプリの画面収録許可 |
 | web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`、macOSと可視Chrome、専用debug profileと画面収録許可。明示したディスプレイ全体 |
+| flutter | CLIでは省略、結果はsession名 | `.mp4`、接続済みMarionette debugアプリとffmpeg。アプリ内の描画を保存。非表示の実行環境でも利用可能 |
 | linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
 
-- platform/device/pathは必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
+- platform/pathは必須。flutterではdeviceを指定できず、その他はdeviceも必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
 - 相対pathは呼出元CLIのcwdで絶対pathへ変換する。親directoryは既存かつ書込可能であること。既存file/directory/symlinkはIO_ERRORとして拒否し、自動上書きしない。
 - sessionごとに同時に1録画、同一daemon内の端末ごとに1録画。開始中・停止処理中も予約し、競合はSESSION_CONFLICT。同じsessionで停止後に新しい保存先へ録画を開始できる。
 - startはdaemonを必要に応じて起動し、録画所有者としてsessionを保持する。未接続の録画sessionの接続状態はdisconnected、URIはnull。録画開始が成功したsessionはcloseまで保持する。
@@ -346,9 +347,19 @@ IPC protocolVersionは6。要求に任意のsession action policyを追加した
 
 検証状況: iOS Simulator／Android Emulator／macOSメインディスプレイを製品CLIで確認済み。macOSではstart・status・stop・重複stop・既存file拒否・closeによる確定と、生成MOVの全フレーム復号・画面変化を確認した。
 
+### Flutterアプリのヘッドレス録画（Issue #20）
+
+`record start <new.mp4> --platform flutter [--fps 1..60]`は、選択sessionのVM Serviceへ先にconnectして使う。未接続はNOT_CONNECTED、対応していないbackend・複数viewはUNSUPPORTED_CAPABILITY。CLIに`--device`を渡すとINVALID_ARGUMENT。結果のplatformはflutter、deviceはsession名。同一sessionの録画を排他にし、同じアプリを別sessionで明示的に録画することは妨げない。restart、status、stop、close、保存保護、要求期限は共通契約を使う。
+
+録画専用の読み取り接続から実アプリのPNGを連続取得する。最初のPNGを確認してからstartを返す。既定fpsは10で、1〜60は各取得完了後の待機間隔を指定する。取得・保存にかかる時間は別に加わるため、指定fpsの取得は保証しない。実際の取得時刻でVFR（可変フレームレート）の無音H.264 MP4へ確定する。高速アニメーションを取りこぼす場合がある。画像はprivate stagingへ逐次保存し、停止時のffmpeg変換は最大30秒。録画時間に応じた一時ディスク容量が必要。ffmpeg欠落はUNSUPPORTED_CAPABILITY、不正PNGや変換失敗はIO_ERROR、取得失敗は失敗状態とし、白画像へ置換して成功にしない。画像サイズ変更はUNSUPPORTED_CAPABILITYで停止する。
+
+対象はFlutterが描画した単一viewで、OSのキーボード・ダイアログ・ブラウザーUIやplatform viewの収録を保証しない。画面収録許可は不要だが、アプリ側のMarionette debug bindingが必要。録画停止は操作用接続・ref・押下中キーに作用しない。録画用接続が失われると失敗して再接続・再送しない。操作用接続だけの切断は録画用接続を閉じない。hot restart中の継続は保証しない。
+
+ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。CLIはアプリ・端末の起動や終了を管理しない。手順は[ヘッドレスガイド](ja/headless.ja.md)、実測結果は[Issue #20検証](../packages/marionette_agent/docs/verification/issue-20.md)を参照する。
+
 ### Web録画の範囲と接続
 
-WebはmacOS上の可視Google Chromeを対象とする。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
+`--platform web`はmacOS上の可視Google Chromeを対象とする。Flutter Webの非表示録画には上記の`--platform flutter`を使う。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
 
 利用者が選んだディスプレイ全体を標準screencaptureでMOVへ録画する。Chromeのアドレスバー・タブ・設定画面、同じdisplayのOSダイアログや他アプリを含む。タブだけの映像、Flutter描画の録画、音声ではない。Chromeを指定displayへ配置するのは利用者の責任であり、CLIはウインドウ位置を変更・追従しない。別displayへ移動しても録画先は変わらない。隠れた／最小化したウインドウや別displayのdialogは写らず、覆っている画面が写る。保護コンテンツの録画は保証しない。
 

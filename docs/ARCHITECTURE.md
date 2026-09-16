@@ -160,7 +160,7 @@ Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示�
 
 `batch_loader`は全argvの構文・重複option・コマンドparamsだけを解析する。親の共通オプション解決は再実行せず、上書き済みの環境session/timeoutを再検証しない。snapshot差分は構造等価な行をhashで数え、重複件数を維持して比較する。逐次総当たりの二乗時間を避け、ループ内でも同じ期限を確認する。
 
-通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはVM Service非依存のためSessionManagerの共通session queueでRecordServiceへ分岐する。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
+通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはSessionManagerの共通session queueでRecordServiceへ分岐する。platformがflutterの場合だけ接続済みbackendとURIを渡し、他の録画はVM Service非依存で扱う。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
 
 CommandContextにsession実行、対象解決、期限確認、ref失効、mutationの1回送信を集約する。handlerは独自のqueue、retry、session生成、ref保存、接続破棄を実装しない。外部のCLI組立向けの型は`lib/marionette_agent.dart`から公開し、内部handlerは必要なファイルを直接importする。上流connectorやresponse mapをコマンド層へ漏らさない。
 
@@ -223,17 +223,28 @@ CLI parser → RecordService（共通引数検証・エラー変換）
               → ScreenRecorder / RecordingHandle
                 → iOS: simctl / Android: adb / macOS: screencapture
                 → Web: Chrome CDP lifecycle + macOS screencapture
+                → Flutter: FlutterScreenRecorder → PngScreenRecorder + ffmpeg
 ```
 
 CLIは同一repo内の`../marionette_agent_util`へpath依存し、両パッケージはpublish_to:noneとする。配布は両パッケージを含むcheckoutからの起動またはCLIのコンパイル済みバイナリを使用する。隣接する参考リポジトリへのpath依存は導入しない。
 
-record startとconnectだけがdaemonを自動起動できる。sessionは録画だけでも予約・保持でき、後からVM Serviceを接続できる。recordのstart/stop/statusとcloseは既存session queueで直列化し、長時間のフレーム処理はqueue外で継続する。録画にはUI mutationのExecution.boundを使わず、utilが開始期限・停止後の有界cleanup・状態を管理する。VM Serviceのepoch破棄は録画へ波及しない。
+record startとconnectだけがdaemonを自動起動できる。sessionは録画だけでも予約・保持でき、後からVM Serviceを接続できる。recordのstart/stop/statusとcloseは既存session queueで直列化し、長時間のフレーム処理はqueue外で継続する。録画にはUI mutationのExecution.boundを使わず、utilが開始期限・停止後の有界cleanup・状態を管理する。VM Serviceのepoch破棄は録画handleへ波及しない。Flutter録画用接続の取得失敗はその録画を失敗へ遷移させる。
 
 RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に返す。startのbackend待ちは要求期限と30秒上限で打ち切り、遅れて生成されたhandleの停止・予約回収は追跡付きcleanupとして継続する。start時の終了競合や停止失敗でも、handleの終了確認まではdevice予約を解放しない。stopの要求期限超過後も終了処理を保持し、終わるまで同じdeviceへ別録画を開始しない。Androidの自動終了も同じfinalizationへ合流する。closeでは録画を確定してから所有権を解放する。daemonのSIGINT/SIGTERMではRecordingManager.disposeが開始待ち・停止・保存・追跡cleanup全体を60秒に制限する。期限超過時はRecordingHandle.abortで所有プロセスを強制停止し、ファイル読込をキャンセルして出力を閉じる（追加待ちは最大5秒）。stagingと未確定の予約先を保持し、遅延完了で動画を公開しない。Androidは固有remote pathとPIDを照合して強制停止を試みるが、端末切断時の成功は保証しない。OSで進行中のI/Oは取り消しを保証できないため削除と競合させない。
 
 出力先予約、private staging、iOSのSIGINT、Androidの固有remote file名とcmdline照合付きPIDへのSIGINT、adb pull、macOSの起動生存確認・停止はutil内に閉じ込める。CLIのstdoutへ子プロセスの出力を流さず、失敗はPlatformException→AgentErrorへ変換する。未対応linux/windowsもutilでthrowし、CLI parserとdaemonの両方で共通検証する。
 
 単体テストは保存保護・端末排他・開始失敗・停止期限・異常終了・終了競合、CLIテストは未接続録画session・ref保持・通信断後の継続・close・未対応platformを検証する。`integration_test/record_smoke.dart`は製品CLIで開始→接続→操作→動画確定→重複stop→上書き拒否→close確定を確認する。実動画を復号して画面変化を確認する。
+
+### 非表示アプリの描画録画（Issue #20）
+
+`ScreenshotConnectionBackend`は任意のbackend能力で、録画専用`ScreenshotConnection`の作成だけを公開する。`MarionetteBackend`が上流connectorを別インスタンスで開き、captureとdisconnectを提供する。この接続ではinteraction providerをdiscoverせず、切断時にkeyboard.releaseを呼ばない。操作sessionの接続・epoch・refとは独立する。
+
+`FlutterScreenRecorder`はこの接続の所有・開始期限・base64変換を扱うadapter。上流内部importは`marionette_backend.dart`に限定する。utilの`PngScreenRecorder`はcapture/closeコールバックだけに依存し、PNG寸法検証、逐次ファイル保存、単調時計の取得時刻、ffconcatによるVFR変換を所有する。RecordingManagerへ録画ごとにScreenRecorderを注入し、既存の保存保護・停止・close・遅延cleanupを共有する。個別captureは5秒、feedの終了は5秒、ffmpeg変換は30秒で制限する。取得エラーを成功動画に変えず、復旧用stagingにはPNGと生成途中の動画が残る場合がある。
+
+macOS fixtureのMainFlutterWindowは明示環境変数でNSWindowの表示を抑え、FlutterEngineを開始する。Flutter側はdebug限定の`enableHeadlessRendering()`でhidden/paused/detachedの通知を変更せず、16ms間隔のscheduleForcedFrameでフレーム生成を維持する。可視状態への復帰とdisposeでtimerを停止する。他のアプリは自分のnative windowを隠す処理を持つ必要がある。通常起動はopt-inなしで既存のlifecycleに従う。iOS/Android/Webはそれぞれの標準ヘッドレス起動手段を使い、testerによるプラットフォーム模倣はしない。
+
+`record_smoke.dart`はplatform=flutterの場合connectを先に行い、4環境共通で操作・録画保存・重複stop・既存出力保護・closeによる保存を検証する。PNG recorderの単体テストは取得失敗・寸法変更・途中abort・変換失敗・実取得間隔を扱い、widgetテストは描画維持のopt-inと解除を検証する。
 
 ## 共通オプション（Issue #2・#8）
 

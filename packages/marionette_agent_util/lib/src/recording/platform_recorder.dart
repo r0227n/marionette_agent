@@ -23,6 +23,7 @@ class PlatformScreenRecorder implements ScreenRecorder {
     switch (target.platform) {
       case RecordingPlatform.web:
         return WebScreenRecorder(this).start(target, stagingPath, deadline);
+      case RecordingPlatform.flutter:
       case RecordingPlatform.linux:
       case RecordingPlatform.windows:
         throw const PlatformException(

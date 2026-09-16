@@ -80,3 +80,7 @@ W07でタブ往復後の確認を追加し、現在のworkflow_smokeは24呼出�
 ## 追加コマンドのfixture
 
 Advancedタブ（key: `advanced_tab`）に型付き入力・状態・double-tap・hover・キーイベント・drag/drop・mounted offscreen要素を配置する。`lib/advanced_controls.dart`と[追加コマンド仕様](../docs/ja/cli-parity.ja.md)を参照。`marionette_agent_flutter`のdebug providerを登録済みで、`DISABLE_AGENT_EXTENSIONS=true`でstock bindingのみの挙動を検証できる。
+
+## ヘッドレス実行と録画
+
+4環境の必要条件、非表示起動、接続・操作・録画、終了、トラブルシューティングは[ヘッドレス実行と録画](../docs/ja/headless.ja.md)にまとめています。

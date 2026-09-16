@@ -1,7 +1,7 @@
 import 'web_target.dart';
 
 /// Recording targets, independent of the host OS.
-enum RecordingPlatform { ios, android, macos, web, linux, windows }
+enum RecordingPlatform { ios, android, macos, web, linux, windows, flutter }
 
 class RecordingTarget {
   const RecordingTarget(this.platform, this.device, {this.fps});

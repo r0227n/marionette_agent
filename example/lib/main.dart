@@ -14,6 +14,9 @@ void main() {
     MarionetteBinding.ensureInitialized(
       MarionetteConfiguration(logCollector: operationLogCollector),
     );
+    if (const bool.fromEnvironment('MARIONETTE_HEADLESS')) {
+      enableHeadlessRendering();
+    }
     if (!const bool.fromEnvironment('DISABLE_AGENT_EXTENSIONS')) {
       registerAgentExtensions();
     }
