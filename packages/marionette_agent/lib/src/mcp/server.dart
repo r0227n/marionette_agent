@@ -112,8 +112,13 @@ final class MarionetteMcpServer extends MCPServer with ToolsSupport {
       throw RpcException(-32600, 'MCP initialization is not complete');
     }
     final all = (await super.listTools(request)).tools;
-    final raw = request?.cursor;
-    final start = raw == null ? 0 : int.tryParse(raw as String);
+    // Inspect the wire value before the SDK getter casts it to Cursor.
+    final raw = (request as Map<String, Object?>?)?['cursor'];
+    final start = switch (raw) {
+      null => 0,
+      String value => int.tryParse(value),
+      _ => null,
+    };
     if (start == null || start < 0 || start > all.length) {
       throw RpcException(-32602, 'Invalid tools/list cursor');
     }

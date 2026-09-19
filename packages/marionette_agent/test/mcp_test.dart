@@ -236,9 +236,40 @@ void main() {
         ]),
       );
       await server.ping();
-      await expectLater(
-        server.listTools(ListToolsRequest(cursor: Cursor('-1'))),
-        throwsA(isA<RpcException>()),
+      for (final invalidCursor in <Object>[
+        12,
+        <String, Object?>{},
+        12.5,
+        true,
+        <Object?>[],
+        '-1',
+        'invalid',
+        '${names.length + 1}',
+      ]) {
+        await expectLater(
+          server.listTools(ListToolsRequest.fromMap({'cursor': invalidCursor})),
+          throwsA(
+            isA<RpcException>()
+                .having((error) => error.code, 'code', -32602)
+                .having(
+                  (error) => error.message,
+                  'message',
+                  'Invalid tools/list cursor',
+                )
+                .having(
+                  (error) => error.data,
+                  'data',
+                  isNot(contains('stack')),
+                ),
+          ),
+          reason: 'cursor: $invalidCursor',
+        );
+      }
+      expect(
+        (await server.listTools(ListToolsRequest.fromMap({'cursor': null})))
+            .tools
+            .map((tool) => tool.name),
+        names.take(20),
       );
       await expectLater(call('not_a_tool'), throwsA(isA<RpcException>()));
       expect(

@@ -62,6 +62,8 @@ marionette-agent --session demo mcp --tools all
 
 `marionette_agent_tools_profiles`は常に利用できます。profileは`--tools core,record`のように合成します。MCPの`tools/list`は20件まで返し、`nextCursor`がある場合は続きを取得してください。無効profileのtoolは呼び出せません。find／diff／state／skills／install／upgradeなど、表にないCLI構文は今回のMCP公開対象外です。
 
+次のページは返された文字列の`nextCursor`を`cursor`へ渡して取得します。`cursor`の省略またはnullは先頭ページです。不正な値や型（数値・objectなど）は、スタックトレースを含まないJSON-RPC `-32602`エラーを返します。
+
 toolは型付きfieldで呼び出します。`target`はref／key／identifier／text／typeのいずれか1つです。共通fieldの`session`、`timeoutMs`、`maxOutput`、`contentBoundaries`は起動時の共通オプションより優先します。fieldと値域の完全な定義は各toolの`inputSchema`から取得できます。
 
 ```json
