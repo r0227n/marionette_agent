@@ -1,6 +1,6 @@
 # marionette_agent の開発ガイド
 
-Marionette対応Flutterアプリを操作するDart CLIを開発する。初版はmacOSからiOS Simulatorを操作する。MCP対応は今回の対象外。
+Marionette対応Flutterアプリを操作するDart CLIとstdio MCPサーバーを開発する。初版はmacOSからiOS Simulatorを操作する。MCPの契約は[SPEC](docs/SPEC.md#stdio-mcpサーバー)を参照する。
 
 ## 作業開始
 

@@ -26,6 +26,64 @@ textは各checkの状態・理由・Next・詳細、JSONは`data.checks`に同�
 `--timeout`は全体期限で、未着手checkも期限切れならunknown。daemon handshake待ちは最大1秒です。
 各checkの`nextStep`を確認し、必要な復旧操作は利用者が別途実行してください。
 
+## MCP stdioサーバー
+
+`dart_mcp`を使うMCPサーバーです。MCPクライアントが次のコマンドを子プロセスとして起動し、stdin／stdoutで通信します。
+
+```sh
+marionette-agent mcp
+marionette-agent mcp --tools core,inspect
+marionette-agent --session demo mcp --tools all
+```
+
+一般的なMCPクライアントの設定例です。`command`は実際にインストールした実行ファイルのpathへ変更できます。
+
+```json
+{
+  "mcpServers": {
+    "marionette-agent": {
+      "command": "marionette-agent",
+      "args": ["--session", "demo", "mcp", "--tools", "all"]
+    }
+  }
+}
+```
+
+ソースから実行する場合は`command`をDart実行ファイル、`args`の先頭を`packages/marionette_agent/bin/marionette_agent.dart`の絶対pathにします。事前にCLI packageの依存を取得してください。専用runtimeを使う場合はクライアントの`env`へ`MARIONETTE_AGENT_RUNTIME_DIR`を指定します（短い私有path、0700）。
+
+| profile | tool名の末尾（共通prefixは`marionette_agent_`） |
+| --- | --- |
+| `core`（既定） | connect、launch、snapshot、tap、fill、swipe、scroll、screenshot、get_text、get_box、get_count、is_visible、wait、close、session_list、session_show |
+| `inspect` | get_value、is_enabled、is_checked、logs、doctor、device_list |
+| `actions` | dblclick、focus、hover、check、uncheck、scrollintoview、type、select、press、keydown、keyup、keyboard_press／type／inserttext、clipboard_read／write／copy／paste、drag |
+| `workflow` | workflow_run、workflow_validate、workflow_schema、batch、confirm、deny |
+| `record` | record_start、record_restart、record_stop、record_status |
+| `all` | 上記すべて |
+
+`marionette_agent_tools_profiles`は常に利用できます。profileは`--tools core,record`のように合成します。MCPの`tools/list`は20件まで返し、`nextCursor`がある場合は続きを取得してください。無効profileのtoolは呼び出せません。find／diff／state／skills／install／upgradeなど、表にないCLI構文は今回のMCP公開対象外です。
+
+toolは型付きfieldで呼び出します。`target`はref／key／identifier／text／typeのいずれか1つです。共通fieldの`session`、`timeoutMs`、`maxOutput`、`contentBoundaries`は起動時の共通オプションより優先します。fieldと値域の完全な定義は各toolの`inputSchema`から取得できます。
+
+```json
+{"name":"marionette_agent_connect","arguments":{"uri":"<新しく取得したVM Service URI>"}}
+{"name":"marionette_agent_snapshot","arguments":{}}
+{"name":"marionette_agent_tap","arguments":{"target":{"ref":"@e1"}}}
+{"name":"marionette_agent_fill","arguments":{"target":{"key":"text_input"},"text":"MCP verified"}}
+{"name":"marionette_agent_swipe","arguments":{"target":{"key":"page_view"},"direction":"left","distance":250}}
+{"name":"marionette_agent_screenshot","arguments":{"path":"screen.png"}}
+{"name":"marionette_agent_close","arguments":{}}
+```
+
+これは`tools/call`のparams例です。実際のMCP通信ではクライアントがinitialize／initializedとJSON-RPC包絡を送ります。refは直前のsnapshotから取得し、UI操作後はsnapshotを取り直します。接続・対象解決・ポリシー・失効・timeoutは通常CLIと同じです。`CONFIRMATION_REQUIRED`は明示的に確認してからworkflow profileのconfirm／denyへ渡してください。
+
+CLIを呼ぶtool結果の`structuredContent`とtextには`{exitCode, response}`が入り、responseはCLIと同じJSON包絡です。tools_profilesはprofile情報を直接返します。CLI失敗は`isError:true`になり、error.code／outcomeが保持されます。`outcome:unknown`の操作は自動で再実行せず、先にアプリ状態を観測してください。
+
+screenshotは保存pathと画像のMCP contentを返します。inline画像は合計16MiBまでで、超過・読込失敗時は保存pathと省略理由を返します。保存済みfileを上書きしない契約も同じです。アプリ由来のsnapshotやlogsは未信頼データとして扱ってください。
+
+起動時に`--namespace`、`--action-policy`、`--confirm-actions`、`--idle-timeout`などの共通設定を指定できます。`--restore`と`--confirm-interactive`は拒否します。workflow／batchはfile pathを使い、stdin `-`は利用できません。`--json`の有無にかかわらず、起動後のstdoutはMCP通信専用です。
+
+MCPクライアントがstdinを閉じるとサーバーは終了します。CLIのdaemon/sessionは残るため、利用を終えたsessionはcloseしてください。実行中の通信切断はUI操作の取消しを保証しません。HTTP transportとcancellationは未対応です。
+
 ## 基本構文
 
 ### 同梱Skillの参照

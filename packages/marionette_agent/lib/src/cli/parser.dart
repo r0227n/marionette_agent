@@ -72,6 +72,12 @@ class CliParser {
     final command = args.command;
     if (command == null) invalid('A command is required');
     final params = definitions[command.name]!.decode(command);
+    if (command.name == 'mcp' &&
+        (options.restore != null || options.confirmInteractive)) {
+      invalid(
+        'MCP does not accept --restore or --confirm-interactive; use connect and explicit confirmation tools',
+      );
+    }
     if (command.name == 'screenshot' && params['path'] is String) {
       params['path'] = options.screenshotFormat.destinationPath(
         params['path'] as String,

@@ -41,7 +41,7 @@ Dart製CLIから、Marionette対応FlutterアプリをAI Agentが観測・操作
 
 初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイ（ChromeのWeb検証を含む）を対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。手動起動へのconnectに加えて、launchでtester／iOS／Android／macOS／Webのヘッドレス環境を明示選択して起動できる。
 
-MCPサーバー／クライアントの提供は対象外。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。
+stdio MCPサーバーを提供し、MCPクライアントからも既存CLIの操作体系を利用できる。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。MCPクライアント製品とHTTP transportの提供は対象外。
 
 ## 用語
 
@@ -111,6 +111,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 
 | コマンド | 動作 |
 | --- | --- |
+| `mcp [--tools <profiles>]` | stdio MCPサーバーを開始。既定core、複数profileをcommaで指定 |
 | `connect <uri>` | 指定sessionで接続。HTTP(S)のVM Service URIもWS(S)へ正規化 |
 | `skills [list]` / `skills get <name> [name...] [--full]` / `skills get --all [--full]` / `skills path [name]` | 同梱Skillの一覧・本文・既存pathをローカルで返す |
 | `session list` | sessionの名前・接続状態を一覧表示。daemon不在時は空一覧 |
@@ -231,7 +232,7 @@ key、identifierを優先し、text・typeはバックエンドの照合との�
 
 ### 出力と終了コード
 
-JSONは`skills`を除き成功・失敗とも以下の包絡形式。schemaVersionは初版で1。session非依存コマンドではsessionはnull。dataとerrorの一方だけを非nullとする。help/versionもJSONモードでは同じ包絡形式を使う。`skills --help`を含むSkill配信の互換出力は後述の専用契約に従う。
+JSONは`skills`と稼働中の`mcp`を除き成功・失敗とも以下の包絡形式。schemaVersionは初版で1。session非依存コマンドではsessionはnull。dataとerrorの一方だけを非nullとする。help/versionもJSONモードでは同じ包絡形式を使う。`skills --help`を含むSkill配信の互換出力は後述の専用契約に従う。`mcp`の起動引数エラーは通常のCLI契約、起動後のstdoutはMCPメッセージ専用。
 
 ```json
 {"schemaVersion":1,"ok":true,"session":"demo","data":{"requiresSnapshot":true},"error":null}
@@ -307,7 +308,21 @@ install/upgradeは指定checkoutの両ディレクトリをbin-directory内の�
 
 role/label/placeholderはfindに対応し、get value/is enabled/is checkedを追加した。通常selectorはkey/identifier/text/typeのまま維持する。hint/tooltip、完全なSemanticsツリー、永続的target IDは未対応。[Issue #14設計案](semantics-selector-state-design.md)は元のstock binding調査と将来設計として保持する。
 
-iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaとMCP対象外の方針は維持する。
+iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaは維持する。
+
+## stdio MCPサーバー
+
+`marionette-agent mcp [--tools core,inspect,actions,workflow,record|all]`は、`dart_mcp: 0.5.2`のサーバーAPIで改行区切りJSON-RPCを処理する。protocol versionの交渉、initialize／initialized、ping、stdioの切断処理はSDKに従う。起動・tool discoveryだけではdaemon／アプリを起動しない。初期化完了後にtools/listとtools/callを利用する。resources／prompts／HTTP transportは提供しない。
+
+既定profileはcore。複数profileはcommaで合成し、重複は除く。allは公開済みの全MCPツールを有効にする（全CLI構文の互換性を意味しない）。未知／空profileはINVALID_ARGUMENT。tool名は`marionette_agent_` prefix。各profileの範囲と入力例は[CLIリファレンス](ja/cli-reference.ja.md#mcp-stdioサーバー)を参照する。tools/listは最大20件ずつ返し、nextCursorで続きを取得する。未公開／無効なtoolと不正cursorはJSON-RPC -32602。toolには型付きinputSchemaとreadOnly／destructive／idempotent／openWorldのannotationsを付ける。
+
+UI対象は`target: {ref: "@e1"}`またはkey／identifier／text／typeのうち1つを持つobject。共通fieldはsession、timeoutMs、maxOutput、contentBoundaries。tool fieldが起動時の共通オプション既定値を上書きする。namespace・action policy・confirm-actions・idle設定は起動時の指定を継承する。入力値をshellへ渡さず、固定CLIコマンドのargvへ変換する。自由なコマンド配列やextraArgsは公開しない。workflow／batchはfile path入力でありstdin `-`を拒否する。`--restore`と`--confirm-interactive`はMCP起動時に拒否する。
+
+各tool callは同じ実行ファイル／Dart entrypointのCLIを`--json`付きで1回だけ起動する。CLIのsession、ref失効、queue、deadline、policyとerror outcomeを共用する。独立CLIから同じruntime/sessionを利用できる。CLIを呼ぶtoolの成功・失敗はtextと`structuredContent: {exitCode, response}`へ格納し、responseにCLIの包絡を保持する。非0終了またはok:falseはisError:true。入力schema不適合は値をechoせずINVALID_ARGUMENT。CLI起動失敗はIO_ERROR／not_sent、起動後の応答不備やMCP側期限超過はIO_ERRORまたはTIMEOUT／unknownとし、自動再送しない。CLI実行には要求timeoutに5秒の起動・回収猶予を加え、CLI自身のdeadlineは変更しない。stdout捕捉上限は64MiB。tools_profilesだけはCLIを呼ばずprofile情報を直接返す。
+
+screenshotは保存pathを含むCLI包絡に加えてPNG／JPEGのMCP ImageContentを返す。画像は合計16MiBまで。超過・読込失敗時は保存結果を保持し、textでinline画像の省略を伝える。snapshot／logsのアプリ由来内容は未信頼データである。
+
+MCP通信内容や認証URI・入力文字列を診断ログへ記録しない。子CLIのstderrはMCP応答へ転送しない。stdin EOFはMCPサーバーと所有する実行中CLIを終了する。独立daemonと既存sessionは通常CLIと同じ寿命を持ち、接続を閉じるにはcloseを呼ぶ。SDKのcancellationは未対応のため、途中切断で実行済み操作を取り消したとはみなさない。
 
 ## Flutter向け拡張
 

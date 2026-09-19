@@ -317,7 +317,9 @@ void main() {
           await release.future;
         };
         final blocking = manager.handle(
-          request('snapshot', session: 'env-session'),
+          // Keep the blocker alive across cold CLI compilation/startup. The
+          // queued command's 200ms deadline below is the behavior under test.
+          request('snapshot', session: 'env-session', ms: 10000),
         );
         await entered.future;
         try {
