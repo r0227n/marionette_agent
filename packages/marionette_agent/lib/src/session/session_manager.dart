@@ -14,7 +14,6 @@ import '../recording/record_service.dart';
 import '../snapshot/snapshot_service.dart';
 import '../workflow/model.dart';
 import '../workflow/workflow_runner.dart';
-import 'action_policy.dart';
 import 'session.dart';
 
 /// Manages URI ownership and session lifetime. I/O from different sessions can run concurrently.
@@ -58,7 +57,7 @@ class SessionManager {
     final independent =
         request.command == 'session' && request.params['action'] == 'list';
     final all = request.command == 'close' && request.params['all'] == true;
-    final resultSession = independent || all ? null : request.session;
+    final resultSession = request.resultSession;
     try {
       request.checkDeadline();
       if (stopping) {
@@ -135,7 +134,10 @@ class SessionManager {
                 'Daemon is shutting down',
               );
             }
-            final authorized = authorizeRequest(incoming, session);
+            final authorized = session.actionPolicy.authorize(
+              incoming,
+              session.epoch,
+            );
             return _runAuthorized(authorized, session);
           })
           .whenComplete(() {
@@ -143,7 +145,7 @@ class SessionManager {
             if (!hasPending) onQueueIdle?.call();
             if ((session.closed ||
                     (session.uri == null &&
-                        session.approval == null &&
+                        !session.actionPolicy.hasPending &&
                         session.application == null)) &&
                 session.pending == 0 &&
                 !recordings.contains(session.name) &&
@@ -195,17 +197,13 @@ class SessionManager {
         uri: session.status == 'connected' ? session.uri : null,
       );
     }
-    Json? recording;
     if (request.command == 'close') {
       if (request.params.isNotEmpty) invalid();
-      recording = await recordings.close(request);
+      final recording = await recordings.close(request);
       await _stopApplication(session);
       // Cleanup may outlive the caller's deadline. Always retire the session
       // after the owned environment has stopped, even if delivery timed out.
-      if (session.uri != null) _owners.remove(session.uri.toString());
-      session.discard();
-      session.uri = null;
-      session.closed = true;
+      await _disconnectSession(session, request.deadline);
       return {'closed': true, 'recording': ?recording};
     }
     Json data;
@@ -226,7 +224,7 @@ class SessionManager {
     if (request.maxOutput != null) {
       snapshots.retainPublished(session, data);
     }
-    return {...data, 'recording': ?recording};
+    return data;
   }
 
   /// Intake is synchronous: no later connect or command can reserve a session.
@@ -276,23 +274,10 @@ class SessionManager {
         // Retire even on drain failure; running sent operations retain unknown,
         // while queued requests are rejected before dispatch.
         session.interrupt();
-        final disposal = session.discard();
-        session.closed = true;
-        session.uri = null;
         try {
-          await disposal.timeout(request.remaining);
-        } on TimeoutException {
-          failure ??= const AgentError(
-            'TIMEOUT',
-            'Disconnect deadline exceeded',
-            outcome: Outcome.unknown,
-          );
-        } catch (_) {
-          failure ??= const AgentError(
-            'BACKEND_ERROR',
-            'Disconnect failed',
-            outcome: Outcome.failed,
-          );
+          await _disconnectSession(session, request.deadline);
+        } on AgentError catch (error) {
+          failure ??= error;
         }
         return failure == null
             ? Result.success(session.name, {'closed': true})
@@ -325,6 +310,30 @@ class SessionManager {
     );
   }
 
+  /// Retire ownership immediately, but report success only after disconnect.
+  /// Both close forms share deadlines, error classification and ref invalidation.
+  Future<void> _disconnectSession(Session session, DateTime deadline) async {
+    if (session.uri != null) _owners.remove(session.uri.toString());
+    final disposal = session.discard();
+    session.uri = null;
+    session.closed = true;
+    try {
+      await disposal.timeout(deadline.difference(DateTime.now()));
+    } on TimeoutException {
+      throw const AgentError(
+        'TIMEOUT',
+        'Disconnect deadline exceeded',
+        outcome: Outcome.unknown,
+      );
+    } catch (_) {
+      throw const AgentError(
+        'BACKEND_ERROR',
+        'Disconnect failed',
+        outcome: Outcome.failed,
+      );
+    }
+  }
+
   Future<Json> _execute(Execution context) async {
     final request = context.request;
     final session = context.session;
@@ -335,13 +344,6 @@ class SessionManager {
         }
         final uri = normalizeUri(request.params['uri'] as String);
         return _connect(context, uri);
-      case 'close':
-        if (request.params.isNotEmpty) invalid();
-        if (session.uri != null) _owners.remove(session.uri.toString());
-        session.discard();
-        session.uri = null;
-        session.closed = true;
-        return {'closed': true};
       case 'state':
         if (request.params.length != 1 ||
             request.params['action'] != 'export') {

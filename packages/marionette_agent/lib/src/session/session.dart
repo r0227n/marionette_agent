@@ -28,10 +28,10 @@ class Session {
   int epoch = 0;
   int pending = 0;
   bool closed = false;
-  Json? policy;
-  PendingAction? approval;
+  final actionPolicy = SessionActionPolicy();
   // Set by SnapshotService; lifecycle owns invalidation, not command handlers.
   Object? observation;
+  Future<void>? _disposal;
   void invalidate() {
     observation = null;
   }
@@ -47,18 +47,20 @@ class Session {
   /// Invalidate delayed response immediately and dispose the old connection asynchronously.
   Future<void> discard() {
     epoch++;
-    approval = null;
+    actionPolicy.invalidate();
     status = 'disconnected';
     invalidate();
     final old = backend;
     backend = null;
     if (old != null) {
       // Generation is retired immediately. Disposal may wait for upstream I/O.
-      final disposal = Future<void>.sync(old.disconnect);
+      final disposal = _disposal = Future<void>.sync(old.disconnect);
       unawaited(disposal.catchError((Object _) {}));
       return disposal;
     }
-    return Future.value();
+    // App exit, timeout and explicit close can retire the same connection.
+    // Reuse its completion so a later close still observes cleanup failure.
+    return _disposal ?? Future.value();
   }
 }
 

@@ -3,6 +3,35 @@ import 'dart:io';
 import 'package:test/test.dart';
 
 void main() {
+  test('action policy has no transitive dependency on session execution', () {
+    final pending = [File('lib/src/session/action_policy.dart').absolute.uri];
+    final visited = <Uri>{};
+    while (pending.isNotEmpty) {
+      final uri = pending.removeLast();
+      if (!visited.add(uri)) continue;
+      expect(uri.path, isNot(endsWith('/session/session.dart')));
+      expect(uri.path, isNot(endsWith('/commands/command_context.dart')));
+      expect(uri.path, isNot(endsWith('/commands/registry.dart')));
+      expect(uri.path, isNot(contains('/daemon/')));
+      expect(uri.path, isNot(contains('/cli/')));
+      final code = File.fromUri(uri).readAsStringSync();
+      for (final match in RegExp(
+        r'''(?:import|export)\s+['"]([^'"]+)['"]''',
+      ).allMatches(code)) {
+        final imported = match[1]!;
+        if (imported.startsWith('package:marionette_agent/')) {
+          pending.add(
+            Directory('lib').absolute.uri.resolve(
+              imported.substring('package:marionette_agent/'.length),
+            ),
+          );
+        } else if (!Uri.parse(imported).hasScheme) {
+          pending.add(uri.resolve(imported));
+        }
+      }
+    }
+  });
+
   test('daemon modules do not depend on CLI grammar or the public barrel', () {
     for (final module in [
       'backend',

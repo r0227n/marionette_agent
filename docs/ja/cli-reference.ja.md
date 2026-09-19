@@ -143,7 +143,7 @@ marionette-agent close
 
 選択された値だけを検証します。session名は上表の名前規則、timeoutは正整数かつDuration／DateTimeで表現可能な範囲が必要です。空文字、空白、timeoutの0・負数・小数・単位付き値・範囲外はINVALID_ARGUMENT（終了コード2）です。不正値を既定値に戻しません。明示CLIに隠れた環境値は不正でも無視しますが、明示CLIの欠損・重複・不正値は環境値で補いません。
 
-構文エラーでも、有効な環境sessionまたは明示sessionとJSONモードを回復します。不正なsessionとsession非依存コマンドの応答sessionはnullです。オプションの値や`--`以降の文字列は共通オプションとして再解釈しません。timeoutにはキュー待ちも含まれ、環境値もCLI指定と同じ絶対期限になります。
+構文エラーでも、有効な環境sessionまたは明示sessionとJSONモードを回復します。不正なsessionとsession非依存コマンドの応答sessionはnullです。`close --all`も、引数不正や未知オプションで失敗した場合を含めnullになります。オプションの値や`--`以降の文字列は共通オプションとして再解釈しません。timeoutにはキュー待ちも含まれ、環境値もCLI指定と同じ絶対期限になります。
 
 `--config`で共通オプションを設定できます。認証情報、session id、idle-timeout用の環境fallbackはありません。runtime directoryは従来の`MARIONETTE_AGENT_RUNTIME_DIR`で指定します。
 
@@ -188,7 +188,7 @@ daemon全体の設定は起動時に固定されます。省略した要求は�
 
 ## 対象を指定するオプション
 
-要素を操作する`tap`、`fill`、`swipe`、`scroll`と状態を読む`is visible`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`ではrefを受理せず、selectorオプションのどれか1つだけを指定します。
+要素を操作する`tap`、`fill`、`swipe`、`scroll`と状態を読む`is visible`では、直近のsnapshotが返したref、または次のselectorオプションのどれか1つだけを指定します。`wait`はselectorのほか、[追加コマンド仕様](cli-parity.ja.md#待機クリップボード)のref待機・時間待機も使用できます。workflow v1ではselectorだけを指定します。
 
 | 指定方法 | 説明 |
 | --- | --- |
@@ -248,7 +248,7 @@ marionette-agent session show --session demo --json
 marionette-agent --session demo close
 ```
 
-最後のsessionを閉じるとdaemonも終了します。
+最後のsessionを閉じるとdaemonも終了します。切断完了まで要求期限内で待ち、切断失敗は`BACKEND_ERROR`／`failed`（終了1）、期限内に完了を確認できない場合は`TIMEOUT`／`unknown`（終了5）です。この場合もsessionとrefは破棄されます。所有アプリの終了通知が先に切断を開始した場合も、同じ結果を確認します。録画確定中の期限超過は後述の録画契約に従います。
 
 全sessionを後始末する場合は次を実行します。`--session`との併用はできません。
 
@@ -257,7 +257,7 @@ marionette-agent close --all --timeout 30000 --json
 marionette-agent session list
 ```
 
-`close --all`はsession:nullを返し、成功時のdata.sessionsへ名前順のsession別Resultを格納します。daemon不在でも空配列で成功します。アプリは起動したまま、全refは失効し、次の利用には明示connectとsnapshotが必要です。
+`close --all`はsession:nullを返し、成功時のdata.sessionsへ名前順のsession別Resultを格納します。daemon不在でも空配列で成功します。connectで接続した外部アプリは起動したまま、launchで所有するアプリは終了します。全refは失効し、次の利用には明示connectとsnapshotが必要です。
 
 受付後の新規要求とqueue待ちはnot_sentとして拒否します。実行中操作は共通期限まで待ち、期限で中断した送信済み操作はunknownです。切断失敗でも他sessionを後始末し、部分結果はerror.details.sessionsに返します（textにも表示）。全体終了コードは期限超過があれば5、その他の切断失敗は1、全成功は0です。送信済み操作を自動再送しないでください。停止中に競合したconnectは拒否されるか、要求送信前なら次daemonへ接続する場合があります。
 

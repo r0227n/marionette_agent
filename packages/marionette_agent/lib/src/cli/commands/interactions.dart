@@ -1,7 +1,7 @@
 import 'package:args/args.dart';
 
 import '../../backend/backend.dart';
-import '../../commands/interactions.dart';
+import '../../commands/interaction_request.dart';
 import '../../protocol/protocol.dart';
 import '../command.dart';
 import '../target_options.dart';

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'command_scope.dart';
+
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
 const protocolVersion = 7;
 
@@ -203,6 +205,15 @@ class Request {
   final bool outputJson;
   final bool debug;
   final Json? policy;
+  String? get resultSession =>
+      usesSession(
+        command,
+        // IPC workflow requests are always executable; schema/validate stay local.
+        action: command == 'workflow' ? 'run' : params['action'],
+        all: params['all'] == true,
+      )
+      ? session
+      : null;
   Duration get remaining => deadline.difference(DateTime.now());
   void checkDeadline() {
     if (remaining <= Duration.zero) {

@@ -83,7 +83,7 @@ marionette-agent clipboard copy
 marionette-agent clipboard paste
 ```
 
-時間待機は0以上の整数msで、接続済みsessionのqueueと共通期限を使います。結果は `waitedMs` と `requiresSnapshot:false`。ref待機は直近の有効refが持つselectorを使います。existsは開始時にもref属性を照合し、goneはそのselectorの候補が0件になるまで待ちます。stale／別sessionのrefは拒否します。既存selector待機のstate／poll-intervalも維持します。
+時間待機は0以上の整数msで、接続済みsessionのqueueと共通期限を使います。結果は `waitedMs` と `requiresSnapshot:false`。ref待機は直近の有効refが持つselectorを使います。existsは開始時にもref属性を照合し、goneはそのselectorの候補が0件になるまで待ちます。stale／別sessionのrefは拒否します。既存selector待機のstate／poll-intervalも維持します。CLIとIPCは同じ検証を使い、IPCのstate／pollIntervalMsに明示nullを渡した場合は、既定値に戻さず観測前にINVALID_ARGUMENTとします。
 
 clipboardは接続先Flutterアプリのテキストclipboardです。ホストMacのclipboardを代用しません。copyはfocus入力欄の選択文字列、pasteはfocus入力欄への挿入です。パスワード欄のcopyは拒否します。readは `text`（取得できない場合null）と `scope:target_app`、write/copyは `clipboard` とscopeを返してrefを保持し、pasteはUI操作としてrefを失効します。
 
@@ -134,7 +134,7 @@ batchは1〜100個のargv配列を持つJSONファイル（stdinは `-`）です
 
 最初の失敗で停止し、応答を受信できた場合は `error.details` のcompleted・failedIndex・results・progressKnownに進捗を返します。通信断で応答を失った場合は進捗を確定できません。成功時はcompleted・results。rollback、再送、途中再開はしません。
 
-policyのJSONは `default:allow|deny` と `allow`／`deny`／`confirm` のコマンド名配列です。例: `{"default":"allow","deny":["drag"],"confirm":["tap"]}`。deny > confirm > allowの順で、allowだけを指定した場合は未掲載操作をdenyにします。対象はUI操作・clipboardの変更・録画開始で、観測やcloseは妨げません。clickとtapは同じ操作として照合します。findのactionとbatch/workflow内の操作も開始前に検査します。
+policyのJSONは `default:allow|deny` と `allow`／`deny`／`confirm` のコマンド名配列です。例: `{"default":"allow","deny":["drag"],"confirm":["tap"]}`。deny > confirm > allowの順で、allowだけを指定した場合は未掲載操作をdenyにします。対象はUI操作・clipboardの変更・録画開始で、観測やcloseは妨げません。clickとtapは同じ操作として照合します。findのactionとbatch/workflow内の操作も開始前に検査します。不正なfindのaction・引数はpolicyの解釈前にINVALID_ARGUMENTとして拒否し、保留承認を作成しません。
 
 policyはsessionへ保持し、省略時も有効です。明示した新しいpolicyで置換できるため、OSの認可境界ではありません。confirm-actionsはconfirm一覧へ加えます。保留時は `CONFIRMATION_REQUIRED`、detailsにconfirmationIdとcommandを返し、入力値は表示しません。保留はsession内で1件、5分間、同じ接続世代のみ有効で、confirm/deny後は再利用できません。policy変更・切断で破棄します。confirm時も対象の通常の一意性・ref検証を行います。workflow/batchの確認は全体を1回承認します。
 

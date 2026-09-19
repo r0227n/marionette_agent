@@ -91,7 +91,7 @@ refは例示。実行時には直近snapshotに返されたものを使う。
 
 sessionとtimeoutはそれぞれ明示CLI > 環境変数 > 明示config > 既定値の順で選び、選択された値だけに既存の名前・正整数・Duration／DateTime範囲検証を適用する。環境変数の空文字も設定済みとして扱い、不正ならINVALID_ARGUMENTとする。明示CLIで上書きされた環境値は空文字・不正値でも検証しない。明示CLIの欠損・重複・不正値は環境値へ戻さず引数エラーとする。環境変数はCLI呼出しごとに解決し、選択したtimeoutはqueue待ちを含む既存の絶対deadlineへ変換する。configは明示`--config`で提供する。認証情報、session id、idle-timeoutの環境fallbackは提供しない。
 
-構文エラーでも、有効に選択されたsession（環境値を含む）とJSONモードを応答へ反映する。不正なsessionはnull、session非依存コマンドもnullとする。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
+構文エラーでも、有効に選択されたsession（環境値を含む）とJSONモードを応答へ反映する。`close --all`は引数エラーを含めsession:nullとする。不正なsessionはnull、session非依存コマンドもnullとする。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
 
 `--debug`は構文エラーを含めopt-inで診断を追加し、通常診断とstdoutの既存envelopeは維持する。CLIからdaemonへ要求単位で伝え、並行sessionで設定・診断を共有しない。処理段階はCLI解析、runtime準備、daemon接続・起動・ready、送信、dispatch、session queue、command実行、結果。各プロセス内の処理区間開始からの単調な経過時間をmsで表示し、結果には成功の`OK`または正規化error codeを付ける。認証URI、fill入力、selector値、アプリ表示text、error message/details、stack traceは詳細診断に含めない。
 
@@ -136,11 +136,11 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `workflow validate <path>` | JSON／YAML workflowを読んで構文・schema・意味制約を検証。daemon・接続は不要 |
 | `workflow run <path>` | 接続済みsessionでworkflowを1要求として直列実行 |
 
-`<selector>` は `--key <value>`、`--identifier <value>`、`--text <value>`、`--type <value>` のいずれか1つ。例: `fill --key email 'a@example.com'`、`swipe --key pager left`。ref、selector、座標の混在はエラー。`wait`はselectorだけを受理し、refと座標を受理しない。固定依存のbinding 0.6.0はidentifier matcherを提供しないため、identifier指定はUNSUPPORTED_CAPABILITYを返す。
+`<selector>` は `--key <value>`、`--identifier <value>`、`--text <value>`、`--type <value>` のいずれか1つ。例: `fill --key email 'a@example.com'`、`swipe --key pager left`。ref、selector、座標の混在はエラー。`wait`はselectorに加え、[Flutter向け拡張](#flutter向け拡張)のref待機・時間待機を受理する。座標は受理しない。workflow v1の対象はselectorだけである。固定依存のbinding 0.6.0はidentifier matcherを提供しないため、identifier指定はUNSUPPORTED_CAPABILITYを返す。
 
 scrollは初版では指定領域を既存swipe機構で操作する。directionはswipeと同じく指の移動方向であり、コンテンツの移動先や到達保証ではない。画面外要素へのscroll-toは後続とする。
 
-単独`wait`の`state`は`exists`が既定で、`gone`も指定できる。`poll-interval`は50〜1,000msの整数、既定100ms。最初の観測は即時に行い、全体期限は共通`--timeout`を使う。`exists`は一致が正確に1件かつ`visible != false`で成功し、複数一致はAMBIGUOUS_TARGET。`gone`は0件で成功し、1件以上なら待つ。text照合では由来未確認の候補も衝突へ含め、唯一の候補が由来未確認ならUNRESOLVABLE_TARGETとする。
+単独`wait`の`state`は`exists`が既定で、`gone`も指定できる。stateとpollIntervalMsの既定値はfield省略時だけ適用し、IPCでの明示null・不正型は観測前にINVALID_ARGUMENTとする。`poll-interval`は50〜1,000msの整数、既定100ms。最初の観測は即時に行い、全体期限は共通`--timeout`を使う。`exists`は一致が正確に1件かつ`visible != false`で成功し、複数一致はAMBIGUOUS_TARGET。`gone`は0件で成功し、1件以上なら待つ。text照合では由来未確認の候補も衝突へ含め、唯一の候補が由来未確認ならUNRESOLVABLE_TARGETとする。
 
 `wait`は同一session queueで`inspect`だけをpollし、UI操作を送信せず、公開snapshot／refを発行・更新・失効しない。成功dataは待機した`state`と`requiresSnapshot:true`を返し、実際の画面状態と最新refを後続`snapshot`で確認するよう案内する。wait中のtimeoutまたは通信断はreadの既存契約どおり`outcome:not_sent`で接続世代とrefを破棄する。queue内で実行開始前に期限切れとなった要求は観測せず、接続とrefを維持する。
 
@@ -169,6 +169,8 @@ workflow内の操作対象はselectorだけを受理し、refと座標操作は�
 - 通信断でsessionはdisconnectedとなりrefを失効する。明示的なconnectで復旧する。操作の自動再送はしない。
 - daemon再起動で接続・snapshotを復元しない。最後のsessionを閉じたdaemonは終了する。
 - タイムアウトしても送信済み操作を取り消せたとは限らない。結果不明を返し、接続を破棄して再接続と再観測を要求する。
+
+単一sessionのcloseはbackendの切断完了まで要求期限内で待つ。確定した切断失敗はBACKEND_ERROR／failed（終了1）、完了未確認の期限超過はTIMEOUT／unknown（終了5）。どちらも接続所有権とrefを失効し、sessionを破棄する。所有アプリの終了通知が先に接続を破棄した場合も、同じ切断の完了結果を使用する。録画確定が期限超過した場合の保持・後処理は録画契約に従う。
 
 ### getによる状態照会
 
