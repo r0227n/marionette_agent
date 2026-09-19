@@ -6,7 +6,7 @@ import '../protocol/protocol.dart';
 import '../workflow/model.dart';
 import 'runtime.dart';
 
-/// Send one request per handshake. Auto-start is allowed for connect and record start.
+/// Send one request per handshake. Auto-start is allowed for connect, launch and record start.
 class DaemonClient {
   DaemonClient(this.runtime, {List<String>? launchCommand, this.idleTimeoutMs})
     : launchCommand = launchCommand ?? defaultLaunchCommand();
@@ -104,7 +104,9 @@ class DaemonClient {
         final startsRecording =
             request.command == 'record' &&
             ['start', 'restart'].contains(request.params['action']);
-        if (request.command != 'connect' && !startsRecording) {
+        if (request.command != 'connect' &&
+            request.command != 'launch' &&
+            !startsRecording) {
           if (request.command == 'record' &&
               request.params.length == 1 &&
               ['status', 'stop'].contains(request.params['action'])) {

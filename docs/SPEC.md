@@ -39,7 +39,7 @@ probeの認証URI・remote exception・入力文字列は結果/診断へ出力�
 
 Dart製CLIから、Marionette対応FlutterアプリをAI Agentが観測・操作できるようにする。agent-browserのsession、snapshot、短い要素参照、構造化出力という操作体系を採用する。ブラウザー固有のコマンド互換性は目的に含めない。
 
-初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイ（ChromeのWeb検証を含む）を対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。Simulatorやアプリの起動・ビルド・インストールは利用者側で行う。
+初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイ（ChromeのWeb検証を含む）を対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。手動起動へのconnectに加えて、launchでtester／iOS／Android／macOS／Webのヘッドレス環境を明示選択して起動できる。
 
 MCPサーバー／クライアントの提供は対象外。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。
 
@@ -305,7 +305,7 @@ install/upgradeは指定checkoutの両ディレクトリをbin-directory内の�
 
 role/label/placeholderはfindに対応し、get value/is enabled/is checkedを追加した。通常selectorはkey/identifier/text/typeのまま維持する。hint/tooltip、完全なSemanticsツリー、永続的target IDは未対応。[Issue #14設計案](semantics-selector-state-design.md)は元のstock binding調査と将来設計として保持する。
 
-record以外のAndroid／実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、アプリ起動管理、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaとMCP対象外の方針は維持する。
+iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaとMCP対象外の方針は維持する。
 
 ## Flutter向け拡張
 
@@ -313,12 +313,12 @@ record以外のAndroid／実機・他ホストOSの正式対応、iOS実機録�
 
 任意の `marionette_agent_flutter` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
 
-IPC protocolVersionは6。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、新規コマンドのdataだけを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
+IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
 
 
 ## 端末画面録画
 
-`record`はFlutterの描画ではなく端末／ディスプレイ全体を収録する。VM ServiceやMarionette bindingに依存せず、releaseアプリやアプリ外の画面も対象にできる。OSが保護するコンテンツは保証しない。音声は収録しない。
+`record --platform ios/android/macos/web`は端末／ディスプレイ全体を収録する。VM ServiceやMarionette bindingに依存せず、releaseアプリやアプリ外の画面も対象にできる。OSが保護するコンテンツは保証しない。音声は収録しない。
 
 | platform | device | 形式・前提 |
 | --- | --- | --- |
@@ -326,9 +326,10 @@ IPC protocolVersionは6。要求に任意のsession action policyを追加した
 | android | オンライン・認証済みadb serial | `.mp4`、Android platform-tools。Emulator／実機の標準screenrecord |
 | macos | 1から始まるディスプレイ番号 | `.mov`、macOS標準screencaptureと実行元アプリの画面収録許可 |
 | web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`、macOSと可視Chrome、専用debug profileと画面収録許可。明示したディスプレイ全体 |
+| flutter | CLIでは省略、結果はsession名 | `.mp4`、接続済みMarionette debugアプリとffmpeg。アプリ内の描画を保存。非表示の実行環境でも利用可能 |
 | linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
 
-- platform/device/pathは必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
+- platform/pathは必須。flutterではdeviceを指定できず、その他はdeviceも必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
 - 相対pathは呼出元CLIのcwdで絶対pathへ変換する。親directoryは既存かつ書込可能であること。既存file/directory/symlinkはIO_ERRORとして拒否し、自動上書きしない。
 - sessionごとに同時に1録画、同一daemon内の端末ごとに1録画。開始中・停止処理中も予約し、競合はSESSION_CONFLICT。同じsessionで停止後に新しい保存先へ録画を開始できる。
 - startはdaemonを必要に応じて起動し、録画所有者としてsessionを保持する。未接続の録画sessionの接続状態はdisconnected、URIはnull。録画開始が成功したsessionはcloseまで保持する。
@@ -346,9 +347,19 @@ IPC protocolVersionは6。要求に任意のsession action policyを追加した
 
 検証状況: iOS Simulator／Android Emulator／macOSメインディスプレイを製品CLIで確認済み。macOSではstart・status・stop・重複stop・既存file拒否・closeによる確定と、生成MOVの全フレーム復号・画面変化を確認した。
 
+### Flutterアプリのヘッドレス録画（Issue #20）
+
+`record start <new.mp4> --platform flutter [--fps 1..60]`は、選択sessionのVM Serviceへ先にconnectして使う。未接続はNOT_CONNECTED、対応していないbackend・複数viewはUNSUPPORTED_CAPABILITY。CLIに`--device`を渡すとINVALID_ARGUMENT。結果のplatformはflutter、deviceはsession名。同一sessionの録画を排他にし、同じアプリを別sessionで明示的に録画することは妨げない。restart、status、stop、close、保存保護、要求期限は共通契約を使う。
+
+録画専用の読み取り接続から実アプリのPNGを連続取得する。最初のPNGを確認してからstartを返す。既定fpsは10で、1〜60は各取得完了後の待機間隔を指定する。取得・保存にかかる時間は別に加わるため、指定fpsの取得は保証しない。実際の取得時刻でVFR（可変フレームレート）の無音H.264 MP4へ確定する。高速アニメーションを取りこぼす場合がある。画像はprivate stagingへ逐次保存し、停止時のffmpeg変換は最大30秒。録画時間に応じた一時ディスク容量が必要。ffmpeg欠落はUNSUPPORTED_CAPABILITY、不正PNGや変換失敗はIO_ERROR、取得失敗は失敗状態とし、白画像へ置換して成功にしない。画像サイズ変更はUNSUPPORTED_CAPABILITYで停止する。
+
+対象はFlutterが描画した単一viewで、OSのキーボード・ダイアログ・ブラウザーUIやplatform viewの収録を保証しない。画面収録許可は不要だが、アプリ側のMarionette debug bindingが必要。録画停止は操作用接続・ref・押下中キーに作用しない。録画用接続が失われると失敗して再接続・再送しない。操作用接続だけの切断は録画用接続を閉じない。hot restart中の継続は保証しない。
+
+ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。手動起動へのconnectではアプリ・端末を所有しない。launchではutilを通して起動し、closeで所有環境を終了する。手順は[ヘッドレスガイド](ja/headless.ja.md)、実測結果は[Issue #20検証](../packages/marionette_agent/docs/verification/issue-20.md)を参照する。
+
 ### Web録画の範囲と接続
 
-WebはmacOS上の可視Google Chromeを対象とする。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
+`--platform web`はmacOS上の可視Google Chromeを対象とする。Flutter Webの非表示録画には上記の`--platform flutter`を使う。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
 
 利用者が選んだディスプレイ全体を標準screencaptureでMOVへ録画する。Chromeのアドレスバー・タブ・設定画面、同じdisplayのOSダイアログや他アプリを含む。タブだけの映像、Flutter描画の録画、音声ではない。Chromeを指定displayへ配置するのは利用者の責任であり、CLIはウインドウ位置を変更・追従しない。別displayへ移動しても録画先は変わらない。隠れた／最小化したウインドウや別displayのdialogは写らず、覆っている画面が写る。保護コンテンツの録画は保証しない。
 
@@ -359,3 +370,17 @@ Chromeのpage identityをCDPで確認し、Inspector終了通知とWebSocket切�
 API比較・選定理由と参照元は[Web録画方式](web-recording.md)を参照。
 
 Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。
+
+## ハイブリッド実行環境（Issue #20追加仕様）
+
+`launch <project> --platform tester|ios|android|macos|web`はmacOSホストで選んだ環境のdebugアプリをビルド・起動し、同じsessionへ接続して最初のinspectまで確認する。標準結果の接続情報にapplication:{platform,state,pid,device?}を追加する。session show/listでも所有アプリを表示する。URIは既存の秘匿契約に従う。
+
+Flutter実行ファイルは--flutter（省略時daemon PATH）、entrypointは--target（既定lib/main.dart）。projectはCLIのcwdで絶対化する。iOSのみ--device-typeと--runtimeが必須、Androidのみ--avdと偶数--port（5554..5682）が必須。他環境のfieldと未知fieldはCLIとdaemonの両方で拒否する。SDK、AVD、project依存は利用者が事前準備し、launchは--no-pubを使う。要求timeoutはビルド・起動・接続・観測の全体期限。
+
+launchはdaemon自動起動対象で、session queueとaction policyを共有する。既存接続・所有アプリ・録画があるsession、管理中project、利用中Android portはSESSION_CONFLICT。projectのビルド出力競合を防ぐため、同一projectは実pathとOSファイルlockで排他にする。別環境への自動fallback・操作再送・自動再起動はしない。
+
+起動処理はmarionette_agent_utilに配置する。tester/web/macOSはFlutter runner、iOSは固有private device set、Androidは明示AVDの-no-window -no-snapshot -read-onlyプロセスを所有する。macOSアプリは非表示windowのopt-in対応を要する。CLIから環境変数やOSコマンドを組み立てず、utilの共通APIを呼ぶ。
+
+closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
+
+testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作と録画は既存session/record --platform flutterを共用する。手順と制約は[日本語ガイド](ja/headless.ja.md)を参照。

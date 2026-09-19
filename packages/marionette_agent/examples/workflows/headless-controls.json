@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "name": "headless-controls",
+  "steps": [
+    {
+      "id": "open-about",
+      "action": "tap",
+      "target": {
+        "key": "about_tab"
+      }
+    },
+    {
+      "id": "wait-about",
+      "action": "wait",
+      "target": {
+        "key": "about_content"
+      },
+      "state": "exists"
+    },
+    {
+      "id": "open-controls",
+      "action": "tap",
+      "target": {
+        "key": "controls_tab"
+      }
+    },
+    {
+      "id": "wait-controls",
+      "action": "wait",
+      "target": {
+        "key": "text_input"
+      },
+      "state": "exists"
+    },
+    {
+      "id": "show-page-label",
+      "action": "scroll",
+      "target": {
+        "key": "operation_scroll_area"
+      },
+      "direction": "up",
+      "distance": 200
+    },
+    {
+      "id": "next-page",
+      "action": "swipe",
+      "target": {
+        "key": "page_view"
+      },
+      "direction": "left",
+      "distance": 500
+    },
+    {
+      "id": "inspect-controls",
+      "action": "snapshot"
+    }
+  ]
+}

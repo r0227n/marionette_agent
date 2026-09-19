@@ -157,7 +157,7 @@ marionette-agent upgrade --source packages/marionette_agent bin
 
 端末一覧は接続不要・起動なしで、利用可能なiOS SimulatorまたはオンラインのAndroid端末の `devices` を返します。
 
-restartは同sessionの現在の録画を確定してから、明示したplatform/deviceと新しいpathで開始します。静的な引数・既存pathは停止前に確認しますが、停止と新規開始は原子的ではなく、新規開始が失敗しても旧録画を再開しません。fpsは1〜60で、OSの取得cadenceではなく保存動画のフレームレートです。指定時は事前にffmpegを確認し、停止後にprivate staging内でlibx264へ変換します。変換中も停止処理は継続し、失敗時はstagingを保持します。fps未指定は従来どおりです。
+restartは同sessionの現在の録画を確定してから、明示したplatform/deviceと新しいpathで開始します。静的な引数・既存pathは停止前に確認しますが、停止と新規開始は原子的ではなく、新規開始が失敗しても旧録画を再開しません。OSの端末／ディスプレイ録画ではfpsは1〜60で、OSの取得cadenceではなく保存動画のフレームレートです。指定時は事前にffmpegを確認し、停止後にprivate staging内でlibx264へ変換します。変換中も停止処理は継続し、失敗時はstagingを保持します。fps未指定は従来どおりです。 `--platform flutter`ではdeviceを省略し、接続済みsessionのアプリ描画を記録します。この方式のfpsは取得間隔の指定で、既定10・実取得時刻によるVFRです。[ヘッドレスガイド](headless.ja.md)を参照してください。
 
 doctor --quickはhost/runtime/daemonを検査し、依存・端末一覧・VM probeをskippedにします。offlineはVM probeを省略します。fixは既存の自身所有runtime directoryのmodeだけを0700へ修復します。他所有者、symlink、SDK/package導入、socket削除、daemonや端末の起動は扱いません。通常doctorは読み取りのみです。
 

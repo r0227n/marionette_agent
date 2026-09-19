@@ -29,6 +29,7 @@ const policyActions = {
   'clipboard',
   'drag',
   'record',
+  'launch',
   'workflow',
   'batch',
 };

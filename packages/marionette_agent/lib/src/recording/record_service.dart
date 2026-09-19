@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:marionette_agent_util/marionette_agent_util.dart';
 
 import '../protocol/protocol.dart';
+import '../backend/backend.dart';
+import '../backend/flutter_recorder.dart';
 
 /// Adapts the utility API to CLI errors and result fields. No OS commands here.
 class RecordService {
@@ -11,12 +13,36 @@ class RecordService {
   final RecordingManager manager;
   bool contains(String session) => manager.contains(session);
 
-  Future<Json> handle(Request request) => _adapt(
+  Future<Json> handle(Request request, {Backend? backend, Uri? uri}) => _adapt(
     () async {
       final params = request.params;
       final action = params['action'];
       if (action == 'start' || action == 'restart') {
-        final target = validateRecordStart(params);
+        var target = validateRecordStart(params);
+        ScreenRecorder? recorder;
+        if (target.platform == RecordingPlatform.flutter) {
+          if (uri == null || backend == null) {
+            throw const AgentError(
+              'NOT_CONNECTED',
+              'Connect before recording Flutter frames',
+            );
+          }
+          if (backend is! ScreenshotConnectionBackend) {
+            throw const AgentError(
+              'UNSUPPORTED_CAPABILITY',
+              'Backend cannot record application frames',
+            );
+          }
+          target = RecordingTarget(
+            RecordingPlatform.flutter,
+            request.session,
+            fps: target.fps,
+          );
+          recorder = FlutterScreenRecorder(
+            backend as ScreenshotConnectionBackend,
+            uri,
+          );
+        }
         if (action == 'restart') {
           if (await FileSystemEntity.type(
                 params['path'] as String,
@@ -35,6 +61,7 @@ class RecordService {
           target: target,
           path: params['path'] as String,
           deadline: request.deadline,
+          recorder: recorder,
         );
       }
       if (params.length != 1) invalid('Unexpected recording arguments');
@@ -93,6 +120,9 @@ RecordingTarget validateRecordStart(Json params) {
       .where((value) => value.name == params['platform'])
       .firstOrNull;
   if (platform == null) invalid('Unknown recording platform');
+  if (platform == RecordingPlatform.flutter && params['device'] != 'session') {
+    invalid('Flutter recording uses the connected session');
+  }
   final target = RecordingTarget(
     platform,
     params['device'] as String,

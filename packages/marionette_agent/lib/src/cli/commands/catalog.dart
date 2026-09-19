@@ -14,6 +14,7 @@ import 'install.dart';
 import 'interactions.dart';
 import 'is_visible.dart';
 import 'keyboard.dart';
+import 'launch.dart';
 import 'observations.dart';
 import 'record.dart';
 import 'skills.dart';
@@ -56,6 +57,7 @@ Map<String, CliCommand> builtInCommands() => {
   ),
   'workflow': workflowCommand(),
   'record': recordCommand(),
+  'launch': launchCommand(),
   'tap': actionCommand(),
   'click': actionCommand(),
   for (final action in [...targetInteractions, ...keyboardInteractions])

@@ -19,7 +19,7 @@ macOSでは実行元アプリへの画面収録許可が必要。既定は非対
 
 動画は出力先と同じ親directory内のprivate staging directoryに書き、確定後に予約済み出力先へコピーする。失敗時のstagingは`recoveryPath`として保持する。既存file/directory/symlinkは上書きしないが、予約後に別プロセスが意図的に保存先を差し替える競合は保証外。
 
-`stop`の要求期限超過でも、backendの有界な終了・回収処理は継続し、完了まで端末を予約する。`status`で最終状態を確認する。VM Serviceの切断は録画を止めない。daemonの正常終了は録画を確定する。SIGKILLやホスト停止後の自動復元は未対応。
+`stop`の要求期限超過でも、backendの有界な終了・回収処理は継続し、完了まで端末を予約する。`status`で最終状態を確認する。OSの端末／ディスプレイ録画はVM Serviceの切断で止まらない。daemonの正常終了は録画を確定する。SIGKILLやホスト停止後の自動復元は未対応。
 
 ```sh
 dart pub get
@@ -35,3 +35,13 @@ dart test
 CDPは対象識別と終了監視だけに使用し、録画はFlutter/VM Serviceに依存しない。タブ終了・クラッシュ・接続断はCONNECTION_LOSTとしてnative停止へ合流し、部分動画を復旧用に残す。nativeの権限エラーと依存欠落は共通PlatformExceptionへ伝播する。RecordingTarget.keyはWebもmacosのdisplay keyを使い、同一daemonの物理display排他を共有する。仕様と方式比較は[Web録画方式](../../docs/web-recording.md)、使用手順は[CLIリファレンス](../../docs/ja/cli-reference.ja.md)を参照。
 
 Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。
+
+### FlutterアプリのPNG録画
+
+`PngScreenRecorder`へcapture/closeを注入すると、表示ウィンドウや画面収録許可に依存せず、アプリが返すPNGを無音H.264 MP4へ保存できる。接続自体は呼出元のadapterが所有し、utilはFlutter・VM Serviceへ依存しない。`RecordingManager.start(recorder: ...)`で個別recorderを選ぶ。`RecordingPlatform.flutter`のdeviceはsession識別子で、OS端末録画とは独立して排他にする。
+
+既定10fpsは取得間の待機間隔であり、取得頻度を保証しない。実取得時刻のVFRとしてffmpegで確定する。PNGはprivate stagingへ逐次保存するため録画時間に応じて容量が必要。先頭PNGで開始確認し、PNG取得失敗・寸法変更・encoder失敗を失敗として保持する。OS画面や音声は含まない。開始・保存保護・有界停止・abortは共通契約に従う。詳細は[SPEC](../../docs/SPEC.md#flutterアプリのヘッドレス録画issue-20)を参照。
+
+## アプリ実行環境
+
+`LaunchOptions`と`PlatformApplicationLauncher.start(options, deadline)`でtester／ios／android／macos／webを明示選択する。返却`RunningApplication`はuri、秘匿可能なdescription、exited、stopを持つ。接続やMarionette操作は呼出元へ委ね、utilがprivate一時領域・SDK/OSコマンド・起動準備・project排他・子プロセスと端末の終了を所有する。`dispose`は起動途中を含めて回収する。詳細は[ヘッドレスガイド](../../docs/ja/headless.ja.md)と[SPEC](../../docs/SPEC.md#ハイブリッド実行環境issue-20追加仕様)を参照。

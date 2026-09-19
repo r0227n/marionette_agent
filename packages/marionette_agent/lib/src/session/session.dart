@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:marionette_agent_util/marionette_agent_util.dart';
+
 import '../backend/backend.dart';
 import 'action_policy.dart';
 import '../protocol/protocol.dart';
@@ -21,6 +23,7 @@ class Session {
   final queue = SerialQueue();
   Uri? uri;
   Backend? backend;
+  RunningApplication? application;
   String status = 'disconnected';
   int epoch = 0;
   int pending = 0;

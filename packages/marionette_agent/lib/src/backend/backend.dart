@@ -173,6 +173,16 @@ abstract interface class Backend {
   Future<LogBatch> readLogs();
 }
 
+/// Optional isolated, read-only channel for continuous application recording.
+abstract interface class ScreenshotConnectionBackend {
+  Future<ScreenshotConnection> openScreenshotConnection(Uri uri);
+}
+
+abstract interface class ScreenshotConnection {
+  Future<List<String>> capture();
+  Future<void> close();
+}
+
 /// Factory for creating a new connector during reconnect, never reusing old connector instances.
 typedef BackendFactory = Backend Function();
 

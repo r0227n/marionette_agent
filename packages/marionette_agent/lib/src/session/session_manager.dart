@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:marionette_agent_util/marionette_agent_util.dart';
+
 import '../backend/backend.dart';
 import '../backend/connection_uri.dart';
 import '../commands/batch.dart';
@@ -17,9 +19,15 @@ import 'session.dart';
 
 /// Manages URI ownership and session lifetime. I/O from different sessions can run concurrently.
 class SessionManager {
-  SessionManager(this.factory, this.commands, {RecordService? recordings})
-    : recordings = recordings ?? RecordService();
+  SessionManager(
+    this.factory,
+    this.commands, {
+    RecordService? recordings,
+    ApplicationLauncher? launcher,
+  }) : recordings = recordings ?? RecordService(),
+       launcher = launcher ?? PlatformApplicationLauncher();
   final RecordService recordings;
+  final ApplicationLauncher launcher;
   final BackendFactory factory;
   final CommandRegistry commands;
   final snapshots = SnapshotService();
@@ -36,6 +44,8 @@ class SessionManager {
     'uri': session.uri == null ? null : redactUri(session.uri!),
     'snapshotValid': session.observation != null,
     'connectionGeneration': session.epoch,
+    if (session.application != null)
+      'application': session.application!.description,
   };
 
   /// Reserve session at intake and execute requests in selected session queue.
@@ -98,6 +108,7 @@ class SessionManager {
       }
       if (existing == null &&
           request.command != 'connect' &&
+          request.command != 'launch' &&
           request.command != 'record') {
         throw const AgentError(
           'NOT_CONNECTED',
@@ -131,7 +142,9 @@ class SessionManager {
             session.pending--;
             if (!hasPending) onQueueIdle?.call();
             if ((session.closed ||
-                    (session.uri == null && session.approval == null)) &&
+                    (session.uri == null &&
+                        session.approval == null &&
+                        session.application == null)) &&
                 session.pending == 0 &&
                 !recordings.contains(session.name) &&
                 identical(sessions[session.name], session)) {
@@ -173,12 +186,27 @@ class SessionManager {
   }
 
   Future<Json> _runAuthorized(Request request, Session session) async {
+    if (request.command == 'launch') return _launch(request, session);
     if (request.command == 'deny') return {'denied': true};
-    if (request.command == 'record') return recordings.handle(request);
+    if (request.command == 'record') {
+      return recordings.handle(
+        request,
+        backend: session.status == 'connected' ? session.backend : null,
+        uri: session.status == 'connected' ? session.uri : null,
+      );
+    }
     Json? recording;
     if (request.command == 'close') {
       if (request.params.isNotEmpty) invalid();
       recording = await recordings.close(request);
+      await _stopApplication(session);
+      // Cleanup may outlive the caller's deadline. Always retire the session
+      // after the owned environment has stopped, even if delivery timed out.
+      if (session.uri != null) _owners.remove(session.uri.toString());
+      session.discard();
+      session.uri = null;
+      session.closed = true;
+      return {'closed': true, 'recording': ?recording};
     }
     Json data;
     if (request.command == 'batch') {
@@ -239,6 +267,11 @@ class SessionManager {
             'Session cleanup failed',
             outcome: Outcome.failed,
           );
+        }
+        try {
+          await _stopApplication(session);
+        } on AgentError catch (error) {
+          failure ??= error;
         }
         // Retire even on drain failure; running sent operations retain unknown,
         // while queued requests are rejected before dispatch.
@@ -301,49 +334,7 @@ class SessionManager {
           invalid('Usage: connect <uri>');
         }
         final uri = normalizeUri(request.params['uri'] as String);
-        final key = uri.toString();
-        if (!session.closed && session.uri != null && session.uri != uri) {
-          throw const AgentError(
-            'SESSION_CONFLICT',
-            'Close the session before changing its URI',
-          );
-        }
-        if (_owners[key] != null && _owners[key] != session.name) {
-          throw const AgentError(
-            'SESSION_CONFLICT',
-            'URI is already owned by another session',
-          );
-        }
-        if (session.status == 'connected') {
-          try {
-            await context.read((backend) => backend.checkConnection());
-            return show(session);
-          } on AgentError catch (error) {
-            if (error.code != 'CONNECTION_LOST') rethrow;
-            // Explicit connect can recover broken connections. UI operations are not sent here.
-            session.discard();
-            context.epoch = session.epoch;
-          }
-        }
-        _owners[key] = session.name;
-        session.uri = uri;
-        session.closed = false;
-        session.discard();
-        context.epoch = session.epoch;
-        session.status = 'connecting';
-        final backend = factory();
-        session.backend = backend;
-        try {
-          await backend.connect(uri);
-          context.check();
-          session.status = 'connected';
-        } catch (_) {
-          // connect can finish after a timeout/disposal. Always dispose again.
-          unawaited(backend.disconnect().catchError((Object _) {}));
-          if (session.epoch == context.epoch) session.discard();
-          rethrow;
-        }
-        return show(session);
+        return _connect(context, uri);
       case 'close':
         if (request.params.isNotEmpty) invalid();
         if (session.uri != null) _owners.remove(session.uri.toString());
@@ -381,6 +372,116 @@ class SessionManager {
     }
   }
 
+  Future<Json> _connect(Execution context, Uri uri) async {
+    final session = context.session;
+    final key = uri.toString();
+    if (!session.closed && session.uri != null && session.uri != uri) {
+      throw const AgentError(
+        'SESSION_CONFLICT',
+        'Close the session before changing its URI',
+      );
+    }
+    if (_owners[key] != null && _owners[key] != session.name) {
+      throw const AgentError(
+        'SESSION_CONFLICT',
+        'URI is already owned by another session',
+      );
+    }
+    if (session.status == 'connected') {
+      try {
+        await context.read((backend) => backend.checkConnection());
+        return show(session);
+      } on AgentError catch (error) {
+        if (error.code != 'CONNECTION_LOST') rethrow;
+        // Explicit connect can recover broken connections. UI operations are not sent here.
+        session.discard();
+        context.epoch = session.epoch;
+      }
+    }
+    _owners[key] = session.name;
+    session.uri = uri;
+    session.closed = false;
+    session.discard();
+    context.epoch = session.epoch;
+    session.status = 'connecting';
+    final backend = factory();
+    session.backend = backend;
+    try {
+      await backend.connect(uri);
+      context.check();
+      session.status = 'connected';
+    } catch (_) {
+      // connect can finish after a timeout/disposal. Always dispose again.
+      unawaited(backend.disconnect().catchError((Object _) {}));
+      if (session.epoch == context.epoch) session.discard();
+      rethrow;
+    }
+    return show(session);
+  }
+
+  Future<void> _stopApplication(Session session) async {
+    final app = session.application;
+    if (app == null) return;
+    try {
+      await app.stop();
+      session.application = null;
+    } on PlatformException catch (e) {
+      throw AgentError(
+        e.code,
+        e.message,
+        hint: e.hint,
+        outcome: Outcome.failed,
+      );
+    }
+  }
+
+  Future<Json> _launch(Request request, Session session) async {
+    if (session.uri != null ||
+        session.application != null ||
+        recordings.contains(session.name)) {
+      throw const AgentError(
+        'SESSION_CONFLICT',
+        'Close the session before launching an application',
+      );
+    }
+    try {
+      final options = LaunchOptions.fromJson(request.params);
+      final app = await launcher.start(options, request.deadline);
+      session.application = app;
+      if (stopping || session.closed) {
+        throw const AgentError(
+          'CONNECTION_LOST',
+          'Session closed during launch',
+        );
+      }
+      request.checkDeadline();
+      final execution = Execution(request, session);
+      final data = await execution.bound(() async {
+        await _connect(execution, normalizeUri(app.uri.toString()));
+        // A URI file alone is insufficient: verify Marionette is ready to observe.
+        await execution.read((backend) => backend.inspect());
+        return show(session);
+      });
+      unawaited(
+        app.exited
+            .then((_) {
+              if (identical(session.application, app)) session.discard();
+            })
+            .catchError((Object _) {}),
+      );
+      return data;
+    } catch (error) {
+      if (session.uri != null) _owners.remove(session.uri.toString());
+      session.discard();
+      session.uri = null;
+      await _stopApplication(session);
+      if (error is PlatformException) {
+        throw AgentError(error.code, error.message, hint: error.hint);
+      }
+      rethrow;
+    }
+  }
+
   /// Called by daemon timer. Health probes share queues with user commands.
   Future<void> probe() async {
     await Future.wait(
@@ -400,11 +501,18 @@ class SessionManager {
 
   Future<void> dispose() async {
     stopping = true;
-    await recordings.dispose();
-    for (final session in sessions.values) {
-      session.discard();
+    try {
+      await recordings.dispose();
+    } finally {
+      try {
+        await launcher.dispose();
+      } finally {
+        for (final session in sessions.values) {
+          session.discard();
+        }
+        sessions.clear();
+        _owners.clear();
+      }
     }
-    sessions.clear();
-    _owners.clear();
   }
 }

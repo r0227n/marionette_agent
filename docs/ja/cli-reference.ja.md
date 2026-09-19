@@ -242,7 +242,7 @@ marionette-agent session show --session demo --json
 
 ### `close [--all]`
 
-選択sessionの録画があれば動画を確定し、接続を切断して破棄します。Flutterアプリ自体は終了しません。sessionが存在しない場合も成功します。録画があった場合はdata.recordingに最終状態を返します。
+選択sessionの録画があれば動画を確定し、接続を切断して破棄します。launchで起動したアプリ・端末は録画確定後に終了します。connectで接続した外部アプリは終了しません。sessionが存在しない場合も成功します。録画があった場合はdata.recordingに最終状態を返します。
 
 ```bash
 marionette-agent --session demo close
@@ -616,6 +616,40 @@ marionette-agent --session demo snapshot --json
 
 詳細な製品契約は[製品仕様](../SPEC.md)、workflowファイル自体の形式は[workflowファイル実行機能 — 実装仕様 v1](workflow-file-spec.ja.md)を参照してください。
 
+## 実行環境の起動・接続
+
+`launch <project> --platform tester|ios|android|macos|web`で実行環境を明示選択し、debugアプリの起動・接続・最初の観測まで行います。引数と準備は[ヘッドレスガイド](headless.ja.md#実行環境を選んで起動する)を参照してください。
+
+```sh
+marionette-agent --session demo --timeout 600000 launch ./example --platform tester
+marionette-agent --session demo snapshot
+marionette-agent --session demo --timeout 60000 close
+```
+
+`--flutter`はFlutter実行ファイル、`--target`はentrypoint（既定lib/main.dart）。iOSには`--device-type`と`--runtime`、Androidには`--avd`と未使用の偶数`--port`（5554〜5682）が必須です。他環境のオプションは拒否します。SDKとproject依存を事前に準備し、初回ビルドに十分なtimeoutを指定します。
+
+成功dataはconnectの情報に`application:{platform,state,pid,device?}`を追加します。session showでも返します。stateはrunning／exited、pidは所有するrunnerのPIDです。launchしたsessionのcloseは録画を確定後に所有アプリ・端末を終了します。connectだけで接続した外部アプリは終了しません。launchはsession action policyの対象です。
+
+同じprojectは同時に1つだけ起動できます。session・project・Android portの競合はSESSION_CONFLICT、SDK実行ファイル欠落はUNSUPPORTED_CAPABILITY、起動／ビルド失敗はIO_ERRORまたはCONNECTION_LOST、期限切れはTIMEOUT。認証URIや子プロセスの生ログを診断へ出しません。起動失敗時の回収は要求期限後も有界に継続することがあります。環境の自動切替・再起動・UI操作の再送はしません。
+
+## Flutterアプリの録画（ヘッドレス対応）
+
+各プラットフォームの実行環境で動くMarionette debugアプリに接続し、Flutterの描画を無音MP4へ記録します。iOS Simulator、Android Emulator、macOS、Chromeの非表示起動で利用できます。[ヘッドレスガイド](headless.ja.md)を参照してください。
+
+```sh
+marionette-agent --session demo connect '<VM Service URI>'
+marionette-agent --session demo record start ./headless.mp4 --platform flutter --fps 10
+marionette-agent --session demo tap --key tap_button
+marionette-agent --session demo record stop --json
+marionette-agent --session demo close
+```
+
+`--device`は省略します。未接続はNOT_CONNECTED、device指定はINVALID_ARGUMENTです。結果の`platform`は`flutter`、`device`はsession名です。start/restartは新しい`.mp4`へのみ保存でき、status、重複stop、close時の保存は下記と同じ契約です。1sessionにつき1録画です。
+
+ffmpeg（PNGとlibx264対応）が必要です。最初のPNG取得後にstartが成功し、停止時にMP4へ変換します。`--fps`は1〜60、既定10で、取得完了後に待つ間隔を指定します。取得時間も加わるため指定fpsを保証せず、実際の取得時刻に従うVFR動画です。高速なアニメーションを取りこぼす場合があります。一時PNGを逐次保存するディスク容量と停止時の変換時間（最大30秒）が必要です。要求期限超過後の最終結果はstatusで確認してください。
+
+画面収録許可は不要です。収録範囲はFlutterの単一viewで、OSキーボード・ダイアログ・ブラウザーUI・platform viewの収録を保証しません。画像サイズ変更はUNSUPPORTED_CAPABILITY、録画用接続の切断・画像取得や変換の失敗はfailedとなり、白画像で成功に置換しません。操作用接続とrefは録画の開始・停止で変わりません。手動起動してconnectしたアプリはcloseで終了しません。launchしたアプリは録画確定後にcloseで終了します。
+
 ## 端末画面の録画
 
 Flutterアプリだけでなく、キーボードやOS画面を含む端末／ディスプレイ全体を録画します。VM Serviceへのconnectは不要です。録画中でも同じsessionから通常の操作を実行でき、VM Serviceが切断されても録画は継続します。音声は収録せず、OSが保護するコンテンツの収録は保証しません。
@@ -676,6 +710,6 @@ marionette-agent --session web-demo close --json
 
 同一daemonの同一displayはWebの別タブやmacos録画と排他です。対象タブの終了・クラッシュ・debug接続断はCONNECTION_LOST（終了コード3）で録画を停止します。statusはfailedとrecoveryPath、stopはエラー、closeは失敗情報付きの最終状態を返します。動画が未確定なら復旧用pathを確認してください。開始期限・停止期限・既存file保護は共通のrecord契約です。
 
-macOS以外、Chrome以外、headlessはUNSUPPORTED_CAPABILITY。接続できないChromeはCONNECTION_LOST、protocol拒否・画面収録拒否・無効displayはIO_ERRORとhintを返します。deviceにlocalhostやremote host、認証情報、query、fragmentは指定できません。Webのtap/fillは本変更で追加していないため、Webアプリの操作にはChromeまたは既存のブラウザー操作手段を使います。詳細は[方式比較と前提](../web-recording.md)を参照してください。
+`--platform web`ではmacOS以外、Chrome以外、headlessはUNSUPPORTED_CAPABILITY。Flutter Webの非表示録画は`--platform flutter`を使います。接続できないChromeはCONNECTION_LOST、protocol拒否・画面収録拒否・無効displayはIO_ERRORとhintを返します。deviceにlocalhostやremote host、認証情報、query、fragmentは指定できません。Webのtap/fillは本変更で追加していないため、Webアプリの操作にはChromeまたは既存のブラウザー操作手段を使います。詳細は[方式比較と前提](../web-recording.md)を参照してください。
 
 `doctor`は構文・引数エラーでもsession非依存で、JSONの`session`は`null`です。
