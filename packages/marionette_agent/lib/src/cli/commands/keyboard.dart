@@ -1,6 +1,6 @@
 import 'package:args/args.dart';
 
-import '../../commands/interactions.dart';
+import '../../commands/interaction_request.dart';
 import '../../protocol/protocol.dart';
 import '../command.dart';
 

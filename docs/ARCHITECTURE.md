@@ -152,6 +152,16 @@ Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示�
 
 事前観測では原子的な対象保証にならない制約はSPECに従う。アプリ側への永続ID拡張追加は初版に持ち込まない。
 
+## 共通契約の所有（SSOT/SOLIDレビュー）
+
+結果のsession有無は`protocol/command_scope.dart`の`usesSession`を正本とする。CLIの通常解析・構文エラー回復・Invocationと、IPCのRequest・client・server・SessionManagerが同じ判定を使う。`close --all`の引数エラーでもsessionはnullになり、オプション値として渡された文字列をflagに読み替えない。IPCのworkflowは実行要求だけなのでRequestがaction=runとして判定する。
+
+`commands/*_request.dart`は副作用のない入力定義・検証を持ち、handlerは観測・操作を担当する。`wait_request.dart`は時間待機と対象待機を別の型にし、対象待機のref/selector排他、state、poll間隔をCLIとdaemonで共有する。workflow schemaのstate・poll範囲もこの定義から組み立てる。workflow v1にrefや時間待機を追加するものではない。
+
+`SessionActionPolicy`はpolicyと保留承認を非公開状態として所有し、authorizeにはRequestと接続世代だけを渡す。Session本体・CommandContext・handlerへ依存しない。find/batch/workflowは入力定義を使って内包操作を調べ、findは検証後にactionを解釈する。Sessionは切断時の承認失効だけを要求する。`architecture_test.dart`がpolicyからsession実行層への推移的依存の再導入を拒否する。
+
+単一closeと全体closeは`SessionManager._disconnectSession`でURI所有権・refの失効、切断完了待ち、失敗の分類を共有する。Sessionは最後の切断Futureを保持し、アプリ終了通知やtimeoutが先にdiscardした場合も後続closeへ同じ結果を返す。disconnectを重複送信せず、切断完了未確認を成功として返さない。録画確定と所有アプリの停止は従来の各所有者が担当する。
+
 ## コマンド拡張境界
 
 `find`は表示条件から選んだElementInfoを`SnapshotService.uniqueTarget`へ渡す。matcher候補は1回の再観測からkey/identifier/text/typeの順に選び、`ObservedQuery`としてselectorと選択時属性を保持する。実操作の直前に通常のresolverがその属性も比較し、同じkeyでも置き換わった対象はSTALE_REF / not_sentにする。ObservedQueryは要求内だけで使用し、IPC入力や公開refとして受理しない。

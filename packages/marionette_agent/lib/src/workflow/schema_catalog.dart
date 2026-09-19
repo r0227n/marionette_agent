@@ -1,12 +1,19 @@
 import 'dart:convert';
 
 import '../protocol/protocol.dart';
+import '../commands/wait_request.dart';
 
 // Embedded so source and compiled CLI need no filesystem or network lookup.
 Json workflowSchema([String? action]) {
   final schema = asJson(jsonDecode(_schema));
-  if (action == null) return schema;
   final defs = asJson(schema[r'$defs']);
+  final wait = asJson(asJson(defs['wait'])['properties']);
+  (wait['state'] as Map)['enum'] = waitStates;
+  (wait['pollIntervalMs'] as Map).addAll(<String, Object?>{
+    'minimum': minimumWaitPollIntervalMs,
+    'maximum': maximumWaitPollIntervalMs,
+  });
+  if (action == null) return schema;
   if (!workflowActions.contains(action)) invalid('Unknown workflow action');
   return {
     r'$schema': schema[r'$schema'],
@@ -322,21 +329,14 @@ const _schema = r'''{
         "target": {
           "$ref": "#/$defs/target"
         },
-        "state": {
-          "enum": [
-            "exists",
-            "gone"
-          ]
-        },
+        "state": {},
         "timeoutMs": {
           "type": "integer",
           "minimum": 1,
           "maximum": 30000
         },
         "pollIntervalMs": {
-          "type": "integer",
-          "minimum": 50,
-          "maximum": 1000
+          "type": "integer"
         }
       },
       "required": [

@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 
-import '../commands/batch.dart';
+import '../commands/batch_request.dart';
 import '../protocol/protocol.dart';
 import 'common_options.dart';
 import 'input_file.dart';

@@ -5,52 +5,9 @@ import '../output/content.dart';
 import 'command_context.dart';
 import 'registry.dart';
 
-const batchCommands = {
-  'snapshot',
-  'get',
-  'is',
-  'find',
-  'tap',
-  'click',
-  'fill',
-  'type',
-  'focus',
-  'hover',
-  'check',
-  'uncheck',
-  'select',
-  'dblclick',
-  'press',
-  'keydown',
-  'keyup',
-  'keyboard',
-  'clipboard',
-  'scroll',
-  'swipe',
-  'scrollintoview',
-  'drag',
-  'wait',
-  'logs',
-};
+import 'batch_request.dart';
 
-List<Json> validateBatch(Json params) {
-  final steps = params['steps'];
-  if (params.length != 1 ||
-      steps is! List ||
-      steps.isEmpty ||
-      steps.length > 100) {
-    invalid('Batch requires 1 to 100 commands');
-  }
-  return steps.map((raw) {
-    if (raw is! Map ||
-        raw.length != 2 ||
-        !batchCommands.contains(raw['command']) ||
-        raw['params'] is! Map) {
-      invalid('Unsupported batch command');
-    }
-    return {'command': raw['command'], 'params': asJson(raw['params'])};
-  }).toList();
-}
+export 'batch_request.dart';
 
 /// One session queue entry, one Execution per step. Never replay completed UI actions.
 Future<Json> executeBatch(

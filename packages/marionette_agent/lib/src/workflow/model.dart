@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import '../backend/backend.dart';
-import '../commands/wait.dart';
+import '../commands/wait_request.dart';
 import '../protocol/protocol.dart';
 import 'schema_catalog.dart';
 

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 
 import '../protocol/protocol.dart';
+import '../protocol/command_scope.dart';
 import 'command.dart';
 import 'commands/catalog.dart';
 import 'common_options.dart';
@@ -95,16 +96,7 @@ class Invocation {
   final String command;
   final Json params;
   String? get resultSession =>
-      command == 'help' ||
-          command == 'skills' ||
-          command == 'doctor' ||
-          command == 'device' ||
-          command == 'install' ||
-          command == 'upgrade' ||
-          command == 'version' ||
-          (command == 'workflow' && params['action'] != 'run') ||
-          (command == 'session' && params['action'] == 'list') ||
-          (command == 'close' && params['all'] == true)
-      ? null
-      : session;
+      usesSession(command, action: params['action'], all: params['all'] == true)
+      ? session
+      : null;
 }

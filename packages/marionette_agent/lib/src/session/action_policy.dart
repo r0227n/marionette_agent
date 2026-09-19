@@ -4,9 +4,9 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 
 import '../protocol/protocol.dart';
-import '../commands/batch.dart';
+import '../commands/batch_request.dart';
+import '../commands/find_request.dart';
 import '../workflow/model.dart';
-import 'session.dart';
 
 const policyActions = {
   'tap',
@@ -74,6 +74,7 @@ String _decision(Json policy, String action) {
 
 Set<String> _actions(String command, Json params) {
   if (command == 'find') {
+    validateFind(params);
     return _actions((params['action'] ?? 'show') as String, params);
   }
   if (command == 'record' && !['start', 'restart'].contains(params['action'])) {
@@ -100,8 +101,8 @@ Set<String> _actions(String command, Json params) {
   return policyActions.contains(command) ? {command} : {};
 }
 
-class PendingAction {
-  PendingAction(this.id, this.request, this.epoch)
+class _PendingAction {
+  _PendingAction(this.id, this.request, this.epoch)
     : expires = DateTime.now().add(const Duration(minutes: 5));
   final String id;
   final Request request;
@@ -109,67 +110,77 @@ class PendingAction {
   final DateTime expires;
 }
 
-/// Runs inside the session queue, before all UI delivery. Approvals are one-use.
-Request authorizeRequest(Request request, Session session) {
-  if (request.policy != null) {
-    final next = validatePolicy(request.policy!);
-    if (!const DeepCollectionEquality().equals(next, session.policy)) {
-      session.policy = next;
-      session.approval = null;
+/// Owns policy replacement and one-use approvals; execution only supplies an epoch.
+/// No backend, Session, queue, or command handler is needed to authorize a request.
+class SessionActionPolicy {
+  Json? _policy;
+  _PendingAction? _approval;
+
+  bool get hasPending => _approval != null;
+  void invalidate() => _approval = null;
+
+  /// Runs inside the session queue, before all UI delivery. Approvals are one-use.
+  Request authorize(Request request, int epoch) {
+    if (request.policy != null) {
+      final next = validatePolicy(request.policy!);
+      if (!const DeepCollectionEquality().equals(next, _policy)) {
+        _policy = next;
+        _approval = null;
+      }
     }
-  }
-  if (request.command == 'confirm' || request.command == 'deny') {
-    if (request.params.length != 1 || request.params['id'] is! String) {
-      invalid('Specify one confirmation id');
-    }
-    final pending = session.approval;
-    if (pending == null ||
-        pending.id != request.params['id'] ||
-        pending.epoch != session.epoch ||
-        !pending.expires.isAfter(DateTime.now())) {
-      throw const AgentError(
-        'INVALID_ARGUMENT',
-        'Confirmation is absent or expired',
+    if (request.command == 'confirm' || request.command == 'deny') {
+      if (request.params.length != 1 || request.params['id'] is! String) {
+        invalid('Specify one confirmation id');
+      }
+      final pending = _approval;
+      if (pending == null ||
+          pending.id != request.params['id'] ||
+          pending.epoch != epoch ||
+          !pending.expires.isAfter(DateTime.now())) {
+        throw const AgentError(
+          'INVALID_ARGUMENT',
+          'Confirmation is absent or expired',
+        );
+      }
+      _approval = null;
+      if (request.command == 'deny') return request;
+      return Request(
+        requestId: request.requestId,
+        session: request.session,
+        command: pending.request.command,
+        params: pending.request.params,
+        deadline: request.deadline,
+        maxOutput: request.maxOutput,
+        outputJson: request.outputJson,
+        debug: request.debug,
       );
     }
-    session.approval = null;
-    if (request.command == 'deny') return request;
-    return Request(
-      requestId: request.requestId,
-      session: request.session,
-      command: pending.request.command,
-      params: pending.request.params,
-      deadline: request.deadline,
-      maxOutput: request.maxOutput,
-      outputJson: request.outputJson,
-      debug: request.debug,
-    );
+    final policy = _policy;
+    if (policy == null) return request;
+    final decisions = _actions(
+      request.command,
+      request.params,
+    ).map((action) => _decision(policy, action)).toSet();
+    if (decisions.contains('deny')) {
+      throw const AgentError(
+        'ACTION_DENIED',
+        'Action is denied by the session policy',
+      );
+    }
+    if (decisions.contains('confirm')) {
+      final random = Random.secure();
+      final id = List.generate(
+        16,
+        (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+      ).join();
+      _approval = _PendingAction(id, request, epoch);
+      throw AgentError(
+        'CONFIRMATION_REQUIRED',
+        'Action requires confirmation',
+        hint: 'Use confirm <id> or deny <id> in this session',
+        details: {'confirmationId': id, 'command': request.command},
+      );
+    }
+    return request;
   }
-  final policy = session.policy;
-  if (policy == null) return request;
-  final decisions = _actions(
-    request.command,
-    request.params,
-  ).map((action) => _decision(policy, action)).toSet();
-  if (decisions.contains('deny')) {
-    throw const AgentError(
-      'ACTION_DENIED',
-      'Action is denied by the session policy',
-    );
-  }
-  if (decisions.contains('confirm')) {
-    final random = Random.secure();
-    final id = List.generate(
-      16,
-      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
-    ).join();
-    session.approval = PendingAction(id, request, session.epoch);
-    throw AgentError(
-      'CONFIRMATION_REQUIRED',
-      'Action requires confirmation',
-      hint: 'Use confirm <id> or deny <id> in this session',
-      details: {'confirmationId': id, 'command': request.command},
-    );
-  }
-  return request;
 }

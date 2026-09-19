@@ -73,11 +73,7 @@ class DaemonClient {
       requestId: request.requestId,
       session: request.session,
     );
-    final resultSession =
-        ((request.command == 'session' && request.params['action'] == 'list') ||
-            (request.command == 'close' && request.params['all'] == true))
-        ? null
-        : request.session;
+    final resultSession = request.resultSession;
     var sent = false;
     AgentError deliveryError(AgentError error) {
       if (request.command != 'workflow') {

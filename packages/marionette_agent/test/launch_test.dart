@@ -121,6 +121,25 @@ void main() {
     expect(launcher.starts, 0);
     expect(launcher.app.stops, 0);
   });
+  test(
+    'close observes disconnect failure even when app exit retires first',
+    () async {
+      final backend = FakeBackend();
+      manager = SessionManager(
+        () => backend,
+        coreCommands(),
+        launcher: launcher,
+      );
+      expect((await call('launch', args: params)).error, isNull);
+      backend.hooks['disconnect'] = () async =>
+          throw StateError('private detail');
+      final result = await call('close');
+      expect(result.error?.code, 'BACKEND_ERROR');
+      expect(result.error?.outcome, Outcome.failed);
+      expect(backend.calls.where((call) => call == 'disconnect'), hasLength(1));
+      expect(manager.sessions, isEmpty);
+    },
+  );
   test('policy denies and confirms launch before creating processes', () async {
     final denied = await call(
       'launch',

@@ -187,7 +187,7 @@ class DaemonServer {
         client.add(
           encodeFrame({
             'requestId': requestId,
-            ...Result.failure(request?.session, safe).toJson(),
+            ...Result.failure(request?.resultSession, safe).toJson(),
           }),
         );
         await client.flush();

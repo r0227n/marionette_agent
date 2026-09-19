@@ -2,6 +2,7 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
+import '../protocol/command_scope.dart';
 
 enum ScreenshotFormat {
   png('.png'),
@@ -206,20 +207,15 @@ class CommonOptions {
   ) {
     debug?.call(args.flag('debug'));
     final name = args.option('session')!;
-    final independent =
-        args.flag('help') ||
-        args.flag('version') ||
-        [
-          'doctor',
-          'device',
-          'install',
-          'upgrade',
-          'skills',
-        ].contains(args.command?.name) ||
-        (args.command?.name == 'workflow' &&
-            args.command?.command?.name != 'run') ||
-        (args.command?.name == 'session' &&
-            args.command?.command?.name == 'list');
+    final independent = !usesSession(
+      args.flag('help')
+          ? 'help'
+          : args.flag('version')
+          ? 'version'
+          : args.command?.name,
+      action: args.command?.command?.name,
+      all: args.command?.name == 'close' && args.command!.flag('all'),
+    );
     output?.call(
       independent || !validSession(name) ? null : name,
       args.flag('json'),
@@ -244,16 +240,8 @@ class CommonOptions {
     String? session = parser.options['session']!.defaultsTo as String?;
     var json = false;
     var debug = false;
-    var independent =
-        [
-          'doctor',
-          'device',
-          'install',
-          'upgrade',
-          'skills',
-        ].contains(commands.firstOrNull) ||
-        (commands.firstOrNull == 'workflow' && !commands.contains('run')) ||
-        (commands.firstOrNull == 'session' && commands.contains('list'));
+    var command = commands.firstOrNull;
+    var all = false;
     for (var i = 0; i < arguments.length; i++) {
       final token = arguments[i];
       if (token == '--') break;
@@ -278,13 +266,21 @@ class CommonOptions {
             ? arguments[++i]
             : null;
       }
+      if (command == 'close' && name == 'all' && option.isFlag && split < 0) {
+        all = true;
+      }
       if (!identical(option, parser.options[name])) continue;
       if (name == 'session') session = value;
       if (name == 'json' && split < 0) json = true;
       if (name == 'debug' && split < 0) debug = true;
-      if (name == 'help' || name == 'version') independent = true;
+      if (name == 'help' || name == 'version') command = name;
     }
     reportDebug?.call(debug);
+    final independent = !usesSession(
+      command,
+      action: commands.length > 1 ? commands[1] : null,
+      all: all,
+    );
     output?.call(
       independent || session == null || !validSession(session) ? null : session,
       json,
