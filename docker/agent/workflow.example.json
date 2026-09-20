@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "source": "/absolute/path/to/marionette_agent",
+  "state_root": "/absolute/path/outside/repository/marionette-container-tasks",
+  "lock_root": "/absolute/shared/path/container-issue-pr-locks",
+  "repository": "r0227n/marionette_agent",
+  "remote": "origin",
+  "base": "develop",
+  "branch_prefix": "feature",
+  "parallelism": 2,
+  "container": {
+    "image": "marionette-agent-dev:flutter-3.47.2",
+    "network": "bridge",
+    "cpus": 2,
+    "memory": "4g",
+    "env_file": null
+  },
+  "agent": {
+    "argv": ["codex", "exec", "--dangerously-bypass-approvals-and-sandbox", "-"]
+  },
+  "copy": {
+    "exclude": [".env", ".env.*", ".DS_Store", "node_modules", ".dart_tool", "build", ".build", "Pods", ".gradle", "DerivedData"],
+    "extra": []
+  },
+  "host": {
+    "resources": ["marionette-simulator"],
+    "env": {},
+    "commands": [
+      {"name": "CLI dependencies", "cwd": "packages/marionette_agent", "argv": ["dart", "pub", "get"]},
+      {"name": "Example dependencies", "cwd": "example", "argv": ["flutter", "pub", "get"]},
+      {"name": "CLI format", "cwd": "packages/marionette_agent", "argv": ["dart", "format", "--output=none", "--set-exit-if-changed", "."]},
+      {"name": "CLI analysis", "cwd": "packages/marionette_agent", "argv": ["dart", "analyze"]},
+      {"name": "CLI tests", "cwd": "packages/marionette_agent", "argv": ["dart", "test"]},
+      {"name": "Issue-specific Simulator acceptance", "cwd": ".", "argv": ["bash", "/absolute/path/to/reviewed-issue-acceptance.sh"]}
+    ]
+  },
+  "pr": {
+    "evidence": "required",
+    "waiver_reason": ""
+  }
+}

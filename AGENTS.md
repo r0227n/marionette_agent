@@ -43,6 +43,7 @@ Skillを追加・編集する前に [skills-lock.json](skills-lock.json) を確�
 
 ## 必要なときに読む文書
 
+- Issueをコンテナのgtr worktreeで実装し、ホストのworktreeで検証してPRを作成する場合: [コンテナ開発](docs/agents/container-development.md)。汎用Skill・本プロジェクト用イメージ・YOLO起動設定と検証手順を参照する。
 - GitHub Issuesの参照・更新: [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)。外部投稿は利用者が依頼した範囲で行う。
 - Issueの分類: [docs/agents/triage-labels.md](docs/agents/triage-labels.md)。
 - 用語・ADRの参照: [docs/agents/domain.md](docs/agents/domain.md)。初版の用語はSPECに定義する。将来CONTEXTへ移す場合は定義を二重管理しない。

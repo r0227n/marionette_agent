@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Route test fetch/push transport to a local bare repository. Other Git behavior
+# (including remote URL inspection, gtr and patch application) is unmodified.
+set -e
+if [ "$1" = -C ]; then operation=$3; else operation=$1; fi
+case "$operation" in
+  fetch|push) exec "$CIP_FIXTURE_GIT" -c "url.file://$CIP_FIXTURE_ROOT/remote.git.insteadOf=https://github.com/fixture/project.git" "$@" ;;
+  *) exec "$CIP_FIXTURE_GIT" "$@" ;;
+esac
