@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:marionette_agent_flutter/marionette_agent_flutter.dart';
+import 'package:marionette_agent_util/flutter.dart';
 
 void main() {
   testWidgets(

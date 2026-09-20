@@ -47,7 +47,7 @@ Issueに紐づくコード・文書・設定の変更には、Issueごとに git
 
 `.gtrconfig` の `postCreate` は、次の依存を各 worktree で生成する。
 
-- `packages/marionette_agent`: `dart pub get`
+- `packages/marionette_agent`: `flutter pub get`
 - `example`: `flutter pub get`
 
 `hook_status` は次のように扱う。

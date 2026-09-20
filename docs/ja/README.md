@@ -11,7 +11,7 @@ session、snapshot、短い要素参照（`@e1`）、JSON出力を使って、�
 ### 必要な環境
 
 - Dart SDK 3.13.2以上、4.0.0未満
-- 対象アプリをビルド・起動するためのFlutter SDK（同梱exampleの使用バージョンは3.47.2）
+- ソースからのCLI依存取得と対象アプリのビルド・起動に必要なFlutter SDK（同梱exampleの使用バージョンは3.47.2）
 - `marionette_flutter: 0.6.0`のbindingを初期化したdebugアプリと、そのVM Service URI
 
 実行ホストの対応状況は次のとおりです。
@@ -32,7 +32,7 @@ iOS Simulatorを操作する場合は、macOS上にXcodeと利用可能なiOS Si
 git clone https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 cd packages/marionette_agent
-dart pub get
+flutter pub get
 
 mkdir -p "$HOME/.local/bin"
 dart run bin/marionette_agent.dart install "$HOME/.local/bin" --timeout 120000
@@ -105,7 +105,7 @@ marionette-agent close
 
 `marionette_flutter: 0.6.0`をアプリに追加し、debug起動時に `MarionetteBinding.ensureInitialized(...)` を `runApp` より前に呼びます。初期化とログ収集の例は[exampleのmain.dart](../../example/lib/main.dart)を参照してください。
 
-型付きの入力値・チェック状態の取得などには、任意の補助パッケージ [marionette_agent_flutter](../../packages/marionette_agent_flutter/README.md)を追加し、bindingの初期化後に `registerAgentExtensions()` を呼びます。exampleは登録済みです。対応Widgetやproviderがない場合の動作は[Flutter向け追加コマンド](cli-parity.ja.md)に記載しています。
+型付きの入力値・チェック状態の取得などには、任意の補助パッケージ [marionette_agent_util](../../packages/marionette_agent_util/README.md)を追加し、`package:marionette_agent_util/flutter.dart`をimportして、bindingの初期化後に `registerAgentExtensions()` を呼びます。exampleは登録済みです。対応Widgetやproviderがない場合の動作は[Flutter向け追加コマンド](cli-parity.ja.md)に記載しています。
 
 ## 主なコマンド
 

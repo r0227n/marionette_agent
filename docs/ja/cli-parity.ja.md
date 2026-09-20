@@ -4,7 +4,7 @@ agent-browserの操作体系をFlutterへ適用した追加機能です。DOM、
 
 ## Flutter側の準備と観測範囲
 
-追加の型付き観測・操作には、同じリポジトリの `packages/marionette_agent_flutter` をアプリへ追加し、debug起動時に `MarionetteBinding.ensureInitialized` の後で `registerAgentExtensions()` を呼びます。exampleは登録済みです。補助パッケージは公開Flutter APIと固定 `marionette_flutter: 0.6.0` を使い、releaseではextensionを登録しません。隣接する参考リポジトリへは依存しません。
+追加の型付き観測・操作には、同じリポジトリの `packages/marionette_agent_util` をアプリへ追加し、`package:marionette_agent_util/flutter.dart`をimportします。debug起動時に `MarionetteBinding.ensureInitialized` の後で `registerAgentExtensions()` を呼びます。exampleは登録済みです。補助パッケージは公開Flutter APIと固定 `marionette_flutter: 0.6.0` を使い、releaseではextensionを登録しません。隣接する参考リポジトリへは依存しません。
 
 providerはmounted Widgetを観測します。完全なSemanticsツリーではなく、遅延構築されていないListViewの行は取得できません。depthは観測対象Widgetの祖先段数で、観測対象外の内部Widgetは数えません。visibleはviewとの交差、Offstage、対象中心のhit-testを調べた値です。中心を操作できるかの観測であり、全画素の可視性を表しません。
 
