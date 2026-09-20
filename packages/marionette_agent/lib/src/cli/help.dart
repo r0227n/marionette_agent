@@ -3,6 +3,7 @@ import 'package:args/args.dart';
 String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'Usage: marionette-agent [options] <command>\n${parser.usage}\n\n'
     'Commands: ${commands.join(', ')}\n'
+    'mcp [--tools core,inspect,actions,workflow,record|all] (MCP stdio server; default core)\n'
     'skills [list] | skills get <name> [name...] [--full] | skills get --all [--full]\n'
     'skills path [name] | skills --help (bundled guides; no download or connection)\n'
     'Start with marionette-agent skills get core; use --full for references and templates.\n'

@@ -1,6 +1,6 @@
 # Flutter向け追加コマンド
 
-agent-browserの操作体系をFlutterへ適用した追加機能です。DOM、CSS、タブ、Cookie、ブラウザー起動設定、MCPの互換実装は含みません。ここに示す構文と出力がmarionette_agentの契約です。
+agent-browserの操作体系をFlutterへ適用した追加機能です。DOM、CSS、タブ、Cookie、ブラウザー起動設定の互換実装は含みません。ここに示す構文と出力がmarionette_agentの契約です。stdio MCPの利用方法は[CLIリファレンス](cli-reference.ja.md#mcp-stdioサーバー)を参照してください。
 
 ## Flutter側の準備と観測範囲
 

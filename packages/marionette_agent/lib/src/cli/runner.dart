@@ -7,6 +7,7 @@ import 'package:marionette_agent_util/marionette_agent_util.dart';
 import '../daemon/client.dart';
 import '../daemon/runtime.dart';
 import '../diagnostics/diagnostic_logging.dart';
+import '../mcp/server.dart';
 import '../protocol/protocol.dart';
 import '../workflow/model.dart';
 import '../workflow/schema_catalog.dart';
@@ -69,6 +70,13 @@ Future<int> runCli(
       session: session,
     );
     diagnostics.emit(DebugStage.cliParsed);
+    if (invocation.command == 'mcp') {
+      return await runMcpServer(
+        invocation.options,
+        (invocation.params['profiles'] as List).cast<String>(),
+        launchCommand: launchCommand,
+      );
+    }
     final deadline = started.add(Duration(milliseconds: invocation.timeoutMs));
     if (invocation.command == 'skills') {
       final output = invocation.params['action'] == 'help'

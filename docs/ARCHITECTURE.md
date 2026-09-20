@@ -33,7 +33,17 @@ AI Agent / Shell
   → marionette_flutter（iOS Simulator内のFlutterアプリ）
 ```
 
-1ユーザー・1ランタイムディレクトリに1daemonを置く。daemonはsessionごとに独立したconnectorとキューを所有する。CLIとdaemonはDartで実装し、MCPプロセスは介在しない。
+1ユーザー・1ランタイムディレクトリに1daemonを置く。daemonはsessionごとに独立したconnectorとキューを所有する。CLIとdaemonはDartで実装する。MCPクライアントは任意のstdio MCPプロセスを通じて同じCLIを呼び出す。
+
+### MCP境界
+
+`cli/commands/mcp.dart`が起動引数を解析し、runnerがpolicy読込・runtime作成より前に`mcp/server.dart`へ配送する。`dart_mcp`のMCPServer＋ToolsSupportとstdioChannelがJSON-RPC、初期化、version交渉、通信終了を所有する。serverは固定profileの登録、pagination、入力の秘匿化、CLI結果のCallToolResult変換、保存済み画像のImageContent化を担当する。MCP通信のprotocol log sinkは設定しない。
+
+`mcp/catalog.dart`は型付きschemaと固定コマンド／argvの対応を所有する。値付きoptionは`--name=value`、位置引数は`--`以降へ配置し、入力文字列をCLI optionやshell構文として解釈しない。自由なargv入力は提供しない。業務上の対象解決・操作条件はCLI parserと既存commandへ委譲する。
+
+`mcp/executor.dart`は既存の起動形態判定を再利用し、source／snapshot／compiledの同じCLIを通常processとして1回起動する。stdinを閉じ、stdoutを有界に取得し、stderrをdrainして破棄する。CLI終了値と検証済みResult包絡をserverへ返す。timeout・MCP終了では所有するCLI processだけを回収する。daemonやアプリの所有権は既存session層に残るため、EOFで他のCLI sessionを閉じない。
+
+依存方向はMCP → CLI／IPCであり、backend／session／commandsからMCP SDKへ依存しない。`test/mcp_test.dart`はSDKクライアントと製品stdio process、fixture daemonを接続し、`integration_test/mcp_smoke.dart`は同じ経路でSimulatorのexampleを操作する。契約は[SPEC](SPEC.md#stdio-mcpサーバー)を参照する。
 
 ### ディレクトリ
 
@@ -43,6 +53,7 @@ packages/marionette_agent/
   skills/       # 外部発見用のhidden stub
   skill-data/   # core・simulator-verifyの実行時ガイドと補助ファイル
   lib/src/
+    mcp/        # dart_mcp stdio server、typed tool catalog、CLI process実行
     cli/        # 呼出元の解析・出力・ファイル/process処理
       commands/ # catalogとコマンド別のArgParser構文
       command.dart # CliCommand型。parserには依存しない

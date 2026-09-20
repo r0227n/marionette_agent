@@ -3,6 +3,7 @@ bool usesSession(String? command, {Object? action, bool all = false}) =>
     switch (command) {
       'help' ||
       'version' ||
+      'mcp' ||
       'skills' ||
       'doctor' ||
       'device' ||
