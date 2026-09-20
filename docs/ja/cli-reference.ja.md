@@ -2,6 +2,8 @@
 
 ## `doctor` 環境診断
 
+`dependencies.fixed`の依存取得案内は`flutter pub get`です。CLIが依存するutilにFlutter SDK依存が含まれるため、CLIパッケージ内で実行してください。
+
 ```sh
 marionette-agent doctor
 marionette-agent doctor --json

@@ -24,7 +24,7 @@ deadline in milliseconds; the default is 30000.
 | Guides | `skills [list]`, `skills get <name> [name...] [--full]`, `skills get --all [--full]`, `skills path [name]` |
 
 Slash-separated words in this table are alternatives, not literal arguments.
-The optional `marionette_agent_flutter` debug provider exposes typed state and
+The optional `marionette_agent_util/flutter.dart` debug provider exposes typed state and
 extended interactions. Stock binding may return `UNSUPPORTED_CAPABILITY`.
 Unknown state is not false. Screenshots with `--annotate` require a valid snapshot
 and mapped screenshot geometry from a compatible provider.

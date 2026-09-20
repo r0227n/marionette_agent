@@ -306,7 +306,7 @@ class Doctor {
         'dependencies.fixed',
         matches ? 'success' : 'failure',
         'Package declarations compared with lockfile; these are not observed binding versions.',
-        'Run dart pub get in the CLI package and check fixed dependency declarations.',
+        'Run flutter pub get in the CLI package and check fixed dependency declarations.',
         pins,
       );
     });

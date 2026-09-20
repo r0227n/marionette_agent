@@ -1,11 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:marionette_agent_util/flutter.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'mapped_screenshot.dart';
 import 'advanced_controls.dart';
-
-import 'package:marionette_agent_flutter/marionette_agent_flutter.dart';
 
 final PrintLogCollector operationLogCollector = PrintLogCollector();
 

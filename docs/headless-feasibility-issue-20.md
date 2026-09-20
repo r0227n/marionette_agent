@@ -161,7 +161,7 @@ GitHubの可変masterは版の根拠にせず、Flutterについてはローカ�
 - [R1] [MarionetteBackend](../packages/marionette_agent/lib/src/backend/marionette_backend.dart): connectのprovider検出、inspectの分岐、上流API境界。
 - [R2] [SPEC](SPEC.md)、[ARCHITECTURE](ARCHITECTURE.md): 対応範囲、close、session/ref/timeout、責務分離。
 - [R3] [SessionManager](../packages/marionette_agent/lib/src/session/session_manager.dart)、[Session](../packages/marionette_agent/lib/src/session/session.dart)、[RuntimeDirectory](../packages/marionette_agent/lib/src/daemon/runtime.dart)。
-- [R4] [現行example main](../example/lib/main.dart)、[typed provider](../packages/marionette_agent_flutter/lib/marionette_agent_flutter.dart)、[mapped screenshot](../example/lib/mapped_screenshot.dart)。
+- [R4] [現行example main](../example/lib/main.dart)、[typed provider](../packages/marionette_agent_util/lib/flutter.dart)、[mapped screenshot](../example/lib/mapped_screenshot.dart)。
 - [R5] [期限付きprocess runner](../packages/marionette_agent/lib/src/cli/process_runner.dart)。
 - [R6] [内部util](../packages/marionette_agent_util/lib/)、[終了signal処理](../packages/marionette_agent_util/lib/src/lifecycle/termination_signals.dart)、ARCHITECTUREの内部プラットフォームサービス。
 - [R7] [Doctor](../packages/marionette_agent/lib/src/cli/doctor.dart): host.osとsimulators.iosの診断。

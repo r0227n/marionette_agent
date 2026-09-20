@@ -8,7 +8,7 @@
     ai = codex
 
 [hooks]
-    postCreate = cd packages/marionette_agent && dart pub get
+    postCreate = cd packages/marionette_agent && flutter pub get
     postCreate = cd example && flutter pub get
 
 [sparse]

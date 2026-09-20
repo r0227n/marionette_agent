@@ -236,7 +236,7 @@ runnerはCLI開始時の共通絶対deadlineをそのままwriterへ渡す。復
 
 ## 内部プラットフォームサービス
 
-`packages/marionette_agent_util`は録画専用ではなく、marionette_agentで必要になるOS／端末別処理を集約する内部パッケージ。CLI/session/protocolやmarionette_mcpへの逆依存を持たない。今後の端末情報等も独立したサービスとして追加する。
+`packages/marionette_agent_util`は録画専用ではなく、marionette_agentで必要になるOS／端末別処理とFlutterアプリ側のdebug補助機能を集約する内部パッケージ。CLI/session/protocolやmarionette_mcpへの逆依存を持たない。今後の端末情報等も独立したサービスとして追加する。
 
 ```text
 CLI parser → RecordService（共通引数検証・エラー変換）
@@ -246,6 +246,8 @@ CLI parser → RecordService（共通引数検証・エラー変換）
                 → Web: Chrome CDP lifecycle + macOS screencapture
                 → Flutter: FlutterScreenRecorder → PngScreenRecorder + ffmpeg
 ```
+
+`marionette_agent_util.dart`はホスト側のDart API、`flutter.dart`はアプリ側のFlutter APIを公開し、相互にexportしない。CLIの実行・コンパイルにFlutter engineは不要だが、Flutter SDK依存を解決するため、CLI・utilとも依存取得は`flutter pub get`を使う。ホスト側テストは`test/`、Flutterテストは`flutter_test/`で分ける。
 
 CLIは同一repo内の`../marionette_agent_util`へpath依存し、両パッケージはpublish_to:noneとする。配布は両パッケージを含むcheckoutからの起動またはCLIのコンパイル済みバイナリを使用する。隣接する参考リポジトリへのpath依存は導入しない。
 
@@ -299,7 +301,7 @@ Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読�
 
 契約は[SPECのFlutter向け拡張](SPEC.md#flutter向け拡張)と[追加コマンド仕様](ja/cli-parity.ja.md)を正本とする。
 
-- `marionette_agent_flutter`は任意のdebug専用provider。public Widget/State APIで属性を読む。controller値と表示textを別fieldにし、パスワード値は送信しない。mounted Widgetの観測、対象の再照合と有限のinteraction集合を固定名extensionに閉じ込める。完全Semantics treeや永続IDは導入しない。
+- `marionette_agent_util/flutter.dart`は任意のdebug専用providerを公開する。public Widget/State APIで属性を読む。controller値と表示textを別fieldにし、パスワード値は送信しない。mounted Widgetの観測、対象の再照合と有限のinteraction集合を固定名extensionに閉じ込める。完全Semantics treeや永続IDは導入しない。
 - `MarionetteBackend`だけがproviderの登録検出・version確認・DTO変換・固定binding APIを扱う。未登録ならstock観測を使用する。`InteractionBackend`と`ClipboardBackend`は任意capabilityで、通常commandsへ上流mapを露出しない。
 - snapshotの絞り込みは全観測の衝突判定・採番後、ref保持の確定前に行う。findによる位置選択も一意な既存matcherへ変換して共通action経路へ渡す。cropは撮影前後の対象照合と明示geometryを使い、artifact writerの排他的保存を共用する。diffはCLIでbaselineを読み、画像または非公開のread観測と比較する。clipboard write/copyは送信結果を追跡するが、UI refを失効させないeffect経路を使う。
 - batchはsession queueを1枠占有し、各stepは別Executionで1回送信ガードを維持する。失敗時はそこで止まり、進捗を返す。workflow v1の構文は変更しない。

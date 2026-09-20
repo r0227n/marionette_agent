@@ -1,9 +1,16 @@
 name: marionette_agent_util
-description: Internal platform services for marionette_agent.
+description: Platform services and Flutter debug utilities for marionette_agent.
 version: 0.0.1
 publish_to: none
 environment:
   sdk: ^3.13.2
+dependencies:
+  flutter:
+    sdk: flutter
+  marionette_flutter: 0.6.0
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
   lints: ^6.0.0
   test: ^1.25.6

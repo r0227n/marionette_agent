@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:marionette_agent_flutter/marionette_agent_flutter.dart';
+import 'package:marionette_agent_util/flutter.dart';
 
 Future<void> lifecycle(WidgetTester tester, AppLifecycleState state) async {
   await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
