@@ -67,7 +67,6 @@ packages/marionette_agent/
     backend/    # Backend interface、Marionette adapter
     commands/   # 共通サービスを使う各操作
     workflow/   # schema、model、親/step実行制御
-  docs/verification/ # 実環境の検証記録（仕様・実装契約はroot docs/）
   examples/     # JSON／YAML workflowとinputs例
   test/         # 単体・IPC・契約テスト
     support/    # FakeBackend、入力保持fake、共通Request fixture

@@ -129,4 +129,4 @@ xcrun simctl --set "$MRA_HEADLESS_ROOT/ios-devices" shutdown "$MRA_IOS_UDID"
 xcrun simctl --set "$MRA_HEADLESS_ROOT/ios-devices" delete "$MRA_IOS_UDID"
 ```
 
-Androidは今回のportの`adb -s emulator-5586 emu kill`で終了します。共有Simulatorやadb serverを止めず、不要なURI/logを削除し、確認済みの動画・結果を残します。過去の実測とtesterのviewportに関する説明は[Issue #20検証記録](https://github.com/r0227n/marionette_agent/blob/develop/packages/marionette_agent/docs/verification/issue-20.md)、設計経緯は[過去の調査](https://github.com/r0227n/marionette_agent/blob/develop/docs/headless-feasibility-issue-20.md)を参照してください。
+Androidは今回のportの`adb -s emulator-5586 emu kill`で終了します。共有Simulatorやadb serverを止めず、不要なURI/logを削除し、確認済みの動画・結果を残します。testerのviewportと管理起動の制約は[headlessガイド](/marionette_agent/ja/guides/headless/)を参照してください。

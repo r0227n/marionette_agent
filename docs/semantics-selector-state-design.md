@@ -2,7 +2,7 @@
 
 > 更新: 本書はstock binding 0.6.0の調査と将来設計の記録です。任意のFlutter providerを使う現行の限定実装は[追加コマンド仕様](ja/cli-parity.ja.md)を参照してください。完全Semanticsツリー・永続target IDの設計完了を意味しません。
 
-状態: 固定依存のソース調査とSimulator実payload・画面照合済み。これは将来案であり、CLI機能の実装完了を示さない。現在の契約は [SPEC](SPEC.md)、実装境界は [ARCHITECTURE](ARCHITECTURE.md)。[検証記録と再現手順](../packages/marionette_agent/docs/verification/issue-14.md) に実施結果と人間の確認手順を記録する。
+状態: 固定依存のソース調査とSimulator実payload・画面照合済み。これは将来案であり、CLI機能の実装完了を示さない。現在の契約は [SPEC](SPEC.md)、実装境界は [ARCHITECTURE](ARCHITECTURE.md)。以下の実測は当時の調査結果であり、現行機能の受入検証とは区別する。
 
 ## 調査対象と根拠
 
@@ -46,7 +46,7 @@ F2は `p.runtimeType != DiagnosticsProperty`、name/value非nullで選別する�
 
 ## Simulatorで確認した範囲
 
-Flutter 3.47.2 / iOS 26.2の予約iPadで、変更していないexampleと[一時研究fixture](../packages/marionette_agent/docs/verification/issue-14-research-fixture.md)を順に起動した。[実payload抜粋](../packages/marionette_agent/docs/verification/issue-14-payloads.json)は対象element内の全fieldを保持し、rawとCLI DTOを並べて保存している。string diagnosticsをbool/enum/input valueへ昇格させていない。
+Flutter 3.47.2 / iOS 26.2の予約iPadで、変更していないexampleと当時の一時研究fixtureを順に起動した。対象element内の全fieldを保持した実payloadを使い、rawとCLI DTOを比較した。string diagnosticsをbool/enum/input valueへ昇格させていない。
 
 | 属性 | 実payload・画面の結果 | 判断 |
 | --- | --- | --- |

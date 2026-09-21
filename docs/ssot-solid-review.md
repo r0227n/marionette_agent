@@ -56,6 +56,5 @@ CLIの通常解析、構文エラー回復、Invocation、IPC client/managerでs
 - 基点のCLI全314テスト成功。追加回帰テストでは修正前に5件の失敗を確認し、所有アプリ終了競合も修正前の失敗を確認した。
 - 最終コードのformat・analyze成功、CLI全322テスト成功。IPCとコンパイル済み実行ファイルのテストを含む。
 - iOS Simulator上のexampleに製品CLIで接続し、32呼び出しの期待結果を確認。画面のカウンタ0→3を2枚のscreenshotで確認した。
-- [検証記録と人間向け再現手順](../packages/marionette_agent/docs/verification/ssot-solid-review.md) を参照。
 
 `marionette_agent_util`、Flutter provider、exampleは読み取りレビューとiOS検証の対象であり、今回は変更していない。Android/Web実環境での再検証は実施していない。今回のレビューは全不具合の不在を保証しない。人間による動作確認は未実施としてDraft PRで引き渡す。

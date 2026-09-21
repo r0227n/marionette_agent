@@ -31,7 +31,6 @@ check IDと対象:
 
 probeの認証URI・remote exception・入力文字列は結果/診断へ出力しない。probe終了/失敗/期限切れでは
 独立接続を解放し、遅れて成立した接続も閉じる。外部照会processは期限切れで終了させる。
-実macOS/Simulator受入検証は[Issue #9記録](../packages/marionette_agent/docs/verification/issue-9.md)を参照。
 
 状態: `marionette_agent 0.0.1` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法は[日本語サイト](https://r0227n.github.io/marionette_agent/ja/)、詳細な実行契約は[補足](ja/cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.md)を参照する。
 
@@ -372,7 +371,7 @@ IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追�
 
 対象はFlutterが描画した単一viewで、OSのキーボード・ダイアログ・ブラウザーUIやplatform viewの収録を保証しない。画面収録許可は不要だが、アプリ側のMarionette debug bindingが必要。録画停止は操作用接続・ref・押下中キーに作用しない。録画用接続が失われると失敗して再接続・再送しない。操作用接続だけの切断は録画用接続を閉じない。hot restart中の継続は保証しない。
 
-ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。手動起動へのconnectではアプリ・端末を所有しない。launchではutilを通して起動し、closeで所有環境を終了する。手順は[ヘッドレスガイド](ja/headless.ja.md)、実測結果は[Issue #20検証](../packages/marionette_agent/docs/verification/issue-20.md)を参照する。
+ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。手動起動へのconnectではアプリ・端末を所有しない。launchではutilを通して起動し、closeで所有環境を終了する。手順は[ヘッドレスガイド](ja/headless.ja.md)を参照する。
 
 ### Web録画の範囲と接続
 

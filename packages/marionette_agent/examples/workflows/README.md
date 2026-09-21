@@ -95,4 +95,4 @@ rm "$MRA_RUN/private/vm-uri"
 # adb -s "$MRA_DEVICE" emu kill       # Android
 ```
 
-実施結果は [iOS/Android検証記録](../../docs/verification/all-commands-ios-android.md) を参照してください。
+実施結果と画像・動画はPR本文と添付に残し、検証対象commit、環境、期待結果と実際の結果、人間が再現する手順を記載してください。
