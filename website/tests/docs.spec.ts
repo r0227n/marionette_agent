@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const base = '/marionette_agent';
 
-for (const locale of ['ja', 'en']) {
+for (const locale of ['en', 'ja']) {
   test(`${locale}: home, deep links, and language switch`, async ({
     page,
   }, testInfo) => {
@@ -103,6 +103,38 @@ for (const locale of ['ja', 'en']) {
       ),
     ).toBe(true);
   });
+
+  test(`${locale}: headless setup stays in the selected language`, async ({
+    page,
+  }, testInfo) => {
+    await page.goto(`${base}/${locale}/guides/headless/`);
+    await expect(page.locator('h1')).toContainText(/headless/i);
+    await page.screenshot({
+      path: testInfo.outputPath(`headless-${locale}.png`),
+    });
+    await page
+      .locator(
+        `.sl-markdown-content a[href="${base}/${locale}/guides/manual-headless/"]`,
+      )
+      .click();
+    await expect(page).toHaveURL(`${base}/${locale}/guides/manual-headless/`);
+    const other = locale === 'ja' ? 'en' : 'ja';
+    await page
+      .locator('starlight-lang-select select:visible')
+      .selectOption(`${base}/${other}/guides/manual-headless/`);
+    await expect(page).toHaveURL(`${base}/${other}/guides/manual-headless/`);
+    await expect(page.locator('html')).toHaveAttribute('lang', other);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator('h1')).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: testInfo.outputPath(`manual-mobile-${other}.png`),
+    });
+  });
 }
 
 test('root entry and downloadable workflow work under the Pages base', async ({
@@ -110,7 +142,8 @@ test('root entry and downloadable workflow work under the Pages base', async ({
   request,
 }) => {
   await page.goto(`${base}/`);
-  await expect(page).toHaveURL(`${base}/ja/`);
+  await expect(page).toHaveURL(`${base}/en/`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   const download = await request.get(`${base}/examples/observe-edit.yaml`);
   expect(download.ok()).toBe(true);
   expect(await download.text()).toContain('name: observe-edit');
@@ -133,7 +166,11 @@ test('keyboard navigation and code copying work', async ({ page, context }) => {
 test('404 offers working entries for both languages', async ({ page }) => {
   const response = await page.goto(`${base}/missing-page/`);
   expect(response?.status()).toBe(404);
-  await expect(page.locator('h1')).toContainText('ページが見つかりません');
+  await expect(page.locator('h1')).toContainText('Page not found');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await page.getByRole('link', { name: 'English home' }).click();
   await expect(page).toHaveURL(`${base}/en/`);
+  await page.goto(`${base}/missing-page/`);
+  await page.getByRole('link', { name: '日本語のホーム' }).click();
+  await expect(page).toHaveURL(`${base}/ja/`);
 });

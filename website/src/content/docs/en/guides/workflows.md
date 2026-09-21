@@ -67,3 +67,5 @@ By default, `validate` checks the template. Add `--inputs` or `--check-inputs` t
 Execution stops at the first failure. Completed operations are not rolled back, and there is no automatic retry or resume. If you received a response, inspect progress in the error details, then observe the actual screen before deciding how to recover.
 
 `--timeout` covers file reading, validation, queueing, and all steps. It is not reset for each step.
+
+The [workflow file reference](https://github.com/r0227n/marionette_agent/blob/develop/docs/workflow-file-spec.md) defines all fields, parser restrictions, limits, binding, and failure progress.

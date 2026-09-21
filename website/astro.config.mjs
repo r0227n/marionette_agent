@@ -1,10 +1,10 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import { site, base } from './site.config.mjs';
+import { site, base, defaultLocale } from './site.config.mjs';
 
-const section = (label, en, items) => ({
+const section = (label, ja, items) => ({
   label,
-  translations: { en },
+  translations: { ja },
   items: items.map((slug) => ({ slug })),
 });
 
@@ -20,10 +20,10 @@ export default defineConfig({
       logo: { src: './src/assets/mark.svg' },
       favicon: '/favicon.svg',
       disable404Route: true,
-      defaultLocale: 'ja',
+      defaultLocale,
       locales: {
-        ja: { label: '日本語', lang: 'ja' },
         en: { label: 'English', lang: 'en' },
+        ja: { label: '日本語', lang: 'ja' },
       },
       social: [
         {
@@ -39,24 +39,25 @@ export default defineConfig({
       customCss: ['./src/styles/custom.css'],
       components: { Banner: './src/components/VersionBanner.astro' },
       sidebar: [
-        section('はじめに', 'Start here', [
+        section('Start here', 'はじめに', [
           'getting-started/overview',
           'getting-started/installation',
           'getting-started/quick-start',
           'getting-started/app-integration',
         ]),
-        section('基本を理解する', 'Core concepts', [
+        section('Core concepts', '基本を理解する', [
           'concepts/observation-loop',
           'concepts/targets',
           'concepts/sessions',
         ]),
-        section('目的から探す', 'Guides', [
+        section('Guides', '目的から探す', [
           'guides/agents',
           'guides/workflows',
           'guides/capture',
           'guides/headless',
+          'guides/manual-headless',
         ]),
-        section('リファレンス', 'Reference', [
+        section('Reference', 'リファレンス', [
           'reference/commands',
           'reference/configuration',
           'reference/output',

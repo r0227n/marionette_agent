@@ -50,6 +50,8 @@ marionette-agent record start artifacts/device.mp4 \
 marionette-agent record stop
 ```
 
-Androidは端末serial、macOS・Webは録画対象のディスプレイ番号を指定します。macOS・Webの画面収録にはOSの許可が必要です。Web方式は指定ディスプレイを記録するため、ブラウザーのページ領域だけに限定されません。
+Androidは端末serial、macOSはディスプレイ番号を指定します。Webは`display:1@ws://127.0.0.1:9222/devtools/page/ACTUALID`のように、display番号と選んだChrome pageのloopback debugging WebSocket URLを組み合わせます。設定と制限は[Webの指定契約](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#web-recording)を参照してください。macOS・Webの画面収録にはOSの許可が必要です。Web方式は指定ディスプレイを記録するため、ブラウザーのページ領域だけに限定されません。
 
 `record restart`は現在の録画を確定してから別の保存先で再開します。新規開始が失敗しても、以前の録画へ戻るわけではありません。`stop`は動画の確定まで待つため、長い録画には十分なtimeoutを指定してください。
+
+[画像・録画の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#capture)に命名・排他保存・期限・確定・復旧の条件をまとめています。

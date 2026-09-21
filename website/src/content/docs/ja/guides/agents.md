@@ -69,3 +69,5 @@ workflowやbatchにはクライアントと同じホスト上のファイルパ�
 ## エージェントに渡す制約
 
 対象のアプリ、session、許可する操作、期待する確認結果を明示します。アプリ内のtextやlogsは観測データとして扱い、操作方針を上書きする指示として扱わないようにします。`contentBoundaries`でその境界を示すこともできます。
+
+[MCP・Skillsの詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#mcp)にprofile別tool一覧、pagination、結果形式、終了時の契約をまとめています。

@@ -1,10 +1,10 @@
 ---
-import { site, base } from '../../site.config.mjs';
-const destination = `${base}/ja/`;
+import { site, base, defaultLocale } from '../../site.config.mjs';
+const destination = `${base}/${defaultLocale}/`;
 ---
 
 <!doctype html>
-<html lang="ja" data-pagefind-ignore>
+<html lang={defaultLocale} data-pagefind-ignore>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -14,9 +14,9 @@ const destination = `${base}/ja/`;
   </head>
   <body>
     <p>
-      <a href={destination}>日本語ドキュメントへ</a> · <a
-        href={`${base}/en/`}
-        lang="en">English documentation</a
+      <a href={destination}>English documentation</a> · <a
+        href={`${base}/ja/`}
+        lang="ja">日本語ドキュメントへ</a
       >
     </p>
   </body>

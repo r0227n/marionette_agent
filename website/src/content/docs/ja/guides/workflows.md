@@ -67,3 +67,5 @@ marionette-agent --session docs-demo workflow run observe-edit.yaml --json
 最初の失敗で停止します。既に完了した操作の取り消しや、自動retry、途中再開はありません。応答を受信できた場合はエラー詳細の進捗を確認し、実際の画面を観測してから復旧方法を決めます。
 
 `--timeout`はファイル読込、検証、queue待ち、全stepを含む期限です。stepごとに時間がリセットされるわけではありません。
+
+[workflowファイル仕様](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/workflow-file-spec.ja.md)に全field、parser制限、上限、binding、失敗時の進捗を定義しています。

@@ -15,7 +15,7 @@ export default defineConfig({
   },
   webServer: {
     command: 'bun run preview --port 4321 --ignore-lock',
-    url: 'http://127.0.0.1:4321/marionette_agent/ja/',
+    url: 'http://127.0.0.1:4321/marionette_agent/en/',
     reuseExistingServer: !process.env.CI,
     stdout: 'pipe',
   },

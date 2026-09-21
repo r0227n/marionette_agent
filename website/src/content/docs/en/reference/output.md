@@ -78,3 +78,5 @@ It does not mean hidden, disabled, or unchecked. Likewise, distinguish null text
 - `--max-output` is not a size limit on the entire response. Check truncation metadata and ref validity as well.
 
 See [troubleshooting](/marionette_agent/en/reference/troubleshooting/) for recovery procedures.
+
+See [runtime details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#output) for exact budget counting, filter metadata, and ref handling.

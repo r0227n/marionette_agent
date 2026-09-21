@@ -1,17 +1,17 @@
 # Documentation website
 
-日英の利用者向け本文を新規執筆したAstro + Starlightサイトです。既存の`docs/ja/`は仕様を照合する参考資料として残し、サイトへコピー・取り込みはしていません。
+Astro + Starlight documentation with English as the default public language and complete Japanese counterparts. User guides live here; repository supplements cover additional contracts without repeating those guides. Read the [documentation policy](../docs/documentation.md) ([日本語](../docs/ja/documentation.ja.md)) before adding or moving content.
 
 ## Local development
 
-Bun 1.4.2を使用します。`.tool-versions`と`package.json`の`packageManager`でバージョンを固定しています。miseを使う場合は`website/`内で`mise install`を実行すると、このディレクトリで指定版が選ばれます。以下も`website/`内で実行します。
+Use Bun 1.4.2, pinned by `.tool-versions` and `package.json`’s `packageManager`. With mise, run `mise install` in `website/` to select the pinned runtime. Run all commands below from this directory.
 
 ```sh
 bun install --frozen-lockfile
 bun run dev
 ```
 
-日本語は`http://localhost:4321/marionette_agent/ja/`、英語は`http://localhost:4321/marionette_agent/en/`です。検索はproduction buildに対して確認します。
+Open `http://localhost:4321/marionette_agent/` for the English entry or `http://localhost:4321/marionette_agent/ja/` for Japanese. Both languages keep explicit `/en/` and `/ja/` URLs. Search is generated during production builds.
 
 ```sh
 bun run --bun playwright install chromium
@@ -19,44 +19,46 @@ bun run verify
 bun run preview
 ```
 
-`verify`は整形、Astroの型検査、日英のページ・コード例対応、ビルド、生成HTMLの内部リンク・アンカー・asset・SEO検査、ブラウザテストを実行します。ブラウザテストはproduction previewを自動起動します。失敗時のtraceと画面は`test-results/`、HTMLレポートは`playwright-report/`に保存します。
+`verify` checks formatting, Astro types, matching bilingual page paths and examples, paired repository supplements and their incoming links, the production build, generated links/anchors/assets/SEO, and browser behavior. Browser tests start a production preview. Stop any existing server on port 4321 before a CI-mode test run. Failures save traces and screenshots in `test-results/`; the HTML report is in `playwright-report/`.
 
-Astro・Prettier・Playwrightは各script内の`bun run --bun`でBunランタイムを明示しています。独自の検査scriptもBunで実行します。ブラウザテストはPlaywrightを使うため、`bun test`ではなく`bun run test`で実行してください。
+Astro, Prettier, and Playwright explicitly run on Bun through `bun run --bun` in the scripts. Custom checks run on Bun too. Use `bun run test` for Playwright, not `bun test`.
 
-依存追加・更新にはBunを使い、`bun.lock`を同じ変更でcommitします。CIは`--frozen-lockfile`で固定された依存を再現します。Bunの版を更新するときは`.tool-versions`と`packageManager`を揃え、全検証を実行します。GitHub Actions自体が使用するランタイムは、サイトのBunランタイムとは別に各Actionが管理します。
+Use Bun to change dependencies and commit `bun.lock` alongside them. CI installs with `--frozen-lockfile`. A Bun update must change both version declarations and pass the complete verification. GitHub Actions manage their own execution runtimes separately from the site’s Bun runtime.
 
-サイト以外のCLIコードを変更していない場合、サイト確認のためにSimulatorやDartテストを起動する必要はありません。CLIの仕様・実装を変更する場合はリポジトリの通常の検証規約に従います。
+Documentation-only changes require link/specification/site checks. They do not require Simulator or Dart tests when CLI code and behavior are unchanged. CLI changes still follow the repository’s normal verification rules.
 
 ## Authoring
 
-- `src/content/docs/ja/`と`en/`に同じ相対パスでページを追加します。本文のh1はfrontmatterのtitleから生成します。
-- title・description・本文を両言語で揃えます。コード例は日英同一とし、説明を本文へ置きます。片方のコード例だけを変えると検証が失敗します。
-- 公開用本文は利用者の目的から執筆し、コマンド・既定値・制約はCLI実装とSPECで照合します。ページが存在することだけでは翻訳の正確さや鮮度を保証しないため、両言語の意味をレビューします。
-- 本文リンクは`/marionette_agent/<locale>/.../`を使用します。Starlightのサイドバー項目はlocaleなしのslugを指定します。
-- サイトのorigin・baseは`site.config.mjs`、サイドバーは`astro.config.mjs`にあります。baseを変える場合は本文・テスト内のURLも更新し、全検証を行います。
-- ダウンロード例は`public/examples/`に置きます。workflowガイドの例とダウンロードファイルの一致も検査します。
-- `docs/`の内部仕様・開発運用・検証記録は公開サイトの原稿として読み込みません。
+- Add corresponding paths under `src/content/docs/en/` and `ja/`. Frontmatter supplies the page h1, title, and description.
+- Keep executable examples identical and translate their explanations outside code blocks. Automated parity checks do not replace reviewing both languages for equal meaning and current behavior.
+- Write around the reader’s task and verify commands, defaults, and restrictions against implementation and SPEC.
+- Use `/marionette_agent/<locale>/.../` for site links. Sidebar slugs omit the locale. Link to the matching language when referring to repository supplements.
+- `site.config.mjs` owns origin, base, locale order, and default locale. `astro.config.mjs` owns sidebar labels and entries. Update content/test URLs and verify everything when changing the base.
+- Put downloads in `public/examples/`. The workflow download must match the guide’s example.
+- Keep English supplements directly in `docs/`, Japanese in `docs/ja/`, and update `scripts/check-repository-docs.mjs` when adding a pair. These files are not imported into the site.
 
-## GitHub Pages setup
+The headless guide owns managed startup, platform selection, rendering recordings, and cleanup. `guides/manual-headless.md` owns manual runner setup. The old `docs/*headless*` entry files now contain only migration links.
 
-想定URLは`https://r0227n.github.io/marionette_agent/`です。GitHub上の設定はファイルを追加するだけでは有効になりません。リポジトリ管理者は初回に次を設定します。
+## GitHub Pages
 
-このリポジトリでは2026-09-21にSourceをGitHub Actionsへ設定し、`github-pages` environmentで`develop`からの公開を許可しました。初回のサイト公開はこのworkflowがdevelopへ入ってから行われます。別リポジトリへ移す場合は、下記の設定を改めて行ってください。
+The deployment URL is `https://r0227n.github.io/marionette_agent/`. Adding workflow files alone does not enable Pages in repository settings.
 
-1. Settings → Pages → Build and deploymentでSourceに **GitHub Actions** を選ぶ。
-2. Actionsの利用と、このworkflow内のGitHub公式Actions・Bun公式の`oven-sh/setup-bun`が許可されていることを確認する。
-3. `github-pages` environmentにbranch制限を設ける場合は`develop`を許可する。承認を必須にした場合は公開時にその承認を行う。
-4. PRを`develop`へマージし、Documentation workflowのverifyとdeployが成功することを確認する。
-5. 再公開する場合はActions → Documentation → Run workflowで **develop** を選ぶ。他ブランチからの手動実行は検証だけを行う。
+On 2026-09-21, this repository’s Pages source was configured as GitHub Actions and the `github-pages` environment was configured to allow `develop`. The first publication awaits merging this workflow into `develop`. For another repository, configure these settings explicitly:
 
-PRでは検証のみ、developへの対象変更または手動実行では同じ検証を通過した`dist/`を1つのPages artifactとして公開します。deploy jobだけに`pages: write`と`id-token: write`を付け、PATは使いません。生成HTMLはcommitしません。
+1. Select **GitHub Actions** under Settings → Pages → Build and deployment.
+2. Allow Actions, the GitHub official actions in this workflow, and Bun’s `oven-sh/setup-bun`.
+3. If `github-pages` restricts branches, allow `develop`. Fulfill any configured environment approval at deployment time.
+4. Merge the PR into `develop` and verify both jobs in the Documentation workflow.
+5. To redeploy manually, select **develop** under Actions → Documentation → Run workflow. Other branches only run verification.
 
-PR検証の対象はGitHubが用意するmerge commitです。実際の公開はdevelopのcommitからビルドし直し、全ページのバナーにpackage versionと対象SHAを表示します。package versionはCLIのpubspecから取得します。ローカルで未commitの変更を確認している場合、SHAはcheckoutのHEADを示します。
+PRs verify without deploying. Relevant changes on `develop`, or manual runs on `develop`, publish the verified `dist/` as a single Pages artifact. Only the deploy job has `pages: write` and `id-token: write`; no PAT is required. Generated HTML is not committed.
 
-現在は開発版の公開です。安定版リリースへ切り替える際は、deploy元をrelease tagへ変更し、developからの自動公開を停止してから版表示と導入手順を揃えます。
+PR verification builds GitHub’s merge commit. Deployment rebuilds from the actual `develop` commit. Each page banner identifies the package version from the CLI pubspec and the built SHA. During local uncommitted work, the SHA refers to the checkout’s HEAD.
+
+This site describes a development version. Before switching to stable documentation, change deployment to a release tag, stop automatic publication from `develop`, and align the version banner and installation instructions.
 
 ## Human acceptance
 
-日本語・英語のホームからクイックスタートへ進み、同じページのまま言語切替できることを確認します。検索で「録画」「STALE_REF」「recording」を調べ、選択言語の結果を開きます。スマートフォン幅ではメニュー、長いコード、表の表示を確認します。
+Open the root and confirm it selects English. Follow both home pages into the quick start and switch languages while staying on the same page. Search for “recording”, “録画”, and “STALE_REF” and open results in the selected language. Open the headless guide, follow manual setup, and verify its language switch. At mobile width, inspect the menu, long commands, and tables. Check that the 404 page offers both language entries.
 
-CLIの動作を確認する場合は、サイトのクイックスタートに従ってexampleを起動し、タップ数と入力欄の変化を実画面で確かめてください。WebサイトのブラウザテストはFlutter操作そのものの検証を代替しません。
+To verify CLI behavior, separately follow the example quick start and inspect the tap count and input changes in Simulator. Website browser tests do not verify Flutter operations.

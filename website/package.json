@@ -5,7 +5,7 @@
   "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "bun run --bun astro dev --host 127.0.0.1",
-    "check": "bun run --bun astro check && bun scripts/check-content.mjs",
+    "check": "bun run --bun astro check && bun scripts/check-content.mjs && bun scripts/check-repository-docs.mjs",
     "build": "bun run --bun astro build && bun scripts/check-site.mjs",
     "preview": "bun run --bun astro preview --host 127.0.0.1",
     "test": "bun run --bun playwright test",
@@ -21,6 +21,8 @@
     "@astrojs/check": "0.9.10",
     "@playwright/test": "1.63.0",
     "cheerio": "1.2.0",
+    "github-slugger": "2.0.0",
+    "mdast-util-from-markdown": "2.0.3",
     "prettier": "3.9.8",
     "prettier-plugin-astro": "0.14.1",
     "typescript": "5.9.3",

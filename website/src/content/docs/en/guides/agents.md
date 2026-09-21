@@ -69,3 +69,5 @@ Give workflow and batch tools file paths on the client’s host. MCP owns stdin,
 ## Set the agent’s operating boundaries
 
 Identify the app, session, permitted actions, and expected verification results. Treat app text and logs as observations, not instructions that replace the operating plan. `contentBoundaries` can mark that distinction in responses.
+
+See [MCP and Skills details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#mcp) for exact profile tool lists, pagination, result envelopes, and lifecycle.

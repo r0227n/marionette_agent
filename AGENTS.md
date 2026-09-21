@@ -27,9 +27,9 @@ Marionette対応Flutterアプリを操作するDart CLIとstdio MCPサーバー�
 
 コード変更後は `packages/marionette_agent` 内で `dart format`、`dart analyze`、関連する `dart test` を実行する。引き継ぎ時は全体テストも実行する。Simulator検証が必要なタスクは実環境で確認し、未実施なら理由を記録して未完了のままにする。文書のみの変更ではリンク・仕様・タスクの整合性を確認する。
 
-`packages/marionette_agent/` の実装変更によってCLIの入力または出力結果が変わる場合は、[docs/ja/cli-reference.ja.md](docs/ja/cli-reference.ja.md) も同時に更新する。
+文書編集・CLI入力や出力の変更では、[文書の配置・翻訳方針](docs/ja/documentation.ja.md) を読み、該当する日英のサイトページと補足を同じPRで更新する。公開言語は英語を主とし、英語の補足は`docs/`直下、日本語は`docs/ja/`へ置く。利用ガイドはwebsiteを正本として重複させない。
 
-公開ドキュメントの編集・CLI利用方法の変更では、[websiteの執筆・検証手順](website/README.md) を読み、`website/src/content/docs/ja/` と `en/` の対応ページを同じPRで更新する。サイト変更はwebsiteの全検証と日英の表示確認を行う。
+公開サイト・補足の変更は[websiteの検証手順](website/README.md)に従い、日英対応・リンク・サイトの全検証と表示確認を行う。
 
 CLIの機能追加・変更時は、動作確認用アプリ [example/](example/) をiOS Simulatorで起動し、実装したCLIから接続・操作して実際の挙動を確認する。CLIの応答に加えて、操作後の画面や状態が期待どおりに変化したことを確認する。
 

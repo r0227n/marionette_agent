@@ -46,9 +46,9 @@ Successful get and is queries read observations without issuing new refs. Do not
 
 Directions are `left`, `right`, `up`, and `down`, describing **finger movement**. Verify the resulting content position or page in a subsequent snapshot.
 
-## Operations with auxiliary providers
+## Additional interactions
 
-The following need a compatible app-side provider. Try them on the example app’s Advanced screen.
+Most of these operations need a compatible app-side provider; dblclick and press can use binding APIs directly. Try supported interactions on the example app’s Advanced screen.
 
 | Syntax                                            | Behavior                                                          |
 | ------------------------------------------------- | ----------------------------------------------------------------- |
@@ -115,3 +115,5 @@ See [capture](/marionette_agent/en/guides/capture/) for file requirements and pl
 | `--help` / `--version`                         | Read usage or version without a connection                                  |
 
 Batch stops at the first failure and cannot contain connection-lifetime operations, recording, or file-saving commands. See [configuration](/marionette_agent/en/reference/configuration/) for action policies and state files.
+
+For provider behavior, matching rules, and action limits, see the [advanced operation details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-parity.md).

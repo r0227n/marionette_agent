@@ -33,7 +33,7 @@ probeの認証URI・remote exception・入力文字列は結果/診断へ出力�
 独立接続を解放し、遅れて成立した接続も閉じる。外部照会processは期限切れで終了させる。
 実macOS/Simulator受入検証は[Issue #9記録](../packages/marionette_agent/docs/verification/issue-9.md)を参照。
 
-状態: `marionette_agent 0.0.1` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法の詳細は[日本語CLIリファレンス](ja/cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.md)を参照する。
+状態: `marionette_agent 0.0.1` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法は[日本語サイト](https://r0227n.github.io/marionette_agent/ja/)、詳細な実行契約は[補足](ja/cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.md)を参照する。
 
 ## 目的と対象
 
@@ -314,7 +314,7 @@ iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／
 
 `marionette-agent mcp [--tools core,inspect,actions,workflow,record|all]`は、`dart_mcp: 0.5.2`のサーバーAPIで改行区切りJSON-RPCを処理する。protocol versionの交渉、initialize／initialized、ping、stdioの切断処理はSDKに従う。起動・tool discoveryだけではdaemon／アプリを起動しない。初期化完了後にtools/listとtools/callを利用する。resources／prompts／HTTP transportは提供しない。
 
-既定profileはcore。複数profileはcommaで合成し、重複は除く。allは公開済みの全MCPツールを有効にする（全CLI構文の互換性を意味しない）。未知／空profileはINVALID_ARGUMENT。tool名は`marionette_agent_` prefix。各profileの範囲と入力例は[CLIリファレンス](ja/cli-reference.ja.md#mcp-stdioサーバー)を参照する。tools/listは最大20件ずつ返し、nextCursorで続きを取得する。未公開／無効なtoolと不正cursorはJSON-RPC -32602。toolには型付きinputSchemaとreadOnly／destructive／idempotent／openWorldのannotationsを付ける。
+既定profileはcore。複数profileはcommaで合成し、重複は除く。allは公開済みの全MCPツールを有効にする（全CLI構文の互換性を意味しない）。未知／空profileはINVALID_ARGUMENT。tool名は`marionette_agent_` prefix。各profileの範囲と入力契約は[CLI実行の詳細](ja/cli-reference.ja.md#mcp)を参照する。tools/listは最大20件ずつ返し、nextCursorで続きを取得する。未公開／無効なtoolと不正cursorはJSON-RPC -32602。toolには型付きinputSchemaとreadOnly／destructive／idempotent／openWorldのannotationsを付ける。
 
 UI対象は`target: {ref: "@e1"}`またはkey／identifier／text／typeのうち1つを持つobject。共通fieldはsession、timeoutMs、maxOutput、contentBoundaries。tool fieldが起動時の共通オプション既定値を上書きする。namespace・action policy・confirm-actions・idle設定は起動時の指定を継承する。入力値をshellへ渡さず、固定CLIコマンドのargvへ変換する。自由なコマンド配列やextraArgsは公開しない。workflow／batchはfile path入力でありstdin `-`を拒否する。`--restore`と`--confirm-interactive`はMCP起動時に拒否する。
 

@@ -46,7 +46,7 @@ Simulatorの[再現スクリプト](../../integration_test/mcp_smoke.dart)は両
 5. compiled版は同ブランチの`bin/marionette_agent.dart`をコンパイルし、`MARIONETTE_TEST_MCP_EXECUTABLE`へ実行ファイルの絶対pathを追加する。exampleを再起動し、別の空出力先で同じスクリプトを実行する。
 6. スクリプトはcloseとMCP終了までを行う。Flutter runnerは`q`で終了し、アプリ停止・専用Simulatorのshutdownを確認する。不要になったURI fileを削除する。
 
-手動のMCPクライアント登録とtool入力は[日本語CLIリファレンス](../../../../docs/ja/cli-reference.ja.md#mcp-stdioサーバー)を参照する。既定coreは17件（操作16＋profiles）、allは52件。実行形態を切り替えるときは毎回新しいruntimeを使用する。
+手動のMCPクライアント登録とtool入力は[日本語CLIリファレンス](../../../../docs/ja/cli-reference.ja.md#mcp)を参照する。既定coreは17件（操作16＋profiles）、allは52件。実行形態を切り替えるときは毎回新しいruntimeを使用する。
 
 ## 制限と人間確認
 

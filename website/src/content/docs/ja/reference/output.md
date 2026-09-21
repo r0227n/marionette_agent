@@ -78,3 +78,5 @@ description: JSON包絡、終了コード、操作結果のoutcomeを使って�
 - `--max-output`は結果全体のサイズ上限ではありません。省略metadataとrefの有効性も確認します。
 
 復旧の手順は[トラブルシューティング](/marionette_agent/ja/reference/troubleshooting/)にまとめています。
+
+[実行の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#output)に出力予算の正確な数え方、filter metadata、refの扱いをまとめています。

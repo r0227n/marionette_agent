@@ -3,26 +3,28 @@ import { base } from '../../site.config.mjs';
 ---
 
 <!doctype html>
-<html lang="ja" data-pagefind-ignore>
+<html lang="en" data-pagefind-ignore>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
-    <title>ページが見つかりません / Page not found — marionette-agent</title>
+    <title>Page not found / ページが見つかりません — marionette-agent</title>
   </head>
   <body>
     <main>
       <p class="brand">marionette-agent <span> / 404</span></p>
-      <h1>ページが見つかりません</h1>
-      <p>URLを確認するか、ドキュメントのホームからお探しください。</p>
-      <p lang="en">
+      <h1>Page not found</h1>
+      <p>
         This page could not be found. Check the URL or start from the
         documentation home.
       </p>
-      <nav aria-label="ドキュメント / Documentation">
-        <a href={`${base}/ja/`}>日本語のホーム</a>
-        <a href={`${base}/en/`} lang="en">English home</a>
+      <p lang="ja">
+        ページが見つかりません。URLを確認するか、ドキュメントのホームからお探しください。
+      </p>
+      <nav aria-label="Documentation / ドキュメント">
+        <a href={`${base}/en/`}>English home</a>
+        <a href={`${base}/ja/`} lang="ja">日本語のホーム</a>
       </nav>
     </main>
   </body>

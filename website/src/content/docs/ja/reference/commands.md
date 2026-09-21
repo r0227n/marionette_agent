@@ -46,9 +46,9 @@ description: 接続、観測、操作、ファイル保存、管理の目的別�
 
 directionは`left`・`right`・`up`・`down`で、**指の移動方向**です。コンテンツの到達位置やページ切替は次のsnapshotで確認します。
 
-## 補助providerを使う操作
+## 追加の入力・操作
 
-以下は対応するアプリ側providerが必要です。exampleのAdvanced画面で試せます。
+多くの操作は対応するアプリ側providerが必要ですが、dblclickとpressはbinding APIで実行できます。exampleのAdvanced画面で対応する操作を試せます。
 
 | 構文                                              | 動作                                                    |
 | ------------------------------------------------- | ------------------------------------------------------- |
@@ -115,3 +115,5 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 | `--help` / `--version`                         | 接続なしで構文／版を確認                                |
 
 batchは最初の失敗で止まり、接続寿命の変更、録画、ファイル保存などは内包できません。操作ポリシーと状態ファイルの扱いは[設定](/marionette_agent/ja/reference/configuration/)を参照してください。
+
+providerの観測範囲・照合規則・操作の制約は[追加操作の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-parity.ja.md)を参照してください。
