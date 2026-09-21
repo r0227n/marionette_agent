@@ -14,7 +14,7 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
   },
   webServer: {
-    command: 'npm run preview -- --port 4321 --ignore-lock',
+    command: 'bun run preview --port 4321 --ignore-lock',
     url: 'http://127.0.0.1:4321/marionette_agent/ja/',
     reuseExistingServer: !process.env.CI,
     stdout: 'pipe',

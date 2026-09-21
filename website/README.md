@@ -4,22 +4,26 @@
 
 ## Local development
 
-Node 24を使用します。以下は`website/`内で実行します。
+Bun 1.4.2を使用します。`.tool-versions`と`package.json`の`packageManager`でバージョンを固定しています。miseを使う場合は`website/`内で`mise install`を実行すると、このディレクトリで指定版が選ばれます。以下も`website/`内で実行します。
 
 ```sh
-npm ci
-npm run dev
+bun install --frozen-lockfile
+bun run dev
 ```
 
 日本語は`http://localhost:4321/marionette_agent/ja/`、英語は`http://localhost:4321/marionette_agent/en/`です。検索はproduction buildに対して確認します。
 
 ```sh
-npx playwright install chromium
-npm run verify
-npm run preview
+bun run --bun playwright install chromium
+bun run verify
+bun run preview
 ```
 
 `verify`は整形、Astroの型検査、日英のページ・コード例対応、ビルド、生成HTMLの内部リンク・アンカー・asset・SEO検査、ブラウザテストを実行します。ブラウザテストはproduction previewを自動起動します。失敗時のtraceと画面は`test-results/`、HTMLレポートは`playwright-report/`に保存します。
+
+Astro・Prettier・Playwrightは各script内の`bun run --bun`でBunランタイムを明示しています。独自の検査scriptもBunで実行します。ブラウザテストはPlaywrightを使うため、`bun test`ではなく`bun run test`で実行してください。
+
+依存追加・更新にはBunを使い、`bun.lock`を同じ変更でcommitします。CIは`--frozen-lockfile`で固定された依存を再現します。Bunの版を更新するときは`.tool-versions`と`packageManager`を揃え、全検証を実行します。GitHub Actions自体が使用するランタイムは、サイトのBunランタイムとは別に各Actionが管理します。
 
 サイト以外のCLIコードを変更していない場合、サイト確認のためにSimulatorやDartテストを起動する必要はありません。CLIの仕様・実装を変更する場合はリポジトリの通常の検証規約に従います。
 
@@ -40,7 +44,7 @@ npm run preview
 このリポジトリでは2026-09-21にSourceをGitHub Actionsへ設定し、`github-pages` environmentで`develop`からの公開を許可しました。初回のサイト公開はこのworkflowがdevelopへ入ってから行われます。別リポジトリへ移す場合は、下記の設定を改めて行ってください。
 
 1. Settings → Pages → Build and deploymentでSourceに **GitHub Actions** を選ぶ。
-2. Actionsの利用と、このworkflow内のGitHub公式Actionsが許可されていることを確認する。
+2. Actionsの利用と、このworkflow内のGitHub公式Actions・Bun公式の`oven-sh/setup-bun`が許可されていることを確認する。
 3. `github-pages` environmentにbranch制限を設ける場合は`develop`を許可する。承認を必須にした場合は公開時にその承認を行う。
 4. PRを`develop`へマージし、Documentation workflowのverifyとdeployが成功することを確認する。
 5. 再公開する場合はActions → Documentation → Run workflowで **develop** を選ぶ。他ブランチからの手動実行は検証だけを行う。
