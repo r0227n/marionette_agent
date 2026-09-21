@@ -24,8 +24,8 @@
 
 詳細なコマンド・期待結果・実測・人間の再現手順は各PRの検証記録を参照する。
 
-- #2: 検証したコードは `857464d169bcf4d5a8eb34740b184d7c4b04e016`。記録のみを追加したheadは `63cc7a05296cc28dd3ce515ccd67371e8398658d`。[検証記録](https://github.com/r0227n/marionette_agent/blob/63cc7a05296cc28dd3ce515ccd67371e8398658d/packages/marionette_agent/docs/verification/issue-2.md)、[秘匿済みCLI結果](https://github.com/r0227n/marionette_agent/blob/63cc7a05296cc28dd3ce515ccd67371e8398658d/packages/marionette_agent/docs/verification/issue-2-results.json)。
-- #3: 検証したコードは `69a57e543dba93c51ed5591bda0a04ed1df51fa8`。記録と再現手順のみを追加・修正したheadは `e9747153e44dea8e81ba36e03265a36672c5ec6c`。[検証記録](https://github.com/r0227n/marionette_agent/blob/e9747153e44dea8e81ba36e03265a36672c5ec6c/packages/marionette_agent/docs/verification/issue-3.md)。
+- #2: 検証したコードは `857464d169bcf4d5a8eb34740b184d7c4b04e016`。記録のみを追加したheadは `63cc7a05296cc28dd3ce515ccd67371e8398658d`。検証結果と添付は[PR #22](https://github.com/r0227n/marionette_agent/pull/22)を参照。
+- #3: 検証したコードは `69a57e543dba93c51ed5591bda0a04ed1df51fa8`。記録と再現手順のみを追加・修正したheadは `e9747153e44dea8e81ba36e03265a36672c5ec6c`。検証結果と添付は[PR #21](https://github.com/r0227n/marionette_agent/pull/21)を参照。
 
 `gh pr view` と全stateのPR一覧を読み返し、それぞれが重複のない1本のopen Draft PRで、baseがdevelop、headが上記commit、テンプレート3項目と添付3件が存在し、人間確認が未チェックであることを確認した。両worktreeはclean。所有するsession・daemon・runner・アプリを終了し、割当端末だけをShutdownへ戻した。worktreeは人間確認・修正用に保持した。
 

@@ -1,6 +1,6 @@
 # Issue #13 進捗
 
-担当: gpt-6-astra / xhigh（Issue #13専任worker）。着手時のAGENTS.mdにtodo.mdの指定はなく、既存todo.mdもなかったため、本ファイルを入口として整備した。詳細な受入対応・検証結果・再現手順は[Issue #13検証記録](packages/marionette_agent/docs/verification/issue-13.md)に記録する。
+担当: gpt-6-astra / xhigh（Issue #13専任worker）。着手時のAGENTS.mdにtodo.mdの指定はなく、既存todo.mdもなかったため、本ファイルを入口として整備した。詳細な受入対応・検証結果・再現手順はPR本文と添付に残す。
 
 - [x] 共通オプションへPNG/JPEG形式とJPEG品質を追加
 - [x] 白背景合成・拡張子・自動名・複数画像・元の期限・排他的保存を実装
@@ -28,7 +28,7 @@
 - [x] Draft PR用の検証記録、画像添付候補、人間の再現手順を準備
 - [ ] 人間による確認
 
-検証コマンド、期待／実際の結果、対象commit、エビデンスは [Issue #8検証記録](packages/marionette_agent/docs/verification/issue-8.md) へ記録する。
+検証コマンド、期待／実際の結果、対象commit、エビデンスはPR本文と添付に残す。
 
 公開・添付確認の最終結果はworker返却先 `/private/tmp/mra-p2-20260912/worker-8-result.md` に記録する。
 
@@ -41,8 +41,8 @@ Branch: `feature/issue-11-annotated-screenshot`.
 
 No todo.md existed when implementation started; this file records the issue's
 requested progress location. Detailed commands, expected/actual results,
-environment, verified commits and human reproduction steps are maintained in
-[Issue #11 verification](packages/marionette_agent/docs/verification/issue-11.md).
+environment, verified commits and human reproduction steps are recorded in
+[PR #32](https://github.com/r0227n/marionette_agent/pull/32).
 
 - [x] Investigate fixed 0.6.0 screenshot and logical bounds source.
 - [x] Implement opt-in mapped capture, annotation and explicit unsupported errors.
@@ -57,8 +57,7 @@ environment, verified commits and human reproduction steps are maintained in
 Owner: sole Issue #9 worker, branch `feature/issue-9-doctor`.
 
 No existing todo.md or AGENTS-designated progress file was present at implementation start.
-Detailed acceptance evidence and reproduction steps are recorded in
-[issue-9.md](packages/marionette_agent/docs/verification/issue-9.md).
+Detailed acceptance evidence and reproduction steps belong in the PR body and attachments.
 
 - [x] Inspect base/worktree, dependency behavior, and reserved device ownership.
 - [x] Implement doctor and pass automated checks (179 tests, analyze clean).
@@ -69,7 +68,6 @@ Detailed acceptance evidence and reproduction steps are recorded in
 
 - Owner: Issue #10 sole worker (coordinator-requested gpt-6-astra, medium).
 - Branch: `feature/issue-10-snapshot-filter`.
-- Progress record: [Issue #10 verification](packages/marionette_agent/docs/verification/issue-10.md).
 - [x] Implement snapshot filters and full-observation ref safety.
 - [x] Update SPEC, ARCHITECTURE, Japanese CLI reference and help.
 - [x] Add automated regression scenarios; format and analyze pass.
@@ -84,7 +82,6 @@ released the initial phase boundary for Simulator verification and Draft publica
 # Progress
 
 - Issue #7: worker-7 (gpt-6-astra, medium). Implementation, 168 automated tests, live text/JSON Simulator verification and teardown passed.
-- Record: [Issue #7 verification](packages/marionette_agent/docs/verification/issue-7.md).
 - Draft PR handoff prepared; human verification remains pending.
 
 # Issue #4 progress
@@ -93,7 +90,7 @@ released the initial phase boundary for Simulator verification and Draft publica
 - Implementation: get text, box, count and shared read resolution complete.
 - Automated verification: dart format ., dart analyze, dart test passed (171 tests).
 - Simulator verification: 29 product CLI calls plus missing-text checks passed; both screenshots inspected. Owned runner/session stopped and simulator returned to Shutdown.
-- Details and human reproduction: [Issue #4 verification](packages/marionette_agent/docs/verification/issue-4.md).
+- Details and human reproduction: see the PR body and attachments.
 - Verified code: `6010ee567ff0af4ddb04586b7fde166a8f1f7462`.
 - Draft PR handoff: agent verification complete; human verification remains pending.
 # Issue #5 progress
@@ -107,8 +104,7 @@ released the initial phase boundary for Simulator verification and Draft publica
   all 168 tests passed in 1m31s after shared-host load decreased; no skips.
 - Simulator: all text/JSON scenarios passed, before/after images opened and
   byte-identical; fixture state unchanged; assigned device returned to Shutdown.
-- Commands, expected/actual results, evidence and human steps:
-  [Issue #5 verification](packages/marionette_agent/docs/verification/issue-5.md).
+- Commands, expected/actual results, evidence and human steps belong in the PR body and attachments.
 - Human verification remains pending.
 
 # Issue #6: close --all
@@ -123,4 +119,4 @@ released the initial phase boundary for Simulator verification and Draft publica
 - [x] Draft PR用の検証記録・人間の再現手順・4画像を準備。
 - [ ] 人間確認（Draft PRで引き渡し）。
 
-詳細な検証記録は packages/marionette_agent/docs/verification/issue-6.md に記録する。
+詳細な検証記録はPR本文と添付に残す。

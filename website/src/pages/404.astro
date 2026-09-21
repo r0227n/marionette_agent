@@ -1,0 +1,71 @@
+---
+import { base } from '../../site.config.mjs';
+---
+
+<!doctype html>
+<html lang="en" data-pagefind-ignore>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+    <title>Page not found / ページが見つかりません — marionette-agent</title>
+  </head>
+  <body>
+    <main>
+      <p class="brand">marionette-agent <span> / 404</span></p>
+      <h1>Page not found</h1>
+      <p>
+        This page could not be found. Check the URL or start from the
+        documentation home.
+      </p>
+      <p lang="ja">
+        ページが見つかりません。URLを確認するか、ドキュメントのホームからお探しください。
+      </p>
+      <nav aria-label="Documentation / ドキュメント">
+        <a href={`${base}/en/`}>English home</a>
+        <a href={`${base}/ja/`} lang="ja">日本語のホーム</a>
+      </nav>
+    </main>
+  </body>
+</html>
+
+<style>
+  :global(html) {
+    color-scheme: light dark;
+    font-family: system-ui, sans-serif;
+    background: light-dark(#fdfdfa, #151918);
+    color: light-dark(#243c32, #e0f1e8);
+  }
+  body {
+    margin: 0;
+    padding: 2rem;
+  }
+  main {
+    max-width: 42rem;
+    margin: 15vh auto;
+  }
+  .brand {
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  .brand span {
+    font-weight: 400;
+  }
+  h1 {
+    font-size: clamp(1.6rem, 5vw, 2.5rem);
+  }
+  p {
+    line-height: 1.8;
+  }
+  nav {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+  }
+  a {
+    color: light-dark(#176b50, #b9f1d9);
+    text-underline-offset: 0.2em;
+  }
+</style>

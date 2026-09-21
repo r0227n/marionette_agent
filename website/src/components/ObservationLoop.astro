@@ -1,0 +1,69 @@
+---
+const english = Astro.currentLocale === 'en';
+const steps = english
+  ? [
+      ['01', 'Observe', 'Read the screen with snapshot.'],
+      ['02', 'Act', 'Choose one target. Send one action.'],
+      ['03', 'Verify', 'Read the resulting state.'],
+    ]
+  : [
+      ['01', '観測する', 'snapshotで、いまの画面を読む。'],
+      ['02', '操作する', '対象を選んで、操作を1回送る。'],
+      ['03', '確かめる', 'もう一度観測し、結果を確認する。'],
+    ];
+---
+
+<div
+  class="loop"
+  aria-label={english ? 'The observation loop' : '観測から確認までの流れ'}
+>
+  {
+    steps.map(([number, title, description]) => (
+      <div class="step">
+        <>
+          <span class="number">{number}</span>
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .loop {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-block: 1px solid var(--sl-color-hairline);
+    margin-block: 2.5rem;
+  }
+  .loop > .step {
+    margin-block: 0;
+    padding: 1.5rem;
+  }
+  .step + .step {
+    border-inline-start: 1px solid var(--sl-color-hairline);
+  }
+  .number {
+    font: 0.8rem var(--sl-font-mono);
+    color: var(--sl-color-text-accent);
+  }
+  h3 {
+    margin-top: 0.55rem;
+    font-size: 1.1rem;
+  }
+  p {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--sl-color-gray-2);
+  }
+  @media (max-width: 40rem) {
+    .loop {
+      grid-template-columns: 1fr;
+    }
+    .step + .step {
+      border-inline-start: 0;
+      border-top: 1px solid var(--sl-color-hairline);
+    }
+  }
+</style>

@@ -22,14 +22,14 @@
 | P1 | `drag` が始点・終点・始点を別々に観測し、異なる画面状態の検証結果を組み合わせていた | 両対象を同一inspect結果で検証する `resolveAll` / `performTargets` を追加。失敗ならrefを維持し、成功時だけ失効して1回送信 |
 | P2 | 明示CLIでsession/timeoutを上書きしても、batchの子argv解析が不正な環境変数を再検証し、実行前に失敗した | 共通オプションは親だけで解決。子は構文・重複option・paramsだけを検証。空session/不正timeoutの環境値を親CLIで上書きする回帰テストを追加 |
 
-仕様の正本は [SPEC](SPEC.md)、詳細は [追加コマンド](ja/cli-parity.ja.md)、実装の責務は [ARCHITECTURE](ARCHITECTURE.md) と [コマンド実装契約](ja/command-contract.ja.md) に反映した。
+仕様の正本は [SPEC](ja/SPEC.ja.md)、詳細は [追加コマンド](ja/cli-parity.ja.md)、実装の責務は [ARCHITECTURE](ja/ARCHITECTURE.ja.md) と [コマンド実装契約](ja/command-contract.ja.md) に反映した。
 
 ## 検証
 
 - 修正前の既存281テストは成功。新規のfind 4件、dragの共通観測、batch環境値の6ケースは修正前に失敗し、修正後に成功した。
 - 修正後の整形・静的解析と全291テストが成功。IPC、AOT実行形式、deadline、queue、ref、policy、workflow、画像、録画を含む。
 - 大量行の差分は12,000行を逆順に並べた観測で、5秒の要求期限内に変更なしと判定した。重複行、mapのkey順序、整数と小数の同値も確認した。
-- 実環境シナリオは [critical_review_smoke.dart](../packages/marionette_agent/integration_test/critical_review_smoke.dart)。fixture再起動後、CLIの結果と画面を照合する。最終実行記録と確認方法は [検証記録](../packages/marionette_agent/docs/verification/critical-review.md) に記載する。
+- 実環境シナリオは [critical_review_smoke.dart](../packages/marionette_agent/integration_test/critical_review_smoke.dart)。fixture再起動後、CLIの結果と画面を照合する。実行結果と画像はPR本文と添付で確認する。
 
 選択から送信までのアプリ側の原子性や永続的な要素identityは追加していない。同一属性の別要素への置換は現行backendで検出できない。競合条件は決定的なfakeによる回帰確認、Simulatorは実際の操作成功と画面変化の確認を担当する。
 
@@ -48,4 +48,4 @@ skillsの構文とcatalogがparserを経由して循環依存する配置を、�
 | P2 | `skills list --config <不存在path> --json` がskills専用形式ではなくschemaVersion付きの通常形式、終了コード2を返す。textモードではstdoutにエラーと全体helpまで出る | 最初の構文解析でコマンドを識別した直後、config読込より前にrunnerへ通知する。不在・不正JSON・未知optionの3条件をJSON/text両方で確認し、専用形式・終了1・runtime未生成を保証 |
 | P2 | frontmatter開始・終了行のprefixしか検査しておらず、`---invalid`や空のnameが一覧・全件取得に入る | 独立した開始・終了行と非空nameを検査。正しいLF/CRLFのガイドを保ち、不正な3種類を除外 |
 
-2件とも新規回帰テストが修正前に失敗し、修正後に成功した。全303テスト成功。最終CLI実測と人間の確認手順は [develop統合の検証記録](../packages/marionette_agent/docs/verification/critical-review-develop.md) を参照。
+2件とも新規回帰テストが修正前に失敗し、修正後に成功した。全303テスト成功。再現用のシナリオは上記のcritical_review_smoke.dartを参照。

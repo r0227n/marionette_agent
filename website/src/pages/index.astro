@@ -1,0 +1,23 @@
+---
+import { site, base, defaultLocale } from '../../site.config.mjs';
+const destination = `${base}/${defaultLocale}/`;
+---
+
+<!doctype html>
+<html lang={defaultLocale} data-pagefind-ignore>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content={`0;url=${destination}`} />
+    <link rel="canonical" href={`${site}${destination}`} />
+    <title>marionette-agent documentation</title>
+  </head>
+  <body>
+    <p>
+      <a href={destination}>English documentation</a> · <a
+        href={`${base}/ja/`}
+        lang="ja">日本語ドキュメントへ</a
+      >
+    </p>
+  </body>
+</html>

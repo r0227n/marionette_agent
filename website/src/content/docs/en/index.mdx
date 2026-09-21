@@ -1,0 +1,77 @@
+---
+title: Put Flutter in your agent’s hands.
+description: Learn to observe, operate, and verify Flutter apps with marionette-agent.
+template: splash
+hero:
+  tagline: Read the screen. Choose a target. Check the result. Operate Flutter apps through the CLI and MCP.
+  actions:
+    - text: Try your first interaction
+      link: /marionette_agent/en/getting-started/quick-start/
+      icon: right-arrow
+    - text: Install the CLI
+      link: /marionette_agent/en/getting-started/installation/
+      variant: secondary
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import ObservationLoop from '../../../components/ObservationLoop.astro';
+
+<ObservationLoop />
+
+## Make every interaction observable
+
+marionette-agent is a Dart CLI for operating Marionette-enabled Flutter apps. Agents and people use the same commands to locate elements, enter text, send gestures, and inspect what changed.
+
+```sh
+marionette-agent snapshot
+marionette-agent tap --key tap_button
+marionette-agent snapshot
+```
+
+This is the smallest interaction loop for the connected example app. Check the second observation to see that the tap count increased.
+
+<CardGrid>
+  <Card title="Read what matters" icon="document">
+    Inspect screen elements with snapshot. Use a key or a short ref to identify
+    exactly what to operate on.
+  </Card>
+  <Card title="Use your own tools" icon="seti:shell">
+    Run the CLI from a shell or expose stdio MCP to an agent. Both share
+    sessions and the same interaction contract.
+  </Card>
+  <Card title="Repeat a procedure" icon="list-format">
+    Describe a sequence in a JSON or YAML workflow. Read its final snapshot to
+    check the resulting state.
+  </Card>
+  <Card title="Keep the evidence" icon="seti:video">
+    Save screenshots and recordings of what the app displayed, during
+    interactive checks or headless execution.
+  </Card>
+</CardGrid>
+
+## Choose a starting point
+
+<CardGrid>
+  <LinkCard
+    title="Try the example app"
+    description="Connect, tap, enter text, and finish the session."
+    href="/marionette_agent/en/getting-started/quick-start/"
+  />
+  <LinkCard
+    title="Prepare your Flutter app"
+    description="Initialize the Marionette binding in a debug app."
+    href="/marionette_agent/en/getting-started/app-integration/"
+  />
+  <LinkCard
+    title="Connect an AI agent"
+    description="Choose MCP or the bundled Skills."
+    href="/marionette_agent/en/guides/agents/"
+  />
+  <LinkCard
+    title="Look up a command"
+    description="Find syntax and requirements by task."
+    href="/marionette_agent/en/reference/commands/"
+  />
+</CardGrid>
+
+The supported host is currently macOS. Your target must be a debug app with Marionette initialized. Read [supported environments](/marionette_agent/en/getting-started/overview/) for the platform boundaries.
