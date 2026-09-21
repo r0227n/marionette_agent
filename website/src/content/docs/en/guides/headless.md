@@ -24,9 +24,7 @@ Tester does not reproduce native iOS or Android implementations. Check OS plugin
 Finish [CLI installation](/marionette_agent/en/getting-started/installation/) and resolve the example’s dependencies. Run this from the repository root.
 
 ```sh
-cd example
 flutter pub get
-cd ..
 ```
 
 `launch` builds with `--no-pub`. Allow enough timeout for the first build and device boot. Recording also needs ffmpeg on PATH and disk space for temporary PNGs and video.
@@ -49,7 +47,7 @@ In the verified SDK, tester is debug-only with an 800×600 logical viewport and 
 
 ```sh
 marionette-agent --session fast workflow run \
-  packages/marionette_agent/examples/workflows/headless-controls.yaml --json
+  samples/workflows/headless-controls.yaml --json
 ```
 
 Check that `page_result` in `finalSnapshot` is `Current page: 2`. These distances are specific to the example, not defaults for other apps. See the [workflow guide](/marionette_agent/en/guides/workflows/) for failure progress and reobservation.

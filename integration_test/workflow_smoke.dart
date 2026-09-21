@@ -59,23 +59,23 @@ Future<void> main() async {
     if (!condition) throw StateError(message);
   }
 
-  String example(String file) => p.join(root, 'examples/workflows', file);
+  String sample(String file) => p.join(root, 'samples/workflows', file);
   try {
     await cli(['workflow', 'schema', 'tap']);
-    await cli(['workflow', 'validate', example('reach-controls.yaml')]);
-    await cli(['workflow', 'validate', example('fill-input.json')]);
+    await cli(['workflow', 'validate', sample('reach-controls.yaml')]);
+    await cli(['workflow', 'validate', sample('fill-input.json')]);
     await cli([
       'workflow',
       'validate',
-      example('fill-input.json'),
+      sample('fill-input.json'),
       '--check-inputs',
     ], expected: 2);
     await cli([
       'workflow',
       'validate',
-      example('fill-input.json'),
+      sample('fill-input.json'),
       '--inputs',
-      example('inputs.example.json'),
+      sample('inputs.example.json'),
     ]);
     await cli(['connect', uri]);
     final initial = await cli(['snapshot']);
@@ -87,7 +87,7 @@ Future<void> main() async {
       final flow = await cli([
         'workflow',
         'run',
-        example('reach-controls.$format'),
+        sample('reach-controls.$format'),
       ]);
       final data = flow['data'] as Map;
       check(
@@ -111,9 +111,9 @@ Future<void> main() async {
     final filled = await cli([
       'workflow',
       'run',
-      example('fill-input.json'),
+      sample('fill-input.json'),
       '--inputs',
-      example('inputs.example.json'),
+      sample('inputs.example.json'),
     ]);
     check(
       row((filled['data'] as Map)['finalSnapshot'], 'fill_result')['text'] ==
@@ -123,7 +123,7 @@ Future<void> main() async {
     final fail = await cli([
       'workflow',
       'run',
-      example('stop-on-missing.json'),
+      sample('stop-on-missing.json'),
     ], expected: 4);
     check(
       fail['error']['details']['completedSteps'] == 1 &&

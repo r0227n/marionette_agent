@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:image/image.dart' as image;
 import 'package:path/path.dart' as p;
 
-/// Real product CLI acceptance. See examples/workflows/README.md for setup.
+/// Real product CLI acceptance. See docs/runtime-verification.md for setup.
 /// Each run owns its runtime; the caller owns the device, app and Flutter runner.
 Future<void> main() async {
   final env = Platform.environment;
@@ -30,7 +30,7 @@ Future<void> main() async {
   await Process.run('chmod', ['700', runtime.path]);
   final root = p.dirname(p.dirname(Platform.script.toFilePath()));
   final script = p.join(root, 'bin/marionette_agent.dart');
-  final workflow = p.join(root, 'examples/workflows/all-actions.yaml');
+  final workflow = p.join(root, 'samples/workflows/all-actions.yaml');
   final records = <Map<String, dynamic>>[];
   final checks = <String>[];
   String? failure;

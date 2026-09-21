@@ -2,15 +2,18 @@ name: marionette_agent
 description: A session-based CLI for Marionette-enabled Flutter apps.
 version: 0.0.1
 publish_to: none
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/r0227n/marionette_agent
 
 environment:
   sdk: ^3.13.2
 
-# Add regular dependencies here.
+workspace:
+  - packages/marionette_agent_util
+  - example
+
 dependencies:
   marionette_agent_util:
-    path: ../marionette_agent_util
+    path: packages/marionette_agent_util
   # PNG/JPEG codec internal APIs are isolated in artifact_writer.dart.
   image: 4.9.1
   yaml: 3.1.4

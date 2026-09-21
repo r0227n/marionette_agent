@@ -29,7 +29,7 @@
 - 修正前の既存281テストは成功。新規のfind 4件、dragの共通観測、batch環境値の6ケースは修正前に失敗し、修正後に成功した。
 - 修正後の整形・静的解析と全291テストが成功。IPC、AOT実行形式、deadline、queue、ref、policy、workflow、画像、録画を含む。
 - 大量行の差分は12,000行を逆順に並べた観測で、5秒の要求期限内に変更なしと判定した。重複行、mapのkey順序、整数と小数の同値も確認した。
-- 実環境シナリオは [critical_review_smoke.dart](../packages/marionette_agent/integration_test/critical_review_smoke.dart)。fixture再起動後、CLIの結果と画面を照合する。実行結果と画像はPR本文と添付で確認する。
+- 実環境シナリオは [critical_review_smoke.dart](../integration_test/critical_review_smoke.dart)。fixture再起動後、CLIの結果と画面を照合する。実行結果と画像はPR本文と添付で確認する。
 
 選択から送信までのアプリ側の原子性や永続的な要素identityは追加していない。同一属性の別要素への置換は現行backendで検出できない。競合条件は決定的なfakeによる回帰確認、Simulatorは実際の操作成功と画面変化の確認を担当する。
 

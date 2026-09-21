@@ -65,7 +65,9 @@ AI Agent / Shell
 ### ディレクトリ
 
 ```text
-packages/marionette_agent/
+marionette_agent/
+  pubspec.yaml  # CLI package and Pub workspace root
+  pubspec.lock  # Shared dependency resolution
   bin/marionette_agent.dart
   skills/       # Hidden stub for external discovery
   skill-data/   # Runtime core/simulator-verify guides and supporting files
@@ -84,11 +86,15 @@ packages/marionette_agent/
     backend/    # Backend interface and Marionette adapter
     commands/   # Operations using shared services
     workflow/   # Schema, model, parent/step execution control
-  examples/     # JSON/YAML workflows and input examples
+  samples/workflows/ # JSON/YAML workflows and input samples
+  packages/marionette_agent_util/ # Shared host and Flutter helpers
+  example/      # Flutter verification app
   test/         # Unit, IPC, and contract tests
     support/    # FakeBackend, input-recording fakes, shared Request fixtures
   integration_test/ # CLI scenarios on Simulator
 ```
+
+ルートのCLI・util・exampleは単一の[Pub workspace](https://dart.dev/tools/pub/workspaces)を構成する。ルートで両メンバーを列挙し、各メンバーのpubspecに `resolution: workspace` を指定する。CLI・exampleからutilへの依存は、それぞれ明示的な相対pathで宣言する。ルートで `flutter pub get` を一度実行し、lockfileとpackage configもルートだけで管理する。共有するテスト依存にはFlutter SDKの制約も適用される。
 
 protocolはDartの値とJSONだけを扱い、CLIやargsには依存しない。commands以下はIPC paramsの検証・型付き要求・handlerを所有する。CLIの構文は同じ検証を呼ぶが、handlerからCLIへ依存を戻さない。内部は必要な定義を直接importし、公開barrel経由の循環依存を作らない。`architecture_test.dart`でdaemon各層からCLI/args/公開barrelへの依存を拒否する。
 

@@ -24,7 +24,7 @@ The second command also includes command references and templates.
 
 The app must already be running in debug mode with `MarionetteBinding` initialized
 and a reachable VM Service URI. To install from a prepared repository checkout,
-run its `packages/marionette_agent/bin/marionette_agent.dart` entrypoint with
+run its `bin/marionette_agent.dart` entrypoint with
 `install <existing-bin-directory>`. Add that directory to PATH and retain the
 adjacent hidden asset directory printed by `skills path`.
 

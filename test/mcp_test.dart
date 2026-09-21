@@ -89,7 +89,7 @@ void main() {
     final tools = {for (final tool in mcpToolCatalog()) tool.name: tool};
     final samples = <String, Map<String, Object?>>{
       'launch': {
-        'project': '../../example',
+        'project': './example',
         'platform': 'ios',
         'timeoutMs': 120000,
         'deviceType': 'com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro',

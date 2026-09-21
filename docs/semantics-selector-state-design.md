@@ -19,7 +19,7 @@
 | F7 | 同 `lib/src/services/widget_finder.dart:29` | matcherで最初のWidget elementを検索。CLIの事前一意性確認と送信はatomicではない |
 | F8 | 同 `lib/src/binding/extensions/info_extensions.dart:54` | interactiveElementsはF1のlistをそのまま返す。型付きstate APIを追加しない |
 | M1 | marionette_mcp 0.6.0 `lib/src/vm_service/vm_service_connector.dart:279` | getInteractiveElementsはextension呼出し。tap/enterTextはMapのmatcherを渡す。新属性の意味を補完しない |
-| A1 | [backend.dart](../packages/marionette_agent/lib/src/backend/backend.dart)、[marionette_backend.dart](../packages/marionette_agent/lib/src/backend/marionette_backend.dart) `decodeElements` | 現行DTOはtype/text/key/identifier/bounds/visible。診断属性の全量を公開しない。照合対応はkey/text/type |
+| A1 | [backend.dart](../lib/src/backend/backend.dart)、[marionette_backend.dart](../lib/src/backend/marionette_backend.dart) `decodeElements` | 現行DTOはtype/text/key/identifier/bounds/visible。診断属性の全量を公開しない。照合対応はkey/text/type |
 | T1 | Flutter 3.47.2 `packages/flutter/lib/src/semantics/semantics.dart:2690` | SemanticsPropertiesのdiagnosticsはlabel/value/hint/tooltip/role/checked/mixed等を追加する。診断からtyped APIは成立しない |
 | T2 | Flutter 3.47.2 `packages/flutter/lib/src/widgets/basic.dart:7979` | Semantics.debugFillPropertiesはpropertiesのdiagnosticsも追加する |
 | T3 | Flutter 3.47.2 `packages/flutter/lib/src/material/text_field.dart:974` | nullable enabled、controller、decoration等のdiagnostics。decoration内のhintをplaceholder fieldと見なさない |
@@ -42,7 +42,7 @@ F2は `p.runtimeType != DiagnosticsProperty`、name/value非nullで選別する�
 | enabled | TextField等の非null設定の診断は候補。effective enabledや親による抑止を共通取得するAPIなし、CLI未公開 | 不可 | F2, T3, A1 | resolved enabled、applicability、unknownの理由。visible/hittableとの区別 |
 | checked | 明示Semantics checked/mixedの診断は候補。一般のCheckbox/Switchのtyped state APIなし、CLI未公開 | 不可 | F2, T1, A1 | checked/unchecked/mixedのenum、applicability、WidgetとSemanticsの対応 |
 
-現行 [response fixture](../packages/marionette_agent/test/fixtures/binding_0_6_0.json) の `inspect` はFilledButtonと2個のSemanticsを含み、`Volume: 70%` と `Read only` はF3と整合する表示例。診断label/value/checked等を含まないため、それらの有無を立証しない。FilledButtonの`text: Tap me`もstock exampleで同じraw応答になる証拠ではない (F4はbuttonで打切り、組込みtext抽出にbuttonを含まない)。これはadapter用の合成fixtureであり、実端末採取fixtureとして扱わない。
+現行 [response fixture](../test/fixtures/binding_0_6_0.json) の `inspect` はFilledButtonと2個のSemanticsを含み、`Volume: 70%` と `Read only` はF3と整合する表示例。診断label/value/checked等を含まないため、それらの有無を立証しない。FilledButtonの`text: Tap me`もstock exampleで同じraw応答になる証拠ではない (F4はbuttonで打切り、組込みtext抽出にbuttonを含まない)。これはadapter用の合成fixtureであり、実端末採取fixtureとして扱わない。
 
 ## Simulatorで確認した範囲
 
