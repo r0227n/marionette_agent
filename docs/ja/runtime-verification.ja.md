@@ -1,6 +1,8 @@
 # 全コマンドの動作確認
 
-[all-actions.yaml](all-actions.yaml) はworkflow v1の全6 actionを使う16ステップのシナリオです。Aboutへの移動・復帰、tap、fill、PageViewのswipe、scroll、wait、snapshotを実行します。対象はリポジトリの [exampleアプリ](../../../../example/README.md) です。
+[English](../runtime-verification.md) · [日本語の目次](README.md)
+
+[all-actions.yaml](../../samples/workflows/all-actions.yaml) はworkflow v1の全6 actionを使う16ステップのシナリオです。Aboutへの移動・復帰、tap、fill、PageViewのswipe、scroll、wait、snapshotを実行します。対象はリポジトリの [exampleアプリ](../../example/README.md) です。
 
 workflow v1には接続、get、画像、ログ、録画などのactionがありません。それらは [all_commands_smoke.dart](../../integration_test/all_commands_smoke.dart) が製品CLIの別プロセスとして実行します。YAMLの検証と実行も同じスクリプトに含みます。iOSとAndroidで同じシナリオを使い、端末IDとrecordのplatformだけを切り替えます。
 
@@ -11,8 +13,7 @@ macOS、リポジトリで指定するFlutter/Dart、iOS Simulator用のXcode、
 リポジトリルートで依存を取得します。
 
 ```sh
-(cd packages/marionette_agent && dart pub get)
-(cd example && flutter pub get)
+flutter pub get
 flutter devices
 xcrun simctl list devices available
 adb devices -l
@@ -29,7 +30,7 @@ MRA_RUN=$(mktemp -d /tmp/mra-all.XXXXXX)
 mkdir -m 700 "$MRA_RUN/private" "$MRA_RUN/evidence"
 MRA_PLATFORM=ios
 MRA_DEVICE='<iOS Simulator UDID>'
-# Androidの場合:
+# For Android:
 # MRA_PLATFORM=android
 # MRA_DEVICE=emulator-5580
 
@@ -42,7 +43,7 @@ flutter run -d "$MRA_DEVICE" --debug --no-pub \
 Flutter runnerはこのターミナルで動かし続けます。別ターミナルに `MRA_ROOT`、`MRA_RUN`、`MRA_PLATFORM`、`MRA_DEVICE` の値を引き継ぎ、URIファイルが生成された後で実行します。URI本文やraw Flutterログは貼り付けず、シェルトレースも使わないでください。
 
 ```sh
-cd "$MRA_ROOT/packages/marionette_agent"
+cd "$MRA_ROOT"
 MARIONETTE_TEST_PLATFORM="$MRA_PLATFORM" \
 MARIONETTE_TEST_DEVICE="$MRA_DEVICE" \
 MARIONETTE_TEST_VM_URI_FILE="$MRA_RUN/private/vm-uri" \
@@ -90,7 +91,7 @@ dart run integration_test/all_commands_smoke.dart
 
 ```sh
 rm "$MRA_RUN/private/vm-uri"
-# 自分が起動した端末だけを停止:
+# Stop only devices started for this run:
 # xcrun simctl shutdown "$MRA_DEVICE"  # iOS
 # adb -s "$MRA_DEVICE" emu kill       # Android
 ```

@@ -22,28 +22,28 @@ final invalidArg = throwsA(
 void main() {
   test('bundled examples validate and JSON/YAML navigation is equivalent', () {
     final yaml = parseWorkflowText(
-      File('examples/workflows/reach-controls.yaml').readAsStringSync(),
+      File('samples/workflows/reach-controls.yaml').readAsStringSync(),
       'yaml',
     );
     final json = parseWorkflowText(
-      File('examples/workflows/reach-controls.json').readAsStringSync(),
+      File('samples/workflows/reach-controls.json').readAsStringSync(),
       'json',
     );
     expect(yaml, json);
     expect(WorkflowPlan.decode(json).steps.length, 6);
     final fill = parseWorkflowText(
-      File('examples/workflows/fill-input.json').readAsStringSync(),
+      File('samples/workflows/fill-input.json').readAsStringSync(),
       'json',
     );
     final inputs = parseWorkflowText(
-      File('examples/workflows/inputs.example.json').readAsStringSync(),
+      File('samples/workflows/inputs.example.json').readAsStringSync(),
       'json',
     );
     expect(WorkflowPlan.decode(fill, inputs: inputs).steps.length, 2);
     expect(
       WorkflowPlan.decode(
         parseWorkflowText(
-          File('examples/workflows/stop-on-missing.json').readAsStringSync(),
+          File('samples/workflows/stop-on-missing.json').readAsStringSync(),
           'json',
         ),
       ).steps.length,
@@ -53,7 +53,7 @@ void main() {
   test('all-actions acceptance workflow binds and covers every action', () {
     final plan = WorkflowPlan.decode(
       parseWorkflowText(
-        File('examples/workflows/all-actions.yaml').readAsStringSync(),
+        File('samples/workflows/all-actions.yaml').readAsStringSync(),
         'yaml',
       ),
       inputs: <String, dynamic>{},

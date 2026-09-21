@@ -15,6 +15,7 @@ These supplements cover details beyond the site. English files live directly in 
 | [Workflow file reference](workflow-file-spec.md) | Schema, binding, limits, and failure progress | [workflowファイル仕様](ja/workflow-file-spec.ja.md) |
 | [Headless guides](headless.md) | Follow the migration links to managed and manual startup on the site | [headlessガイド](ja/headless.ja.md) |
 | [Command implementation contract](command-contract.md) | Developing handlers and backend adapters | [コマンド実装契約](ja/command-contract.ja.md) |
+| [Runtime verification](runtime-verification.md) | Reproducing CLI acceptance checks against the example app | [実環境検証](ja/runtime-verification.ja.md) |
 | [Documentation policy](documentation.md) | Choosing a location and updating both languages | [文書の配置・翻訳方針](ja/documentation.ja.md) |
 
 Existing Japanese filenames remain valid entry points. Duplicated installation instructions, basic command lists, quick starts, and managed-launch guides have been removed from those supplements.

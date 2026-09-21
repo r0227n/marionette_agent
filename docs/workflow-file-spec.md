@@ -2,7 +2,7 @@
 
 [日本語](ja/workflow-file-spec.ja.md) · [Documentation index](README.md)
 
-The [workflow guide](https://r0227n.github.io/marionette_agent/en/guides/workflows/) owns getting-started instructions and the downloadable example. This supplement defines the detailed input, execution, and result contract for schemaVersion 1. The public result schema and internal IPC version are separate; see [protocol.dart](../packages/marionette_agent/lib/src/protocol/protocol.dart) for the current IPC value.
+The [workflow guide](https://r0227n.github.io/marionette_agent/en/guides/workflows/) owns getting-started instructions and the downloadable example. This supplement defines the detailed input, execution, and result contract for schemaVersion 1. The public result schema and internal IPC version are separate; see [protocol.dart](../lib/src/protocol/protocol.dart) for the current IPC value.
 
 <a id="validation"></a>
 ## Local validation and binding
@@ -66,7 +66,7 @@ Fill text takes exactly one of these shapes; partial string interpolation is uns
 {"input":"value"}
 ```
 
-See [fill-input.json](../packages/marionette_agent/examples/workflows/fill-input.json) and [inputs.example.json](../packages/marionette_agent/examples/workflows/inputs.example.json) for complete examples.
+See [fill-input.json](../samples/workflows/fill-input.json) and [inputs.example.json](../samples/workflows/inputs.example.json) for complete examples.
 
 <a id="wait"></a>
 ## Wait conditions and deadlines
@@ -125,9 +125,9 @@ Failures before starting a step have null stepIndex/stepId/action and completedS
 
 Workflow content, inputs, resolved params, and fill values are not copied into diagnostics or execution reports. Only constrained workflow names and step IDs appear in results. Sensitive:true forbids embedded defaults; it does not track values or mask snapshots. Values displayed by the app can appear in subsequent snapshots or finalSnapshot. Supply secrets through restricted inputs files or stdin.
 
-- [schema_catalog.dart](../packages/marionette_agent/lib/src/workflow/schema_catalog.dart): bundled schema.
-- [workflow_loader.dart](../packages/marionette_agent/lib/src/cli/workflow_loader.dart): files and parsers.
-- [model.dart](../packages/marionette_agent/lib/src/workflow/model.dart): semantic validation and binding.
-- [workflow_runner.dart](../packages/marionette_agent/lib/src/workflow/workflow_runner.dart): execution and progress.
-- [wait.dart](../packages/marionette_agent/lib/src/commands/wait.dart): conditions.
-- [workflow_model_test.dart](../packages/marionette_agent/test/workflow_model_test.dart), [workflow_cli_test.dart](../packages/marionette_agent/test/workflow_cli_test.dart), [workflow_execution_test.dart](../packages/marionette_agent/test/workflow_execution_test.dart): boundary verification.
+- [schema_catalog.dart](../lib/src/workflow/schema_catalog.dart): bundled schema.
+- [workflow_loader.dart](../lib/src/cli/workflow_loader.dart): files and parsers.
+- [model.dart](../lib/src/workflow/model.dart): semantic validation and binding.
+- [workflow_runner.dart](../lib/src/workflow/workflow_runner.dart): execution and progress.
+- [wait.dart](../lib/src/commands/wait.dart): conditions.
+- [workflow_model_test.dart](../test/workflow_model_test.dart), [workflow_cli_test.dart](../test/workflow_cli_test.dart), [workflow_execution_test.dart](../test/workflow_execution_test.dart): boundary verification.

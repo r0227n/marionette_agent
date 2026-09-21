@@ -24,9 +24,7 @@ testerはiOSやAndroidのネイティブ実装を再現しません。OS plugin�
 CLIの[インストール](/marionette_agent/ja/getting-started/installation/)を済ませ、exampleの依存を取得します。以下はリポジトリルートから実行します。
 
 ```sh
-cd example
 flutter pub get
-cd ..
 ```
 
 `launch`は`--no-pub`でビルドします。初回buildと端末bootも含めてtimeoutを長く指定してください。録画にはPATH上のffmpegと、一時PNG・動画用の空き容量も必要です。
@@ -49,7 +47,7 @@ marionette-agent --session fast screenshot
 
 ```sh
 marionette-agent --session fast workflow run \
-  packages/marionette_agent/examples/workflows/headless-controls.yaml --json
+  samples/workflows/headless-controls.yaml --json
 ```
 
 `finalSnapshot`の`page_result`が`Current page: 2`であることを確認します。これらの距離はexample向けで、他アプリの既定値ではありません。[workflowガイド](/marionette_agent/ja/guides/workflows/)で失敗時の進捗と再観測も確認してください。

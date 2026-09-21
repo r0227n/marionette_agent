@@ -2,7 +2,7 @@
 
 [English](../command-contract.md) · [日本語の目次](README.md)
 
-CLI handlerとbackend adapterを開発するときの境界を説明します。利用方法は[サイト](https://r0227n.github.io/marionette_agent/ja/)、全体契約は[SPEC](SPEC.ja.md)、依存方向は[ARCHITECTURE](ARCHITECTURE.ja.md)を参照してください。versionをここへ複写せず、[pubspec](../../packages/marionette_agent/pubspec.yaml)と[protocol定数](../../packages/marionette_agent/lib/src/protocol/protocol.dart)を確認します。
+CLI handlerとbackend adapterを開発するときの境界を説明します。利用方法は[サイト](https://r0227n.github.io/marionette_agent/ja/)、全体契約は[SPEC](SPEC.ja.md)、依存方向は[ARCHITECTURE](ARCHITECTURE.ja.md)を参照してください。versionをここへ複写せず、[pubspec](../../pubspec.yaml)と[protocol定数](../../lib/src/protocol/protocol.dart)を確認します。
 
 <a id="boundaries"></a>
 ## 実装境界と登録
@@ -18,7 +18,7 @@ CliParser / CliCommand
 
 構文は`cli/commands/`とcatalog、共通型は`cli/command.dart`へ置き、通常handlerは`coreCommands()`にも同名で登録します。decodeはArgResultsをstring keyのJSON paramsへ変換します。IPCから直接届く入力もあるため、handlerでも許可field・型・必須・排他を検証します。未知fieldを無視しません。共通optionはroot parserの`cli/common_options.dart`へ集約し、selectorは`addSelectorOptions`、`parseTarget`と共有decodeを使います。
 
-内部handlerは必要なbackend/protocol/commands/snapshot定義を直接importし、CLI/argsや公開barrelには依存しません。外部の組立用は`marionette_agent.dart`から公開します。上流`marionette_mcp/src/`のimportは`backend/marionette_backend.dart`へ限定し、handlerへ生response mapやconnector例外を渡しません。登録の実行可能な例は[probe_cli.dart](../../packages/marionette_agent/integration_test/support/probe_cli.dart)です。
+内部handlerは必要なbackend/protocol/commands/snapshot定義を直接importし、CLI/argsや公開barrelには依存しません。外部の組立用は`marionette_agent.dart`から公開します。上流`marionette_mcp/src/`のimportは`backend/marionette_backend.dart`へ限定し、handlerへ生response mapやconnector例外を渡しません。登録の実行可能な例は[probe_cli.dart](../../integration_test/support/probe_cli.dart)です。
 
 recordは共通session queueからRecordServiceとutilへ委譲します。OS画面録画はVM Service接続なしでも動きますが、Flutter描画録画には接続が必要です。OS処理・終了シグナルはutilへ集約し、操作用refや接続世代を変更しません。
 
@@ -32,7 +32,7 @@ Pointは有限かつ非負、swipe distanceは有限かつ正数（既定200）�
 <a id="context"></a>
 ## CommandContextと送信回数
 
-[CommandContext](../../packages/marionette_agent/lib/src/commands/command_context.dart)を通してsession状態へアクセスします。
+[CommandContext](../../lib/src/commands/command_context.dart)を通してsession状態へアクセスします。
 
 | API | 契約 |
 | --- | --- |
@@ -62,7 +62,7 @@ mutation前に再観測し、0件はrefならSTALE_REF、明示selectorならTAR
 
 Backendの型付きprimitiveとcapability interfaceを使い、上流のSuccessとresponse構造をadapterで検査します。connection_uriはHTTP(S)をWS(S)へ正規化し、接続にはpath/queryを保持、状態表示はhost/port以外を秘匿します。scrollはswipe primitiveを使い、結果にcommand:scrollを付けます。
 
-screenshotはdaemonからbase64 PNGをCLIへ渡し、[artifact_writer.dart](../../packages/marionette_agent/lib/src/cli/artifact_writer.dart)で検証、要求形式への変換、排他的保存を行います。PNG/JPEGの品質・path・失敗cleanupは[画像の契約](cli-reference.ja.md#capture)を参照してください。handlerが別の保存規則を実装せず、取得から保存まで元deadlineを使います。
+screenshotはdaemonからbase64 PNGをCLIへ渡し、[artifact_writer.dart](../../lib/src/cli/artifact_writer.dart)で検証、要求形式への変換、排他的保存を行います。PNG/JPEGの品質・path・失敗cleanupは[画像の契約](cli-reference.ja.md#capture)を参照してください。handlerが別の保存規則を実装せず、取得から保存まで元deadlineを使います。
 
 logsはentries、nullableなconfigured、必要時limitationを返します。未設定が観測された場合だけfalseで、不明と空を区別できなければnullです。アプリのログはstdoutの結果であり、診断ではありません。
 

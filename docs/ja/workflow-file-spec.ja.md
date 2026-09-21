@@ -2,7 +2,7 @@
 
 [English](../workflow-file-spec.md) · [日本語の目次](README.md)
 
-実行の始め方とダウンロード例は[workflowガイド](https://r0227n.github.io/marionette_agent/ja/guides/workflows/)に集約しました。本書はschemaVersion 1の詳細な入力・実行・結果契約です。公開結果のschemaと内部IPCのversionは別物です。現行IPCの値は[protocol.dart](../../packages/marionette_agent/lib/src/protocol/protocol.dart)を参照してください。
+実行の始め方とダウンロード例は[workflowガイド](https://r0227n.github.io/marionette_agent/ja/guides/workflows/)に集約しました。本書はschemaVersion 1の詳細な入力・実行・結果契約です。公開結果のschemaと内部IPCのversionは別物です。現行IPCの値は[protocol.dart](../../lib/src/protocol/protocol.dart)を参照してください。
 
 <a id="validation"></a>
 ## ローカル検証とbinding
@@ -66,7 +66,7 @@ fillのtextは次のどちらか1つで、部分的な文字列展開はあり�
 {"input":"value"}
 ```
 
-[fill-input.json](../../packages/marionette_agent/examples/workflows/fill-input.json)と[inputs.example.json](../../packages/marionette_agent/examples/workflows/inputs.example.json)に実例があります。
+[fill-input.json](../../samples/workflows/fill-input.json)と[inputs.example.json](../../samples/workflows/inputs.example.json)に実例があります。
 
 <a id="wait"></a>
 ## waitの条件と期限
@@ -125,9 +125,9 @@ step開始前の失敗はstepIndex/stepId/actionがnull、completedSteps:0です
 
 workflow本文・inputs・解決済みparams・fill入力を診断や実行報告へ複写しません。制約されたworkflow名とstep IDだけを結果に使います。sensitive:trueはdefault埋込みを禁止するmetadataで、値の追跡やsnapshot maskではありません。アプリが表示した値は後続snapshotやfinalSnapshotへ現れる場合があります。秘密値は権限を限定したinputs fileかstdinで渡してください。
 
-- [schema_catalog.dart](../../packages/marionette_agent/lib/src/workflow/schema_catalog.dart): 同梱schema。
-- [workflow_loader.dart](../../packages/marionette_agent/lib/src/cli/workflow_loader.dart): fileとparser。
-- [model.dart](../../packages/marionette_agent/lib/src/workflow/model.dart): 意味検証とbinding。
-- [workflow_runner.dart](../../packages/marionette_agent/lib/src/workflow/workflow_runner.dart): 実行と進捗。
-- [wait.dart](../../packages/marionette_agent/lib/src/commands/wait.dart): 条件判定。
-- [workflow_model_test.dart](../../packages/marionette_agent/test/workflow_model_test.dart)、[workflow_cli_test.dart](../../packages/marionette_agent/test/workflow_cli_test.dart)、[workflow_execution_test.dart](../../packages/marionette_agent/test/workflow_execution_test.dart): 境界検証。
+- [schema_catalog.dart](../../lib/src/workflow/schema_catalog.dart): 同梱schema。
+- [workflow_loader.dart](../../lib/src/cli/workflow_loader.dart): fileとparser。
+- [model.dart](../../lib/src/workflow/model.dart): 意味検証とbinding。
+- [workflow_runner.dart](../../lib/src/workflow/workflow_runner.dart): 実行と進捗。
+- [wait.dart](../../lib/src/commands/wait.dart): 条件判定。
+- [workflow_model_test.dart](../../test/workflow_model_test.dart)、[workflow_cli_test.dart](../../test/workflow_cli_test.dart)、[workflow_execution_test.dart](../../test/workflow_execution_test.dart): 境界検証。
