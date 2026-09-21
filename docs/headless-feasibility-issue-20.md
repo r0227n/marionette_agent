@@ -1,6 +1,6 @@
 # Issue #20: flutter-testerによるheadless実行の実装可否
 
-> 更新: 以下は当初の調査時点の記録です。その後、利用者から実装と「各プラットフォームの実行環境を使う」ヘッドレス録画の指示を受けました。現在の実装契約は[SPEC](SPEC.md#flutterアプリのヘッドレス録画issue-20)を正とします。その後の追加依頼により、testerと各実行環境を明示選択するlaunchを実装しています。[最新の利用ガイド](ja/headless.ja.md)を参照してください。
+> 更新: 以下は当初の調査時点の記録です。その後、利用者から実装と「各プラットフォームの実行環境を使う」ヘッドレス録画の指示を受けました。現在の実装契約は[SPEC](ja/SPEC.ja.md#flutterアプリのヘッドレス録画issue-20)を正とします。その後の追加依頼により、testerと各実行環境を明示選択するlaunchを実装しています。[最新の利用ガイド](ja/headless.ja.md)を参照してください。
 
 調査日: 2026-09-15。調査当時の状態: **技術的には実装可能。提供形態・対応範囲は提案段階で、製品実装は未着手。**
 
@@ -159,7 +159,7 @@ GitHubの可変masterは版の根拠にせず、Flutterについてはローカ�
 - [M1] [marionette_flutter 0.6.0](https://pub.dev/packages/marionette_flutter/versions/0.6.0)、解決済み`lib/src/binding/marionette_binding.dart:24`の継承・初期化・private constructor。
 - [M2] 同0.6.0の`lib/src/services/screenshot_service.dart:101`以降、`lib/src/binding/marionette_configuration.dart:22`。FlutterViewの物理サイズと最大2000×2000への縮小。
 - [R1] [MarionetteBackend](../packages/marionette_agent/lib/src/backend/marionette_backend.dart): connectのprovider検出、inspectの分岐、上流API境界。
-- [R2] [SPEC](SPEC.md)、[ARCHITECTURE](ARCHITECTURE.md): 対応範囲、close、session/ref/timeout、責務分離。
+- [R2] [SPEC](ja/SPEC.ja.md)、[ARCHITECTURE](ja/ARCHITECTURE.ja.md): 対応範囲、close、session/ref/timeout、責務分離。
 - [R3] [SessionManager](../packages/marionette_agent/lib/src/session/session_manager.dart)、[Session](../packages/marionette_agent/lib/src/session/session.dart)、[RuntimeDirectory](../packages/marionette_agent/lib/src/daemon/runtime.dart)。
 - [R4] [現行example main](../example/lib/main.dart)、[typed provider](../packages/marionette_agent_util/lib/flutter.dart)、[mapped screenshot](../example/lib/mapped_screenshot.dart)。
 - [R5] [期限付きprocess runner](../packages/marionette_agent/lib/src/cli/process_runner.dart)。

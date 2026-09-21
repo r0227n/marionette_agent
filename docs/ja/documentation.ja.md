@@ -11,12 +11,13 @@
 | プロジェクト概要と最短の導入 | ルートの`README.md` | 日本語サイトへのリンク |
 | 導入、操作ガイド、基本リファレンス | `website/src/content/docs/en/` | `website/src/content/docs/ja/`の同じ相対パス |
 | サイトを補う詳細仕様・開発手順 | `docs/<name>.md` | `docs/ja/<name>.ja.md` |
+| 製品仕様とアーキテクチャ | `docs/SPEC.md`、`docs/ARCHITECTURE.md` | `docs/ja/SPEC.ja.md`、`docs/ja/ARCHITECTURE.ja.md` |
 | 補足の目次 | `docs/README.md` | `docs/ja/README.md` |
 | サイトの開発・CI・Pages設定 | `website/README.md` | この方針から参照 |
 
 `docs/en/`は作りません。サイトの原稿はStarlight側にだけ置き、補足から該当ガイドへリンクします。補足にはガイドを繰り返さず、値域・境界条件・手動セットアップ・実装契約などを記載します。補足をサイトへ移したときは、その日英本文を補足から削除し、関連リンクを更新してください。
 
-既存のSPEC、ARCHITECTURE、調査・ADR・検証記録、Agent運用文書は別の用途を持つ内部文書です。今回の日英対応の対象は公開サイトと目次に載せた補足です。過去の調査記録を現行の利用ガイドとして扱いません。
+日英対応の対象は公開サイトと目次に載せた文書で、[SPEC](SPEC.ja.md)と[ARCHITECTURE](ARCHITECTURE.ja.md)も含みます。利用ガイドを重複させず、契約と実装境界を両言語で維持します。両言語に共通の英語見出しアンカーを設け、既存リンク用の旧日本語アンカーも保持します。調査・ADR・Agent運用文書は別の用途を持ち、この日英対応の対象外です。過去の調査記録を現行の利用ガイドとして扱いません。
 
 ## 更新の手順
 

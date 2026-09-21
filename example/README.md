@@ -57,7 +57,7 @@ dart "$CLI" --session beta close
 
 debug構成は`lib/mapped_screenshot.dart`の固定名providerを登録する。通常のbinding 0.6.0だけでは画像geometryが不足するため、このfixtureで明示的に補う。単一RenderViewの未resize画像と物理/論理寸法を一緒に返し、overlayは注入しない。一般のbinding対応を表すものではない。`flutter run --dart-define=DISABLE_MAPPED_SCREENSHOT=true ...`で登録を無効化し、CLIのUNSUPPORTED_CAPABILITYを検証できる。
 
-`snapshot`の後に`screenshot --annotate <新しいpath>`を実行する。原画像は別pathへ通常`screenshot`で取得し、ラベルと実要素位置を照合する。詳細契約は[SPEC](../docs/SPEC.md)、操作手順は[画像・動画ガイド](../website/src/content/docs/ja/guides/capture.md)を参照する。
+`snapshot`の後に`screenshot --annotate <新しいpath>`を実行する。原画像は別pathへ通常`screenshot`で取得し、ラベルと実要素位置を照合する。詳細契約は[SPEC](../docs/ja/SPEC.ja.md)、操作手順は[画像・動画ガイド](../website/src/content/docs/ja/guides/capture.md)を参照する。
 
 ## Workflow検証
 

@@ -22,7 +22,7 @@
 | P1 | `drag` が始点・終点・始点を別々に観測し、異なる画面状態の検証結果を組み合わせていた | 両対象を同一inspect結果で検証する `resolveAll` / `performTargets` を追加。失敗ならrefを維持し、成功時だけ失効して1回送信 |
 | P2 | 明示CLIでsession/timeoutを上書きしても、batchの子argv解析が不正な環境変数を再検証し、実行前に失敗した | 共通オプションは親だけで解決。子は構文・重複option・paramsだけを検証。空session/不正timeoutの環境値を親CLIで上書きする回帰テストを追加 |
 
-仕様の正本は [SPEC](SPEC.md)、詳細は [追加コマンド](ja/cli-parity.ja.md)、実装の責務は [ARCHITECTURE](ARCHITECTURE.md) と [コマンド実装契約](ja/command-contract.ja.md) に反映した。
+仕様の正本は [SPEC](ja/SPEC.ja.md)、詳細は [追加コマンド](ja/cli-parity.ja.md)、実装の責務は [ARCHITECTURE](ja/ARCHITECTURE.ja.md) と [コマンド実装契約](ja/command-contract.ja.md) に反映した。
 
 ## 検証
 

@@ -1,319 +1,390 @@
-# marionette_agent — アーキテクチャ
+<a id="marionette_agent--architecture"></a>
+<a id="marionette_agent--アーキテクチャ"></a>
 
-## doctor境界 (Issue #9)
+# marionette_agent — Architecture
 
-`cli/runner.dart`はdoctorを`RuntimeDirectory.prepare`より前にローカル配送する。
-`cli/doctor.dart`がhost/runtimeのread-only検査、固定依存の宣言/lock比較、Simulator列挙、
-check状態と終了コード集計を所有する。外部processとprobeはfixtureへ差し替え可能。
-daemon socketは所有者/0700確認後に接続し、既存protocol decoderでhandshakeだけを読む。
-DaemonClient、SessionManager、runtime準備、command dispatchを呼ばない。
-DaemonServerはhandshakeだけのclientが切断した時に元のidle期限を再利用する。
-要求をdispatchした場合だけ新しい無操作区間を開始し、doctorによる寿命の延長を防ぐ。
+[日本語](ja/ARCHITECTURE.ja.md) · [Documentation index](README.md)
 
-`backend/doctor_probe.dart`は公開vm_service APIで独立clientを作り、既存backendのURI正規化を再利用する。
-上流internal APIのimportを追加せず、観測したextension登録とbinding versionだけを返す。
-URI・remote error本文を境界の外へ返さない。finallyと遅延完了handlerで接続を解放する。
-各process/RPCは全体deadlineの残り時間を使い、IPCには最大1秒の上限も設ける。
-診断結果は共通Resultのdataに入れ、runnerがdoctorのdata.exitCodeをprocess終了値に適用する。
-text rendererはcheck状態/理由/次手順/details、JSONは共通envelopeを表示する。
+<a id="doctor-boundary-issue-9"></a>
+<a id="doctor境界-issue-9"></a>
 
-本書は[SPEC.md](SPEC.md)の`marionette_agent 0.0.1`契約を実現する現行構成を定義する。単独コマンドとworkflow v1は実装済み。コマンド追加時の具体的な不変条件は[実装契約](ja/command-contract.ja.md)を参照する。
+## Doctor boundary (Issue #9)
 
-## 構成
+`cli/runner.dart` dispatches doctor locally before `RuntimeDirectory.prepare`.
+`cli/doctor.dart` owns read-only host/runtime checks, comparisons between fixed dependency declarations and lockfiles, Simulator enumeration, and aggregation of check statuses and exit codes. External processes and probes can be replaced with fixtures.
+It connects to a daemon socket only after checking directory ownership and mode 0700, then reads only the handshake through the existing protocol decoder.
+It does not call DaemonClient, SessionManager, runtime preparation, or command dispatch.
+When a client that only reads the handshake disconnects, DaemonServer reuses the original idle deadline. Only a dispatched request starts a new idle interval, so doctor does not extend the daemon's lifetime.
 
-`is visible`は`CommandContext.observeTarget`から`SnapshotService.observeTarget`を利用し、sessionのread境界でinspectする。操作用resolveと対象再観測・一意性・stale判定を共有し、操作用resolveのみ非表示を拒否する。コマンドはnullableなvisibleをknown/valueへ変換するだけで、mutationや公開snapshot/ref更新を行わない。単体およびIPC fixtureでtrue/false/nullと対象解決エラーを検証する。
+`backend/doctor_probe.dart` creates an independent client through the public vm_service API and reuses the backend's URI normalization.
+It introduces no upstream internal API imports and returns only observed extension registrations and the binding version.
+It does not expose the URI or remote error body outside the boundary. A finally block and a late-completion handler release the connection.
+Each process/RPC uses the remaining overall deadline; IPC also has a maximum of one second.
+Diagnostic results go into the shared Result's data, and the runner uses doctor's data.exitCode as the process exit code.
+The text renderer shows check status, reason, next steps, and details; JSON uses the shared envelope.
+
+This document defines the current architecture implementing the `marionette_agent 0.0.1` contract in [SPEC.md](SPEC.md). Standalone commands and workflow v1 are implemented. See the [implementation contract](command-contract.md) for invariants when adding commands.
+
+<a id="system-structure"></a>
+<a id="構成"></a>
+
+## System structure
+
+`is visible` uses `SnapshotService.observeTarget` through `CommandContext.observeTarget`, inspecting through the session's read boundary. It shares target re-observation, uniqueness, and stale checks with action resolution; only action resolution rejects invisible targets. The command merely converts nullable visible into known/value. It neither mutates the UI nor updates the public snapshot or refs. Unit and IPC fixtures cover true/false/null and target resolution errors.
 
 ```text
 AI Agent / Shell
-  → Dart CLI（解析・workflow読込／検証・出力・ファイル保存）
-  → Unix domain socket（実行要求だけを送るローカルIPC）
-  → Dart daemon（session・直列実行・workflow・snapshot/ref）
-  → Marionette adapter（VmServiceConnector）
+  → Dart CLI (parsing, workflow loading/validation, output, file persistence)
+  → Unix domain socket (local IPC for execution requests only)
+  → Dart daemon (sessions, serialization, workflows, snapshots/refs)
+  → Marionette adapter (VmServiceConnector)
   → Dart VM Service WebSocket
-  → marionette_flutter（iOS Simulator内のFlutterアプリ）
+  → marionette_flutter (Flutter app in iOS Simulator)
 ```
 
-1ユーザー・1ランタイムディレクトリに1daemonを置く。daemonはsessionごとに独立したconnectorとキューを所有する。CLIとdaemonはDartで実装する。MCPクライアントは任意のstdio MCPプロセスを通じて同じCLIを呼び出す。
+There is one daemon per user and runtime directory. It owns an independent connector and queue for each session. The CLI and daemon are written in Dart. MCP clients invoke the same CLI through a separate, optional stdio MCP process.
 
-### MCP境界
+<a id="mcp-boundary"></a>
+<a id="mcp境界"></a>
 
-`cli/commands/mcp.dart`が起動引数を解析し、runnerがpolicy読込・runtime作成より前に`mcp/server.dart`へ配送する。`dart_mcp`のMCPServer＋ToolsSupportとstdioChannelがJSON-RPC、初期化、version交渉、通信終了を所有する。serverは固定profileの登録、pagination、入力の秘匿化、CLI結果のCallToolResult変換、保存済み画像のImageContent化を担当する。MCP通信のprotocol log sinkは設定しない。
+### MCP boundary
 
-`mcp/catalog.dart`は型付きschemaと固定コマンド／argvの対応を所有する。値付きoptionは`--name=value`、位置引数は`--`以降へ配置し、入力文字列をCLI optionやshell構文として解釈しない。自由なargv入力は提供しない。業務上の対象解決・操作条件はCLI parserと既存commandへ委譲する。
+`cli/commands/mcp.dart` parses startup arguments, and the runner dispatches to `mcp/server.dart` before reading policies or creating the runtime. The `dart_mcp` MCPServer, ToolsSupport, and stdioChannel own JSON-RPC, initialization, version negotiation, and transport shutdown. The server registers fixed profiles, handles pagination and input redaction, converts CLI results into CallToolResult, and turns saved images into ImageContent. No protocol log sink is configured for MCP traffic.
 
-`mcp/executor.dart`は既存の起動形態判定を再利用し、source／snapshot／compiledの同じCLIを通常processとして1回起動する。stdinを閉じ、stdoutを有界に取得し、stderrをdrainして破棄する。CLI終了値と検証済みResult包絡をserverへ返す。timeout・MCP終了では所有するCLI processだけを回収する。daemonやアプリの所有権は既存session層に残るため、EOFで他のCLI sessionを閉じない。
+`mcp/catalog.dart` owns typed schemas and the mapping to fixed commands/argv. Options with values use `--name=value`; positional arguments follow `--`, so input strings are not interpreted as CLI options or shell syntax. Arbitrary argv input is not exposed. Domain-specific target resolution and action conditions are delegated to the CLI parser and existing commands.
 
-依存方向はMCP → CLI／IPCであり、backend／session／commandsからMCP SDKへ依存しない。`test/mcp_test.dart`はSDKクライアントと製品stdio process、fixture daemonを接続し、`integration_test/mcp_smoke.dart`は同じ経路でSimulatorのexampleを操作する。契約は[SPEC](SPEC.md#stdio-mcpサーバー)を参照する。
+`mcp/executor.dart` reuses executable-mode detection and launches the same source, snapshot, or compiled CLI once as a normal process. It closes stdin, captures bounded stdout, and drains and discards stderr. It returns the CLI exit code and validated Result envelope to the server. On timeout or MCP shutdown, it cleans up only CLI processes it owns. The existing session layer retains ownership of the daemon and apps, so EOF does not close sessions used by other CLI processes.
 
-### ディレクトリ
+Dependencies point from MCP to CLI/IPC. Backend, session, and commands do not depend on the MCP SDK. `test/mcp_test.dart` connects an SDK client, the product stdio process, and a fixture daemon; `integration_test/mcp_smoke.dart` operates the Simulator example through the same route. See the [SPEC contract](SPEC.md#stdio-mcp-server).
+
+<a id="directories"></a>
+<a id="ディレクトリ"></a>
+
+### Directories
 
 ```text
 packages/marionette_agent/
   bin/marionette_agent.dart
-  skills/       # 外部発見用のhidden stub
-  skill-data/   # core・simulator-verifyの実行時ガイドと補助ファイル
+  skills/       # Hidden stub for external discovery
+  skill-data/   # Runtime core/simulator-verify guides and supporting files
   lib/src/
-    mcp/        # dart_mcp stdio server、typed tool catalog、CLI process実行
-    cli/        # 呼出元の解析・出力・ファイル/process処理
-      commands/ # catalogとコマンド別のArgParser構文
-      command.dart # CliCommand型。parserには依存しない
-      parser.dart  # config/環境/CLIの優先順位とInvocation生成
-      help.dart    # usageテキスト
-    diagnostics/# loggingレコードの秘匿化、request単位の収集、stderr出力
-    protocol/   # versioned request/response、error、DTO
-    daemon/     # 起動、socket server、dispatch、期限と直列化
-    session/    # lifecycle、接続所有権
-    snapshot/   # target.dartの対象型、ref、対象の事前検証
-    backend/    # Backend interface、Marionette adapter
-    commands/   # 共通サービスを使う各操作
-    workflow/   # schema、model、親/step実行制御
-  examples/     # JSON／YAML workflowとinputs例
-  test/         # 単体・IPC・契約テスト
-    support/    # FakeBackend、入力保持fake、共通Request fixture
-  integration_test/ # SimulatorでのCLIシナリオ
+    mcp/        # dart_mcp stdio server, typed tool catalog, CLI process execution
+    cli/        # Caller-side parsing, output, file/process handling
+      commands/ # Catalog and per-command ArgParser syntax
+      command.dart # CliCommand type, independent of the parser
+      parser.dart  # Config/environment/CLI precedence and Invocation creation
+      help.dart    # Usage text
+    diagnostics/# Logging redaction, per-request collection, stderr output
+    protocol/   # Versioned requests/responses, errors, DTOs
+    daemon/     # Startup, socket server, dispatch, deadlines, serialization
+    session/    # Lifecycle and connection ownership
+    snapshot/   # Target types in target.dart, refs, target preflight checks
+    backend/    # Backend interface and Marionette adapter
+    commands/   # Operations using shared services
+    workflow/   # Schema, model, parent/step execution control
+  examples/     # JSON/YAML workflows and input examples
+  test/         # Unit, IPC, and contract tests
+    support/    # FakeBackend, input-recording fakes, shared Request fixtures
+  integration_test/ # CLI scenarios on Simulator
 ```
 
-protocolはDartの値とJSONだけを扱い、CLIやargsには依存しない。commands以下はIPC paramsの検証・型付き要求・handlerを所有する。CLIの構文は同じ検証を呼ぶが、handlerからCLIへ依存を戻さない。内部は必要な定義を直接importし、公開barrel経由の循環依存を作らない。`architecture_test.dart`でdaemon各層からCLI/args/公開barrelへの依存を拒否する。
+Protocol handles only Dart values and JSON; it does not depend on CLI or args. The commands layer owns IPC parameter validation, typed requests, and handlers. CLI syntax invokes the same validation without introducing a dependency from handlers back to CLI. Internal code imports required definitions directly instead of creating cycles through the public barrel. `architecture_test.dart` rejects dependencies from daemon layers to CLI, args, or the public barrel.
 
-コマンド層はBackend interfaceに依存し、上流connectorやresponse mapを直接扱わない。URIの正規化・秘匿化は`backend/connection_uri.dart`に置き、sessionやstate保存が具体adapterをimportせずに使う。FakeBackendは`test/support/`だけに配置し、製品の公開exportには含めない。rendererはbackend例外を解釈しない。
+The command layer depends on the Backend interface, never directly on upstream connectors or response maps. URI normalization and redaction live in `backend/connection_uri.dart`, so sessions and state persistence can use them without importing a concrete adapter. FakeBackend lives only in `test/support/` and is not part of the product's public exports. Renderers do not interpret backend exceptions.
 
-ローカル実行は`batch_loader.dart`、`connection_state.dart`、`installer.dart`、`observation_diff.dart`へ分ける。共通の通常ファイル読込は`input_file.dart`、期限付きprocess実行は`process_runner.dart`が所有し、state/policy/batchが画像差分やdoctorの実装を読み込む必要をなくす。
+Local execution is split across `batch_loader.dart`, `connection_state.dart`, `installer.dart`, and `observation_diff.dart`. `input_file.dart` owns shared regular-file reading, and `process_runner.dart` owns deadline-bound process execution, keeping state, policy, and batch code independent of image-diff and doctor implementations.
 
-## Skill配信のローカル境界
+<a id="local-boundary-for-skill-distribution"></a>
+<a id="skill配信のローカル境界"></a>
 
-`cli/commands/skills.dart`がskillsの文法、`cli/help.dart`がhelp、`cli/skill_catalog.dart`がpackage/環境変数からの探索、frontmatter解析、catalogと専用text/JSON出力を所有する。catalogはCLI parserに依存しない。`cli/runner.dart`は引数解析後、policy読込・RuntimeDirectory.prepareより前に実行して返る。成功時も失敗時もIPCへ渡さず、session/refを参照しない。`--debug`は既存診断を使う。
+## Local boundary for Skill distribution
 
-CliParserは最初の構文解析で識別したコマンドをconfig読込より前に呼出元へ通知する。これによりconfigの失敗もskills等の出力契約へ分類できる。frontmatterは独立した開始・終了行を検証してからその区間だけを読み、空のnameはcatalogへ登録しない。
+`cli/commands/skills.dart` owns skills syntax; `cli/help.dart` owns help; `cli/skill_catalog.dart` owns discovery from the package/environment variable, frontmatter parsing, the catalog, and dedicated text/JSON output. The catalog does not depend on the CLI parser. After argument parsing, `cli/runner.dart` executes it and returns before policy loading or RuntimeDirectory.prepare. Success and failure both bypass IPC and do not reference sessions or refs. `--debug` uses existing diagnostics.
 
-`skills/`の導入用stubと`skill-data/`の実行時ガイドをDartパッケージ内に置く。Dart起動ではIsolate.resolvePackageUri、手動コンパイルでは実行ファイルを基準とする配布rootを使う。`installer.dart`はソースの両ディレクトリを新規bundleへコピーし、相対bundle名をDart環境定数としてコンパイルする。成功したバイナリだけを切り替え、失敗時は新規bundleを回収する。既存版のbundleは保持する。実行時に展開・生成・ダウンロードする経路を持たない。
+CliParser reports the command identified during initial syntax parsing to the caller before loading config. This lets config failures follow command-specific output contracts such as skills. Frontmatter parsing first validates standalone opening and closing lines, reads only that interval, and excludes empty names from the catalog.
 
-Skillの互換JSONは`SkillsOutput`の専用境界で生成し、protocolのResult/schemaVersionは変更しない。コマンド詳細、探索優先順位、配布時に同伴するbundleの契約は[SPEC](SPEC.md#同梱skillの配信)を参照。
+The Dart package contains introductory stubs in `skills/` and runtime guides in `skill-data/`. Dart invocation uses Isolate.resolvePackageUri; manually compiled invocation uses a distribution root relative to the executable. `installer.dart` copies both source directories into a new bundle and compiles its relative name as a Dart environment constant. Only a successfully compiled binary replaces the installed one; failure removes the new bundle. Bundles for existing versions remain. There is no runtime extraction, generation, or download path.
+
+The dedicated `SkillsOutput` boundary produces compatibility JSON without changing protocol Result/schemaVersion. See [SPEC](SPEC.md#bundled-skill-distribution) for command details, discovery precedence, and the accompanying distribution bundle contract.
+
+<a id="marionette-adapter"></a>
 
 ## Marionette adapter
 
-`package:marionette_mcp/src/vm_service/vm_service_connector.dart` のVmServiceConnectorを再利用する。内部API依存はadapterに限定する。pubの `marionette_mcp: 0.6.0` を完全固定し、lockfileも管理する。固定版connectorとbindingのresponse fixtureを契約テストで検証する。
+The adapter reuses VmServiceConnector from `package:marionette_mcp/src/vm_service/vm_service_connector.dart`. Internal API dependencies remain confined to the adapter. The pub dependency `marionette_mcp: 0.6.0` is pinned exactly, and its lockfile is tracked. Contract tests verify response fixtures from the pinned connector and binding.
 
-隣の `../marionette_mcp` は参考ソースであり、pubの解決済みバージョンと一致するとは限らない。固定版は構造化statusで成功を返し、swipeの両方式を提供する。identifier matcherは未対応のためUNSUPPORTED_CAPABILITYを返す。配布時に隣接リポジトリへのpath依存を要求しない。
+The neighboring `../marionette_mcp` is reference source and may differ from the resolved pub version. The pinned connector reports success through structured status and provides both swipe modes. It lacks an identifier matcher, which yields UNSUPPORTED_CAPABILITY. Distribution does not require a path dependency on a neighboring repository.
 
-| ローカル操作 | 上流呼び出し |
+| Local operation | Upstream call |
 | --- | --- |
 | connect / close | connect / disconnect |
 | snapshot | getInteractiveElements |
 | tap | tap |
 | fill | enterText |
-| swipe / 初版scroll | swipe |
+| swipe / initial scroll | swipe |
 | screenshot | takeScreenshots |
-| screenshot --annotate | callCustomExtensionで固定名marionette_agent.captureMappedScreenshotを呼ぶ（opt-in providerが必要） |
+| screenshot --annotate | callCustomExtension with the fixed name marionette_agent.captureMappedScreenshot (requires an opt-in provider) |
 | logs | getLogs |
 
-adapterはURI正規化、wire変換、response検証、例外分類を担当する。HTTP→WS、HTTPS→WSSへ変換するとき認証path/queryを保持し、`/ws` を重複追加しない。機能不足はUNSUPPORTED_CAPABILITY。成功メッセージ文字列だけで成否を判定しない。
+The adapter handles URI normalization, wire conversion, response validation, and exception classification. HTTP→WS and HTTPS→WSS conversion preserves authentication paths/queries and does not append `/ws` twice. Missing capabilities produce UNSUPPORTED_CAPABILITY. Success is never inferred solely from a message string.
 
-Backend interfaceはconnect、disconnect、inspect、tap、fill、swipe、captureScreenshots、readLogsを型付き引数・結果で提供する。上流mapは境界で閉じる。scrollは同じswipe primitiveを使い、helpと出力はscrollとして返す。
+The Backend interface exposes connect, disconnect, inspect, tap, fill, swipe, captureScreenshots, and readLogs with typed arguments and results. Upstream maps stay inside the boundary. Scroll uses the same swipe primitive but retains scroll in help and output.
 
-注釈captureは任意のBackendへ必須メソッドを追加せず、別のMappedScreenshotBackend能力として定義する。MarionetteBackendは固定名provider応答のsupported/status、単一画像、ScreenshotGeometry v1を検証し、MappedScreenshot DTOへ変換する。geometryはversion=1、viewCount=1、空でないviewId、originX=originY=rotation=0、正の整数pixelWidth/pixelHeight、有限で正のlogicalWidth/logicalHeightを要求する。CLIはIPC後にもgeometryと実PNG寸法を照合し、x方向pixelWidth/logicalWidth、y方向pixelHeight/logicalHeightを適用する。向きや倍率を画像またはboundsから推測しない。
+Annotated capture is a separate MappedScreenshotBackend capability, not a required method on every Backend. MarionetteBackend validates the fixed provider's supported/status, single image, and ScreenshotGeometry v1, then converts the response into a MappedScreenshot DTO. Geometry requires version=1, viewCount=1, a nonempty viewId, originX=originY=rotation=0, positive integer pixelWidth/pixelHeight, and finite positive logicalWidth/logicalHeight. After IPC, the CLI also checks geometry against actual PNG dimensions and applies pixelWidth/logicalWidth on x and pixelHeight/logicalHeight on y. Orientation and scale are not inferred from the image or bounds.
 
-固定binding 0.6.0はRenderViewのlayerをFlutterView.physicalSizeへ描画し、maxScreenshotSize設定時にはfloorした寸法へresizeする。失敗viewを画像配列から除くため、配列indexをview IDと見なせない。ElementInfo.boundsはRenderBox.localToGlobal(Offset.zero)とsizeであり、通常応答は対応metadataを含まない。このため通常takeScreenshotsの結果を注釈へ流用しない。example/lib/mapped_screenshot.dartはdebug時にopt-in providerを登録し、単一RenderViewのlayerから未resize画像とそのviewの明示geometryを一緒に返す。capture中のview数・identity・physicalSize・devicePixelRatio変更は非対応として返す。上流パッケージの変更、隣接repoへのpath依存、overlay注入は不要。一般binding対応には同等のcapture metadata契約の上流提供が必要であり、現時点ではexample provider構成だけが実環境検証対象である。
+Pinned binding 0.6.0 renders a RenderView layer at FlutterView.physicalSize and, when maxScreenshotSize is set, resizes it to floored dimensions. Failed views are omitted from the image array, so an array index cannot serve as a view ID. ElementInfo.bounds comes from RenderBox.localToGlobal(Offset.zero) and size; normal responses contain no matching metadata. Normal takeScreenshots results are therefore not reused for annotations. In debug mode, example/lib/mapped_screenshot.dart registers an opt-in provider that returns an unresized single-RenderView layer image together with explicit geometry for that view. Changes to view count, identity, physicalSize, or devicePixelRatio during capture are reported as unsupported. No upstream package modification, neighboring-repository path dependency, or overlay injection is required. General binding support would require an equivalent upstream capture-metadata contract; only the example-provider configuration is currently covered by real-environment verification.
 
-SnapshotService.annotationTargetsは公開済みrefsを再観測して照合する読み取り専用経路である。capture前後に照合し、refを新規発行・失効しない。CLIのscreenshot_annotationは純粋なPNG合成境界で、bounds不備とラベル配置不足を明示的に省略する。artifact_writerが元bytesとは別のPNGを排他的に保存し、同じdeadlineをdecode・合成・encode・保存まで確認する。一般の独自拡張CLIは引き続き対象外で、固定名providerはSPECの限定例外である。
+SnapshotService.annotationTargets is a read-only path that re-observes and matches published refs. It checks before and after capture without issuing or invalidating refs. CLI screenshot_annotation is a pure PNG-composition boundary that explicitly skips invalid bounds and labels that cannot fit. artifact_writer saves a separate PNG rather than changing the original bytes and checks the same deadline through decoding, composition, encoding, and saving. An arbitrary custom-extension CLI remains out of scope; the fixed provider is the limited exception defined in SPEC.
 
-## IPCとdaemon起動
+<a id="ipc-and-daemon-startup"></a>
+<a id="ipcとdaemon起動"></a>
 
-CLIは要求1件を送り、最終応答1件を受けて終了する。IPCは改行区切りJSON。要求はprotocolVersion、requestId、session、command、params、deadlineを持つ。応答はrequestId、request内で発生した秘匿済みdiagnostics、SPECの結果包絡を持つ。detached daemonの`logging`レコードはrequestのZoneごとに収集して呼出元CLIで再発行し、stderrへ出力する。INFO未満、認証URI、添付error、stack traceは転送しない。CLIのJSON schemaとIPC protocolのバージョンは独立させる。
+## IPC and daemon startup
 
-ランタイムディレクトリはユーザー専用・権限0700。socketと起動情報も他ユーザーから読めない権限にする。macOSのsocketパス長に収まる短いパスを生成する。起動情報にはPID・protocolVersion・起動識別子を含め、VM Service URIは永続化しない。
+The CLI sends one request, receives one final response, and exits. IPC uses newline-delimited JSON. Requests contain protocolVersion, requestId, session, command, params, and deadline. Responses contain requestId, redacted diagnostics generated within the request, and the result envelope defined in SPEC. The detached daemon collects `logging` records in a request-specific Zone, then the caller CLI re-emits them to stderr. Records below INFO, authenticated URIs, attached errors, and stack traces are not forwarded. CLI JSON schema and IPC protocol versions are independent.
 
-OSの排他ロックで起動を直列化し、取得後に稼働daemonを再確認する。CLIの実行形態（Dartソース／コンパイル済み）に応じて同じプログラムを内部daemonモードで起動する。handshake完了を待ち、バージョン不一致は説明可能なエラーにする。
+The runtime directory is private to the user with mode 0700. Socket and startup metadata permissions also prevent access by other users. Paths are kept short enough for macOS socket limits. Startup metadata includes PID, protocolVersion, and a startup identifier; the VM Service URI is not persisted.
 
-古いsocketは生存確認とロックのもとで回収し、PIDだけを根拠に別プロセスをkillしない。最後のcloseと新規connectは管理キューで直列化する。終了中へのconnectは送信前なら再接続できるが、送信後のUI操作は再送しない。
+An OS exclusive lock serializes startup; after acquiring it, the client rechecks for a running daemon. It starts the same program in internal daemon mode according to whether the CLI is running as Dart source or a compiled executable. It waits for the handshake and reports version mismatches as explanatory errors.
 
-IPCのサイズ上限は初版で1フレーム64MiB。画像はbase64としてdaemonからCLIへ返し、超過は明示エラー。screenshotのファイル保存は呼出元CLIが担い、相対パスは呼出元のcwdで解決する。recordは例外としてutilがdaemon内で保存し、CLIは絶対pathを渡す。
+Stale sockets are reclaimed under a lock after liveness checks. A PID alone is never sufficient reason to kill another process. A management queue serializes the final close and new connect. A connection to a stopping daemon can be retried before sending, but a UI operation is never resent after transmission.
 
-`--screenshot-dir`は`cli/common_options.dart`で登録・空文字／NUL検証し、`CommonOptions.screenshotDir`からrunner経由で`cli/artifact_writer.dart`へ渡す。IPC paramsやdaemon設定には追加しない。writerが明示path > directory > 一時保存を選び、pathがある場合はdirectoryへ触れない。directoryは事前作成済みの実directoryに限定し、自動作成やdirectory自身のsymlink追跡はしない（祖先のsymlinkは許可）。相対指定は呼出元cwdで正規化し、返却pathを絶対化する。
+The initial IPC limit is 64MiB per frame. Images travel from daemon to CLI as base64; exceeding the limit is an explicit error. The caller CLI saves screenshots and resolves relative paths against its own cwd. Recording is an exception: util saves it within the daemon, and the CLI supplies an absolute path.
 
-directory指定では直下に128bitの`Random.secure`のhexを含むPNG名を要求ごとに生成する。既存の複数画像の連番化・全画像検証・全宛先の排他的予約・書込み・失敗時cleanupを共用する。生成名の衝突も既存pathとしてIO_ERRORにし、上書きや再撮影をしない。指定directoryはcleanup対象に含めない。未指定時の一意な一時directoryと`screen.png`は維持する。受入検証は`screenshot_directory_test.dart`で競合・保存失敗、`screenshot_cli_test.dart`で製品CLIのtext/JSONとcwd・呼出し間の設定分離を確認する。
+`cli/common_options.dart` registers `--screenshot-dir` and rejects empty strings/NUL. `CommonOptions.screenshotDir` reaches `cli/artifact_writer.dart` through the runner; it is not added to IPC params or daemon settings. The writer selects explicit path > directory > temporary storage, leaving directory untouched when a path is supplied. A supplied directory must already exist and be a real directory; it is not created automatically, and a symlink at the directory itself is not followed (ancestor symlinks are allowed). Relative paths are normalized against the caller's cwd, and returned paths are absolute.
 
-応答配送の期限は要求deadline+250msとし、受信しないクライアントのsocketも切断する。最後のclose後も配送・切断を無期限に待たず、250msの猶予で残るクライアントを破棄してdaemonの寿命ロックを解放する。最終応答の送信開始後は別のエラーフレームを追加しない。
+Directory mode generates a PNG name directly inside it for each request, including 128 bits of hexadecimal randomness from `Random.secure`. It reuses multiple-image numbering, validation of all images, exclusive reservation of all destinations, writing, and cleanup on failure. A generated-name collision is IO_ERROR like any existing path; it triggers neither overwrite nor recapture. The specified directory is excluded from cleanup. Without it, the unique temporary directory and `screen.png` behavior remains. `screenshot_directory_test.dart` covers collisions and save failures; `screenshot_cli_test.dart` covers product CLI text/JSON, cwd resolution, and configuration isolation between invocations.
 
-## sessionと実行順序
+Response delivery is bounded by request deadline+250ms, after which sockets of clients that do not receive are disconnected. Following the final close, delivery and disconnection are not awaited indefinitely: remaining clients are discarded after a 250ms grace period, releasing the daemon lifetime lock. Once final-response transmission starts, no second error frame is appended.
 
-sessionはconnecting→connected→disconnected、closeで破棄。接続失敗時はconnectorをdisposeする。名前、正規化URI、connector、接続世代、snapshot、実行キューを所有する。daemon全体でref採番とURI所有権を管理する。
+<a id="sessions-and-execution-order"></a>
+<a id="sessionと実行順序"></a>
 
-同一sessionの観測・検証・操作は1つのキュー上で実行し、異なるsessionには別キューを使う。受付時と実行前に期限を確認し、期限切れの未送信要求は実行しない。
+## Sessions and execution order
 
-UI操作は、引数・session確認→対象解決と再観測→ref失効→バックエンドへ1回送信→結果返却の順。成功dataにはrequiresSnapshot: trueを含める。
+A session moves through connecting→connected→disconnected and is discarded on close. Connection failure disposes the connector. Each session owns its name, normalized URI, connector, connection generation, snapshot, and execution queue. Ref numbering and URI ownership are managed daemon-wide.
 
-送信後の通信断・timeoutはoutcome: unknown。connectorを破棄しdisconnectedにする。Dart Futureのtimeoutだけでは上流処理が取り消されないため、接続世代を照合し、遅延応答が新しい状態を書き換えないようにする。
+Observation, validation, and action within one session share a single queue; different sessions have separate queues. Deadlines are checked on receipt and before execution. An expired request that has not been sent is not executed.
 
-## snapshotとref解決
+UI actions follow this order: validate arguments/session → resolve and re-observe the target → invalidate refs → send to the backend once → return the result. Successful data includes requiresSnapshot: true.
 
-snapshotのCLI decoderとcommand handlerは同じfilter検証を使い、任意の単一selectorをCommandContextからSnapshotServiceへ渡す。SnapshotServiceは全観測で一意性とref採番を確定してからElementInfo.candidateValueによる完全一致で返却行を絞る。textの表示値と操作照合の信頼性を分離し、操作未対応identifierも観測filterには使える。filter metadata（kind/value/matchedCount/totalCount）はこの段階で確定する。retainPublishedでfilter外のrefを削除し、その後SessionManagerのmax-output制限がさらに返却refを絞る。省略前の全体集計は維持し、filterで隠れた衝突を操作可能と誤認しない。
+A connection loss or timeout after sending has outcome: unknown. The connector is discarded and the session becomes disconnected. Timing out a Dart Future does not itself cancel upstream processing, so connection generations are compared to prevent late responses from overwriting newer state.
 
-get handlerはCLIとIPCで対象を検証し、CommandContext経由でSnapshotServiceのread経路を使用する。resolveReadは再観測・一意性・text由来・refの属性比較を共有し、操作resolverはさらにvisibleを検証する。どちらもrefを発行せず、getはmutationを呼ばない。countは一意性必須resolverを使わず、capability確認後にinspectのcandidateValue完全一致を集計する。未知型textも候補件数へ含めるが、操作可能とみなさない。欠損属性のnullとboundsのFlutter論理pixel単位はhandlerの結果schemaで明示する。
+<a id="snapshots-and-ref-resolution"></a>
+<a id="snapshotとref解決"></a>
 
-SnapshotServiceは要素情報を正規化し、RefStoreはref→観測世代・selector・要素属性を保持する。key、identifier、対応確認済みtext、typeの順で一意な候補を選ぶ。公開snapshotと内部の事前観測は分離し、事前検証が新しいrefを発行しないようにする。
+## Snapshots and ref resolution
 
-公開snapshotはselectorごとの一致数を先に集計する線形処理とし、256要素ごとに期限・接続世代を確認してイベントループへ制御を戻す。固定bindingのtextは既知の5型だけを照合可能とする。未知の型はSemantics派生型と区別できないため表示だけに使い、key/typeで操作する。不正な観測objectはadapter内でBACKEND_ERRORへ分類する。
+The snapshot CLI decoder and command handler share filter validation and pass an optional single selector through CommandContext to SnapshotService. SnapshotService establishes uniqueness and ref numbering across the full observation before filtering returned rows by exact ElementInfo.candidateValue matching. Display text is distinct from trustworthy action matching; identifiers unsupported for actions can still filter observations. Filter metadata (kind/value/matchedCount/totalCount) is established here. retainPublished removes refs outside the filter, and SessionManager's max-output limit may reduce returned refs further. Full counts before omission remain available, and collisions hidden by the filter do not make a target actionable.
 
-ElementInfo.valueは信頼できるselector候補、candidateValueは衝突し得る観測値を返す。textの重複集計・再観測・waitにはcandidateValueを使って未知の型も数え、単独の由来未確認textはUNRESOLVABLE_TARGETとする。
+Get handlers validate targets at both CLI and IPC boundaries and use SnapshotService's read path through CommandContext. resolveRead shares re-observation, uniqueness, text-origin checks, and ref attribute comparisons; action resolution additionally checks visible. Neither issues refs, and get never invokes mutation. Count bypasses the uniqueness-requiring resolver and, after capability checks, counts exact candidateValue matches in inspect results. Text from unknown types counts as a candidate without being treated as actionable. The handler's result schema explicitly represents missing attributes as null and bounds in Flutter logical pixels.
 
-ここでの`ElementInfo.value`はselector候補の取得であり、入力値のread APIではない。[Issue #14の将来設計](semantics-selector-state-design.md)はdisplay、照合根拠、型付き値/状態を分離する。固定bindingのraw診断属性はstring化・省略され得るため、adapterが型付きstateとして公開できる根拠にはしない。Semantics階層とWidgetの対応ID、属性の由来、操作別capabilityは上流依存として残る。現行DTO/CLIへの追加実装は本設計に含めない。
+SnapshotService normalizes element information. RefStore maps each ref to an observation generation, selector, and element attributes. It selects a unique candidate in key, identifier, verified text, then type order. Public snapshots are separate from internal preflight observations so preflight validation cannot issue new refs.
 
-Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示用textがTextMatcherに対応しない場合がある。配列添字をselectorにせず、対象を確定できなければ読み取り情報と理由を返す。上流は最初の一致を選ぶため、契約テストには重複・Semanticsラッパー・非表示要素を含める。
+Public snapshot generation is linear: it first counts matches per selector, then checks deadline and connection generation and yields to the event loop every 256 elements. Text matching for the pinned binding is limited to five known types. Unknown types cannot be distinguished from Semantics-derived types, so their text is display-only and actions use key/type. Invalid observation objects become BACKEND_ERROR within the adapter.
 
-事前観測では原子的な対象保証にならない制約はSPECに従う。アプリ側への永続ID拡張追加は初版に持ち込まない。
+ElementInfo.value returns a trusted selector candidate; candidateValue returns an observed value that may collide. Text duplicate counting, re-observation, and wait use candidateValue so unknown types also count. A sole text candidate of unverified origin produces UNRESOLVABLE_TARGET.
 
-## 共通契約の所有（SSOT/SOLIDレビュー）
+Here, `ElementInfo.value` retrieves a selector candidate, not an input-value read API. The [future design for Issue #14](semantics-selector-state-design.md) separates display, matching evidence, and typed values/state. Raw diagnostic attributes from the pinned binding may be stringified or omitted, so they do not justify exposing typed state through the adapter. Semantics hierarchy, IDs linking Widgets to Semantics, attribute provenance, and per-action capabilities remain upstream dependencies. That design does not add them to the current DTO/CLI.
 
-結果のsession有無は`protocol/command_scope.dart`の`usesSession`を正本とする。CLIの通常解析・構文エラー回復・Invocationと、IPCのRequest・client・server・SessionManagerが同じ判定を使う。`close --all`の引数エラーでもsessionはnullになり、オプション値として渡された文字列をflagに読み替えない。IPCのworkflowは実行要求だけなのでRequestがaction=runとして判定する。
+Marionette's element list is not a complete tree, and Semantics display text may not match TextMatcher. Array indices are not selectors. If a target cannot be established, return readable information and a reason. Upstream selects the first match, so contract tests include duplicates, Semantics wrappers, and hidden elements.
 
-`commands/*_request.dart`は副作用のない入力定義・検証を持ち、handlerは観測・操作を担当する。`wait_request.dart`は時間待機と対象待機を別の型にし、対象待機のref/selector排他、state、poll間隔をCLIとdaemonで共有する。workflow schemaのstate・poll範囲もこの定義から組み立てる。workflow v1にrefや時間待機を追加するものではない。
+Preflight observation does not guarantee atomic target selection; the limitations in SPEC apply. The initial release does not add persistent app-side element IDs.
 
-`SessionActionPolicy`はpolicyと保留承認を非公開状態として所有し、authorizeにはRequestと接続世代だけを渡す。Session本体・CommandContext・handlerへ依存しない。find/batch/workflowは入力定義を使って内包操作を調べ、findは検証後にactionを解釈する。Sessionは切断時の承認失効だけを要求する。`architecture_test.dart`がpolicyからsession実行層への推移的依存の再導入を拒否する。
+<a id="ownership-of-shared-contracts-ssotsolid-review"></a>
+<a id="共通契約の所有ssotsolidレビュー"></a>
 
-単一closeと全体closeは`SessionManager._disconnectSession`でURI所有権・refの失効、切断完了待ち、失敗の分類を共有する。Sessionは最後の切断Futureを保持し、アプリ終了通知やtimeoutが先にdiscardした場合も後続closeへ同じ結果を返す。disconnectを重複送信せず、切断完了未確認を成功として返さない。録画確定と所有アプリの停止は従来の各所有者が担当する。
+## Ownership of shared contracts (SSOT/SOLID review)
 
-## コマンド拡張境界
+`usesSession` in `protocol/command_scope.dart` is the source of truth for whether a result has a session. Normal CLI parsing, syntax-error recovery, Invocation, IPC Request/client/server, and SessionManager all use it. Even argument errors for `close --all` have session: null, and a string passed as an option value is never reinterpreted as a flag. IPC workflows are execution requests only, so Request evaluates them as action=run.
 
-`find`は表示条件から選んだElementInfoを`SnapshotService.uniqueTarget`へ渡す。matcher候補は1回の再観測からkey/identifier/text/typeの順に選び、`ObservedQuery`としてselectorと選択時属性を保持する。実操作の直前に通常のresolverがその属性も比較し、同じkeyでも置き換わった対象はSTALE_REF / not_sentにする。ObservedQueryは要求内だけで使用し、IPC入力や公開refとして受理しない。
+`commands/*_request.dart` contains side-effect-free input definitions and validation; handlers perform observation and actions. `wait_request.dart` separates duration waits and target waits into distinct types and shares ref/selector exclusivity, state, and polling interval between CLI and daemon. The workflow schema's state and polling range are built from these definitions. This does not add refs or duration waits to workflow v1.
 
-`drag`は`CommandContext.performTargets`から`SnapshotService.resolveAll`を呼び、両対象のref・属性・一意性・可視性を同じinspect結果で確認する。すべて通った後だけ共通mutation経路でrefを失効させ、1回送る。対象の検証失敗では操作せずrefを維持する。再観測とアプリ操作自体の原子性を保証するものではない。
+`SessionActionPolicy` privately owns the policy and pending approvals. Its authorize method receives only a Request and connection generation, with no dependency on Session, CommandContext, or handlers. Find, batch, and workflow use input definitions to inspect nested actions; find interprets its action after validation. Session only requests approval invalidation on disconnect. `architecture_test.dart` rejects reintroduction of transitive dependencies from policy to the session execution layer.
 
-`batch_loader`は全argvの構文・重複option・コマンドparamsだけを解析する。親の共通オプション解決は再実行せず、上書き済みの環境session/timeoutを再検証しない。snapshot差分は構造等価な行をhashで数え、重複件数を維持して比較する。逐次総当たりの二乗時間を避け、ループ内でも同じ期限を確認する。
+Single-session and all-session close share URI ownership release, ref invalidation, disconnection waiting, and failure classification in `SessionManager._disconnectSession`. Session retains the latest disconnect Future and returns its result to a later close even if app-exit notification or timeout discarded the session first. It neither sends disconnect twice nor reports unconfirmed disconnection as success. Recording finalization and owned-app shutdown remain with their existing owners.
 
-通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはSessionManagerの共通session queueでRecordServiceへ分岐する。platformがflutterの場合だけ接続済みbackendとURIを渡し、他の録画はVM Service非依存で扱う。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
+<a id="command-extension-boundaries"></a>
+<a id="コマンド拡張境界"></a>
 
-CommandContextにsession実行、対象解決、期限確認、ref失効、mutationの1回送信を集約する。handlerは独自のqueue、retry、session生成、ref保存、接続破棄を実装しない。外部のCLI組立向けの型は`lib/marionette_agent.dart`から公開し、内部handlerは必要なファイルを直接importする。上流connectorやresponse mapをコマンド層へ漏らさない。
+## Command extension boundaries
 
-workflowはSessionManagerで通常経路から分岐するが、各stepは既存CommandRegistryと新しいExecution／CommandContextを使う。1つのExecutionで複数mutationを送信したり、stepからSessionManagerを再帰呼び出ししたりしない。
+`find` passes the ElementInfo selected by display conditions to `SnapshotService.uniqueTarget`. Matcher candidates are selected in key/identifier/text/type order from one re-observation. `ObservedQuery` stores the selector and attributes observed at selection. Immediately before the action, normal resolution compares those attributes too; replacement under the same key produces STALE_REF / not_sent. ObservedQuery exists only within a request and is accepted neither as IPC input nor as a public ref.
 
-waitは単独コマンドとworkflow stepの両方を同じCommandRegistry handlerへ正規化する。handlerはselector、state、poll間隔を再検証し、CommandContext.read経由でinspectだけを直列pollする。公開snapshot／refを生成せず、mutation経路と自動retryを持たない。workflowはstep固有期限を子Executionへ設定してから同じhandlerを呼び出す。
+`drag` calls `SnapshotService.resolveAll` through `CommandContext.performTargets`, checking both targets' refs, attributes, uniqueness, and visibility against the same inspect result. Only after all checks pass does the shared mutation path invalidate refs and send once. Target validation failure leaves refs intact and sends no action. This does not guarantee atomicity between re-observation and the app action itself.
 
-## 検証
+`batch_loader` parses only each argv's syntax, duplicate options, and command params. It does not re-resolve the parent's common options or revalidate environment session/timeout values already overridden by the parent. Snapshot diff hashes structurally equivalent rows and compares counts while preserving duplicates. It avoids quadratic pairwise scanning and checks the same deadline within loops.
 
-- 単体: 引数の排他・有限値、JSONと終了コード、ref失効・曖昧性・session分離、workflow parse／binding／実行。
-- adapter契約: 固定依存のresponse fixtureとFakeBackendでマッピング・異常系を確認。
-- IPC: 別CLIプロセス間の保持、同時起動、並行session、close競合、daemon停止、waitの共通期限、送信前後のtimeout。
-- Simulator: `example/`を使い、独立した2アプリ、入力欄、PageView、Dismissible、スクロール領域、ログ、単独waitの出現・消失、workflowの停止と最終snapshotを検証。
+Normal app commands register the same name with the CLI parser and daemon CommandRegistry. Record branches to RecordService through SessionManager's shared session queue. Only platform=flutter receives the connected backend and URI; other recording modes are independent of VM Service. Handlers do not trust IPC params: before mutation, they revalidate unknown fields, types, required fields, and exclusivity. Shared ref/selector and finite-number validation lives in `commands/arguments.dart`.
 
-FakeBackendの合格はSimulator検証の代わりにしない。コード変更時はパッケージ内でformat、analyze、関連testを実行し、引き継ぎ時は全体testも実行する。Simulator検証にはFlutter／bindingバージョン、Simulator機種・OS、コマンド、観測結果を記録する。
+CommandContext centralizes session execution, target resolution, deadline checks, ref invalidation, and a single mutation send. Handlers do not implement their own queues, retries, session creation, ref storage, or connection disposal. Types for external CLI composition are exported through `lib/marionette_agent.dart`; internal handlers import required files directly. Upstream connectors and response maps never leak into the command layer.
 
-## 実装で利用する既存機能
+SessionManager branches workflows away from the normal route, but each step uses the existing CommandRegistry and a new Execution/CommandContext. A single Execution never sends multiple mutations, and steps never recursively invoke SessionManager.
 
-引数解析・usageはargs、属性比較はcollection、パス構築はpath、PNG復号検証とJPEG変換はimage、RPCエラー定義はvm_serviceを使う。IPCはdart:ioのUnix socketとOSファイルロック、dart:convertのUTF-8/LineSplitter/JSONを利用する。独自処理はsession寿命、ref検証、期限・送信結果の契約、フレーム上限など製品固有の部分に限定する。
+Standalone and workflow waits normalize to the same CommandRegistry handler. It revalidates selector, state, and polling interval, then serially polls only inspect through CommandContext.read. It creates no public snapshot or refs and has no mutation path or automatic retry. Workflow sets a step-specific deadline on the child Execution before invoking the same handler.
 
-上流connectorのisConnectedだけでは通信断を検知できないため、状態照会と1秒間隔のhealth probeをsessionキュー上で実行する。CLIの要求期限後はdaemonのTIMEOUT応答を届けるため最大250msのIPC猶予を設けるが、backend実行期限は延長しない。
+<a id="verification"></a>
+<a id="検証"></a>
+
+## Verification
+
+- Unit tests: argument exclusivity and finite values, JSON and exit codes, ref invalidation, ambiguity, session isolation, and workflow parsing/binding/execution.
+- Adapter contracts: mappings and failures using pinned-dependency response fixtures and FakeBackend.
+- IPC: state persistence between CLI processes, simultaneous startup, concurrent sessions, close races, daemon shutdown, shared wait deadlines, and timeouts before/after sending.
+- Simulator: use `example/` to verify two independent apps, input fields, PageView, Dismissible, scrolling regions, logs, standalone wait for appearance/disappearance, workflow stopping, and final snapshots.
+
+Passing FakeBackend tests does not replace Simulator verification. Code changes require format, analyze, and relevant tests in the package, plus the full suite at handoff. Simulator records include Flutter/binding versions, Simulator model/OS, commands, and observations.
+
+<a id="existing-implementation-facilities"></a>
+<a id="実装で利用する既存機能"></a>
+
+## Existing implementation facilities
+
+Use args for argument parsing/usage, collection for attribute comparison, path for paths, image for PNG decode validation and JPEG conversion, and vm_service for RPC error definitions. IPC uses dart:io Unix sockets and OS file locks, plus dart:convert UTF-8/LineSplitter/JSON. Custom logic is limited to product-specific requirements such as session lifetime, ref validation, deadline/send-outcome contracts, and frame limits.
+
+The upstream connector's isConnected alone cannot detect communication loss. Status queries and one-second health probes therefore run on the session queue. After the CLI request deadline, IPC gets up to 250ms to deliver the daemon's TIMEOUT response; this does not extend backend execution.
+
+<a id="workflow-v1"></a>
 
 ## Workflow v1
 
-[workflow仕様](ja/workflow-file-spec.ja.md)に従い、CLIのWorkflowLoaderが期限付きでJSON／YAMLを読み、閉じた同梱schemaとWorkflowPlanで全step・input bindingを検証する。`yaml 3.1.4`を完全固定し、内部scanner依存をloaderだけへ隔離する。token段階でtag／anchor／aliasと深さを拒否し、JSONの重複keyは構造scanで検出する。schemaはDart定数として同梱し、コンパイル済みCLIでも外部fileやnetworkを必要としない。`workflow schema`と`workflow validate`はRuntimeDirectoryもdaemonも作成しない。
+Following the [workflow specification](workflow-file-spec.md), the CLI WorkflowLoader reads JSON/YAML within a deadline and validates all steps and input bindings through a closed bundled schema and WorkflowPlan. `yaml 3.1.4` is pinned exactly; dependence on its internal scanner is isolated to the loader. Tags, anchors, aliases, and excessive depth are rejected at token level; a structural scan detects duplicate JSON keys. The schema is bundled as Dart constants, so compiled CLI use needs no external file or network. `workflow schema` and `workflow validate` create neither RuntimeDirectory nor daemon.
 
-SessionManagerはworkflowを単独Execution.boundの外で分岐し、WorkflowExecutionが1つのqueue entry・開始epoch・全体deadline・停止状態・進捗・snapshot候補を所有する。各stepは親へ固定された新しいExecutionを持ち、従来の1回送信ガードを維持する。親はstepで確定したoutcomeを再分類しない。timeout時は親を停止し、開始epochだけを破棄する。遅延Futureは親停止状態を確認するため、新しい接続・ref・後続stepを変更できない。
+SessionManager branches workflows outside standalone Execution.bound. WorkflowExecution owns one queue entry, starting epoch, overall deadline, stop state, progress, and snapshot candidate. Each step receives a new Execution bound to the parent, preserving the existing single-send guard. The parent does not reclassify outcomes established by a step. On timeout, it stops and discards only the starting epoch. Late Futures check the parent's stop state, so they cannot change new connections, refs, or later steps.
 
-wait stepは単独waitと同じ登録済みread handlerを使い、ElementInfo.candidateValueによる一致をinspectでpollし、単独のtext候補は由来の信頼性も確認する。CommandContext.checkで計算後の期限も確認し、公開refを生成しない。全stepが既存CommandRegistryを直接呼び、SessionManagerへstep単位で再帰しない。最終snapshot候補は後続mutationで破棄し、失敗時は返さない。
+Wait steps use the same registered read handler as standalone wait, polling inspect with ElementInfo.candidateValue matches and checking provenance for a sole text candidate. CommandContext.check also validates the deadline after computation. No public refs are created. Every step invokes CommandRegistry directly without per-step recursion into SessionManager. Later mutations discard the final-snapshot candidate, and failure never returns it.
 
-IPC protocolVersionは7で管理対象アプリの起動・終了を追加した（6でsession action policyを追加）（5で要求単位のdebug policy、4で共通出力policyとidle設定handshakeを追加）。workflow requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
+IPC protocolVersion 7 adds managed-app startup/shutdown (6 added session action policy; 5 added per-request debug policy; 4 added shared output policy and the idle-configuration handshake). Workflow request params contain only the workflow template and inputs object. The daemon validates the entire request before checking connection and selector capabilities. AgentError.details survives IPC and withOutcome. Delivery failure produces unknown/progressKnown:false and never resends UI actions. Schema/validate do not call RuntimeDirectory.prepare.
 
-workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/progressKnown:falseとsession名を保持する。CLIのローカル検証はparseと意味検証後も絶対deadlineを確認し、期限を過ぎた成功を返さない。
+Even daemon fallback responses preserve unknown/progressKnown:false and the session name when workflow response-frame generation or delivery fails. CLI local validation checks the absolute deadline after parsing and semantic validation, never returning a late success.
 
-## ScreenshotのCLI側変換（Issue #13）
+<a id="cli-side-screenshot-conversion-issue-13"></a>
+<a id="screenshotのcli側変換issue-13"></a>
 
-`cli/common_options.dart`が形式・品質のroot登録、既定PNG／JPEG品質90、値検証と拡張子規則を所有する。`CliParser`はscreenshotのpathを接続前に検証し、拡張子省略時に選択形式の拡張子を付加する。help/versionと全サブコマンドも共通定義を継承する。形式・品質はInvocationのCommonOptionsからrunnerへ渡し、IPC paramsやbackend adapterへ追加しない。workflow内のscreenshot対応やprotocolVersion変更は行わない。
+## CLI-side screenshot conversion (Issue #13)
 
-`cli/artifact_writer.dart`はbackendのPNGを全件復号検証し、注釈を指定した場合はgeometryに従いPNGへ合成してから出力形式へ進む。注釈なしのPNGなら元のバイト列、JPEGなら白背景へ合成した8-bit RGBを固定image 4.9.1のJpegEncoderへ渡す。RGBA／grayscale alpha／palette／16-bitを画素の正規化値で処理し、透過を捨てる前に合成する。encoderに透過の合成を任せないため、JPEG端部のpaddingによる反復合成も避ける。品質0はencoderの最低品質1へ丸められる。imageの内部importは従来のPNG decoderと同じ境界へ集約し、依存更新時は画像fixtureを再検証する。
+`cli/common_options.dart` owns root registration of format/quality, PNG and JPEG quality 90 defaults, value validation, and extension rules. `CliParser` validates screenshot paths before connecting and appends the selected format's extension when absent. Help/version and all subcommands inherit the same definitions. Format/quality pass from Invocation's CommonOptions to the runner, not IPC params or the backend adapter. This adds neither workflow screenshot support nor a protocolVersion change.
 
-runnerはCLI開始時の共通絶対deadlineをそのままwriterへ渡す。復号・合成・encode後にも期限を確認してから、従来の全宛先の排他的予約と書込みへ進む。同期codec自体は中断しないが、遅れて得た画像を成功として公開しない。予約後の失敗・TIMEOUTではこの要求の予約file・書込み済みfile・自動directoryを回収する。OSによるcleanup失敗時は残存し得るが、成功pathsを返さず元のエラーを保持する。テストの時計注入により変換後・予約後・書込み後の期限切れをhost負荷によらず検証する。
+`cli/artifact_writer.dart` decodes and validates every backend PNG. If annotations are requested, it first composites them into PNG using the supplied geometry, then proceeds to output-format handling. Unannotated PNG keeps its original bytes. JPEG uses 8-bit RGB composited over white and the pinned image 4.9.1 JpegEncoder. RGBA, grayscale alpha, palette, and 16-bit images use normalized pixel values, compositing before alpha is discarded. Since the encoder is not responsible for alpha composition, repeated composition caused by JPEG edge padding is avoided. Quality 0 is clamped to the encoder's minimum of 1. Internal image imports remain at the same boundary as the existing PNG decoder; dependency updates require rechecking image fixtures.
 
-## 入出力の安全境界
+The runner passes the original common absolute deadline from CLI startup unchanged to the writer. It checks after decoding, composition, and encoding, then proceeds to the existing exclusive reservation and writing of all destinations. Synchronous codecs are not interrupted, but late images are never published as success. Failure/TIMEOUT after reservation cleans up this request's reserved/written files and automatic directory. OS cleanup failures may leave artifacts, but no successful paths are returned and the original error is preserved. An injected clock tests expiration after conversion, reservation, and writing independently of host load.
 
-- 画像保存は全宛先をDartの排他的ファイル作成で予約してから書き込む。既存ファイル・ディレクトリ・symlinkを上書きせず、途中失敗時はこの要求で作成したファイルを削除する。予約後に別プロセスが保存先を意図的に差し替える競合までは保証しない。
-- workflowのpath入力は通常ファイルに限定し、FIFO等は開く前に引数エラーにする。ストリーム入力は期限付きstdin (`-`)を使う。
-- diagnosticsのZoneには終了可能なcollectorを入れ、要求完了時にListへの参照を外す。接続時に登録したlistenerの後発ログは通常のstderr経路へ戻す。
+<a id="inputoutput-safety-boundaries"></a>
+<a id="入出力の安全境界"></a>
 
-`--debug`の定義・構文エラー時の回復はCommonOptionsが所有する。Request.debugはbool（省略時false）で、daemon全体の設定にはしない。DebugDiagnosticsは固定enumのstage、制限したrequest ID/session、StopwatchのelapsedMs、許可した正規化codeだけを既存logging経路に追加する。CLI解析・runtime・IPC startup/sendとdaemon dispatch/queue/execute/resultを観測できる。daemon側のイベントは既存request Zoneで収集してresponseのdiagnosticsへ入れ、呼出元stderrで再発行する。通常診断と公開JSON schemaVersion=1は変更しない。経過時間はCLI・IPC・daemon dispatch・session queueそれぞれの区間開始から計測するため、区間をまたぐ値の差は所要時間として扱わない。CLIの最終結果が全体の成否を表す。
-- ref/selectorの排他・型・空文字と有限数の検証は`commands/arguments.dart`へ集約し、CLIのtarget parserとdaemonの操作handlerで共有する。
-- 通常コマンドを含む全エラーのテキスト出力にoutcomeを表示し、workflowには進捗既知性、完了step数、失敗stepも付加する。daemonは要求処理開始後の応答生成失敗をunknownへ分類する。
+## Input/output safety boundaries
 
-## 内部プラットフォームサービス
+- Image persistence reserves every destination through Dart exclusive file creation before writing. Existing files, directories, and symlinks are never overwritten; partial failure removes files created by this request. Deliberate replacement of a destination by another process after reservation is outside the guarantee.
+- Workflow path inputs must be regular files. FIFOs and similar inputs fail argument validation before opening. Streaming input uses deadline-bound stdin (`-`).
+- The diagnostics Zone contains a closable collector that drops its List reference when the request completes. Later logs from listeners registered during connection return to the normal stderr path.
 
-`packages/marionette_agent_util`は録画専用ではなく、marionette_agentで必要になるOS／端末別処理とFlutterアプリ側のdebug補助機能を集約する内部パッケージ。CLI/session/protocolやmarionette_mcpへの逆依存を持たない。今後の端末情報等も独立したサービスとして追加する。
+CommonOptions owns `--debug` and its recovery during syntax errors. Request.debug is a bool, default false, rather than a daemon-wide setting. DebugDiagnostics adds only fixed-enum stages, restricted request ID/session, Stopwatch elapsedMs, and allowed normalized codes to the existing logging route. It exposes CLI parsing/runtime/IPC startup/send and daemon dispatch/queue/execute/result. Daemon events are collected in the existing request Zone, placed in response diagnostics, and re-emitted to the caller's stderr. Normal diagnostics and public JSON schemaVersion=1 stay unchanged. Elapsed times start independently for CLI, IPC, daemon dispatch, and session queue intervals; differences across intervals do not represent duration. The final CLI result represents overall success or failure.
+
+- Ref/selector exclusivity, types, empty strings, and finite-number checks are centralized in `commands/arguments.dart` and shared by the CLI target parser and daemon action handlers.
+- Text output shows outcome for every error, including normal commands. Workflow errors also include whether progress is known, completed step count, and the failed step. The daemon classifies response-generation failures after request processing starts as unknown.
+
+<a id="internal-platform-services"></a>
+<a id="内部プラットフォームサービス"></a>
+
+## Internal platform services
+
+`packages/marionette_agent_util` is an internal package for OS/device-specific operations needed by marionette_agent and Flutter app-side debug helpers, not just recording. It has no reverse dependency on CLI/session/protocol or marionette_mcp. Future device-information functionality also belongs in independent services.
 
 ```text
-CLI parser → RecordService（共通引数検証・エラー変換）
-            → RecordingManager（owner・端末排他・保存・終了）
+CLI parser → RecordService (shared argument validation and error conversion)
+            → RecordingManager (ownership, device exclusion, storage, shutdown)
               → ScreenRecorder / RecordingHandle
                 → iOS: simctl / Android: adb / macOS: screencapture
                 → Web: Chrome CDP lifecycle + macOS screencapture
                 → Flutter: FlutterScreenRecorder → PngScreenRecorder + ffmpeg
 ```
 
-`marionette_agent_util.dart`はホスト側のDart API、`flutter.dart`はアプリ側のFlutter APIを公開し、相互にexportしない。CLIの実行・コンパイルにFlutter engineは不要だが、Flutter SDK依存を解決するため、CLI・utilとも依存取得は`flutter pub get`を使う。ホスト側テストは`test/`、Flutterテストは`flutter_test/`で分ける。
+`marionette_agent_util.dart` exports host-side Dart APIs; `flutter.dart` exports app-side Flutter APIs. They do not export each other. CLI execution and compilation require no Flutter engine, but both CLI and util use `flutter pub get` to resolve Flutter SDK dependencies. Host tests live in `test/`; Flutter tests live in `flutter_test/`.
 
-CLIは同一repo内の`../marionette_agent_util`へpath依存し、両パッケージはpublish_to:noneとする。配布は両パッケージを含むcheckoutからの起動またはCLIのコンパイル済みバイナリを使用する。隣接する参考リポジトリへのpath依存は導入しない。
+The CLI has a path dependency on `../marionette_agent_util` within the same repository. Both packages use publish_to:none. Distribution runs from a checkout containing both packages or uses a compiled CLI binary. No path dependency on neighboring reference repositories is introduced.
 
-record start、connect、launchがdaemonを自動起動できる。sessionは録画だけでも予約・保持でき、後からVM Serviceを接続できる。recordのstart/stop/statusとcloseは既存session queueで直列化し、長時間のフレーム処理はqueue外で継続する。録画にはUI mutationのExecution.boundを使わず、utilが開始期限・停止後の有界cleanup・状態を管理する。VM Serviceのepoch破棄は録画handleへ波及しない。Flutter録画用接続の取得失敗はその録画を失敗へ遷移させる。
+Record start, connect, and launch can automatically start the daemon. A session can be reserved and retained solely for recording, with VM Service connected later. Record start/stop/status and close are serialized on the existing session queue; long-running frame processing continues outside it. Recording does not use the UI-mutation Execution.bound: util manages startup deadlines, bounded cleanup after stopping, and state. Discarding a VM Service epoch does not affect the recording handle. Failure to acquire the Flutter recording connection marks that recording as failed.
 
-RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に返す。startのbackend待ちは要求期限と30秒上限で打ち切り、遅れて生成されたhandleの停止・予約回収は追跡付きcleanupとして継続する。start時の終了競合や停止失敗でも、handleの終了確認まではdevice予約を解放しない。stopの要求期限超過後も終了処理を保持し、終わるまで同じdeviceへ別録画を開始しない。Androidの自動終了も同じfinalizationへ合流する。closeでは録画を確定してから所有権を解放する。daemonのSIGINT/SIGTERMではRecordingManager.disposeが開始待ち・停止・保存・追跡cleanup全体を60秒に制限する。期限超過時はRecordingHandle.abortで所有プロセスを強制停止し、ファイル読込をキャンセルして出力を閉じる（追加待ちは最大5秒）。stagingと未確定の予約先を保持し、遅延完了で動画を公開しない。Androidは固有remote pathとPIDを照合して強制停止を試みるが、端末切断時の成功は保証しない。OSで進行中のI/Oは取り消しを保証できないため削除と競合させない。
+RecordingManager reserves the device before starting and returns after backend startup confirmation. Waiting for the backend is bounded by the request deadline and a 30-second maximum. Stopping late-created handles and reclaiming reservations continue as tracked cleanup. Even a shutdown race during start or a stop failure retains the device reservation until handle termination is confirmed. Finalization continues after a stop request times out, and no new recording may use the device until it finishes. Android automatic completion joins the same finalization path. Close finalizes recording before releasing ownership. On daemon SIGINT/SIGTERM, RecordingManager.dispose bounds pending starts, stops, saves, and tracked cleanup to 60 seconds. On expiration, RecordingHandle.abort force-stops owned processes, cancels file reads, and closes output, with at most five more seconds of waiting. Staging and unfinalized reserved destinations remain, and late completion cannot publish a video. Android attempts forced stop after matching a unique remote path and PID, but success is not guaranteed for a disconnected device. In-flight OS I/O cannot be guaranteed cancellable, so deletion is not raced against it.
 
-出力先予約、private staging、iOSのSIGINT、Androidの固有remote file名とcmdline照合付きPIDへのSIGINT、adb pull、macOSの起動生存確認・停止はutil内に閉じ込める。CLIのstdoutへ子プロセスの出力を流さず、失敗はPlatformException→AgentErrorへ変換する。未対応linux/windowsもutilでthrowし、CLI parserとdaemonの両方で共通検証する。
+Destination reservation, private staging, iOS SIGINT, Android's unique remote filenames and SIGINT to a PID verified by cmdline, adb pull, and macOS startup-liveness checks/shutdown remain inside util. Child-process output is never forwarded to CLI stdout. PlatformException becomes AgentError. Unsupported linux/windows are also rejected in util and validated through shared checks in both CLI parser and daemon.
 
-単体テストは保存保護・端末排他・開始失敗・停止期限・異常終了・終了競合、CLIテストは未接続録画session・ref保持・通信断後の継続・close・未対応platformを検証する。`integration_test/record_smoke.dart`は製品CLIで開始→接続→操作→動画確定→重複stop→上書き拒否→close確定を確認する。実動画を復号して画面変化を確認する。
+Unit tests cover save protection, device exclusion, startup failure, stop deadlines, abnormal exit, and shutdown races. CLI tests cover disconnected recording sessions, ref retention, continuation after connection loss, close, and unsupported platforms. `integration_test/record_smoke.dart` uses the product CLI to verify start → connect → action → video finalization → duplicate stop → overwrite rejection → close finalization. It decodes the actual video and checks screen changes.
 
-### 非表示アプリの描画録画（Issue #20）
+<a id="recording-rendered-output-from-hidden-apps-issue-20"></a>
+<a id="非表示アプリの描画録画issue-20"></a>
 
-`ScreenshotConnectionBackend`は任意のbackend能力で、録画専用`ScreenshotConnection`の作成だけを公開する。`MarionetteBackend`が上流connectorを別インスタンスで開き、captureとdisconnectを提供する。この接続ではinteraction providerをdiscoverせず、切断時にkeyboard.releaseを呼ばない。操作sessionの接続・epoch・refとは独立する。
+### Recording rendered output from hidden apps (Issue #20)
 
-`FlutterScreenRecorder`はこの接続の所有・開始期限・base64変換を扱うadapter。上流内部importは`marionette_backend.dart`に限定する。utilの`PngScreenRecorder`はcapture/closeコールバックだけに依存し、PNG寸法検証、逐次ファイル保存、単調時計の取得時刻、ffconcatによるVFR変換を所有する。RecordingManagerへ録画ごとにScreenRecorderを注入し、既存の保存保護・停止・close・遅延cleanupを共有する。個別captureは5秒、feedの終了は5秒、ffmpeg変換は30秒で制限する。取得エラーを成功動画に変えず、復旧用stagingにはPNGと生成途中の動画が残る場合がある。
+`ScreenshotConnectionBackend` is an optional backend capability exposing only creation of a recording-specific `ScreenshotConnection`. `MarionetteBackend` opens a separate upstream connector instance with capture and disconnect. This connection neither discovers the interaction provider nor calls keyboard.release on disconnect. It is independent of the action session's connection, epoch, and refs.
 
-macOS fixtureのMainFlutterWindowは明示環境変数でNSWindowの表示を抑え、FlutterEngineを開始する。Flutter側はdebug限定の`enableHeadlessRendering()`でhidden/paused/detachedの通知を変更せず、16ms間隔のscheduleForcedFrameでフレーム生成を維持する。可視状態への復帰とdisposeでtimerを停止する。他のアプリは自分のnative windowを隠す処理を持つ必要がある。通常起動はopt-inなしで既存のlifecycleに従う。iOS/Android/Webはそれぞれの標準ヘッドレス起動手段を使い、testerによるプラットフォーム模倣はしない。
+`FlutterScreenRecorder` adapts connection ownership, startup deadlines, and base64 conversion. Upstream internal imports remain confined to `marionette_backend.dart`. Util's `PngScreenRecorder` depends only on capture/close callbacks and owns PNG dimension validation, sequential file persistence, monotonic capture timestamps, and VFR conversion with ffconcat. A ScreenRecorder is injected into RecordingManager per recording, sharing existing save protection, stop, close, and late cleanup. Individual capture and feed shutdown each have a five-second limit; ffmpeg conversion has 30 seconds. Capture errors never become successful videos; recovery staging may retain PNGs and a partially generated video.
 
-`record_smoke.dart`はplatform=flutterの場合connectまたはlaunchを先に行い、testerを含む5環境共通で操作・録画保存・重複stop・既存出力保護・closeによる保存を検証する。PNG recorderの単体テストは取得失敗・寸法変更・途中abort・変換失敗・実取得間隔を扱い、widgetテストは描画維持のopt-inと解除を検証する。
+The macOS fixture's MainFlutterWindow suppresses NSWindow display through an explicit environment variable and starts a FlutterEngine. Flutter's debug-only `enableHeadlessRendering()` preserves hidden/paused/detached notifications while keeping frames running through scheduleForcedFrame every 16ms. Returning to visibility or disposing stops the timer. Other apps must implement hiding of their own native window. Normal startup without opt-in follows the existing lifecycle. iOS, Android, and Web use their standard headless startup mechanisms, not platform emulation through tester.
 
-## 共通オプション（Issue #2・#8）
+For platform=flutter, `record_smoke.dart` connects or launches first, then verifies actions, saved recordings, duplicate stop, existing-output protection, and save-on-close across all five environments, including tester. PNG recorder unit tests cover capture failure, dimension changes, mid-run abort, conversion failure, and actual capture intervals. Widget tests verify rendering opt-in and its removal.
 
-`cli/common_options.dart`が全共通オプションの名前、help、CLI既定値、ArgParser登録、重複検出、構文エラー回復、オプション固有の値検証とCommonOptionsを所有する。CliParserはrootへ一度登録し、argsの継承によって全command／subcommandへ適用する。個別command parserに定義を複写しない。session名・duration・出力上限の共通値域検証はprotocolに配置し、CLIもIPCも同じ関数を呼ぶ。
+<a id="common-options-issues-2-and-8"></a>
+<a id="共通オプションissue-28"></a>
 
-CliParserは呼出元のPlatform.environment（テストでは注入したmap）をCommonOptions.createParserへ渡す。session／timeoutのArgParser既定値を環境変数 > 組込み既定値で設定し、argsが明示CLIを優先する。検証は選択後にだけ実行し、空値を未設定として扱わない。構文エラー回復も同じparserのsession既定値を使い、環境解決を重複実装しない。runnerは選択されたtimeoutを解析開始前の時刻からの絶対deadlineへ変換する既存経路を使い、daemonやsession queueは環境変数を再解決しない。
+## Common options (Issues #2 and #8)
 
-Requestは`maxOutput`と`outputJson`をparams外に持つ。`output/content.dart`の項目serializerをdaemonの制限とCLIの表示が共有し、code point予算を一致させる。SessionManagerはqueue内で公開snapshotを完成させた後に制限し、SnapshotService.retainPublishedで返却generationの省略refを削除してからqueueを解放する。workflow finalSnapshotもこの経路を通る。未公開refを後続要求から利用できる時間窓を作らない。nonceはrendererだけがCLI呼出しごとに生成し、JSONでは対象dataにmetadataとして付加する。
+`cli/common_options.dart` owns common-option names, help, CLI defaults, ArgParser registration, duplicate detection, syntax-error recovery, option-specific validation, and CommonOptions. CliParser registers them once at root; args inheritance applies them to every command/subcommand. Individual command parsers do not copy definitions. Shared range checks for session names, durations, and output limits live in protocol and are called by both CLI and IPC.
 
-DaemonClientは起動時idle値を内部daemon引数で渡す。idle既定値と値域検証はprotocolの定義を共用し、内部daemon引数のCLI解析だけCommonOptionsを利用する。handshakeとprivate metadataは確定したidleTimeoutMsを含み、clientは明示値との不一致を要求送信前に拒否する。起動lock取得後の再openでも同じ照合を行う。省略時に既存値を上書きせず、設定のためだけのdaemon再起動も行わない。
+CliParser passes the caller's Platform.environment (an injected map in tests) to CommonOptions.createParser. ArgParser defaults for session/timeout use environment > built-in default, and args prioritizes explicit CLI values. Validation runs only after selection; an empty value is not treated as unset. Syntax-error recovery uses the same parser's session default instead of duplicating environment resolution. The runner uses the existing path to convert the selected timeout into an absolute deadline measured from before parsing. The daemon and session queues never re-resolve environment variables.
 
-DaemonServerはclient受信／配送とSessionManagerのpendingを監視し、全queueが空になってからidle timerを開始する。期限切れqueue entryも実際にdrainするまでpendingから除かない。queue完了通知はhealth probe後のtimer未設定を回復するが、既存のidle intervalは延長しない。health probe実行中の期限到達は完了まで延期する。timerは通常のcloseへ合流するため、record確定・全session破棄・socket削除・寿命lock解放を共有する。
+Request carries `maxOutput` and `outputJson` outside params. Daemon limiting and CLI rendering share the item serializer in `output/content.dart`, so their code-point budgets agree. SessionManager applies limits after completing the public snapshot inside the queue. SnapshotService.retainPublished removes omitted refs from the returned generation before releasing the queue. Workflow finalSnapshot follows the same path, leaving no interval in which later requests can use unpublished refs. Only the renderer generates a nonce per CLI invocation; JSON adds it as metadata on the relevant data.
 
-## 全session終了（Issue #6）
+DaemonClient passes the startup idle value through internal daemon arguments. Idle defaults and range validation share protocol definitions; only internal daemon CLI parsing uses CommonOptions. Handshake and private metadata contain the resolved idleTimeoutMs. The client rejects a mismatch with an explicit value before sending a request, including when reopening after acquiring the startup lock. Omitting the option never overwrites an existing value, and the daemon is not restarted solely to change it.
 
-CLI parserはclose --allをparams:{all:true}へ変換し、共通--sessionの明示との併用を拒否する。DaemonClientは不在時にsession:nullと空sessionsを返す。SessionManagerは受付時の同期予約と既存session queueを管理の直列化境界とし、stoppingを立てて対象を固定する。queue内の実行前検査は待機要求をnot_sentで拒否する。既存queueへのbarrierで実行中の完了を共通期限まで待ち、各sessionの録画確定とdisconnectを並行して集計する。
+DaemonServer watches client receive/delivery and SessionManager pending work, starting the idle timer only once all queues are empty. Expired entries remain pending until actually drained. Queue-completion notifications restore a missing timer after health probes but do not extend an existing idle interval. Expiration during a health probe waits for its completion. The timer joins normal close, sharing recording finalization, all-session disposal, socket deletion, and lifetime-lock release.
 
-Session.interruptは現在のExecutionだけを起こし、Execution.boundは自身のsentからunknown/not_sentを決める。完了時にlistenerを削除する。世代失効は従来のdiscardに集約し、そのFutureを全体closeだけが期限付きで待って切断失敗を観測する。workflowも各childの同じboundを使い進捗を保持する。集約結果の配送はDaemonServerの既存onEmpty、shutdown、socket削除と寿命lock解放へ合流し、非受信clientの有界破棄を維持する。公開結果と競合の正本はSPECのclose --all節。
+<a id="closing-all-sessions-issue-6"></a>
+<a id="全session終了issue-6"></a>
 
-## Webディスプレイ録画（Issue #16）
+## Closing all sessions (Issue #6)
 
-`web_target.dart`が`display:<index>@<local page endpoint>`の閉じた構文を定義する。RecordingTargetのkeyはWebも`macos:<display>`へ写し、RecordingManagerの同期予約でWeb同士・macosとの物理対象排他を共有する。extensionはRecordingTargetが持ち、Web/macOSはMOV、iOS/AndroidはMP4としてvalidationとstaging名を一致させる。
+The CLI parser converts close --all into params:{all:true} and rejects combining it with explicit common --session. With no daemon, DaemonClient returns session:null and an empty sessions array. SessionManager uses synchronous reservation on receipt and existing session queues as its management serialization boundary, sets stopping, and fixes the target set. Pre-execution checks reject queued requests with not_sent. A barrier on existing queues waits for running work until the shared deadline, then recording finalization and disconnection are aggregated concurrently across sessions.
 
-`WebScreenRecorder`は専用HttpClient（proxyなし）で明示したloopback pageに接続し、Browser.getVersion・Target.getTargetInfo・Inspector.enableを期限内に確認する。CDPのrawエラーは公開せず、許可された説明へ変換する。遅延WebSocket upgradeは閉じる。Chromeとの接続は監視専用で、ページ操作・画像転送・VM Serviceには使わない。
+Session.interrupt wakes only the current Execution; Execution.bound chooses unknown/not_sent from its own sent state. Its listener is removed on completion. Generation invalidation stays in the existing discard path, whose Future only global close awaits with a deadline to observe disconnection failures. Workflows use the same bound on each child and preserve progress. Aggregate-result delivery joins DaemonServer's existing onEmpty, shutdown, socket deletion, and lifetime-lock release, retaining bounded disposal of nonreceiving clients. SPEC's close --all section owns the public result and race contracts.
 
-Chrome検証後に同じPlatformScreenRecorderのmacos backendへ明示したdisplayを渡す。wrapper handleはtab終了・crash・接続断を失敗としてnative stopへ合流させる。開始中切断時も後から返ったnative handleを停止する。nativeのisRunning/endedを保持して、終了未確認のdisplay予約を解放しない。通常stop/abortで自分のCDP接続だけを閉じ、Chromeや他のタブを終了しない。CLI側は従来のRecordServiceとsession queue、共通エラー変換をそのまま使う。
+<a id="web-display-recording-issue-16"></a>
+<a id="webディスプレイ録画issue-16"></a>
 
-Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。
+## Web display recording (Issue #16)
 
-## Flutter向け追加機能
+`web_target.dart` defines the closed syntax `display:<index>@<local page endpoint>`. RecordingTarget maps Web keys to `macos:<display>` too, letting RecordingManager's synchronous reservations enforce physical-target exclusion between Web recordings and macos. RecordingTarget owns the extension, keeping validation and staging names aligned: MOV for Web/macOS and MP4 for iOS/Android.
 
-契約は[SPECのFlutter向け拡張](SPEC.md#flutter向け拡張)と[追加コマンド仕様](ja/cli-parity.ja.md)を正本とする。
+`WebScreenRecorder` uses a dedicated HttpClient without a proxy to connect to the explicit loopback page and check Browser.getVersion, Target.getTargetInfo, and Inspector.enable within the deadline. Raw CDP errors are converted to allowed explanations, not exposed. Late WebSocket upgrades are closed. The Chrome connection is monitoring-only, never used for page actions, image transfer, or VM Service.
 
-- `marionette_agent_util/flutter.dart`は任意のdebug専用providerを公開する。public Widget/State APIで属性を読む。controller値と表示textを別fieldにし、パスワード値は送信しない。mounted Widgetの観測、対象の再照合と有限のinteraction集合を固定名extensionに閉じ込める。完全Semantics treeや永続IDは導入しない。
-- `MarionetteBackend`だけがproviderの登録検出・version確認・DTO変換・固定binding APIを扱う。未登録ならstock観測を使用する。`InteractionBackend`と`ClipboardBackend`は任意capabilityで、通常commandsへ上流mapを露出しない。
-- snapshotの絞り込みは全観測の衝突判定・採番後、ref保持の確定前に行う。findによる位置選択も一意な既存matcherへ変換して共通action経路へ渡す。cropは撮影前後の対象照合と明示geometryを使い、artifact writerの排他的保存を共用する。diffはCLIでbaselineを読み、画像または非公開のread観測と比較する。clipboard write/copyは送信結果を追跡するが、UI refを失効させないeffect経路を使う。
-- batchはsession queueを1枠占有し、各stepは別Executionで1回送信ガードを維持する。失敗時はそこで止まり、進捗を返す。workflow v1の構文は変更しない。
-- action policyはsession queue内の実行前に検査し、find/batch/workflowの内包操作も検査する。保留要求はsessionの接続世代と有効期限へ固定し、承認時に1回だけ取り出して通常の対象解決を実行する。close／切断は保留を破棄する。policyは同一ユーザーが変更できるopt-in機能で、IPCの認可境界ではない。
-- config、connection state、diff、install/upgradeはCLI側のファイル処理。接続stateの認証URIはprivate IPCから0600の新規ファイルへ書き、公開応答へ戻さない。namespaceはruntimeの名前を分離する。doctorは通常read-onlyで、fix指定時だけ自身所有runtime directoryのmodeを修復する。
-- `marionette_agent_util`がdevice列挙とFPS変換のプロセスを所有する。FPSはprivate stagingでの録画確定後変換で、native取得頻度を保証しない。restartは同じ録画queue内でstop→startを行い、旧動画を確定する。新規開始の失敗時に旧録画を再開しない。
+After validating Chrome, it passes the explicit display to the same PlatformScreenRecorder macos backend. The wrapper handle treats tab closure, crash, or connection loss as failure and joins native stop. If disconnection happens during startup, it also stops the native handle returned later. It retains native isRunning/ended so the display reservation stays held until termination is confirmed. Normal stop/abort closes only its own CDP connection, never Chrome or other tabs. The CLI retains its existing RecordService, session queue, and shared error conversion.
 
-## ハイブリッド実行環境の所有権
+At Web startup, CoreGraphics `CGPreflightScreenCaptureAccess` is read through Dart FFI. Missing permission produces IO_ERROR before Chrome connection or native recording. Permission-request APIs are never called. Environments without that API produce UNSUPPORTED_CAPABILITY.
 
-CLI catalogのlaunchは引数をutilのLaunchOptionsで検証してIPCへ渡す。SessionManagerはsessionを同期予約し、policyを適用した後でApplicationLauncher.startを呼ぶ。utilから返った所有RunningApplicationをsessionへ保持し、接続・最初のinspectまで成功したときにlaunchを成功として返す。接続には既存_connectを共用し、URI所有権・接続世代・refのルールを複製しない。通常のconnectはアプリ所有権を取得しない。
+<a id="additional-flutter-features"></a>
+<a id="flutter向け追加機能"></a>
 
-marionette_agent_util/src/applicationがLaunchOptions、PlatformApplicationLauncher、RunningApplication、OwnedProcessを提供する。platform別Flutter/simctl/emulator/adb引数、SDK探索、private一時領域、project排他、URI発見と実行終了をutilに閉じる。utilはCLI、IPC、Marionette backendへ依存しない。アプリのMarionette接続・観測はagentのbackend adapterが担当する。macOSアプリ内のNSWindow／描画維持はFlutterアプリ側のopt-inであり、Dart CLIからnative viewを生成しない。
+## Additional Flutter features
 
-OwnedProcessは引数配列で起動し、stdoutを有界に保持してFlutter machineのapp.startを解釈する。WebはURI出力に加えて該当appのapp.startedを待ち、Flutter初期化前の接続を避ける。生ログはstderrへ転送しない。app.stopで正常終了を要求し、期限超過では所有Processへsignalを送る。名前による一括killをしない。iOSは専用device setを作成・shutdown/deleteする。Androidは新規の読み取り専用Emulatorだけを所有し、共有adb serverは終了しない。起動中のdisposeと遅延Process.startも所有側で回収する。
+The [Flutter extensions in SPEC](SPEC.md#flutter-extensions) and [additional command specification](cli-parity.md) are the sources of truth.
 
-closeは既存RecordingManagerによる確定後にRunningApplication.stopを呼び、その後にsessionを廃棄する。アプリ終了通知は該当handleがまだ同じsessionに属する場合だけ世代を失効する。close --allとdaemon disposeも同じutilの終了処理を使う。CLI側のテストで起動・接続準備失敗・policy・外部接続の非所有・異常終了を確認し、util側は実fixture processで開始・timeout・中断・project排他・終了を確認する。
+- `marionette_agent_util/flutter.dart` exposes optional debug-only providers. It reads attributes through public Widget/State APIs, separates controller values from display text, and never transmits password values. Mounted-Widget observation, target re-matching, and a finite interaction set stay within fixed-name extensions. No complete Semantics tree or persistent IDs are introduced.
+- Only `MarionetteBackend` detects provider registration, checks versions, converts DTOs, and uses pinned-binding APIs. Without registration, it uses stock observations. `InteractionBackend` and `ClipboardBackend` are optional capabilities that never expose upstream maps to normal commands.
+- Snapshot filtering happens after collision checks and numbering across the full observation but before ref retention is finalized. Positional find selection also becomes a unique existing matcher and goes through the shared action path. Crop uses target checks before/after capture and explicit geometry, sharing the artifact writer's exclusive persistence. Diff reads a baseline on the CLI side and compares it with an image or nonpublic read observation. Clipboard write/copy tracks the send outcome through an effect path that does not invalidate UI refs.
+- Batch occupies one session queue entry. Each step has a separate Execution, preserving the single-send guard. It stops at the first failure and returns progress. Workflow v1 syntax is unchanged.
+- Action policy is checked inside the session queue before execution, including actions nested in find/batch/workflow. Pending requests are bound to a session connection generation and expiry. Approval consumes a request once and then uses normal target resolution. Close/disconnect discards pending requests. Policy is an opt-in feature modifiable by the same user, not an IPC authorization boundary.
+- Config, connection state, diff, and install/upgrade are CLI-side file operations. Authenticated URIs in connection state pass through private IPC into newly created mode-0600 files, never public responses. Namespace separates runtime names. Doctor is normally read-only; only fix repairs the mode of a runtime directory owned by the user.
+- `marionette_agent_util` owns device-enumeration and FPS-conversion processes. FPS conversion happens after recording finalization in private staging and does not guarantee native capture frequency. Restart performs stop→start in the same recording queue, finalizing the old video. Failure to start the new recording never resumes the old one.
+
+<a id="ownership-of-hybrid-execution-environments"></a>
+<a id="ハイブリッド実行環境の所有権"></a>
+
+## Ownership of hybrid execution environments
+
+The CLI catalog's launch validates arguments through util LaunchOptions before passing them to IPC. SessionManager synchronously reserves the session, applies policy, then calls ApplicationLauncher.start. It retains the owned RunningApplication returned by util and reports launch success only after connection and the first inspect succeed. Connection reuses existing _connect rather than duplicating URI ownership, connection-generation, or ref rules. Normal connect does not acquire app ownership.
+
+marionette_agent_util/src/application provides LaunchOptions, PlatformApplicationLauncher, RunningApplication, and OwnedProcess. Platform-specific Flutter/simctl/emulator/adb arguments, SDK discovery, private temporary storage, project exclusion, URI discovery, and execution shutdown stay inside util. Util does not depend on CLI, IPC, or the Marionette backend. The agent's backend adapter handles Marionette connection and observation. The NSWindow/rendering support inside macOS apps is app-side opt-in; the Dart CLI never creates a native view.
+
+OwnedProcess starts with an argument array, retains bounded stdout, and interprets Flutter machine app.start. Web waits for the corresponding app.started as well as URI output to avoid connecting before Flutter initialization. Raw logs are not forwarded to stderr. It requests normal exit with app.stop and signals only owned processes on timeout, never killing processes by name. iOS creates, shuts down, and deletes a private device set. Android owns only the new read-only Emulator and never stops the shared adb server. The owner also cleans up disposal during startup and late Process.start completion.
+
+Close finalizes through the existing RecordingManager, calls RunningApplication.stop, then discards the session. An app-exit notification invalidates the generation only if that handle still belongs to the same session. Close --all and daemon disposal use the same util shutdown. CLI tests cover launch, connection-readiness failure, policy, nonownership of external connections, and abnormal exit. Util tests use real fixture processes for startup, timeout, interruption, project exclusion, and shutdown.

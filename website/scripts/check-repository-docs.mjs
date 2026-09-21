@@ -8,9 +8,11 @@ import { files, document, examples } from './content.mjs';
 import { base, site } from '../site.config.mjs';
 
 const root = resolve('..');
-// This is the paired set; historical/internal docs have independent purposes.
+// Current contracts are paired; historical research and agent workflows are separate.
 const pairs = [
   ['README.md', 'README.md'],
+  ['SPEC.md', 'SPEC.ja.md'],
+  ['ARCHITECTURE.md', 'ARCHITECTURE.ja.md'],
   ['cli-reference.md', 'cli-reference.ja.md'],
   ['cli-parity.md', 'cli-parity.ja.md'],
   ['workflow-file-spec.md', 'workflow-file-spec.ja.md'],

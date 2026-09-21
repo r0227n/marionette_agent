@@ -66,8 +66,8 @@ Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読�
 
 `PngScreenRecorder`へcapture/closeを注入すると、表示ウィンドウや画面収録許可に依存せず、アプリが返すPNGを無音H.264 MP4へ保存できる。接続自体は呼出元のadapterが所有し、録画実装はFlutter・VM Serviceをimportしない。`RecordingManager.start(recorder: ...)`で個別recorderを選ぶ。`RecordingPlatform.flutter`のdeviceはsession識別子で、OS端末録画とは独立して排他にする。
 
-既定10fpsは取得間の待機間隔であり、取得頻度を保証しない。実取得時刻のVFRとしてffmpegで確定する。PNGはprivate stagingへ逐次保存するため録画時間に応じて容量が必要。先頭PNGで開始確認し、PNG取得失敗・寸法変更・encoder失敗を失敗として保持する。OS画面や音声は含まない。開始・保存保護・有界停止・abortは共通契約に従う。詳細は[SPEC](../../docs/SPEC.md#flutterアプリのヘッドレス録画issue-20)を参照。
+既定10fpsは取得間の待機間隔であり、取得頻度を保証しない。実取得時刻のVFRとしてffmpegで確定する。PNGはprivate stagingへ逐次保存するため録画時間に応じて容量が必要。先頭PNGで開始確認し、PNG取得失敗・寸法変更・encoder失敗を失敗として保持する。OS画面や音声は含まない。開始・保存保護・有界停止・abortは共通契約に従う。詳細は[SPEC](../../docs/ja/SPEC.ja.md#flutterアプリのヘッドレス録画issue-20)を参照。
 
 ## アプリ実行環境
 
-`LaunchOptions`と`PlatformApplicationLauncher.start(options, deadline)`でtester／ios／android／macos／webを明示選択する。返却`RunningApplication`はuri、秘匿可能なdescription、exited、stopを持つ。接続やMarionette操作は呼出元へ委ね、utilがprivate一時領域・SDK/OSコマンド・起動準備・project排他・子プロセスと端末の終了を所有する。`dispose`は起動途中を含めて回収する。詳細は[ヘッドレスガイド](../../docs/ja/headless.ja.md)と[SPEC](../../docs/SPEC.md#ハイブリッド実行環境issue-20追加仕様)を参照。
+`LaunchOptions`と`PlatformApplicationLauncher.start(options, deadline)`でtester／ios／android／macos／webを明示選択する。返却`RunningApplication`はuri、秘匿可能なdescription、exited、stopを持つ。接続やMarionette操作は呼出元へ委ね、utilがprivate一時領域・SDK/OSコマンド・起動準備・project排他・子プロセスと端末の終了を所有する。`dispose`は起動途中を含めて回収する。詳細は[ヘッドレスガイド](../../docs/ja/headless.ja.md)と[SPEC](../../docs/ja/SPEC.ja.md#ハイブリッド実行環境issue-20追加仕様)を参照。

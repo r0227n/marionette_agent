@@ -2,7 +2,7 @@
 
 > 更新: 本書はstock binding 0.6.0の調査と将来設計の記録です。任意のFlutter providerを使う現行の限定実装は[追加コマンド仕様](ja/cli-parity.ja.md)を参照してください。完全Semanticsツリー・永続target IDの設計完了を意味しません。
 
-状態: 固定依存のソース調査とSimulator実payload・画面照合済み。これは将来案であり、CLI機能の実装完了を示さない。現在の契約は [SPEC](SPEC.md)、実装境界は [ARCHITECTURE](ARCHITECTURE.md)。以下の実測は当時の調査結果であり、現行機能の受入検証とは区別する。
+状態: 固定依存のソース調査とSimulator実payload・画面照合済み。これは将来案であり、CLI機能の実装完了を示さない。現在の契約は [SPEC](ja/SPEC.ja.md)、実装境界は [ARCHITECTURE](ja/ARCHITECTURE.ja.md)。以下の実測は当時の調査結果であり、現行機能の受入検証とは区別する。
 
 ## 調査対象と根拠
 

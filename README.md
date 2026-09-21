@@ -135,6 +135,6 @@ Flutter tester is useful for shared Flutter UI; verify native plugins and OS beh
 
 English is the primary public language; Japanese is maintained alongside it. Update paired pages in the same PR using the [documentation policy](docs/documentation.md). The website owns user guides; repository supplements cover details beyond those guides.
 
-Read [AGENTS.md](AGENTS.md) before making changes. CLI changes require formatting, analysis, relevant tests, and the full test suite at handoff; behavior changes also require verification against the example in iOS Simulator. The [product contract](docs/SPEC.md) and [architecture](docs/ARCHITECTURE.md) currently contain internal Japanese documentation.
+Read [AGENTS.md](AGENTS.md) before making changes. CLI changes require formatting, analysis, relevant tests, and the full test suite at handoff; behavior changes also require verification against the example in iOS Simulator. The [product contract](docs/SPEC.md) and [architecture](docs/ARCHITECTURE.md) are available in English, with [Japanese specification](docs/ja/SPEC.ja.md) and [Japanese architecture](docs/ja/ARCHITECTURE.ja.md) counterparts.
 
 For website development and the GitHub Pages deployment pipeline, follow [website/README.md](website/README.md).

@@ -33,7 +33,7 @@ idle期限はdaemon起動時に固定されます。省略した要求は既存�
 
 終了時には録画を確定し、session・ref・socket・lockを解放します。`launch`が所有するrunnerは回収し、`connect`した外部アプリは残します。次回は明示的な接続とsnapshotが必要です。
 
-選択sessionのcloseで録画確定が期限切れになった場合はsessionを保持し、`record status`で確認してから再度closeできます。切断自体の失敗・期限切れではsessionとrefを破棄します。`close --all`は録画確定の期限切れでもdaemon終了へ進みます。session別結果は成功時`data.sessions`、部分失敗時`error.details.sessions`へ名前順で返します。期限超過があれば終了5、他の失敗は1、全成功は0です。詳細は[SPEC](../SPEC.md#close---all)を参照してください。
+選択sessionのcloseで録画確定が期限切れになった場合はsessionを保持し、`record status`で確認してから再度closeできます。切断自体の失敗・期限切れではsessionとrefを破棄します。`close --all`は録画確定の期限切れでもdaemon終了へ進みます。session別結果は成功時`data.sessions`、部分失敗時`error.details.sessions`へ名前順で返します。期限超過があれば終了5、他の失敗は1、全成功は0です。詳細は[SPEC](SPEC.ja.md#close---all)を参照してください。
 
 <a id="doctor"></a>
 ## doctorの判定

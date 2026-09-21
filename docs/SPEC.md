@@ -1,60 +1,70 @@
-# marionette_agent — 製品仕様
+<a id="marionette_agent--product-specification"></a>
+<a id="marionette_agent--製品仕様"></a>
 
-## 環境診断 doctor (Issue #9)
+# marionette_agent — Product specification
 
-`doctor [--probe-uri <uri>]` は接続不要のローカル診断。sessionはnull。
-通常実行はruntime作成・permission変更・socket削除・daemon起動/停止・package導入・Simulator起動を行わない。追加の`--quick/--offline/--fix`は後述のFlutter向け拡張に従う。
-既存session/backend/refへ要求を配送せず、daemonではhandshakeだけを読み接続を破棄する。
-handshakeだけの照会ではdaemonの既存idle期限を更新しない。
+[日本語](ja/SPEC.ja.md) · [Documentation index](README.md)
 
-成功した診断実行のenvelopeは`ok:true`、dataは`doctor:true`、`exitCode`、`checks`。
-各checkは`id`、`status`、`reason`、利用者が実行する`nextStep`、`details`を持つ。
-statusは`success`(条件確認済み)、`failure`(不適合を確認)、`unknown`(timeout/観測失敗)、
-`skipped`(対象不在/明示probeなし/前提不成立)。failureまたはunknownが1件でもあれば終了1、
-それ以外は終了0。これは診断コマンド固有の集計であり、引数エラー等は通常のerror契約を使う。
-`--timeout`は全checkを含む全体期限。期限切れcheckと残りはunknownとして終了1。
+<a id="environment-diagnostics-doctor-issue-9"></a>
+<a id="環境診断-doctor-issue-9"></a>
 
-check IDと対象:
-- `host.os`: macOS。`host.dart`: 実行SDKが>=3.13.2 <4.0.0。
-- `runtime.socketPath`: 既存runtimeと同じ絶対path/80 UTF-8 bytes上限、socket `/s` のbyte数。
-- `runtime.directory`: symlink不可、現在user所有、0700。不存在はskippedで作成しない。
-- `daemon.ipc`: 安全確認済みdirectoryのsocketに受動接続、protocolVersion一致とreadyを確認。
-  不在はskipped、拒否/不一致はfailure、無応答はunknown。最大1秒か残り期限の短い方。
-- `dependencies.fixed`: CLI packageのpubspec/lockのmarionette_mcp、image、yaml固定version比較。
-  ファイル不在/取得不可はunknown。実bindingやインストール済み実体のversion保証ではない。
-- `simulators.ios`: `xcrun simctl list devices available --json`でiOS端末の名前/UDID/runtime/stateを観測。
-  0台はfailure、照会失敗はunknown。起動/修復はしない。
-- `probe.vmService`: `--probe-uri`指定時だけ独立したVM clientを作成し、getVersion/getVM/getIsolateと
-  登録済み`ext.flutter.marionette.getVersion`だけを照会。未指定はskipped、接続/RPC異常はfailure、
-  timeoutはunknown。binding versionは有効な応答がある時だけ、capabilityは実際に登録されたextension名のみ。
-  未観測versionはnull/unknown、未観測bindingはunknown。登録確認は操作成功の保証ではない。
+## Environment diagnostics: doctor (Issue #9)
 
-probeの認証URI・remote exception・入力文字列は結果/診断へ出力しない。probe終了/失敗/期限切れでは
-独立接続を解放し、遅れて成立した接続も閉じる。外部照会processは期限切れで終了させる。
+`doctor [--probe-uri <uri>]` runs local diagnostics without an app connection. Its session is null.
+Normal execution does not create a runtime, change permissions, delete sockets, start/stop a daemon, install packages, or boot a Simulator. Additional `--quick/--offline/--fix` modes follow the Flutter extensions below.
+It sends no requests to existing sessions, backends, or refs. For a daemon, it reads only the handshake and closes the connection.
+A handshake-only query does not reset the daemon's existing idle deadline.
 
-状態: `marionette_agent 0.0.1` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法は[日本語サイト](https://r0227n.github.io/marionette_agent/ja/)、詳細な実行契約は[補足](ja/cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.md)を参照する。
+A completed diagnostic run has an `ok:true` envelope and data containing `doctor:true`, `exitCode`, and `checks`.
+Each check has `id`, `status`, `reason`, a user-executable `nextStep`, and `details`.
+Status is `success` (condition verified), `failure` (noncompliance verified), `unknown` (timeout/observation failure), or `skipped` (target absent/no explicit probe/prerequisite unmet).
+Any failure or unknown yields exit 1; otherwise exit 0. This aggregation is specific to diagnostics; argument errors and similar failures use the normal error contract.
+`--timeout` bounds the entire run, including every check. Expired and remaining checks become unknown, yielding exit 1.
 
-## 目的と対象
+Check IDs and targets:
 
-Dart製CLIから、Marionette対応FlutterアプリをAI Agentが観測・操作できるようにする。agent-browserのsession、snapshot、短い要素参照、構造化出力という操作体系を採用する。ブラウザー固有のコマンド互換性は目的に含めない。
+- `host.os`: macOS. `host.dart`: the executing SDK is >=3.13.2 <4.0.0.
+- `runtime.socketPath`: the same absolute path and 80 UTF-8 byte limit as the existing runtime; measures bytes including socket `/s`.
+- `runtime.directory`: no symlink, owned by the current user, mode 0700. Absence is skipped without creating it.
+- `daemon.ipc`: passively connects to a socket in a verified-safe directory and checks protocolVersion compatibility and ready state. Absence is skipped; rejection/mismatch is failure; no response is unknown. Limit: one second or the remaining deadline, whichever is shorter.
+- `dependencies.fixed`: compares pinned marionette_mcp, image, and yaml versions in the CLI package's pubspec/lock. Missing or unreadable files are unknown. This does not guarantee the version of the actual binding or installed artifacts.
+- `simulators.ios`: observes iOS device name/UDID/runtime/state through `xcrun simctl list devices available --json`. Zero devices is failure; query failure is unknown. It neither boots nor repairs devices.
+- `probe.vmService`: creates an independent VM client only when `--probe-uri` is supplied, querying getVersion/getVM/getIsolate and only the registered `ext.flutter.marionette.getVersion` extension. Omission is skipped; connection/RPC errors are failure; timeout is unknown. The binding version is reported only from a valid response; capabilities include only actually registered extension names. Unobserved versions are null/unknown and an unobserved binding is unknown. Registration does not guarantee action success.
 
-初版の実行ホストはmacOS、主なUI操作対象はiOS Simulator内の起動済みFlutterアプリ。recordは別途iOS Simulator／Android／macOSディスプレイ（ChromeのWeb検証を含む）を対象とする。アプリはdebug実行され、`marionette_flutter` のbindingが初期化済みで、接続可能なVM Service URIが必要。手動起動へのconnectに加えて、launchでtester／iOS／Android／macOS／Webのヘッドレス環境を明示選択して起動できる。
+Authenticated probe URIs, remote exceptions, and input strings are excluded from results and diagnostics. The independent connection is released on completion, failure, or timeout; connections established late are also closed. External query processes are terminated on timeout.
 
-stdio MCPサーバーを提供し、MCPクライアントからも既存CLIの操作体系を利用できる。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。MCPクライアント製品とHTTP transportの提供は対象外。
+Status: the implemented `marionette_agent 0.0.1` contract, including standalone commands and workflow v1. See the [English site](https://r0227n.github.io/marionette_agent/en/) for usage, [supplements](cli-reference.md) for detailed execution rules, and [architecture](ARCHITECTURE.md) for internal implementation boundaries.
 
-## 用語
+<a id="purpose-and-scope"></a>
+<a id="目的と対象"></a>
 
-| 用語 | 意味 |
+## Purpose and scope
+
+Enable AI agents to observe and operate Marionette-enabled Flutter apps through a Dart CLI. The interaction model adopts agent-browser's sessions, snapshots, short element references, and structured output. Browser-specific command compatibility is not a goal.
+
+The initial host is macOS, and the primary UI target is an already-running Flutter app in iOS Simulator. Recording separately supports iOS Simulator, Android, and macOS displays, including Chrome Web verification. Apps must run in debug mode with the `marionette_flutter` binding initialized and an accessible VM Service URI. In addition to connect for manually started apps, launch can explicitly select and start headless tester/iOS/Android/macOS/Web environments.
+
+A stdio MCP server exposes the existing CLI interaction model to MCP clients. It uses the Dart connection implementation from `marionette_mcp` as a library to invoke Flutter extensions through VM Service. Providing an MCP client product or HTTP transport is out of scope.
+
+<a id="terminology"></a>
+<a id="用語"></a>
+
+## Terminology
+
+| Term | Meaning |
 | --- | --- |
-| session | 名前で選ぶ、1つのFlutterアプリへの接続と観測状態の単位 |
-| daemon | sessionの接続と参照をコマンド間で保持するローカル常駐プロセス |
-| snapshot | Marionetteから取得した操作可能要素・可読情報の観測結果。完全なWidgetツリーではない |
-| ref | snapshot内の要素を指定する `@e1` 形式の短い参照 |
-| selector | key・identifier・text・typeのいずれかによる明示的な対象指定 |
+| session | A named unit holding the connection and observation state for one Flutter app |
+| daemon | A resident local process that preserves session connections and references between commands |
+| snapshot | An observation of actionable elements and readable information from Marionette, not a complete Widget tree |
+| ref | A short reference such as `@e1` selecting an element from a snapshot |
+| selector | An explicit target selected by one of key, identifier, text, or type |
 
-## CLI契約
+<a id="cli-contract"></a>
+<a id="cli契約"></a>
 
-実行名は `marionette-agent`。Dartパッケージ名は `marionette_agent`。`pubspec.yaml` のexecutableとして登録する。
+## CLI contract
+
+The executable is `marionette-agent`; the Dart package is `marionette_agent`. It is registered as an executable in `pubspec.yaml`.
 
 ```sh
 marionette-agent --session demo connect 'ws://127.0.0.1:12345/token/ws'
@@ -68,170 +78,202 @@ marionette-agent --session demo screenshot ./screen.png
 marionette-agent --session demo close
 ```
 
-refは例示。実行時には直近snapshotに返されたものを使う。
+Refs here are examples. Use refs returned by the latest snapshot during actual execution.
 
-### 共通オプション
+<a id="common-options"></a>
+<a id="共通オプション"></a>
 
-| オプション | 契約 |
+### Common options
+
+| Option | Contract |
 | --- | --- |
-| `--session <name>` | 省略時は `MARIONETTE_AGENT_SESSION`、未設定なら `default`。英数字で始まる英数字・`_`・`-`、最大64文字 |
-| `--json` | stdoutへ1つのJSONオブジェクトを出力 |
-| `--timeout <ms>` | DurationとDateTimeで表現可能な正の整数。省略時は `MARIONETTE_AGENT_TIMEOUT_MS`、未設定なら30,000ms。待ち行列・接続・処理を含む期限。範囲外はINVALID_ARGUMENT |
-| `--debug` | 値なしflag、既定無効。request ID・session・処理段階・経過ms・終了時の正規化error codeをstderrへ出力 |
-| `--content-boundaries` | 値なしflag、既定無効。snapshot要素／logs entryを未信頼コンテンツとして識別 |
-| `--max-output <chars>` | 正の整数、既定無制限。snapshot／logsの項目列をUnicode code point数で制限 |
-| `--idle-timeout <duration>` | daemon全体のidle期限。既定1h、0で無効。整数msまたはms/s/m/h接尾辞 |
-| `--screenshot-format png\|jpeg` | screenshotの保存形式。既定png。backendはPNGのまま、CLI側でJPEGへ変換 |
-| `--screenshot-quality <0-100>` | JPEG指定時だけ受理する整数。省略時90。PNG指定時・単独指定・範囲外はINVALID_ARGUMENT |
-| `--screenshot-dir <path>` | path省略のscreenshotを保存する既存directory。既定未指定。明示pathを優先し、両方省略時は従来の一時保存 |
-| `--help` / `--version` | 接続なしで利用可能 |
+| `--session <name>` | Defaults to `MARIONETTE_AGENT_SESSION`, or `default` if unset. Up to 64 alphanumeric, `_`, or `-` characters, starting with an alphanumeric character |
+| `--json` | Writes one JSON object to stdout |
+| `--timeout <ms>` | A positive integer representable by Duration and DateTime. Defaults to `MARIONETTE_AGENT_TIMEOUT_MS`, or 30,000ms if unset. Includes queueing, connection, and processing. Out-of-range values are INVALID_ARGUMENT |
+| `--debug` | Valueless flag, disabled by default. Writes request ID, session, processing stage, elapsed ms, and final normalized error code to stderr |
+| `--content-boundaries` | Valueless flag, disabled by default. Identifies snapshot elements/log entries as untrusted content |
+| `--max-output <chars>` | Positive integer, unlimited by default. Limits snapshot/log item sequences in Unicode code points |
+| `--idle-timeout <duration>` | Daemon-wide idle deadline. Default 1h; 0 disables it. Integer ms or an ms/s/m/h suffix |
+| `--screenshot-format png\|jpeg` | Screenshot output format, default png. Backend remains PNG; the CLI converts to JPEG |
+| `--screenshot-quality <0-100>` | Integer accepted only with JPEG selected, default 90. PNG, quality alone, and out-of-range values are INVALID_ARGUMENT |
+| `--screenshot-dir <path>` | Existing directory for screenshots without an explicit path. Unset by default. Explicit path wins; omitting both uses the existing temporary-storage behavior |
+| `--help` / `--version` | Available without a connection |
 
-共通オプションはサブコマンドの前後で受け付ける。同じオプションの重複は引数エラー。通常は対話入力を要求せず、明示した`--confirm-interactive`だけがTTYで確認する。通常出力は簡潔なテキスト、診断ログはstderr。引数不足は非ゼロで終了し、使用可能な構文を示す。
+Common options are accepted before or after subcommands. Repeating an option is an argument error. Normal operation does not prompt; only explicit `--confirm-interactive` asks for confirmation on a TTY. Normal output is concise text; diagnostics go to stderr. Missing arguments cause a nonzero exit and show available syntax.
 
-sessionとtimeoutはそれぞれ明示CLI > 環境変数 > 明示config > 既定値の順で選び、選択された値だけに既存の名前・正整数・Duration／DateTime範囲検証を適用する。環境変数の空文字も設定済みとして扱い、不正ならINVALID_ARGUMENTとする。明示CLIで上書きされた環境値は空文字・不正値でも検証しない。明示CLIの欠損・重複・不正値は環境値へ戻さず引数エラーとする。環境変数はCLI呼出しごとに解決し、選択したtimeoutはqueue待ちを含む既存の絶対deadlineへ変換する。configは明示`--config`で提供する。認証情報、session id、idle-timeoutの環境fallbackは提供しない。
+Session and timeout each resolve as explicit CLI > environment > explicit config > default. Existing name, positive-integer, and Duration/DateTime range validation applies only to the selected value. An empty environment value is set, not absent, and invalid values yield INVALID_ARGUMENT. Environment values overridden by explicit CLI are not validated, even if empty or invalid. Missing, duplicate, or invalid explicit CLI values are errors rather than a reason to fall back to the environment. Environment variables resolve per CLI invocation; the selected timeout becomes the existing absolute deadline, including queue waiting. Config is supplied through explicit `--config`. No environment fallback is provided for credentials, session id, or idle-timeout.
 
-構文エラーでも、有効に選択されたsession（環境値を含む）とJSONモードを応答へ反映する。`close --all`は引数エラーを含めsession:nullとする。不正なsessionはnull、session非依存コマンドもnullとする。オプションの値や`--`以降にある文字列を共通オプションとして解釈しない。
+Even syntax errors reflect a valid selected session, including environment-derived values, and JSON mode. `close --all` uses session:null even for argument errors. An invalid session or a session-independent command also uses null. Option values and strings after `--` are not interpreted as common options.
 
-`--debug`は構文エラーを含めopt-inで診断を追加し、通常診断とstdoutの既存envelopeは維持する。CLIからdaemonへ要求単位で伝え、並行sessionで設定・診断を共有しない。処理段階はCLI解析、runtime準備、daemon接続・起動・ready、送信、dispatch、session queue、command実行、結果。各プロセス内の処理区間開始からの単調な経過時間をmsで表示し、結果には成功の`OK`または正規化error codeを付ける。認証URI、fill入力、selector値、アプリ表示text、error message/details、stack traceは詳細診断に含めない。
+`--debug` adds opt-in diagnostics, including for syntax errors, while preserving normal diagnostics and the existing stdout envelope. It travels from CLI to daemon per request and is not shared between concurrent sessions. Stages include CLI parsing, runtime preparation, daemon connection/startup/ready, send, dispatch, session queue, command execution, and result. Each process reports monotonic elapsed ms from the start of its own processing interval; results include `OK` on success or a normalized error code. Detailed diagnostics exclude authenticated URIs, fill inputs, selector values, app display text, error message/details, and stack traces.
 
-### 共通安全オプション
+<a id="common-safety-options"></a>
+<a id="共通安全オプション"></a>
 
-共通オプションの登録・CLI既定値・優先順位・構文エラーの出力モード回復は`cli/common_options.dart`を正本とし、全サブコマンドはrootの同じ定義を継承する。session名・期限・出力上限の値域検証とdaemon idle既定値は`protocol/protocol.dart`に定義し、CLIとIPCで共用する。`--debug`を含む共通オプションはhelp/version、workflow、recordで受理する。重複・欠損・不正値はINVALID_ARGUMENT。環境変数のfallbackはsessionとtimeoutだけに適用し、明示設定ファイルの値を環境変数より下位の既定値として使う。screenshot形式・品質は画像保存時だけ使用し、他コマンドの出力は変更しない。
+### Common safety options
 
-`--content-boundaries`はsnapshotの要素行とlogsのentryだけを`--- BEGIN UNTRUSTED <source> <nonce> ---`／`--- END UNTRUSTED <source> <nonce> ---`で囲む。sourceは`snapshot`または`logs`、nonceはCLI呼出しごとにRandom.secureから生成する128bitの小文字hex。見出し、件数、エラー、hint、診断は外側に置く。JSONは文字列を変更せず、対象dataの`contentBoundary: {nonce, source}`へ同じ境界情報を格納する。内容の無害化や命令判定ではない。
+`cli/common_options.dart` is the source of truth for registration, CLI defaults, precedence, and output-mode recovery on syntax errors; every subcommand inherits the same root definitions. `protocol/protocol.dart` defines session-name, deadline, and output-limit ranges and the daemon idle default, shared by CLI and IPC. Common options, including `--debug`, are accepted for help/version, workflow, and record. Duplicates, missing values, and invalid values are INVALID_ARGUMENT. Environment fallback applies only to session and timeout; explicit config supplies defaults below environment values. Screenshot format/quality affect only image persistence, not other command output.
 
-`--max-output`は公開観測・generation・全要素のref採番を確定してから、elements／entriesの先頭から収まる完全な項目だけを返す。textはsnapshot要素行またはJSON化したlog entry、JSONは各項目のcompact JSONをcode pointで数える。項目間の改行／commaは各1文字として含め、包絡、配列括弧、見出し、境界、件数metadataは含めない。最初の項目が収まらなければ空配列。設定時は同じdataに`truncated`（bool）、`originalCount`、`omittedCount`を常に追加する。省略したrefはsessionから削除し、番号の推測利用はSTALE_REF。次回snapshotでも採番を巻き戻さない。workflowのfinalSnapshotも同じ契約。画像base64、保存画像、stderr診断、IPCの64MiB上限には適用しない。
+`--content-boundaries` wraps only snapshot element rows and log entries in `--- BEGIN UNTRUSTED <source> <nonce> ---` / `--- END UNTRUSTED <source> <nonce> ---`. Source is `snapshot` or `logs`; nonce is 128 bits of lowercase hexadecimal generated by Random.secure per CLI invocation. Headings, counts, errors, hints, and diagnostics stay outside. JSON preserves strings and adds the same information as `contentBoundary: {nonce, source}` in the relevant data. This neither sanitizes content nor classifies instructions.
 
-idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`、`3m`、`1h`、`10000`（ms）、`10ms`を受理し、負数・小数・未知単位・Duration／DateTime範囲外はINVALID_ARGUMENT。省略した呼出しは稼働値を引き継ぐ。異なる値を明示したIPC呼出しはhandshakeで処理送信前にINVALID_ARGUMENT／not_sentとなる。同時起動も起動lockの取得後に再照合し、最初に確定した設定だけを使う。help/version、workflow schema/validateはローカルで完了しdaemonへ接触しない。
+`--max-output` first finalizes the public observation, generation, and ref numbering for all elements, then returns only complete elements/entries that fit from the beginning. Text counts snapshot rows or JSON-serialized log entries; JSON counts each item's compact JSON in code points. Inter-item newlines/commas each count as one character. Envelopes, array brackets, headings, boundaries, and count metadata do not count. If the first item cannot fit, the array is empty. When enabled, the same data always includes `truncated` (bool), `originalCount`, and `omittedCount`. Omitted refs are removed from the session; guessing their numbers yields STALE_REF. The next snapshot does not rewind numbering. Workflow finalSnapshot follows the same contract. Image base64, saved images, stderr diagnostics, and the 64MiB IPC limit are unaffected.
 
-全session queueと要求の配送がidleになってから計測し、実行中・queue待ち中の処理は中断しない。health probeは終了を妨げない範囲で待ち、利用者の無操作時間を更新しない。期限到達時は通常のshutdownで録画を確定し、全接続・refを破棄してsocket・寿命lockを解放する。録画だけが継続していても要求queueがidleなら終了対象。次のアプリ操作はNOT_CONNECTEDとなり、明示的なconnectと新snapshotが必要。Flutterアプリ自体は終了しない。
+Idle timeout is fixed at startup for the daemon's lifetime. Accepted forms include `10s`, `3m`, `1h`, `10000` (ms), and `10ms`. Negative/fractional values, unknown units, or values outside Duration/DateTime ranges are INVALID_ARGUMENT. Calls that omit it inherit the running value. An IPC call explicitly requesting another value fails during handshake with INVALID_ARGUMENT / not_sent before dispatch. Concurrent startups recheck after acquiring the startup lock and use only the first established setting. Help/version and workflow schema/validate finish locally without contacting a daemon.
 
-### 実装済みコマンド
+Idle time starts only after all session queues and request deliveries are idle; running and queued work are not interrupted. Health probes can delay shutdown until safe but do not reset user inactivity. At expiry, normal shutdown finalizes recordings, discards all connections/refs, and releases the socket and lifetime lock. A recording alone does not prevent shutdown when request queues are idle. The next app operation returns NOT_CONNECTED and requires explicit connect and a new snapshot. The Flutter app itself is not terminated.
 
-| コマンド | 動作 |
+<a id="implemented-commands"></a>
+<a id="実装済みコマンド"></a>
+
+### Implemented commands
+
+| Command | Behavior |
 | --- | --- |
-| `mcp [--tools <profiles>]` | stdio MCPサーバーを開始。既定core、複数profileをcommaで指定 |
-| `connect <uri>` | 指定sessionで接続。HTTP(S)のVM Service URIもWS(S)へ正規化 |
-| `skills [list]` / `skills get <name> [name...] [--full]` / `skills get --all [--full]` / `skills path [name]` | 同梱Skillの一覧・本文・既存pathをローカルで返す |
-| `session list` | sessionの名前・接続状態を一覧表示。daemon不在時は空一覧 |
-| `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
-| `close [--all]` | 録画があれば確定し、選択session（--allは全session）を切断・破棄。対象不在も成功。Flutterアプリは終了しない |
-| `snapshot` | 観測を更新し、要素一覧とrefを返す |
-| `get text <ref\|selector>` | 単一要素の観測textを返す |
-| `get box <ref\|selector>` | 単一要素のboundsをFlutter論理座標で返す |
-| `get count <selector>` | 完全一致する観測候補の件数を返す（ref不可） |
-| `is visible <ref\|selector>` | 可視状態をknown/valueで返す。未観測はunknown |
-| `tap <ref>` / `tap <selector>` | 対象を1回タップ |
-| `tap --x <n> --y <n>` | 明示座標を1回タップ |
-| `fill <ref> <text>` / `fill <selector> <text>` | 入力欄の内容を置換。空文字でクリア |
-| `swipe <ref> <direction> [--distance <n>]` | 要素を起点にスワイプ。selectorも使用可能 |
-| `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | 明示した始点から終点へスワイプ |
-| `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
-| `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | 要素の出現または消失を観測だけで待つ |
-| `screenshot [--annotate] [path]` | PNG（既定）またはJPEGを排他的に保存。明示path > `--screenshot-dir` > 一時ファイル。注釈は対応providerと直近の有効snapshotが必要 |
-| `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
-| `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
-| `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
-| `workflow schema [action]` | workflow全体またはaction別の同梱JSON Schemaを返す。daemon・接続は不要 |
-| `workflow validate <path>` | JSON／YAML workflowを読んで構文・schema・意味制約を検証。daemon・接続は不要 |
-| `workflow run <path>` | 接続済みsessionでworkflowを1要求として直列実行 |
+| `mcp [--tools <profiles>]` | Starts a stdio MCP server; default core, comma-separated profiles supported |
+| `connect <uri>` | Connects the selected session; normalizes HTTP(S) VM Service URIs to WS(S) |
+| `skills [list]` / `skills get <name> [name...] [--full]` / `skills get --all [--full]` / `skills path [name]` | Locally returns bundled Skill listings, content, and existing paths |
+| `session list` | Lists session names and connection states; empty if no daemon exists |
+| `session show` | Returns selected-session state, a redacted endpoint, and snapshot validity |
+| `close [--all]` | Finalizes recording if present, then disconnects/discards the selected session (all sessions with --all). Absence also succeeds. Does not terminate the Flutter app |
+| `snapshot` | Refreshes the observation and returns elements and refs |
+| `get text <ref\|selector>` | Returns one element's observed text |
+| `get box <ref\|selector>` | Returns one element's bounds in Flutter logical coordinates |
+| `get count <selector>` | Counts exact observed candidates; refs are not accepted |
+| `is visible <ref\|selector>` | Returns visibility as known/value; unobserved is unknown |
+| `tap <ref>` / `tap <selector>` | Taps the target once |
+| `tap --x <n> --y <n>` | Taps explicit coordinates once |
+| `fill <ref> <text>` / `fill <selector> <text>` | Replaces input content; an empty string clears it |
+| `swipe <ref> <direction> [--distance <n>]` | Swipes starting from an element; selectors also supported |
+| `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | Swipes from an explicit start to end |
+| `scroll <ref> <direction> [--distance <n>]` | Sends a directional gesture to a scroll region; selectors also supported |
+| `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | Waits for appearance/disappearance through observation only |
+| `screenshot [--annotate] [path]` | Exclusively saves PNG (default) or JPEG. Explicit path > `--screenshot-dir` > temporary file. Annotation requires a supported provider and the latest valid snapshot |
+| `logs` | Retrieves binding-collected logs without subscription or indefinite waiting |
+| `record start <path> --platform <platform> --device <id>` | Starts device-screen recording without requiring VM Service |
+| `record status` / `record stop` | Queries recording state / stops and waits for video finalization |
+| `workflow schema [action]` | Returns bundled JSON Schema for the full workflow or an action; no daemon/connection needed |
+| `workflow validate <path>` | Reads JSON/YAML and validates syntax, schema, and semantic constraints; no daemon/connection needed |
+| `workflow run <path>` | Serially executes a workflow as one request on a connected session |
 
-`<selector>` は `--key <value>`、`--identifier <value>`、`--text <value>`、`--type <value>` のいずれか1つ。例: `fill --key email 'a@example.com'`、`swipe --key pager left`。ref、selector、座標の混在はエラー。`wait`はselectorに加え、[Flutter向け拡張](#flutter向け拡張)のref待機・時間待機を受理する。座標は受理しない。workflow v1の対象はselectorだけである。固定依存のbinding 0.6.0はidentifier matcherを提供しないため、identifier指定はUNSUPPORTED_CAPABILITYを返す。
+`<selector>` is exactly one of `--key <value>`, `--identifier <value>`, `--text <value>`, or `--type <value>`. Examples: `fill --key email 'a@example.com'`, `swipe --key pager left`. Mixing refs, selectors, and coordinates is an error. In addition to selectors, `wait` accepts ref and duration waits described under [Flutter extensions](#flutter-extensions), but never coordinates. Workflow v1 accepts selectors only. Pinned binding 0.6.0 has no identifier matcher, so identifier selection yields UNSUPPORTED_CAPABILITY.
 
-scrollは初版では指定領域を既存swipe機構で操作する。directionはswipeと同じく指の移動方向であり、コンテンツの移動先や到達保証ではない。画面外要素へのscroll-toは後続とする。
+Initial scroll support operates the specified region through the existing swipe mechanism. As with swipe, direction means finger movement, not content destination or guaranteed arrival. Scroll-to for off-screen elements is deferred.
 
-単独`wait`の`state`は`exists`が既定で、`gone`も指定できる。stateとpollIntervalMsの既定値はfield省略時だけ適用し、IPCでの明示null・不正型は観測前にINVALID_ARGUMENTとする。`poll-interval`は50〜1,000msの整数、既定100ms。最初の観測は即時に行い、全体期限は共通`--timeout`を使う。`exists`は一致が正確に1件かつ`visible != false`で成功し、複数一致はAMBIGUOUS_TARGET。`gone`は0件で成功し、1件以上なら待つ。text照合では由来未確認の候補も衝突へ含め、唯一の候補が由来未確認ならUNRESOLVABLE_TARGETとする。
+Standalone `wait` defaults `state` to `exists` and also accepts `gone`. State and pollIntervalMs defaults apply only to omitted fields; explicit IPC null or invalid types yield INVALID_ARGUMENT before observation. `poll-interval` is an integer from 50 to 1,000ms, default 100ms. The first observation is immediate; the overall deadline uses common `--timeout`. `exists` succeeds with exactly one match and `visible != false`; multiple matches yield AMBIGUOUS_TARGET. `gone` succeeds with zero matches and keeps waiting for one or more. Text matching counts unverified-origin candidates as collisions; a sole unverified-origin candidate yields UNRESOLVABLE_TARGET.
 
-`wait`は同一session queueで`inspect`だけをpollし、UI操作を送信せず、公開snapshot／refを発行・更新・失効しない。成功dataは待機した`state`と`requiresSnapshot:true`を返し、実際の画面状態と最新refを後続`snapshot`で確認するよう案内する。wait中のtimeoutまたは通信断はreadの既存契約どおり`outcome:not_sent`で接続世代とrefを破棄する。queue内で実行開始前に期限切れとなった要求は観測せず、接続とrefを維持する。
+`wait` polls only `inspect` on the same session queue. It sends no UI action and does not create, update, or invalidate public snapshots/refs. Successful data returns the awaited `state` and `requiresSnapshot:true`, directing the caller to a subsequent `snapshot` for current screen state and refs. Timeout or connection loss during wait follows the read contract: `outcome:not_sent`, with connection generation and refs discarded. Expiration before execution starts in the queue performs no observation and preserves the connection and refs.
 
-### screenshotの形式・保存
+<a id="screenshot-format-and-persistence"></a>
+<a id="screenshotの形式保存"></a>
 
-- 注釈なしの既定PNGは復号検証後にbackendの元バイト列を保存し、寸法と透過を保持する。JPEGはCLI側でPNGを復号し、各画素のRGBを白背景へalpha合成してから不可逆圧縮する。寸法は変えない。PNG内の背景色指定は使用しない。
-- `--screenshot-format`は小文字の`png`または`jpeg`。`--screenshot-quality`はJPEG指定時だけ0〜100の整数を受理し、既定90。固定encoderの品質0は最低品質1と同じ圧縮になる。品質100もlosslessではない。
-- pathの拡張子はPNGなら`.png`、JPEGなら`.jpg`または`.jpeg`。大文字小文字を区別せず、指定した綴りは維持する。形式は拡張子から推測しない。不一致・未知の拡張子は接続前にINVALID_ARGUMENT。拡張子がなければPNGは`.png`、JPEGは`.jpg`を付加する。
-- pathと`--screenshot-dir`を両方省略時は専用の非公開一時directoryに`screen.png`または`screen.jpg`を保存する。複数画像はbackendの順で、指定名の拡張子直前へ`-1`、`-2`…を付ける。例: `screen.jpeg`→`screen-1.jpeg`、`screen-2.jpeg`。自動名も同じ連番規則。
-- 共通`--timeout`は取得・転送・復号・白背景合成・JPEG変換・保存を含む元の絶対期限。codec処理前後・合成中・保存中に期限を確認し、期限後に成功を返さない。同期codecや進行中のOS I/Oの即時中断は保証しない。
-- 全画像の復号・変換が成功してから全保存先を排他的に予約し、書き込む。既存file/directory/symlinkはIO_ERRORで拒否する。途中の変換失敗は出力を作らず、予約・書込みの失敗やTIMEOUTではこの要求が作成した全fileと自動作成directoryの削除を試みる。既存fileを削除・上書きしない。OSがcleanupを拒否した場合は部分artifactが残る場合があり、成功pathsは返さない。意図的な予約後の差し替えは従来どおり保証外。
+### Screenshot format and persistence
 
-### workflow v1
+- Default unannotated PNG saves the backend's original bytes after decode validation, preserving dimensions and transparency. JPEG decodes PNG in the CLI, alpha-composites each pixel's RGB over white, then applies lossy compression without changing dimensions. PNG background-color metadata is not used.
+- `--screenshot-format` accepts lowercase `png` or `jpeg`. `--screenshot-quality` accepts integers 0–100 only with JPEG, default 90. The pinned encoder compresses quality 0 like its minimum quality 1. Quality 100 is also lossy.
+- PNG paths use `.png`; JPEG paths use `.jpg` or `.jpeg`. Matching is case-insensitive and preserves the supplied spelling. Format is not inferred from the extension. Mismatched or unknown extensions yield INVALID_ARGUMENT before connection. Missing extensions become `.png` for PNG or `.jpg` for JPEG.
+- Omitting both path and `--screenshot-dir` saves `screen.png` or `screen.jpg` in a dedicated private temporary directory. Multiple images preserve backend order and add `-1`, `-2`, etc. before the extension: `screen.jpeg`→`screen-1.jpeg`, `screen-2.jpeg`. Automatic names follow the same numbering.
+- Common `--timeout` is the original absolute deadline covering capture, transfer, decoding, white-background composition, JPEG conversion, and saving. It is checked before/after codecs, during composition, and during persistence; late success is forbidden. Immediate interruption of synchronous codecs or in-flight OS I/O is not guaranteed.
+- Only after every image decodes/converts successfully are all destinations exclusively reserved and written. Existing files/directories/symlinks yield IO_ERROR. Conversion failure creates no output. Reservation/write failure or TIMEOUT attempts to remove every file and automatic directory created by this request, never preexisting files. OS cleanup refusal may leave partial artifacts, but no successful paths are returned. Deliberate replacement after reservation remains outside the guarantee.
 
-workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
+<a id="workflow-v1"></a>
 
-workflow内の操作対象はselectorだけを受理し、refと座標操作は受理しない。入力値は型付き参照でbindingし、文字列展開、環境変数展開、shell実行は行わない。`--timeout`はworkflow／inputsの読込、検証、daemonへの配送、queue待ち、全stepを含む絶対期限である。
+### Workflow v1
 
-成功時はworkflow名、完了step数、`requiresSnapshot`を返す。workflow内で最後に取得され、その後mutationされていないsnapshotがあれば`finalSnapshot`として返し、そのrefを後続CLIから利用できる。失敗時は`error.details`へ進捗の既知・未知、完了step数、失敗stepを付加する。詳細なfile schema、上限、waitの意味は[workflow v1仕様](ja/workflow-file-spec.ja.md)を正本とする。
+Workflow v1 executes `snapshot`, `tap`, `fill`, `swipe`, `scroll`, and `wait` in declared order from JSON or restricted YAML. `run` occupies one queue entry in one session for all steps and stops at the first failure. There is no rollback of completed steps, automatic retry, or mid-workflow resume.
 
-### sessionの寿命と競合
+Workflow targets accept selectors only, not refs or coordinates. Inputs bind through typed references, without string expansion, environment expansion, or shell execution. `--timeout` is an absolute deadline covering workflow/input reading, validation, daemon delivery, queue waiting, and every step.
 
-- connectまたはrecord startでdaemonを必要に応じて自動起動する。アプリ操作コマンドが未接続sessionを暗黙作成することはない。
-- 同一session・同一URIへのconnectは、接続が正常なら成功。別URIへの付け替えにはcloseを先に実行する。
-- sessionごとにコマンドを直列実行する。異なるsessionは独立する。同じ正規化URIを複数sessionで所有する要求は拒否する。URI別名による同一アプリの検出は保証しない。
-- 通信断でsessionはdisconnectedとなりrefを失効する。明示的なconnectで復旧する。操作の自動再送はしない。
-- daemon再起動で接続・snapshotを復元しない。最後のsessionを閉じたdaemonは終了する。
-- タイムアウトしても送信済み操作を取り消せたとは限らない。結果不明を返し、接続を破棄して再接続と再観測を要求する。
+Success returns workflow name, completed-step count, and `requiresSnapshot`. If the last snapshot obtained within the workflow has not been followed by a mutation, it is returned as `finalSnapshot`, with refs usable by subsequent CLI calls. Failure adds whether progress is known, completed-step count, and failed step to `error.details`. The [workflow v1 specification](workflow-file-spec.md) owns the detailed file schema, limits, and wait semantics.
 
-単一sessionのcloseはbackendの切断完了まで要求期限内で待つ。確定した切断失敗はBACKEND_ERROR／failed（終了1）、完了未確認の期限超過はTIMEOUT／unknown（終了5）。どちらも接続所有権とrefを失効し、sessionを破棄する。所有アプリの終了通知が先に接続を破棄した場合も、同じ切断の完了結果を使用する。録画確定が期限超過した場合の保持・後処理は録画契約に従う。
+<a id="session-lifetime-and-races"></a>
+<a id="sessionの寿命と競合"></a>
 
-### getによる状態照会
+### Session lifetime and races
 
-`get text`と`get box`は対象を再観測し、操作と共通の一意性・ref属性比較を使用する。selectorが0件ならTARGET_NOT_FOUND、複数件ならAMBIGUOUS_TARGET、未発行／消失／属性変更したrefならSTALE_REF。単独の由来未確認text selectorはUNRESOLVABLE_TARGET。表示不可でも観測された属性は返せるため、操作専用のvisible判定は行わない。
+- Connect or record start automatically starts the daemon when needed. App-operation commands never implicitly create an unconnected session.
+- Connecting the same session to the same URI succeeds if its connection is healthy. Switching to another URI requires close first.
+- Commands are serialized per session; different sessions are independent. Multiple sessions may not own the same normalized URI. Detecting aliases that reach the same app is not guaranteed.
+- Connection loss marks a session disconnected and invalidates refs. Recovery requires explicit connect. Actions are never automatically resent.
+- A daemon restart restores neither connections nor snapshots. Closing the last session shuts down the daemon.
+- Timeout does not imply cancellation of an already-sent action. The result is unknown; the connection is discarded and reconnect/re-observation are required.
 
-成功dataはtextが`{"text":string|null}`、boxが`{"bounds":{"x":number,"y":number,"width":number,"height":number}|null,"unit":"flutter_logical_pixels"}`。boundsはFlutter論理座標であり、Simulator画像の物理pixelではない。欠損はnull、実際の空文字やゼロはそのまま返す。入力欄のvalue属性を取得する契約ではない。
+Single-session close waits for backend disconnection within the request deadline. A confirmed disconnect failure yields BACKEND_ERROR / failed (exit 1); timeout before confirmation yields TIMEOUT / unknown (exit 5). Both release connection ownership, invalidate refs, and discard the session. If an owned-app exit notification discarded the connection first, close uses that same disconnect result. Recording-finalization timeout retention and cleanup follow the recording contract.
 
-`get count`の成功dataは`{"count":integer,"selector":{kind:value}}`。現在のinspect結果についてkey/identifier/text/typeの完全一致を数え、0件・複数件とも成功する。textはcandidateValueを使い、既知型と由来未確認型の観測textをそれぞれ1候補として数える。これは上流操作matcherの実一致数や操作可能性の保証ではない。refはINVALID_ARGUMENT、binding未対応selectorは件数にかかわらずUNSUPPORTED_CAPABILITY。成功した全getは公開snapshotの世代・refを更新／失効／再発行しない。timeout・通信断は既存read契約に従う。
+<a id="state-queries-with-get"></a>
+<a id="getによる状態照会"></a>
+
+### State queries with get
+
+`get text` and `get box` re-observe the target and share action uniqueness/ref-attribute checks. Zero selector matches yield TARGET_NOT_FOUND; multiple matches yield AMBIGUOUS_TARGET; an unissued, missing, or changed ref yields STALE_REF. A sole unverified-origin text selector yields UNRESOLVABLE_TARGET. Observed attributes can be read even for invisible elements, so action-only visibility checks do not apply.
+
+Successful data is `{"text":string|null}` for text and `{"bounds":{"x":number,"y":number,"width":number,"height":number}|null,"unit":"flutter_logical_pixels"}` for box. Bounds are Flutter logical coordinates, not Simulator-image physical pixels. Missing values are null; actual empty strings and zeroes remain unchanged. This is not a contract for reading an input's value attribute.
+
+`get count` returns `{"count":integer,"selector":{kind:value}}`. It counts exact key/identifier/text/type matches in the current inspect result; zero or multiple matches both succeed. Text uses candidateValue, counting each observed known-type or unverified-type text as one candidate. This does not guarantee the upstream action matcher's actual match count or actionability. Ref input is INVALID_ARGUMENT; a selector unsupported by the binding is UNSUPPORTED_CAPABILITY regardless of count. Successful get commands never update, invalidate, or reissue public snapshot generations/refs. Timeout and connection loss follow the existing read contract.
+
+<a id="is-visible"></a>
 
 ### is visible
 
-`is visible <ref|selector>`は一度だけ対象を再観測する読み取りコマンド。成功のJSON `data`は`{"known":true,"value":true}`、`{"known":true,"value":false}`、`{"known":false,"value":null}`のいずれかとする。nullableなvisibleの未観測をfalseへ丸めない。textはそれぞれ`Visible: true`、`Visible: false`、`Visible: unknown`。
+`is visible <ref|selector>` is a read command that re-observes once. Successful JSON `data` is one of `{"known":true,"value":true}`, `{"known":true,"value":false}`, or `{"known":false,"value":null}`. Unobserved nullable visibility is never coerced to false. Text output is respectively `Visible: true`, `Visible: false`, or `Visible: unknown`.
 
-共通の対象再観測・一意性・属性比較を利用する。selectorの0件は`TARGET_NOT_FOUND`、複数件は`AMBIGUOUS_TARGET`、古いrefは`STALE_REF`、未対応selectorは`UNSUPPORTED_CAPABILITY`。非表示の一意な対象は成功してfalseを返す。成功時はUI操作、refの失効・再発行、公開snapshot世代の更新を行わない。待機やenabled/checkedの判定は含まない。
+It uses shared target re-observation, uniqueness, and attribute comparison. Zero selector matches yield `TARGET_NOT_FOUND`, multiple matches `AMBIGUOUS_TARGET`, stale refs `STALE_REF`, and unsupported selectors `UNSUPPORTED_CAPABILITY`. A unique hidden target succeeds with false. Success neither performs UI actions nor invalidates/reissues refs or updates the public snapshot generation. It does not wait or determine enabled/checked state.
 
+<a id="close---all"></a>
 
 ### close --all
 
-`close --all`はdaemon全体の後始末。明示的な`--session`との併用（defaultも含む）はINVALID_ARGUMENT（exit 2）。daemon不在・空でも成功し、自動起動しない。成功はsession:null、data:{closed:true,sessions:[session別Result]}。名前順の各Resultは通常の包絡（session、ok、dataまたはerror）を使う。closedはローカルsessionの破棄を表し、アプリ終了を意味しない。
+`close --all` cleans up the entire daemon. Combining it with explicit `--session`, even default, is INVALID_ARGUMENT (exit 2). An absent/empty daemon also succeeds without automatic startup. Success has session:null and data:{closed:true,sessions:[per-session Result]}. Results are sorted by name and use the normal envelope (session, ok, data or error). Closed means local sessions were discarded, not that apps were terminated.
 
-受付時に対象sessionを固定して全新規要求の受付を停止する。それ以前に予約したconnectも対象に含む。queue待ちは実行前にCONNECTION_LOST/not_sentとして拒否し、実行中は共通`--timeout`の絶対期限まで完了を待つ。期限到達で接続世代を失効し、送信済み操作の応答はCONNECTION_LOST/unknown、未送信はnot_sent。遅延完了によるref復活・後続操作の送信・UI再送を禁止する。
+On receipt, it fixes the target-session set and stops accepting all new requests, including connect requests reserved before close. Queued requests are rejected before execution as CONNECTION_LOST/not_sent; running requests may finish until the common `--timeout` absolute deadline. Expiration invalidates connection generations. Sent actions return CONNECTION_LOST/unknown; unsent ones return not_sent. Late completion may not revive refs, send subsequent actions, or resend UI actions.
 
-sessionごとに録画確定・切断を期限内で待つ。部分失敗でも全sessionのref・URI所有権を破棄しdaemonを終了する。部分失敗はdata:null、error.details:{closed:true,sessions:[session別Result]}。期限超過が1件でもあればTIMEOUT（exit 5）、それ以外の失敗はCLOSE_FAILED（exit 1）。集約outcomeは結果不明があればunknown、それ以外はfailed。各sessionに切断成功、失敗、期限超過を残す。IPC配送自体が途絶えた場合はunknownとなり、session別結果を推測しない。
+Recording finalization and disconnect are awaited per session within the deadline. Even partial failure discards every session's refs/URI ownership and shuts down the daemon. Partial failure has data:null and error.details:{closed:true,sessions:[per-session Result]}. Any timeout yields TIMEOUT (exit 5); other failures yield CLOSE_FAILED (exit 1). Aggregate outcome is unknown if any result is unknown, otherwise failed. Per-session results retain disconnect success, failure, or timeout. If IPC delivery itself is lost, outcome is unknown and per-session results are not guessed.
 
-停止中daemonへ送信した新規connectはCONNECTION_LOST/not_sent。handshakeが停止中なら既存の起動lock／寿命lock経路で次daemonを待つことがあるため、close --allは将来の明示connectを禁止する障壁ではない。次回利用は明示connectと新snapshotが必要。socket削除と寿命lock解放は既存shutdown経路を使い、応答配送はdeadline+250ms、残client破棄はshutdown後250msに制限する。録画の期限後cleanupには既存のshutdown上限（60秒とabort猶予5秒）を適用する。
+A new connect sent to a stopping daemon returns CONNECTION_LOST/not_sent. If handshake finds a stopping daemon, the existing startup/lifetime-lock path may wait for the next daemon, so close --all is not a barrier prohibiting future explicit connects. Subsequent use requires explicit connect and a new snapshot. Socket removal and lifetime-lock release use existing shutdown. Response delivery is limited to deadline+250ms; remaining clients are discarded within 250ms after shutdown. Post-deadline recording cleanup uses the existing 60-second shutdown limit plus five-second abort grace.
 
-### snapshotと要素参照
+<a id="snapshots-and-element-references"></a>
+<a id="snapshotと要素参照"></a>
 
-snapshotは観測世代と要素一覧を返す。各要素には取得可能なtype、text、key、identifier、bounds、visibleを含める。存在しない属性は捏造しない。テキスト出力には対象選択に必要な情報を優先し、診断プロパティ全量を載せない。
+### Snapshots and element references
 
-`snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]`は省略可能なfilterを1つだけ受理する。値は空でない文字列で、観測属性との大文字小文字を区別した完全一致。複数selector、ref、未知option、空値はINVALID_ARGUMENTで観測前に拒否する。filterなしの出力は従来どおり。0件・複数件も成功した新snapshotであり、旧refはすべて失効する。
+Snapshot returns an observation generation and element list, including available type, text, key, identifier, bounds, and visible attributes. Missing attributes are never invented. Text output prioritizes target-selection information rather than all diagnostic properties.
 
-filterは観測用であり、`--text`は未知型を含む表示textにも一致する。`--identifier`もbackendの操作selector対応とは独立して観測済みidentifierに一致し、属性がなければ0件。表示textへの一致だけでは操作可能性を保証しない。操作には別途、対応確認済みselector・全観測結果での一意性・可視性の確認が必要となる。
+`snapshot [--key <value> | --identifier <value> | --text <value> | --type <value>]` accepts at most one optional filter. Its value is a nonempty string matched exactly and case-sensitively against observed attributes. Multiple selectors, refs, unknown options, and empty values yield INVALID_ARGUMENT before observation. Unfiltered output is unchanged. Zero or multiple matches are both successful new snapshots and invalidate all old refs.
 
-処理順は全要素の観測→全体での一意性確認とref採番→filter→`--max-output`。filter外の衝突もref安全性に含め、番号は表示範囲で振り直さない。filter外・出力制限で省略されたrefは利用不可（STALE_REF）。filter時だけdataに`filter: {kind, value, matchedCount, totalCount}`を追加する。kindはkey/identifier/text/type、valueは指定文字列、totalCountは全観測要素数、matchedCountは出力制限前の一致数。text形式もFilter行に同じ条件・件数を返す。filter自体はtruncatedを意味しない。`--max-output`設定時のoriginalCountはfilter後の件数（matchedCount）、omittedCountはそのうち予算で省略した件数。filter metadataは文字数予算外。workflow v1のsnapshot step構文は変更しない。
+Filters are observational. `--text` matches display text, including unknown types. `--identifier` matches observed identifiers independently of backend action-selector support; absent attributes produce zero matches. Matching display text alone does not guarantee actionability. Actions separately require a verified supported selector, uniqueness across the full observation, and visibility.
 
-refは選択sessionの直近snapshotだけで有効。新snapshot、再接続、切断で既存refを失効する。UI操作をバックエンドへ送る直前にも全refを失効し、成功・失敗・結果不明のいずれでも再snapshotを要求する。引数検証のみの失敗は失効させない。成功したwait、screenshot・logs・状態照会は失効させない。
+Processing order is full observation → global uniqueness checks and ref numbering → filter → `--max-output`. Collisions outside the filter still affect ref safety, and numbering is not recomputed for the visible subset. Refs excluded by filtering or output limits are unusable (STALE_REF). Only filtered requests add `filter: {kind, value, matchedCount, totalCount}` to data. Kind is key/identifier/text/type, value is the supplied string, totalCount is all observed elements, and matchedCount is matches before the output limit. Text's Filter line reports the same conditions/counts. Filtering itself does not imply truncated. With `--max-output`, originalCount is the filtered count (matchedCount), and omittedCount counts matches omitted by the budget. Filter metadata is outside the character budget. Workflow v1 snapshot-step syntax is unchanged.
 
-ref番号はdaemonの生存期間を通して単調増加し、sessionをまたいでも再利用しない。daemon再起動後は必ずconnectとsnapshotからやり直す。
+Refs are valid only for the selected session's latest snapshot. A new snapshot, reconnect, or disconnect invalidates existing refs. Immediately before sending a UI action to the backend, all refs are invalidated; success, failure, and unknown outcomes all require another snapshot. Argument-validation-only failure does not invalidate them. Successful wait, screenshot, logs, and state queries do not invalidate them.
 
-操作直前に再観測し、保存したselectorが一意に一致し、type・識別属性・text・boundsが観測時から変化していないことを確認する。不一致はSTALE_REF、複数一致はAMBIGUOUS_TARGET。refから座標への自動フォールバックは行わない。明示selectorでも観測内の一致数を確認する。
+Ref numbers increase monotonically across the daemon's lifetime and are never reused across sessions. After a daemon restart, always start again with connect and snapshot.
 
-key、identifierを優先し、text・typeはバックエンドの照合との対応を確認できる場合に使う。表示用Semanticsテキストは照合用textと同義ではない。一意に操作できるselectorを構成できない要素は情報を表示するが、操作用refを付けず理由を返す。
+Immediately before an action, re-observation checks that the stored selector matches uniquely and that type, identifying attributes, text, and bounds have not changed. Mismatch yields STALE_REF; multiple matches yield AMBIGUOUS_TARGET. Refs never automatically fall back to coordinates. Explicit selectors also have their observed match counts checked.
 
-固定binding 0.6.0ではtextの由来を区別する属性がないため、text照合は確認済みの型名Text・RichText・EditableText・TextField・TextFormFieldに限定する。Semanticsの派生型やその他の独自型のtextは表示情報として扱い、操作にはkeyまたは一意なtypeを使用する。
+Prefer key and identifier; use text/type when their correspondence to backend matching is verified. Semantics display text is not equivalent to matcher text. Elements without a uniquely actionable selector still expose information and a reason, but no action ref.
 
-一意性の判定には由来未確認のtextも含める。同じtextを持つ未知の型が観測された場合、既知の型へのtext指定・text由来のref・wait existsもAMBIGUOUS_TARGETとして拒否する。snapshotは安全なkey/typeがあればそちらでrefを発行する。
+Pinned binding 0.6.0 exposes no text-origin attribute, so text matching is limited to verified type names Text, RichText, EditableText, TextField, and TextFormField. Text from Semantics-derived or other custom types is display information; use a key or unique type for actions.
 
-既存APIでは再観測と操作は原子的ではなく、観測に含まれない要素もある。その間の画面変化や同一属性の別要素への置き換えを完全には検出できない。初版はこの制約下で事前検証を行い、Flutter要素の永続IDを保証しない。
+Uniqueness includes unverified-origin text. If an unknown type has the same text, text selection of a known type, text-derived refs, and wait exists also yield AMBIGUOUS_TARGET. Snapshot uses a safe key/type for ref issuance when available.
 
-### swipeの詳細
+Existing APIs do not make re-observation and action atomic, and some elements are absent from observations. Changes between those operations or replacement by an element with identical attributes cannot be fully detected. The initial release performs preflight validation within these limits and does not guarantee persistent Flutter element IDs.
 
-- 要素方式と座標方式の2方式。方向はleft・right・up・down。
-- 距離は有限の正数、既定200。座標は有限の非負数。単位はFlutterの論理ピクセルであり、画像の物理ピクセルとは区別する。
-- 座標方式は4座標をすべて必須とし、同一の始点・終点は拒否する。要素方式のオプションとの混在も拒否する。
-- 速度・継続時間・慣性の指定、iOSホーム操作などのシステムジェスチャーは対象外。
-- 成功はバックエンドのジェスチャー処理完了。ページ切替などの結果は次のsnapshotで確認する。
+<a id="swipe-details"></a>
+<a id="swipeの詳細"></a>
 
-### 出力と終了コード
+### Swipe details
 
-JSONは`skills`と稼働中の`mcp`を除き成功・失敗とも以下の包絡形式。schemaVersionは初版で1。session非依存コマンドではsessionはnull。dataとerrorの一方だけを非nullとする。help/versionもJSONモードでは同じ包絡形式を使う。`skills --help`を含むSkill配信の互換出力は後述の専用契約に従う。`mcp`の起動引数エラーは通常のCLI契約、起動後のstdoutはMCPメッセージ専用。
+- Two modes: element and coordinates. Directions are left, right, up, and down.
+- Distance is finite and positive, default 200. Coordinates are finite and nonnegative. Units are Flutter logical pixels, distinct from image physical pixels.
+- Coordinate mode requires all four coordinates and rejects identical start/end points. Mixing element-mode options is also rejected.
+- Speed, duration, inertia, and system gestures such as iOS Home are out of scope.
+- Success means backend gesture processing completed. Verify results such as page changes with the next snapshot.
+
+<a id="output-and-exit-codes"></a>
+<a id="出力と終了コード"></a>
+
+### Output and exit codes
+
+Except for `skills` and a running `mcp`, JSON success and failure use the envelope below. Initial schemaVersion is 1. Session-independent commands use session:null; exactly one of data/error is nonnull. Help/version use the same envelope in JSON mode. Skill distribution, including `skills --help`, follows its dedicated compatibility contract below. `mcp` startup-argument errors use the normal CLI contract; after startup, stdout is reserved for MCP messages.
 
 ```json
 {"schemaVersion":1,"ok":true,"session":"demo","data":{"requiresSnapshot":true},"error":null}
@@ -241,162 +283,191 @@ JSONは`skills`と稼働中の`mcp`を除き成功・失敗とも以下の包絡
 {"schemaVersion":1,"ok":false,"session":"demo","data":null,"error":{"code":"STALE_REF","message":"Target changed","hint":"Run snapshot again","outcome":"not_sent"}}
 ```
 
-outcomeはnot_sent・failed・unknown。送信後の通信断・タイムアウトを未実行として扱わない。
+Outcome is not_sent, failed, or unknown. Connection loss or timeout after sending is never treated as proof that execution did not occur.
 
-通常のテキスト出力でも全エラーにoutcomeを表示する。daemonが要求を処理した後、応答のサイズ超過等で結果を配送できなかった場合は、通常コマンドもunknownを返し、not_sentへ戻さない。
+Normal text output also shows outcome for every error. If the daemon processes a request but cannot deliver its result, for example because a response exceeds the size limit, even normal commands return unknown rather than reverting to not_sent.
 
-| 終了コード | エラー分類と代表code |
+| Exit code | Error category and representative codes |
 | --- | --- |
-| 0 | 成功 |
-| 2 | 引数: INVALID_ARGUMENT |
-| 3 | 接続・session: NOT_CONNECTED、SESSION_CONFLICT、CONNECTION_LOST |
-| 4 | 対象: TARGET_NOT_FOUND、AMBIGUOUS_TARGET、STALE_REF、UNRESOLVABLE_TARGET |
-| 5 | 期限超過: TIMEOUT |
-| 6 | 機能不足: UNSUPPORTED_CAPABILITY |
-| 1 | その他: BACKEND_ERROR、IO_ERROR、INTERNAL_ERROR |
+| 0 | Success |
+| 2 | Arguments: INVALID_ARGUMENT |
+| 3 | Connection/session: NOT_CONNECTED, SESSION_CONFLICT, CONNECTION_LOST |
+| 4 | Target: TARGET_NOT_FOUND, AMBIGUOUS_TARGET, STALE_REF, UNRESOLVABLE_TARGET |
+| 5 | Deadline: TIMEOUT |
+| 6 | Missing capability: UNSUPPORTED_CAPABILITY |
+| 1 | Other: BACKEND_ERROR, IO_ERROR, INTERNAL_ERROR |
 
-### screenshotの保存
+<a id="screenshot-storage"></a>
+<a id="screenshotの保存"></a>
 
-screenshotのdataは絶対pathの`paths`配列。保存先は明示path、共通`--screenshot-dir <path>`、従来の非公開一時directoryの順に選ぶ。明示pathがあればdirectoryの存在や権限を調べず、その場所へ保存する。directory設定は呼出しごとで、daemon／sessionには保存せず、他コマンドの動作にも影響しない。空文字またはNULを含むdirectory指定はINVALID_ARGUMENT。
+### Screenshot storage
 
-明示pathとdirectoryの相対pathは呼出元CLIのcwdを基準に正規化する。明示pathの親と指定directoryは事前作成を必須とし、自動作成しない。指定directoryの不存在、通常file、directory自身のsymlink（danglingを含む）、保存に必要な権限の不足はIO_ERROR。祖先directoryのsymlinkは解決を許す。directoryのtype確認後に意図的に差し替えられる競合までは保証しない。
+Screenshot data contains an array of absolute `paths`. Destination precedence is explicit path, common `--screenshot-dir <path>`, then the existing private temporary directory. An explicit path bypasses existence/permission checks on the directory option. Directory configuration is per invocation, never persisted in daemon/session, and does not affect other commands. Empty or NUL-containing directory values are INVALID_ARGUMENT.
 
-directory指定時はその直下に`screen-<128bit乱数の32桁hex>.png`（JPEGは`.jpg`）を生成する。連続／同時撮影でも各要求で別名を生成し、排他的作成で上書きを防ぐ。万一生成名が既存pathと衝突した場合もIO_ERRORとして拒否する。両方省略時は従来どおり一意な`marionette-screenshot-*`一時directory内の`screen.png`または`screen.jpg`へ保存する。
+Relative explicit paths and directory paths are normalized against the caller CLI's cwd. The explicit path's parent and specified directory must already exist; neither is created automatically. A missing specified directory, regular file, symlink at the directory itself (including dangling), or inadequate save permissions yields IO_ERROR. Ancestor-directory symlinks may be resolved. Deliberate replacement after the directory type check is outside the guarantee.
 
-複数画像は指定名／生成名の拡張子の前へ`-1`、`-2`の連番を付ける（拡張子なしは選択形式に応じて`.png`または`.jpg`を追加）。全PNGを復号検証し、全保存先を排他的に作成してから画像を書き込む。既存のfile・directory・symlinkは拒否する。途中失敗時はこの要求が作成した画像fileを削除し、一時保存の場合はこの要求の一時directoryも削除する。指定directoryと既存artifactは削除しない。cleanupの失敗で元のエラーを置き換えず、成功pathを返さない。保存先の予約後に別プロセスが意図的に差し替える競合までは保証しない。画像が空または不正PNGならBACKEND_ERROR、保存期限超過はTIMEOUT、その他の保存失敗はIO_ERROR。readであるscreenshotのこれらのエラーは従来どおりoutcome:not_sentとなる。
+Directory mode generates `screen-<32 hex digits of 128-bit randomness>.png` directly inside it (`.jpg` for JPEG). Sequential/concurrent captures generate distinct names per request, with exclusive creation preventing overwrite. Even a generated-name collision with an existing path yields IO_ERROR. Omitting both retains `screen.png` or `screen.jpg` inside a unique `marionette-screenshot-*` temporary directory.
 
-logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
+Multiple images add `-1`, `-2`, etc. before the explicit/generated name's extension (missing extensions become `.png` or `.jpg` for the selected format). All PNGs are decode-validated and all destinations exclusively created before writing. Existing files, directories, and symlinks are rejected. Partial failure deletes image files created by this request and, for temporary storage, its temporary directory. The specified directory and existing artifacts are never removed. Cleanup failure does not replace the original error or return successful paths. Deliberate destination replacement by another process after reservation is outside the guarantee. Empty or invalid PNG data yields BACKEND_ERROR, an expired save deadline TIMEOUT, and other persistence failures IO_ERROR. As screenshot is a read, these errors retain outcome:not_sent.
 
-`screenshot --annotate`は、直近snapshotで実際に公開された操作可能refだけを`@eN`ラベルと枠として新しいPNGへ合成し、JPEG指定時は合成後にJPEGへ変換する。既存PNGを入力に取らず、元画像のbytesも変更しない。保存先は注釈画像の新規pathであり、通常のscreenshotと同じ排他的保存・全体deadlineを使う。成功dataはpathsに加えてannotated=true、generation、annotationCount、skippedAnnotationsを返す。refの採番・更新・失効は行わない。snapshotが無効、またはcapture前後の再観測で対象の一意性・属性が変わった場合はSTALE_REFとし、画像を保存しない。観測とcaptureは上流APIでは原子的でないため、途中で変化して元へ戻るアニメーションまで検出する保証はない。静止した画面で使用する。
+Logs normalize the returned range and explain when unavailable collection cannot be distinguished from zero entries. URI credentials and input strings never appear in diagnostic logs.
 
-固定`marionette_flutter: 0.6.0`の通常screenshot応答だけでは、画像とview、倍率、向きの対応を検証できない。注釈には別途opt-inの`marionette_agent.captureMappedScreenshot` providerが必要である。これは画像とgeometry v1を同時に返す限定契約であり、固定binding一般の注釈対応を意味しない。exampleのdebug構成はこのproviderを実装する。単一view、原点(0,0)、論理boundsに対する回転0、明示した論理幅・高さとPNG幅・高さだけを対応対象とする。portrait/landscapeは各時点の寸法を使い、画像を回転推測しない。未登録、複数view/画像、回転、寸法不一致などはUNSUPPORTED_CAPABILITYとし、注釈を保存しない。倍率をboundsや画像の外観から推測しない。
+`screenshot --annotate` composites only actionable refs actually published by the latest snapshot into a new PNG as `@eN` labels and boxes; JPEG output converts after composition. It neither accepts an existing PNG as input nor alters original image bytes. The destination is a new annotated-image path using normal screenshot exclusive storage and overall deadline rules. Successful data adds annotated=true, generation, annotationCount, and skippedAnnotations to paths. It neither numbers, updates, nor invalidates refs. Invalid snapshots or changes in target uniqueness/attributes during re-observation before/after capture produce STALE_REF without saving. Observation and capture are not atomic upstream, so animation that changes and returns to the original state may go undetected. Use a stationary screen.
 
-boundsが欠損・非有限ならmissing_or_invalid_bounds、幅/高さが非正または一部でもview外ならbounds_outside_viewとしてそのrefを省略し、skippedAnnotationsへ記録する。boundsを画面内へclampしない。ラベルは互いに重ならない位置へ配置し、移動したラベルは線で対象に結ぶ。配置領域不足はlabel_space_exhaustedとして省略する。操作可能refが0件でも有効snapshotとgeometryがあればannotationCount=0で保存できる。
+The normal screenshot response from pinned `marionette_flutter: 0.6.0` cannot establish image/view, scale, or orientation correspondence. Annotation requires the separate opt-in `marionette_agent.captureMappedScreenshot` provider. This limited contract returns image and geometry v1 together; it does not mean general annotation support in the pinned binding. The example's debug configuration implements it. Supported geometry is one view, origin (0,0), zero rotation relative to logical bounds, and explicit logical and PNG width/height. Portrait/landscape use current dimensions without inferred rotation. Missing registration, multiple views/images, rotation, or dimension mismatch yield UNSUPPORTED_CAPABILITY without saving annotations. Scale is never inferred from bounds or image appearance.
 
-## 検証基準
+Missing/nonfinite bounds skip a ref as missing_or_invalid_bounds. Nonpositive width/height or any portion outside the view skips it as bounds_outside_view. Reasons go into skippedAnnotations; bounds are never clamped into the view. Labels are positioned without overlapping each other, and displaced labels connect to targets with lines. Insufficient placement space skips a label as label_space_exhausted. A valid snapshot and geometry can save annotationCount=0 even with no actionable refs.
 
-1. macOSからiOS Simulatorに接続し、別々のCLIプロセスでsnapshot→tap／fill／swipe→snapshotが成立する。
-2. 2つのsessionの接続・ref・切断が分離され、同一sessionの並行要求が直列化される。
-3. 古いref、曖昧な対象、通信断、timeoutが規定のJSONと終了コードになり、操作が自動再送されない。
-4. PageViewの切替とDismissibleのdismissをswipeで確認し、座標方式もSimulatorで検証する。
-5. wait、scroll、PNG/JPEG保存、ログ取得が共通のsession・deadline・エラー契約を通して動作する。
-6. workflowのJSON／YAML検証、binding、queue占有、wait、停止時の進捗、最終snapshot引き継ぎを自動テストとSimulatorで確認する。
-7. コード変更時は`packages/marionette_agent`でformat、analyze、関連testを実行する。CLI契約を変えた場合は`example/`をiOS Simulatorで起動し、製品CLIの結果と操作後の画面状態を確認する。
+<a id="verification-criteria"></a>
+<a id="検証基準"></a>
 
-単体・IPC・契約テストは`packages/marionette_agent/test/`、Simulatorシナリオは`packages/marionette_agent/integration_test/`に置く。FakeBackendの成功だけをSimulator検証の代替にはしない。
+## Verification criteria
 
-## 同梱Skillの配信
+1. Connect from macOS to iOS Simulator and complete snapshot→tap/fill/swipe→snapshot across separate CLI processes.
+2. Isolate two sessions' connections, refs, and disconnects, and serialize concurrent requests within one session.
+3. Return the specified JSON and exit codes for stale refs, ambiguous targets, connection loss, and timeout, without automatic action resending.
+4. Verify PageView changes and Dismissible dismissal with swipe, including coordinate mode on Simulator.
+5. Run wait, scroll, PNG/JPEG persistence, and log retrieval through shared session, deadline, and error contracts.
+6. Verify JSON/YAML workflow validation, binding, queue occupancy, wait, failure progress, and final-snapshot handoff through automated tests and Simulator.
+7. For code changes, run format, analyze, and relevant tests in `packages/marionette_agent`. When CLI contracts change, run `example/` on iOS Simulator and check both product CLI results and the resulting screen state.
 
-`skills`はagent-browserの同梱Skill設計を採用するローカル読取コマンド。アプリ接続、runtime作成、daemon起動・照会、ダウンロード、Skillの生成やエージェント設定へのインストールを行わない。`--restore`やaction policyを実行せず、共通オプションの解析・値検証と`--debug`だけを共有する。batch/workflow/IPCの操作には追加しない。
+Unit, IPC, and contract tests live in `packages/marionette_agent/test/`; Simulator scenarios live in `packages/marionette_agent/integration_test/`. Passing FakeBackend tests alone does not replace Simulator verification.
 
-- `skills`と`skills list`は名前順の一覧。textの説明は最大70 UTF-8 bytes付近の単語境界で省略し、JSONには全文を返す。
-- `skills get <name> [name...]`は指定順でfrontmatterを含むSKILL.md全文を返す。`--full`は各Skillのreferences/、templates/直下の読めるテキストファイルを、ディレクトリ順・ファイル名順に追加する。再帰探索や実行はしない。
-- `skills get --all`は非表示でない全Skillを名前順に取得。`--full`を併用可能。`--all`は名前指定より優先する。
-- `skills path`は探索対象ディレクトリを1行ずつ、`skills path <name>`は名前に対応するSkillディレクトリを返す。ディレクトリ名ではなくfrontmatterのnameで検索する。
-- `skills --help` / `-h`で専用help。`--json`はコマンドの前後で使用可能。共通契約の未知オプション・重複・余剰引数の検証を使用する。
+<a id="bundled-skill-distribution"></a>
+<a id="同梱skillの配信"></a>
 
-`packages/marionette_agent/skills/marionette-agent/SKILL.md`は`hidden: true`の導入用stub。`skill-data/core/`と`skill-data/simulator-verify/`が実行時ガイドで、それぞれ補助reference/templateも同梱する。直下サブディレクトリのSKILL.mdからname・description・hiddenを簡易パースする。descriptionのインデント継続行は空白で連結、hiddenはtrue/yesを認識する。name欠損・空文字、frontmatter不正、読取不能なエントリは無視。frontmatterの開始・終了は独立した`---`行とし、LFとCRLFを受理する。hiddenはlist/--allから除外するが明示名でget/pathできる。空一覧は成功、get対象なしや未知名は失敗。重複nameは両方を一覧に残し、明示名では探索順の先頭を使う。
+## Bundled Skill distribution
 
-保存先の解決は、既存の`MARIONETTE_AGENT_SKILLS_DIR`（単独のSkill親ディレクトリ）を最優先する。不正・不存在のoverrideは通常探索へ戻す。通常は実行ファイルのsymlinkを解決し、親の親にskills/がある配布root、または実行ファイルから上方のskills/を持つrootのskills/とskill-data/を使う。Dart起動では実行package URIからpackage rootを解決するfallbackを持ち、呼出元cwdから別packageを選ばない。install/upgrade済みバイナリは、自身に記録された実行ファイル隣接のバージョン別bundleを通常探索より優先する。そのbundleが失われた場合に別版へfallbackしない。
+`skills` is a local read command adopting agent-browser's bundled Skill design. It does not connect to an app, create a runtime, start/query a daemon, download, generate Skills, or install them into agent settings. It does not execute `--restore` or action policy, sharing only common-option parsing/value validation and `--debug`. It is not added to batch/workflow/IPC actions.
 
-install/upgradeは指定checkoutの両ディレクトリをbin-directory内の専用`.marionette-agent-*` bundleへコピーしてからコンパイルする。相対bundle名だけをバイナリへ埋め込み、成功したバイナリを配置するため、ソースcheckoutなしでも移動可能。配布時はバイナリと対応する隠しbundleを一緒に運ぶ。失敗時は新bundleと自身の予約先を回収し、upgrade前のバイナリを保持する。旧bundleは実行中の旧版との整合性のため自動削除しない。手動コンパイルではskills/・skill-data/とbin/を持つ配布rootを用意するか、環境変数で明示する。コピー元のsymlink・特殊ファイルは自己完結した配布を保証できないため拒否する。
+- `skills` and `skills list` list entries by name. Text descriptions are truncated at a word boundary near a maximum of 70 UTF-8 bytes; JSON returns the full description.
+- `skills get <name> [name...]` returns complete SKILL.md files, including frontmatter, in requested order. `--full` appends readable text files directly inside each Skill's references/ and templates/, sorted by directory then filename. It neither recursively scans nor executes files.
+- `skills get --all` retrieves all nonhidden Skills in name order and supports `--full`. `--all` takes precedence over explicit names.
+- `skills path` returns search directories one per line; `skills path <name>` returns the matching Skill directory. Lookup uses frontmatter name, not directory name.
+- `skills --help` / `-h` displays dedicated help. `--json` works before or after the command. Shared validation rejects unknown/duplicate options and extra arguments.
 
-互換性のためskillsだけは`{"success":true,"data":...}`、失敗は`{"success":false,"error":"説明"}`。listはname/descriptionの配列、getはname/contentの配列（--fullで補助ファイルがあればfilesのpath/content配列）、pathはpaths配列を持つobjectまたはname/path object。専用helpはdata.help。session/schemaVersion/outcomeを付けない。text失敗はstderr、JSON結果はstdoutへ1 object。成功0、skillsと識別された引数エラー・未知名・探索失敗・期限切れは1。`--config`の不存在・JSON不正・未知optionによる失敗もこの形式と終了値を使う。通常コマンドのJSON/終了値は変更しない。共通timeoutを読取前後で確認し、同期filesystem I/Oの即時中断は保証しない。
+`packages/marionette_agent/skills/marionette-agent/SKILL.md` is an introductory stub with `hidden: true`. `skill-data/core/` and `skill-data/simulator-verify/` contain runtime guides and supporting references/templates. A simple parser reads name, description, and hidden from SKILL.md in immediate subdirectories. Indented description continuation lines join with spaces; hidden recognizes true/yes. Missing/empty names, malformed frontmatter, and unreadable entries are ignored. Frontmatter boundaries must be standalone `---` lines; LF and CRLF are accepted. Hidden entries are excluded from list/--all but can be retrieved by explicit name with get/path. An empty list succeeds; no get targets or unknown names fail. Duplicate names remain in the listing; explicit lookup uses the first in discovery order.
 
-## 対象外・将来範囲
+An existing `MARIONETTE_AGENT_SKILLS_DIR` (one parent directory of Skills) has highest discovery priority. Invalid/missing overrides fall back to normal discovery. Normal discovery resolves executable symlinks and uses skills/ and skill-data/ in a distribution root with skills/ two levels above the executable, or an ancestor root with skills/. Dart execution can fall back to resolving the package root through its package URI, never selecting a different package from the caller's cwd. Installed/upgraded binaries prefer their embedded version-specific bundle adjacent to the executable over normal discovery. A missing embedded bundle does not fall back to another version.
 
-role/label/placeholderはfindに対応し、get value/is enabled/is checkedを追加した。通常selectorはkey/identifier/text/typeのまま維持する。hint/tooltip、完全なSemanticsツリー、永続的target IDは未対応。[Issue #14設計案](semantics-selector-state-design.md)は元のstock binding調査と将来設計として保持する。
+Install/upgrade copies both directories from the selected checkout into a dedicated `.marionette-agent-*` bundle inside the bin directory before compiling. Only the relative bundle name is embedded, and only a successful binary is installed, so the result can move without the source checkout. Distribute the binary together with its matching hidden bundle. Failure removes the new bundle and owned reservation, retaining the pre-upgrade binary. Old bundles are not automatically deleted so running older binaries remain consistent. Manual compilation requires a distribution root containing skills/, skill-data/, and bin/, or an explicit environment override. Source symlinks and special files are rejected because they cannot guarantee self-contained distribution.
 
-iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaは維持する。
+For compatibility, skills alone uses `{"success":true,"data":...}` or, on failure, `{"success":false,"error":"description"}`. List returns an array of name/description; get returns name/content entries, with a files array of path/content when --full includes supporting files; path returns an object with a paths array or a name/path object. Dedicated help uses data.help. It adds no session/schemaVersion/outcome. Text failures go to stderr; JSON writes one object to stdout. Success exits 0; argument errors identified as skills, unknown names, discovery failures, and timeouts exit 1. Failures from missing `--config`, invalid JSON, or unknown options use the same format and exit code. Normal-command JSON and exit codes remain unchanged. The shared timeout is checked before/after reading, without guaranteeing immediate interruption of synchronous filesystem I/O.
 
-## stdio MCPサーバー
+<a id="out-of-scope-and-future-work"></a>
+<a id="対象外将来範囲"></a>
 
-`marionette-agent mcp [--tools core,inspect,actions,workflow,record|all]`は、`dart_mcp: 0.5.2`のサーバーAPIで改行区切りJSON-RPCを処理する。protocol versionの交渉、initialize／initialized、ping、stdioの切断処理はSDKに従う。起動・tool discoveryだけではdaemon／アプリを起動しない。初期化完了後にtools/listとtools/callを利用する。resources／prompts／HTTP transportは提供しない。
+## Out of scope and future work
 
-既定profileはcore。複数profileはcommaで合成し、重複は除く。allは公開済みの全MCPツールを有効にする（全CLI構文の互換性を意味しない）。未知／空profileはINVALID_ARGUMENT。tool名は`marionette_agent_` prefix。各profileの範囲と入力契約は[CLI実行の詳細](ja/cli-reference.ja.md#mcp)を参照する。tools/listは最大20件ずつ返し、nextCursorで続きを取得する。未公開／無効なtoolと不正cursorはJSON-RPC -32602。toolには型付きinputSchemaとreadOnly／destructive／idempotent／openWorldのannotationsを付ける。
+Find supports role/label/placeholder, and get value/is enabled/is checked have been added. Normal selectors remain key/identifier/text/type. Hint/tooltip, a complete Semantics tree, and persistent target IDs are unsupported. The [Issue #14 proposal](semantics-selector-state-design.md) remains the original stock-binding investigation and future design.
 
-UI対象は`target: {ref: "@e1"}`またはkey／identifier／text／typeのうち1つを持つobject。共通fieldはsession、timeoutMs、maxOutput、contentBoundaries。tool fieldが起動時の共通オプション既定値を上書きする。namespace・action policy・confirm-actions・idle設定は起動時の指定を継承する。入力値をshellへ渡さず、固定CLIコマンドのargvへ変換する。自由なコマンド配列やextraArgsは公開しない。workflow／batchはfile path入力でありstdin `-`を拒否する。`--restore`と`--confirm-interactive`はMCP起動時に拒否する。
+Formal support for physical iOS/Android devices or other host OSes, physical-iOS recording, Linux/Windows recording, an arbitrary-extension CLI, hot reload/restart, long-press/pinch, and arbitrary app-state restoration remain out of scope. Workflow v1's schema is preserved.
 
-各tool callは同じ実行ファイル／Dart entrypointのCLIを`--json`付きで1回だけ起動する。CLIのsession、ref失効、queue、deadline、policyとerror outcomeを共用する。独立CLIから同じruntime/sessionを利用できる。CLIを呼ぶtoolの成功・失敗はtextと`structuredContent: {exitCode, response}`へ格納し、responseにCLIの包絡を保持する。非0終了またはok:falseはisError:true。入力schema不適合は値をechoせずINVALID_ARGUMENT。CLI起動失敗はIO_ERROR／not_sent、起動後の応答不備やMCP側期限超過はIO_ERRORまたはTIMEOUT／unknownとし、自動再送しない。CLI実行には要求timeoutに5秒の起動・回収猶予を加え、CLI自身のdeadlineは変更しない。stdout捕捉上限は64MiB。tools_profilesだけはCLIを呼ばずprofile情報を直接返す。
+<a id="stdio-mcp-server"></a>
+<a id="stdio-mcpサーバー"></a>
 
-screenshotは保存pathを含むCLI包絡に加えてPNG／JPEGのMCP ImageContentを返す。画像は合計16MiBまで。超過・読込失敗時は保存結果を保持し、textでinline画像の省略を伝える。snapshot／logsのアプリ由来内容は未信頼データである。
+## stdio MCP server
 
-MCP通信内容や認証URI・入力文字列を診断ログへ記録しない。子CLIのstderrはMCP応答へ転送しない。stdin EOFはMCPサーバーと所有する実行中CLIを終了する。独立daemonと既存sessionは通常CLIと同じ寿命を持ち、接続を閉じるにはcloseを呼ぶ。SDKのcancellationは未対応のため、途中切断で実行済み操作を取り消したとはみなさない。
+`marionette-agent mcp [--tools core,inspect,actions,workflow,record|all]` processes newline-delimited JSON-RPC through the server API in `dart_mcp: 0.5.2`. Protocol negotiation, initialize/initialized, ping, and stdio disconnection follow the SDK. Startup and tool discovery alone start neither daemon nor app. Tools/list and tools/call are available after initialization completes. Resources, prompts, and HTTP transport are not provided.
 
-## Flutter向け拡張
+The default profile is core. Comma-separated profiles combine with duplicates removed. All enables every published MCP tool, not compatibility with every CLI syntax. Unknown/empty profiles are INVALID_ARGUMENT. Tool names use the `marionette_agent_` prefix. See [CLI runtime details](cli-reference.md#mcp) for profile scope and input contracts. Tools/list returns up to 20 entries with nextCursor for continuation. Unpublished/disabled tools and invalid cursors yield JSON-RPC -32602. Tools have typed inputSchema and readOnly/destructive/idempotent/openWorld annotations.
 
-[追加コマンド仕様](ja/cli-parity.ja.md)を本仕様の一部とする。snapshotのinteractive/compact/depth、型付きget/is、find、追加interaction、ref/時間wait、crop/diff、clipboard、config/namespace、接続state、batch/policy、record restart/fps、device list、doctor追加モード、install/upgradeの構文・出力・対応範囲を定義する。
+UI targets are `target: {ref: "@e1"}` or an object containing exactly one of key/identifier/text/type. Common fields are session, timeoutMs, maxOutput, and contentBoundaries. Tool fields override common-option defaults supplied at startup. Namespace, action policy, confirm-actions, and idle settings are inherited from startup. Inputs become argv for fixed CLI commands and never pass through a shell. Arbitrary command arrays and extraArgs are not exposed. Workflow/batch accept file paths and reject stdin `-`. MCP startup rejects `--restore` and `--confirm-interactive`.
 
-任意の `marionette_agent_util/flutter.dart` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
+Each tool call invokes the same executable/Dart entrypoint once with `--json`, sharing CLI session, ref invalidation, queue, deadline, policy, and error-outcome contracts. Independent CLI calls can use the same runtime/session. Success or failure from CLI-invoking tools appears in text and `structuredContent: {exitCode, response}`, preserving the CLI envelope inside response. A nonzero exit or ok:false sets isError:true. Schema-invalid input yields INVALID_ARGUMENT without echoing values. CLI launch failure yields IO_ERROR / not_sent; malformed responses after launch or MCP-side timeout yield IO_ERROR or TIMEOUT / unknown, without automatic resend. CLI execution receives five seconds of startup/cleanup grace beyond the request timeout without changing the CLI's own deadline. Captured stdout is capped at 64MiB. Only tools_profiles returns profile information directly without invoking CLI.
 
-IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
+Screenshot returns MCP PNG/JPEG ImageContent alongside the CLI envelope containing saved paths, up to 16MiB total. Exceeding the limit or failing to read images preserves the save result and reports omitted inline images in text. App-derived snapshot/log content is untrusted data.
 
+MCP traffic, authenticated URIs, and input strings are never logged as diagnostics. Child CLI stderr is not forwarded into MCP responses. Stdin EOF terminates the MCP server and its owned running CLI processes. The independent daemon and existing sessions retain normal CLI lifetimes; call close to disconnect them. SDK cancellation is unsupported, so disconnection does not imply rollback of actions already executed.
 
-## 端末画面録画
+<a id="flutter-extensions"></a>
+<a id="flutter向け拡張"></a>
 
-`record --platform ios/android/macos/web`は端末／ディスプレイ全体を収録する。VM ServiceやMarionette bindingに依存せず、releaseアプリやアプリ外の画面も対象にできる。OSが保護するコンテンツは保証しない。音声は収録しない。
+## Flutter extensions
 
-| platform | device | 形式・前提 |
+The [additional command specification](cli-parity.md) forms part of this specification. It defines syntax, output, and scope for snapshot interactive/compact/depth, typed get/is, find, additional interactions, ref/duration waits, crop/diff, clipboard, config/namespace, connection state, batch/policy, record restart/fps, device list, extra doctor modes, and install/upgrade.
+
+Typed mounted-Widget observation is enabled only when the optional `marionette_agent_util/flutter.dart` provider is present. Attributes with unknown provenance are never inferred. Ref matching, uniqueness, invalidation immediately before send, and no automatic resend retain existing contracts. UI actions and role/label searches are limited to the provider's declared scope; atomic re-observation/send and complete clipping/occlusion detection are not guaranteed.
+
+IPC protocolVersion is 7, adding managed-app launch and shutdown on close. Requests include optional session action policy. Public schemaVersion stays 1, with expanded data for launch and session information displaying owned apps. Close an old daemon using the old CLI before switching to the new CLI.
+
+<a id="device-screen-recording"></a>
+<a id="端末画面録画"></a>
+
+## Device-screen recording
+
+`record --platform ios/android/macos/web` captures an entire device/display. It is independent of VM Service and the Marionette binding, so it can capture release apps and screens outside the app. OS-protected content is not guaranteed. Audio is not recorded.
+
+| platform | device | Format and prerequisites |
 | --- | --- | --- |
-| ios | 起動済みiOS SimulatorのUDID | `.mp4`、macOSとXcode。iOS実機・`booted`のような曖昧な別名は未対応 |
-| android | オンライン・認証済みadb serial | `.mp4`、Android platform-tools。Emulator／実機の標準screenrecord |
-| macos | 1から始まるディスプレイ番号 | `.mov`、macOS標準screencaptureと実行元アプリの画面収録許可 |
-| web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`、macOSと可視Chrome、専用debug profileと画面収録許可。明示したディスプレイ全体 |
-| flutter | CLIでは省略、結果はsession名 | `.mp4`、接続済みMarionette debugアプリとffmpeg。アプリ内の描画を保存。非表示の実行環境でも利用可能 |
-| linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
+| ios | UDID of a booted iOS Simulator | `.mp4`, macOS and Xcode. Physical iOS devices and ambiguous aliases such as `booted` are unsupported |
+| android | Online, authorized adb serial | `.mp4`, Android platform-tools; standard screenrecord on Emulator/physical device |
+| macos | Display number starting at 1 | `.mov`, standard macOS screencapture and Screen Recording permission for the invoking app |
+| web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`, macOS, visible Chrome, a dedicated debug profile, and Screen Recording permission; captures the entire explicit display |
+| flutter | Omitted in CLI; result uses session name | `.mp4`, a connected Marionette debug app and ffmpeg; saves in-app rendering, including hidden execution environments |
+| linux / windows | Any | Unsupported; internal API throws UNSUPPORTED_CAPABILITY and CLI exits 6 |
 
-- platform/pathは必須。flutterではdeviceを指定できず、その他はdeviceも必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
-- 相対pathは呼出元CLIのcwdで絶対pathへ変換する。親directoryは既存かつ書込可能であること。既存file/directory/symlinkはIO_ERRORとして拒否し、自動上書きしない。
-- sessionごとに同時に1録画、同一daemon内の端末ごとに1録画。開始中・停止処理中も予約し、競合はSESSION_CONFLICT。同じsessionで停止後に新しい保存先へ録画を開始できる。
-- startはdaemonを必要に応じて起動し、録画所有者としてsessionを保持する。未接続の録画sessionの接続状態はdisconnected、URIはnull。録画開始が成功したsessionはcloseまで保持する。
-- startは開始確認後に返り、録画自体はsession queueを占有しない。iOSは最初のフレームの通知、Androidは出力headerの生成を確認する。macOS標準コマンドにはfirst-frame通知がないため起動後1秒の生存を確認し、実際の動画生成はstopで検証する。
-- `--timeout`は開始・停止要求の期限で、録画時間の上限ではない。開始のbackend待ちは最大30秒。開始が期限切れになった場合も、遅れて生成されたhandleの停止・予約回収を継続し、終了確認までは同じ端末を再利用しない。停止要求が期限切れになっても有界な停止・回収は続き、statusで結果を確認する。TIMEOUTはoutcome:unknownとなる。UI操作や録画を自動再送しない。
-- Androidは180秒で自動停止し、ホストへ動画を回収して状態を更新する。分割・自動再開・結合は行わない。回転中の正しい収録は保証しない。
-- stopは録画プロセス終了・動画確定・必要な回収・保存まで待つ。確定した停止・保存失敗はoutcome:failed、期限切れはoutcome:unknownとする。重複stopは同じ結果を返す。録画がなければ`{recordingState: idle}`。daemonがないstatus/stopでは新daemonを起動しない。
-- recordの開始・停止・照会はrefを失効させず、VM Service接続を変更しない。hot restartや接続断でも端末録画は継続できる。
-- closeは録画を確定してから接続を破棄し、data.recordingに最終状態を含める。既に録画が失敗していてもcloseは所有者を解放し、recordingState:failedと失敗情報を返す。
-- daemon正常終了（SIGINT/SIGTERMを含む）は録画確定を最大60秒待つ。期限超過時は所有する録画プロセスを強制停止し、追加の後処理待ちは最大5秒で打ち切る。未確定動画と予約先は復旧用に保持し、成功扱いにしない。遅れて返った開始handleも強制停止する。OS内で進行中のファイルI/Oの取り消しや、切断されたAndroid端末の強制停止は保証できない。SIGKILL、ホスト停止後の自動復元は対象外。
+- Platform/path are required. Flutter forbids device; other platforms require it. Unknown platforms, malformed devices, and extension mismatches are INVALID_ARGUMENT. Unsupported platforms are also validated by the CLI and rejected before daemon startup.
+- Relative paths become absolute against the caller CLI's cwd. The parent directory must exist and be writable. Existing files/directories/symlinks yield IO_ERROR and are never automatically overwritten.
+- One recording per session and one per device within the same daemon. Reservations apply during startup and stopping too; conflicts yield SESSION_CONFLICT. After stopping, the same session can start another recording at a new destination.
+- Start launches the daemon if needed and retains a session as recording owner. An unconnected recording session is disconnected with URI:null. Once recording starts successfully, the session remains until close.
+- Start returns after startup confirmation; ongoing recording does not occupy the session queue. iOS confirms the first-frame notification; Android confirms output-header creation. Standard macOS capture has no first-frame event, so it checks one second of process liveness and verifies actual video creation on stop.
+- `--timeout` bounds start/stop requests, not recording duration. Backend startup waits at most 30 seconds. On startup timeout, late-created handles are still stopped and reservations reclaimed; the device cannot be reused until termination is confirmed. Bounded stop/cleanup continues after a stop timeout; inspect status for the result. TIMEOUT has outcome:unknown. Neither UI actions nor recording are automatically resent.
+- Android automatically stops after 180 seconds, retrieves video to the host, and updates state. It does not split, restart, or concatenate automatically. Correct recording during rotation is not guaranteed.
+- Stop waits for process termination, video finalization, required retrieval, and persistence. Confirmed stop/save failures have outcome:failed; timeout has outcome:unknown. Duplicate stop returns the same result. Without a recording, the result is `{recordingState: idle}`. Status/stop do not start a missing daemon.
+- Recording start/stop/status neither invalidates refs nor changes VM Service connections. Device recording can continue through hot restart or connection loss.
+- Close finalizes recording before discarding the connection and includes final state in data.recording. Even if recording has already failed, close releases ownership and returns recordingState:failed with failure information.
+- Normal daemon shutdown, including SIGINT/SIGTERM, waits up to 60 seconds for recording finalization. On expiration, it force-stops owned recording processes and bounds additional cleanup waiting to five seconds. Unfinalized videos and reservations remain for recovery and are never reported as success. Late-returned startup handles are also force-stopped. Cancellation of in-flight OS file I/O and forced stop on disconnected Android devices are not guaranteed. Automatic recovery after SIGKILL or host shutdown is out of scope.
 
-成功dataはrecordingState（idle/starting/recording/stopping/stopped/failed）、platform、device、path、startedAt、elapsedMs、bytesを持つ。idleはrecordingStateのみ。startedAtは開始確認時のUTC日時、elapsedMsはそこから確定までの壁時計経過時間であり動画のメディアdurationではない。bytesは確定時の動画サイズ。失敗時のstatusにはfailureとrecoveryPathを含める。stopは失敗を非0終了で返す。
+Successful data contains recordingState (idle/starting/recording/stopping/stopped/failed), platform, device, path, startedAt, elapsedMs, and bytes. Idle contains only recordingState. StartedAt is UTC startup-confirmation time; elapsedMs is wall-clock time from then until finalization, not media duration. Bytes is finalized video size. Failed status includes failure and recoveryPath. Stop returns failure with a nonzero exit.
 
-保存は内部パッケージがdaemon内で担当し、動画はIPCで転送しない。出力先を排他的に予約して同じ親directoryのprivate stagingへ録画し、確定後に予約先へ書き込む。開始失敗時はこの要求の予約を回収し、確定失敗時はstagingを復旧用に保持する。予約後に別プロセスが意図的に保存先を差し替える競合までは保証しない。
+The internal package saves within the daemon; video does not travel through IPC. It exclusively reserves the destination, records into private staging under the same parent directory, then writes the finalized video into the reservation. Startup failure reclaims this request's reservation; finalization failure retains staging for recovery. Deliberate replacement of a reserved destination by another process is outside the guarantee.
 
-検証状況: iOS Simulator／Android Emulator／macOSメインディスプレイを製品CLIで確認済み。macOSではstart・status・stop・重複stop・既存file拒否・closeによる確定と、生成MOVの全フレーム復号・画面変化を確認した。
+Verification status: product CLI checks have covered iOS Simulator, Android Emulator, and the main macOS display. macOS checks included start, status, stop, duplicate stop, rejection of existing files, finalization by close, full-frame decoding of the generated MOV, and screen changes.
 
-### Flutterアプリのヘッドレス録画（Issue #20）
+<a id="headless-flutter-app-recording-issue-20"></a>
+<a id="flutterアプリのヘッドレス録画issue-20"></a>
 
-`record start <new.mp4> --platform flutter [--fps 1..60]`は、選択sessionのVM Serviceへ先にconnectして使う。未接続はNOT_CONNECTED、対応していないbackend・複数viewはUNSUPPORTED_CAPABILITY。CLIに`--device`を渡すとINVALID_ARGUMENT。結果のplatformはflutter、deviceはsession名。同一sessionの録画を排他にし、同じアプリを別sessionで明示的に録画することは妨げない。restart、status、stop、close、保存保護、要求期限は共通契約を使う。
+### Headless Flutter app recording (Issue #20)
 
-録画専用の読み取り接続から実アプリのPNGを連続取得する。最初のPNGを確認してからstartを返す。既定fpsは10で、1〜60は各取得完了後の待機間隔を指定する。取得・保存にかかる時間は別に加わるため、指定fpsの取得は保証しない。実際の取得時刻でVFR（可変フレームレート）の無音H.264 MP4へ確定する。高速アニメーションを取りこぼす場合がある。画像はprivate stagingへ逐次保存し、停止時のffmpeg変換は最大30秒。録画時間に応じた一時ディスク容量が必要。ffmpeg欠落はUNSUPPORTED_CAPABILITY、不正PNGや変換失敗はIO_ERROR、取得失敗は失敗状態とし、白画像へ置換して成功にしない。画像サイズ変更はUNSUPPORTED_CAPABILITYで停止する。
+`record start <new.mp4> --platform flutter [--fps 1..60]` requires a prior connection to the selected session's VM Service. No connection yields NOT_CONNECTED; unsupported backends or multiple views yield UNSUPPORTED_CAPABILITY. Supplying CLI `--device` is INVALID_ARGUMENT. Result platform is flutter and device is the session name. Recording is exclusive per session without preventing explicit recording of the same app through another session. Restart, status, stop, close, save protection, and request deadlines use shared contracts.
 
-対象はFlutterが描画した単一viewで、OSのキーボード・ダイアログ・ブラウザーUIやplatform viewの収録を保証しない。画面収録許可は不要だが、アプリ側のMarionette debug bindingが必要。録画停止は操作用接続・ref・押下中キーに作用しない。録画用接続が失われると失敗して再接続・再送しない。操作用接続だけの切断は録画用接続を閉じない。hot restart中の継続は保証しない。
+A dedicated read connection continuously captures PNGs from the actual app. Start returns only after the first PNG is confirmed. Default fps is 10; 1–60 specifies the waiting interval after each completed capture. Capture/save time is additional, so the requested capture frequency is not guaranteed. Actual capture timestamps produce silent H.264 MP4 with VFR (variable frame rate). Fast animations may be missed. Images are saved sequentially to private staging; ffmpeg conversion on stop is bounded to 30 seconds. Temporary disk space grows with recording duration. Missing ffmpeg yields UNSUPPORTED_CAPABILITY; invalid PNG or conversion failure yields IO_ERROR; capture failure marks recording failed instead of substituting white frames and claiming success. Image-size changes stop recording with UNSUPPORTED_CAPABILITY.
 
-ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。手動起動へのconnectではアプリ・端末を所有しない。launchではutilを通して起動し、closeで所有環境を終了する。手順は[ヘッドレスガイド](ja/headless.ja.md)を参照する。
+The target is a single Flutter-rendered view. OS keyboards/dialogs, browser UI, and platform-view capture are not guaranteed. Screen Recording permission is unnecessary, but the app needs the Marionette debug binding. Stopping recording does not affect the action connection, refs, or held keys. Loss of the recording connection fails without reconnection/resend. Losing only the action connection does not close the recording connection. Continuation through hot restart is not guaranteed.
 
-### Web録画の範囲と接続
+Headless means starting each platform's execution environment without showing it. iOS boots/installs/launches a Simulator in a private device set, separate from Simulator.app, without opening a display window. Android uses Emulator `-no-window`; Web uses Flutter `--web-run-headless`. macOS keeps a real FlutterEngine in a hidden NSWindow and explicitly enables debug-only `enableHeadlessRendering()` for hidden-frame production. macOS requires a logged-in GUI session; hosts without WindowServer are outside the verified scope. Connect to a manually started app owns neither app nor device. Launch starts through util, and close stops the owned environment. See the [headless guide](headless.md).
 
-`--platform web`はmacOS上の可視Google Chromeを対象とする。Flutter Webの非表示録画には上記の`--platform flutter`を使う。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
+<a id="web-recording-scope-and-connection"></a>
+<a id="web録画の範囲と接続"></a>
 
-利用者が選んだディスプレイ全体を標準screencaptureでMOVへ録画する。Chromeのアドレスバー・タブ・設定画面、同じdisplayのOSダイアログや他アプリを含む。タブだけの映像、Flutter描画の録画、音声ではない。Chromeを指定displayへ配置するのは利用者の責任であり、CLIはウインドウ位置を変更・追従しない。別displayへ移動しても録画先は変わらない。隠れた／最小化したウインドウや別displayのdialogは写らず、覆っている画面が写る。保護コンテンツの録画は保証しない。
+### Web recording scope and connection
 
-Chromeのpage identityをCDPで確認し、Inspector終了通知とWebSocket切断を監視する。captureはmacOS backendの開始確認・停止・権限と同じ契約。macOSの実行元アプリに画面収録許可が必要で、拒否や無効displayはIO_ERRORと設定確認hintを返す。許可を自動変更したり、権限dialogを迂回したりしない。Webの通常操作は利用者または既存ブラウザー操作手段で行い、Web向けtap/fillを追加しない。VM Serviceに依存せず、record中の通常CLI操作も妨げない。
+`--platform web` targets visible Google Chrome on macOS. Use `--platform flutter` above for hidden Flutter Web rendering. Device combines a display number from 1 to 999 and a page WebSocket endpoint chosen from Chrome's `/json/list`, as `display:1@ws://127.0.0.1:9222/devtools/page/<ID>`. Ports are 1–65535 and IDs uppercase alphanumeric. Localhost, remote hosts, credentials, query, fragment, browser/worker endpoints, and leading zeroes are rejected. The user starts Chrome with a dedicated `--user-data-dir` and loopback `--remote-debugging-port`. Other browsers, headless Chrome, and non-macOS hosts are unsupported. Missing protocol capabilities yield UNSUPPORTED_CAPABILITY; disabled debugging/connection refusal yield CONNECTION_LOST; protocol rejection yields IO_ERROR. Raw server messages are not printed.
 
-対象タブの終了・クラッシュ・debug接続断はCONNECTION_LOSTとして録画を終了し、statusをfailedへ更新する。stopは非0、closeはfailureを含む最終状態を返す。部分動画はrecoveryPathに保持し、別タブへ切り替えて成功扱いにはしない。明示的なstop/closeは通常確定する。開始・停止中の競合と期限超過は共通契約に従う。同一daemonの同一displayはWebの別タブとmacos録画を含めて排他。別daemonや外部レコーダーとの排他は保証しない。
+Standard screencapture records the entire selected display to MOV, including Chrome's address bar, tabs, settings, OS dialogs, and other apps on that display. This is neither tab-only video nor Flutter-rendering capture, and it has no audio. The user places Chrome on the selected display; the CLI neither moves nor follows windows. Moving Chrome to another display does not change the recorded display. Hidden/minimized windows and dialogs on other displays are absent; occluding content is captured. Protected content is not guaranteed.
 
-API比較・選定理由と参照元は[Web録画方式](web-recording.md)を参照。
+CDP verifies Chrome page identity and monitors Inspector termination and WebSocket disconnection. Capture shares macOS backend startup confirmation, stop, and permission contracts. The invoking macOS app needs Screen Recording permission; denial or an invalid display yields IO_ERROR with a settings hint. Permissions are not changed automatically and permission dialogs are not bypassed. Normal Web interaction is performed by the user or existing browser controls; this adds no Web tap/fill. Recording neither depends on VM Service nor blocks normal CLI actions.
 
-Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。
+Tab closure, crash, or debug-connection loss ends recording with CONNECTION_LOST and changes status to failed. Stop exits nonzero; close returns final state including failure. Partial video stays at recoveryPath rather than switching tabs and claiming success. Explicit stop/close finalize normally. Startup/stop races and timeout use the common contract. Within one daemon, a display is exclusive across Web tabs and macos recording. Exclusion across other daemons or external recorders is not guaranteed.
 
-## ハイブリッド実行環境（Issue #20追加仕様）
+See [Web recording approaches](web-recording.md) for API comparisons, selection rationale, and references.
 
-`launch <project> --platform tester|ios|android|macos|web`はmacOSホストで選んだ環境のdebugアプリをビルド・起動し、同じsessionへ接続して最初のinspectまで確認する。標準結果の接続情報にapplication:{platform,state,pid,device?}を追加する。session show/listでも所有アプリを表示する。URIは既存の秘匿契約に従う。
+At Web startup, CoreGraphics `CGPreflightScreenCaptureAccess` is read through Dart FFI. Missing permission yields IO_ERROR before Chrome connection or native recording. No permission-request API is called. An unavailable API yields UNSUPPORTED_CAPABILITY.
 
-Flutter実行ファイルは--flutter（省略時daemon PATH）、entrypointは--target（既定lib/main.dart）。projectはCLIのcwdで絶対化する。iOSのみ--device-typeと--runtimeが必須、Androidのみ--avdと偶数--port（5554..5682）が必須。他環境のfieldと未知fieldはCLIとdaemonの両方で拒否する。SDK、AVD、project依存は利用者が事前準備し、launchは--no-pubを使う。要求timeoutはビルド・起動・接続・観測の全体期限。
+<a id="hybrid-execution-environments-issue-20-extension"></a>
+<a id="ハイブリッド実行環境issue-20追加仕様"></a>
 
-launchはdaemon自動起動対象で、session queueとaction policyを共有する。既存接続・所有アプリ・録画があるsession、管理中project、利用中Android portはSESSION_CONFLICT。projectのビルド出力競合を防ぐため、同一projectは実pathとOSファイルlockで排他にする。別環境への自動fallback・操作再送・自動再起動はしない。
+## Hybrid execution environments (Issue #20 extension)
 
-起動処理はmarionette_agent_utilに配置する。tester/web/macOSはFlutter runner、iOSは固有private device set、Androidは明示AVDの-no-window -no-snapshot -read-onlyプロセスを所有する。macOSアプリは非表示windowのopt-in対応を要する。CLIから環境変数やOSコマンドを組み立てず、utilの共通APIを呼ぶ。
+`launch <project> --platform tester|ios|android|macos|web` builds and starts a debug app in the selected environment on a macOS host, connects it to the same session, and confirms the first inspect. Standard connection data adds application:{platform,state,pid,device?}. Session show/list also display owned apps. URIs follow existing redaction rules.
 
-closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
+The Flutter executable is --flutter (default: daemon PATH); entrypoint is --target (default lib/main.dart). Project becomes absolute against CLI cwd. Only iOS requires --device-type and --runtime; only Android requires --avd and an even --port (5554..5682). Fields for other environments and unknown fields are rejected by both CLI and daemon. Users prepare SDKs, AVDs, and project dependencies beforehand; launch uses --no-pub. The request timeout covers build, startup, connection, and observation.
 
-testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作と録画は既存session/record --platform flutterを共用する。手順と制約は[日本語ガイド](ja/headless.ja.md)を参照。
+Launch can start the daemon automatically and shares the session queue and action policy. Existing connections, owned apps, or recordings in the session, a managed project, or an occupied Android port yield SESSION_CONFLICT. A project's real path and an OS file lock enforce exclusion to prevent competing build outputs. There is no automatic fallback to another environment, action resend, or automatic restart.
+
+Startup belongs to marionette_agent_util. Tester/Web/macOS own a Flutter runner, iOS a unique private device set, and Android a process for the explicit AVD with -no-window -no-snapshot -read-only. macOS apps require opt-in hidden-window support. The CLI calls shared util APIs instead of assembling environment variables or OS commands.
+
+Close finalizes recording, stops the launched environment, and discards the connection. Connect to an external app closes only the connection. Close --all and daemon shutdown also reclaim owned resources. App exit invalidates the connection generation and refs. Startup/readiness failure or timeout cleans up owned processes, devices, and URIs; cleanup may continue past the request deadline. Per-process shutdown allows eight seconds for normal exit, three for TERM, and three for KILL; iOS device cleanup is bounded to 30 seconds. Unconfirmed shutdown is not success, and temporary storage remains. Shared devices and the adb server are untouched. Automatic recovery after SIGKILL or host shutdown is out of scope.
+
+Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares existing session operations and record --platform flutter. See the [headless guide](headless.md) for procedures and limitations.

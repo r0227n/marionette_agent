@@ -120,12 +120,12 @@ export default defineConfig({
 | ナビゲーション | 内容 | 主な移行元 |
 | --- | --- | --- |
 | はじめに / Getting started | 概要、インストール、exampleで最初の操作、自分のFlutterアプリへの組込み | [README](ja/README.md)、[example](../example/README.md) |
-| 基本概念 / Concepts | session、snapshot、refの寿命、selector、JSON出力 | [SPEC](SPEC.md)、[CLIリファレンス](ja/cli-reference.ja.md) |
+| 基本概念 / Concepts | session、snapshot、refの寿命、selector、JSON出力 | [SPEC](ja/SPEC.ja.md)、[CLIリファレンス](ja/cli-reference.ja.md) |
 | ガイド / Guides | MCP、同梱Skills、workflow、スクリーンショット・録画、headless | [README](ja/README.md)、[headless](ja/headless.ja.md)、[workflow仕様](ja/workflow-file-spec.ja.md) |
-| リファレンス / Reference | コマンド群、共通オプション、環境変数・設定、エラー、workflow schema、MCP tools | [CLIリファレンス](ja/cli-reference.ja.md)、[追加コマンド](ja/cli-parity.ja.md)、[SPEC](SPEC.md) |
+| リファレンス / Reference | コマンド群、共通オプション、環境変数・設定、エラー、workflow schema、MCP tools | [CLIリファレンス](ja/cli-reference.ja.md)、[追加コマンド](ja/cli-parity.ja.md)、[SPEC](ja/SPEC.ja.md) |
 | トラブルシューティング / Troubleshooting | doctor、接続失敗、STALE_REF、provider不足、プラットフォームの制約 | 既存利用ガイドと実装契約 |
 
-777行のCLIリファレンスを1ページに収め続けず、接続・観測・操作・録画などのコマンド群へ分割する。追加コマンドも通常の索引へ統合し、必要なproviderと制約を各ページに明示する。初版のmacOSホスト対応と、起動・録画対象の複数プラットフォームを混同しない。[現行の対象範囲](SPEC.md)
+777行のCLIリファレンスを1ページに収め続けず、接続・観測・操作・録画などのコマンド群へ分割する。追加コマンドも通常の索引へ統合し、必要なproviderと制約を各ページに明示する。初版のmacOSホスト対応と、起動・録画対象の複数プラットフォームを混同しない。[現行の対象範囲](ja/SPEC.ja.md)
 
 `SPEC.md`・`ARCHITECTURE.md`・`docs/agents/`・検証記録は引き続き開発者向けの管理文書とする。`command-contract.ja.md`も初期の利用者向けナビゲーションには入れない。実装契約を翻訳した大きなサイトを先に作るより、導入から使用・復旧までを両言語で完結させる。
 

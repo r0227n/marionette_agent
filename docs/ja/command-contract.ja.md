@@ -2,7 +2,7 @@
 
 [English](../command-contract.md) · [日本語の目次](README.md)
 
-CLI handlerとbackend adapterを開発するときの境界を説明します。利用方法は[サイト](https://r0227n.github.io/marionette_agent/ja/)、全体契約は[SPEC](../SPEC.md)、依存方向は[ARCHITECTURE](../ARCHITECTURE.md)を参照してください。versionをここへ複写せず、[pubspec](../../packages/marionette_agent/pubspec.yaml)と[protocol定数](../../packages/marionette_agent/lib/src/protocol/protocol.dart)を確認します。
+CLI handlerとbackend adapterを開発するときの境界を説明します。利用方法は[サイト](https://r0227n.github.io/marionette_agent/ja/)、全体契約は[SPEC](SPEC.ja.md)、依存方向は[ARCHITECTURE](ARCHITECTURE.ja.md)を参照してください。versionをここへ複写せず、[pubspec](../../packages/marionette_agent/pubspec.yaml)と[protocol定数](../../packages/marionette_agent/lib/src/protocol/protocol.dart)を確認します。
 
 <a id="boundaries"></a>
 ## 実装境界と登録

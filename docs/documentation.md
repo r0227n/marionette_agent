@@ -11,12 +11,13 @@ English is the primary public language of this OSS project. Japanese readers mus
 | Project overview and shortest installation path | Root `README.md` | Link to the Japanese site |
 | Installation, guides, and basic reference | `website/src/content/docs/en/` | Same relative path in `website/src/content/docs/ja/` |
 | Detailed contracts and development procedures supplementing the site | `docs/<name>.md` | `docs/ja/<name>.ja.md` |
+| Product specification and architecture | `docs/SPEC.md`, `docs/ARCHITECTURE.md` | `docs/ja/SPEC.ja.md`, `docs/ja/ARCHITECTURE.ja.md` |
 | Supplement index | `docs/README.md` | `docs/ja/README.md` |
 | Site development, CI, and Pages setup | `website/README.md` | Referenced from this policy |
 
 Do not create `docs/en/`. Keep site content in Starlight and link to the relevant guide from supplements. Supplements describe additional value ranges, edge cases, manual setup, and implementation contracts. When content moves to the site, remove its duplicate text from both supplement languages and update referring links.
 
-Existing SPEC, ARCHITECTURE, research, ADRs, verification records, and agent workflows have separate internal purposes. The paired set covers the public site and the supplements listed in the index. Do not treat historical research as current user guidance.
+The paired set covers the public site and the documents listed in the index, including [SPEC](SPEC.md) and [ARCHITECTURE](ARCHITECTURE.md). Maintain their contracts and implementation boundaries in both languages without duplicating user guides. Both versions have matching English section anchors; preserve the legacy Japanese anchors for existing links. Research, ADRs, and agent workflows serve separate purposes outside this paired set. Do not treat historical research as current user guidance.
 
 ## Updating content
 
