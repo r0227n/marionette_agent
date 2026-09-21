@@ -1,0 +1,75 @@
+---
+title: Flutterアプリを、エージェントの手で。
+description: marionette-agentでFlutterアプリを観測し、操作し、結果を確かめるためのガイド。
+template: splash
+hero:
+  title: Flutterアプリを、<br />エージェントの手で。
+  tagline: 画面を読む。対象を選ぶ。結果を確かめる。Flutterアプリの操作を、CLIとMCPから。
+  actions:
+    - text: 最初の操作を試す
+      link: /marionette_agent/ja/getting-started/quick-start/
+      icon: right-arrow
+    - text: インストール
+      link: /marionette_agent/ja/getting-started/installation/
+      variant: secondary
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import ObservationLoop from '../../../components/ObservationLoop.astro';
+
+<ObservationLoop />
+
+## 画面の変化を、確認できる操作に
+
+marionette-agentは、Marionette対応のFlutterアプリを操作するDart製CLIです。エージェントも人も、同じコマンドで要素を探し、入力やジェスチャーを送り、画面の変化を確認できます。
+
+```sh
+marionette-agent snapshot
+marionette-agent tap --key tap_button
+marionette-agent snapshot
+```
+
+接続済みのexampleアプリで使う最小の流れです。2回目の観測でタップ数が増えたことを確認します。
+
+<CardGrid>
+  <Card title="必要な情報を読む" icon="document">
+    snapshotで画面の要素を取得。keyや短いrefを使って、操作する対象を明示します。
+  </Card>
+  <Card title="いつもの道具から使う" icon="seti:shell">
+    シェルからはCLI、対応するエージェントからはstdio
+    MCP。同じsessionと操作契約を共有します。
+  </Card>
+  <Card title="手順を再現する" icon="list-format">
+    JSON/YAMLのworkflowで、一連の操作を順番に実行。最後のsnapshotで結果を読み取ります。
+  </Card>
+  <Card title="確認の記録を残す" icon="seti:video">
+    スクリーンショットと動画で、実際に見えた画面を保存。対話的な検証にもheadless実行にも使えます。
+  </Card>
+</CardGrid>
+
+## ここから始める
+
+<CardGrid>
+  <LinkCard
+    title="exampleで最初の操作"
+    description="接続からタップ・入力・終了まで。"
+    href="/marionette_agent/ja/getting-started/quick-start/"
+  />
+  <LinkCard
+    title="自分のアプリへ組み込む"
+    description="debugアプリでMarionette bindingを初期化する。"
+    href="/marionette_agent/ja/getting-started/app-integration/"
+  />
+  <LinkCard
+    title="AIエージェントとつなぐ"
+    description="MCPと同梱Skillsの使い分け。"
+    href="/marionette_agent/ja/guides/agents/"
+  />
+  <LinkCard
+    title="コマンドを調べる"
+    description="目的別の構文と、操作の前提。"
+    href="/marionette_agent/ja/reference/commands/"
+  />
+</CardGrid>
+
+現在の対応ホストはmacOSです。操作対象にはMarionetteを初期化したdebugアプリが必要です。環境ごとの差は[対応範囲](/marionette_agent/ja/getting-started/overview/)で確認してください。

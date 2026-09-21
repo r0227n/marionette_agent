@@ -1,0 +1,11 @@
+schemaVersion: 1
+name: observe-edit
+steps:
+  - id: before
+    action: snapshot
+  - id: enter-text
+    action: fill
+    target: { key: text_input }
+    text: { literal: hello }
+  - id: after
+    action: snapshot

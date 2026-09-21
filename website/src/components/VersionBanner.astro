@@ -1,0 +1,52 @@
+---
+import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+
+const english = Astro.currentLocale === 'en';
+const pubspec = readFileSync(
+  '../packages/marionette_agent/pubspec.yaml',
+  'utf8',
+);
+const version = /^version:\s*(\S+)/m.exec(pubspec)?.[1] ?? 'development';
+const revision =
+  process.env.GITHUB_SHA ||
+  execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+---
+
+<aside
+  class="version-banner"
+  aria-label={english ? 'Documentation version' : 'ドキュメントの対象版'}
+  data-pagefind-ignore
+>
+  <span class="status-dot" aria-hidden="true"></span>
+  <span>{english ? 'Development docs' : '開発版ドキュメント'} · {version}</span>
+  <a href={`https://github.com/r0227n/marionette_agent/tree/${revision}`}>
+    {revision.slice(0, 7)}
+  </a>
+</aside>
+
+<style>
+  .version-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    color: var(--sl-color-text);
+    background: var(--sl-color-gray-6);
+    border-bottom: 1px solid var(--sl-color-hairline);
+  }
+  .status-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--sl-color-text-accent);
+  }
+  a {
+    color: inherit;
+    font-family: var(--sl-font-mono);
+    text-underline-offset: 3px;
+  }
+</style>

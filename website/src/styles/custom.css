@@ -1,0 +1,48 @@
+:root {
+  --sl-color-accent-low: #142f2b;
+  --sl-color-accent: #3cb78d;
+  --sl-color-accent-high: #b9f1d9;
+  --sl-font:
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP',
+    sans-serif;
+  --sl-content-width: 49rem;
+}
+:root[data-theme='light'] {
+  --sl-color-accent-low: #e1f3e9;
+  --sl-color-accent: #176b50;
+  --sl-color-accent-high: #154d3c;
+  --sl-color-bg: #fdfdfa;
+}
+.site-title {
+  letter-spacing: -0.035em;
+  font-weight: 700;
+}
+.hero {
+  grid-template-columns: 1fr;
+}
+.hero h1 {
+  max-width: 48rem;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.hero .tagline {
+  max-width: 40rem;
+  line-height: 1.8;
+  text-wrap: pretty;
+}
+.sl-markdown-content {
+  line-height: 1.85;
+}
+.sl-markdown-content h2 {
+  letter-spacing: -0.02em;
+}
+.sl-markdown-content table {
+  font-size: 0.9rem;
+}
+.sl-markdown-content .card {
+  border-radius: 0.65rem;
+  box-shadow: none;
+}
+.sl-markdown-content a {
+  text-underline-offset: 0.2em;
+}
