@@ -315,7 +315,8 @@ void main() {
       final error = AgentError.fromJson(asJson(failure['error']));
       expect(error.withOutcome(Outcome.unknown).details, error.details);
     },
-    timeout: const Timeout(Duration(seconds: 30)),
+    // Include the four cold CLI calls and their setup/cleanup.
+    timeout: const Timeout(Duration(minutes: 2)),
   );
   test('stdin uses one absolute deadline even after a late chunk', () async {
     final process = await Process.start(
