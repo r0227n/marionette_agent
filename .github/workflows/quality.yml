@@ -33,6 +33,15 @@ jobs:
           channel: stable
       - name: Resolve workspace from lockfile
         run: flutter pub get --enforce-lockfile
+      - name: Set up real recording test tools
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            brew install ffmpeg
+          fi
+          ffmpeg -version
+          ffprobe -version
       - name: Check formatting and analysis
         run: |
           dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test

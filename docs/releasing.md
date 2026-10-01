@@ -51,6 +51,10 @@ test contention. The CLI test runner's `--timeout=2m` includes cold child-proces
 JIT startup on hosted macOS; product deadlines and explicit test timeouts still
 apply. The tester smoke builds no native app and boots no Simulator.
 
+Install ffmpeg and ffprobe before these gates. Two real MP4 encoding tests skip
+when either tool is absent; both must execute for release verification. CI
+provides the tools on its macOS runner. They are not included in release assets.
+
 ```sh
 flutter pub get --enforce-lockfile
 dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test
