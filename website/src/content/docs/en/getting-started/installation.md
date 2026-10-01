@@ -5,14 +5,18 @@ description: Build and update marionette-agent from a local checkout.
 
 Install the CLI from the repository source. You need Dart SDK 3.13.2 or newer, below 4.0.0, and a Flutter SDK. The example uses Flutter 3.47.2.
 
+Install the released 1.0.0 source from its immutable tag and compile locally.
+GitHub Releases provide notes and source archives; pub.dev remains disabled.
+The documentation site tracks `develop`; the release tag pins the installation.
+
 ## Get the source
 
 ```sh
-git clone --branch develop https://github.com/r0227n/marionette_agent.git
+git clone --branch v1.0.0 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 ```
 
-To use the exact revision described by these docs, open the commit link in the page banner, copy its full SHA, and replace `DOCUMENTED_COMMIT` below.
+Optional, for development revisions only: skip this step when installing released 1.0.0. To use the exact development revision described by these docs, open the commit link in the page banner, copy its full SHA, and replace `DOCUMENTED_COMMIT` below.
 
 ```sh
 git switch --detach DOCUMENTED_COMMIT
@@ -23,14 +27,14 @@ git switch --detach DOCUMENTED_COMMIT
 The repository root is the CLI package and Pub workspace root. Run `flutter pub get` there once to resolve the CLI, util, and example together. The workspace shares the root `pubspec.lock` and package config.
 
 ```sh
-flutter pub get
+flutter pub get --enforce-lockfile
 mkdir -p "$HOME/.local/bin"
 dart run bin/marionette_agent.dart install "$HOME/.local/bin" --timeout 120000
 export PATH="$HOME/.local/bin:$PATH"
 marionette-agent --version
 ```
 
-`install` compiles the CLI into the existing destination directory. It fails if the executable already exists. The adjacent `.marionette-agent-*` directory contains the bundled Skills. Move that directory together with the executable if you relocate the installation.
+`install` compiles the CLI into the existing destination directory. It fails if the executable already exists. The adjacent `.marionette-agent-*` directory contains the bundled Skills and `LICENSE`, `NOTICE`, and `THIRD_PARTY_NOTICES.txt`. Move that directory together with the executable if you relocate the installation.
 
 Add the same PATH export to your shell configuration if you want it to persist across new shells.
 

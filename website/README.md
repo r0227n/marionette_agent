@@ -43,7 +43,7 @@ The headless guide owns managed startup, platform selection, rendering recording
 
 The deployment URL is `https://r0227n.github.io/marionette_agent/`. Adding workflow files alone does not enable Pages in repository settings.
 
-On 2026-09-21, this repository’s Pages source was configured as GitHub Actions and the `github-pages` environment was configured to allow `develop`. The first publication awaits merging this workflow into `develop`. For another repository, configure these settings explicitly:
+On 2026-09-21, this repository’s Pages source was configured as GitHub Actions and the `github-pages` environment was configured to allow `develop`. The Documentation run [36854804049](https://github.com/r0227n/marionette_agent/actions/runs/36854804049) on 2026-10-01 succeeded after PR #48 merged into `develop`. For another repository, configure these settings explicitly:
 
 1. Select **GitHub Actions** under Settings → Pages → Build and deployment.
 2. Allow Actions, the GitHub official actions in this workflow, and Bun’s `oven-sh/setup-bun`.
@@ -55,7 +55,7 @@ PRs verify without deploying. Relevant changes on `develop`, or manual runs on `
 
 PR verification builds GitHub’s merge commit. Deployment rebuilds from the actual `develop` commit. Each page banner identifies the package version from the CLI pubspec and the built SHA. During local uncommitted work, the SHA refers to the checkout’s HEAD.
 
-This site describes a development version. Before switching to stable documentation, change deployment to a release tag, stop automatic publication from `develop`, and align the version banner and installation instructions.
+This site remains development documentation published from `develop`; release installation instructions select the immutable `v1.0.0` tag. The banner describes the site build revision. A future switch to a separately frozen stable site would need a release-tag deployment policy and any corresponding environment authorization.
 
 ## Human acceptance
 

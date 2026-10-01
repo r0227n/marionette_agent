@@ -1,0 +1,66 @@
+name: Quality
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    # macOS is the supported CLI host; tests include native process/file behavior.
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DART_SUPPRESS_ANALYTICS: 'true'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+      - name: Resolve workspace from lockfile
+        run: flutter pub get --enforce-lockfile
+      - name: Set up real recording test tools
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            brew install ffmpeg
+          fi
+          ffmpeg -version
+          ffprobe -version
+      - name: Check formatting and analysis
+        run: |
+          dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test
+          dart analyze
+      - name: Check release versions and third-party notices
+        run: |
+          dart run tool/check_release.dart
+          dart run tool/license_notices.dart --check
+      - name: CLI tests
+        # Cold child-CLI JIT startup varies on hosted macOS; product deadlines
+        # and explicitly configured test timeouts still apply.
+        run: dart test --concurrency=1 --timeout=2m
+      - name: Util tests
+        working-directory: packages/marionette_agent_util
+        run: |
+          dart test --concurrency=1
+          flutter test flutter_test
+      - name: Example tests
+        working-directory: example
+        run: flutter test
+      - name: Clean installation and tester smoke
+        run: dart run integration_test/release_smoke.dart

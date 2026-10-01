@@ -18,6 +18,10 @@ on:
       - 'example/**'
       - 'docs/**'
       - 'README.md'
+      - 'SECURITY.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - 'NOTICE'
       - 'AGENTS.md'
       - '.github/workflows/docs.yml'
   push:
@@ -37,6 +41,10 @@ on:
       - 'example/**'
       - 'docs/**'
       - 'README.md'
+      - 'SECURITY.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - 'NOTICE'
       - 'AGENTS.md'
       - '.github/workflows/docs.yml'
   workflow_dispatch:

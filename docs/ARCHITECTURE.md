@@ -23,7 +23,7 @@ Each process/RPC uses the remaining overall deadline; IPC also has a maximum of 
 Diagnostic results go into the shared Result's data, and the runner uses doctor's data.exitCode as the process exit code.
 The text renderer shows check status, reason, next steps, and details; JSON uses the shared envelope.
 
-This document defines the current architecture implementing the `marionette_agent 0.0.1` contract in [SPEC.md](SPEC.md). Standalone commands and workflow v1 are implemented. See the [implementation contract](command-contract.md) for invariants when adding commands.
+This document defines the current architecture implementing the `marionette_agent 1.0.0` contract in [SPEC.md](SPEC.md). Standalone commands and workflow v1 are implemented. See the [implementation contract](command-contract.md) for invariants when adding commands.
 
 <a id="system-structure"></a>
 <a id="構成"></a>

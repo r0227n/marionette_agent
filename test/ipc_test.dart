@@ -67,7 +67,8 @@ void main() {
       expect(File('${runtime.path}/daemon.json').existsSync(), false);
       expect(body(await cli(['session', 'list']))['data'], {'sessions': []});
     },
-    timeout: Timeout(const Duration(seconds: 60)),
+    // This covers many cold CLI processes, not a product response deadline.
+    timeout: const Timeout(Duration(minutes: 2)),
   );
   test('stale socket recovery and private runtime files', () async {
     final socket = await ServerSocket.bind(
@@ -201,7 +202,8 @@ void main() {
       expect(syntax.stderr, contains('code=INVALID_ARGUMENT'));
       expect(syntax.stderr, isNot(contains('secret')));
     },
-    timeout: Timeout(const Duration(seconds: 60)),
+    // Hosted cold CLI startup consumed almost 60s; operation deadlines stay local.
+    timeout: const Timeout(Duration(minutes: 2)),
   );
 
   test(
@@ -237,7 +239,8 @@ void main() {
         'UNSUPPORTED_CAPABILITY',
       );
     },
-    timeout: Timeout(const Duration(seconds: 60)),
+    // Eight cold CLI requests share this harness budget, not an operation budget.
+    timeout: const Timeout(Duration(minutes: 2)),
   );
   test('compiled executable starts the same binary in daemon mode', () async {
     final executable = '${runtime.path}/cli';

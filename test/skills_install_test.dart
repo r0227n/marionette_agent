@@ -70,6 +70,19 @@ void main() {
             )['data']['path']
             as String;
     expect(p.isWithin(destination.path, oldPath), true);
+    for (final name in ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt']) {
+      expect(
+        File(p.join(p.dirname(p.dirname(oldPath)), name)).readAsStringSync(),
+        File(name).readAsStringSync(),
+      );
+    }
+    expect(
+      body(
+        await product(['--version', '--json'], compiled: true),
+      )['data']['version'],
+      '1.0.0',
+    );
+
     expect(
       File(p.join(oldPath, 'SKILL.md')).readAsStringSync(),
       File('skill-data/core/SKILL.md').readAsStringSync(),

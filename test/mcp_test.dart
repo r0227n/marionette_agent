@@ -372,17 +372,36 @@ void main() {
       'timeout retains unknown outcome and never retries mutation',
       () async {
         await call('connect', {'uri': 'http://localhost:1/'});
-        backend.hooks['tap'] = () =>
-            Future<void>.delayed(const Duration(milliseconds: 500));
-        final result = await call('tap', {
+        final entered = Completer<void>();
+        final release = Completer<void>();
+        backend.hooks['tap'] = () {
+          if (!entered.isCompleted) entered.complete();
+          return release.future;
+        };
+        final pending = call('tap', {
           'target': {'key': 'button'},
-          'timeoutMs': 100,
+          'timeoutMs': 10000,
         });
-        expect(result.isError, true);
-        expect(response(result)['error']['code'], 'TIMEOUT');
-        expect(response(result)['error']['outcome'], 'unknown');
-        expect(backend.calls.where((c) => c == 'tap'), hasLength(1));
+        // Install an error handler while waiting for the dispatch barrier.
+        pending.ignore();
+        try {
+          // Prove dispatch happened, then keep the mutation blocked until timeout.
+          await entered.future.timeout(const Duration(seconds: 20));
+          final result = await pending;
+          expect(result.isError, true);
+          expect(response(result)['error']['code'], 'TIMEOUT');
+          expect(response(result)['error']['outcome'], 'unknown');
+          expect(backend.calls.where((c) => c == 'tap'), hasLength(1));
+        } finally {
+          release.complete();
+          try {
+            await pending.timeout(const Duration(seconds: 20));
+          } catch (_) {
+            // Preserve the original assertion or dispatch failure.
+          }
+        }
       },
+      timeout: const Timeout(Duration(minutes: 1)),
     );
   });
 

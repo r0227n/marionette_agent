@@ -61,6 +61,7 @@ export default defineConfig({
           'reference/commands',
           'reference/configuration',
           'reference/output',
+          'reference/compatibility',
           'reference/troubleshooting',
         ]),
       ],
