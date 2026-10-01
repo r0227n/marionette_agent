@@ -10,7 +10,7 @@
 
 単一closeは `Session.discard()` の完了を待たず、全体closeは切断完了を待っていた。backend.disconnectが例外を返しても単一closeは成功し、完了しない場合も期限を待たなかった。また、所有アプリの終了通知が先にdiscardすると、後続closeが同じ切断の失敗を観測できなかった。
 
-[SessionManager](../packages/marionette_agent/lib/src/session/session_manager.dart) に `_disconnectSession` を置き、単一・全体closeで所有権破棄、ref失効、完了待ち、期限・例外の分類を共有した。[Session](../packages/marionette_agent/lib/src/session/session.dart) は最後の切断Futureを保持し、同じ接続への重複disconnectを防ぎながら完了結果を返す。到達不能だった別のclose分岐も削除した。
+[SessionManager](../lib/src/session/session_manager.dart) に `_disconnectSession` を置き、単一・全体closeで所有権破棄、ref失効、完了待ち、期限・例外の分類を共有した。[Session](../lib/src/session/session.dart) は最後の切断Futureを保持し、同じ接続への重複disconnectを防ぎながら完了結果を返す。到達不能だった別のclose分岐も削除した。
 
 確定した失敗はBACKEND_ERROR / failed、期限超過はTIMEOUT / unknownになる。失敗、完了しない切断、所有アプリ終了との競合をテストで確認した。実Simulatorでは単一close・再接続・全体closeとdaemon終了を確認した。切断失敗の注入はfake backendで行った。
 
@@ -18,7 +18,7 @@
 
 policyはSessionの公開状態を書き換え、Sessionもpolicyをimportしていた。batch/workflowの定義を読むだけでもhandlerからCommandContext・registryへ依存が広がっていた。さらにfind.actionを検証せずStringへcast・再帰解釈しており、数値や `find` / `batch` / `workflow` の指定で、INVALID_ARGUMENT以外の結果や不要な保留承認を生んだ。
 
-[SessionActionPolicy](../packages/marionette_agent/lib/src/session/action_policy.dart) にpolicyと承認状態を非公開で所有させ、Requestと接続世代だけで判定する形にした。batch・find・interaction・waitの入力定義を副作用のない `*_request.dart` へ分離し、findは共通validatorを通した後に内包操作を解釈する。
+[SessionActionPolicy](../lib/src/session/action_policy.dart) にpolicyと承認状態を非公開で所有させ、Requestと接続世代だけで判定する形にした。batch・find・interaction・waitの入力定義を副作用のない `*_request.dart` へ分離し、findは共通validatorを通した後に内包操作を解釈する。
 
 不正入力は観測・UI送信・承認作成前にINVALID_ARGUMENTとなり、既存snapshotを保持する。依存グラフのテストで、policyからSession・CommandContext・registry・daemon・CLIへの推移的依存を禁止した。実Simulatorではfind、batch、workflowの各承認、再利用拒否、click/tapの同一policyを確認した。
 
@@ -26,7 +26,7 @@ policyはSessionの公開状態を書き換え、Sessionもpolicyをimportして
 
 CLI・handler・workflow schemaにstateやpoll範囲が分散していた。ref待機は架空のselectorを組み立てて検証し、IPCの明示nullを省略と同じ扱いにしていた。
 
-[WaitRequest](../packages/marionette_agent/lib/src/commands/wait_request.dart) を時間待機・対象待機の型に分け、target、state、poll間隔の検証を1箇所へ集約した。CLIとhandlerが同じparserを使い、workflow schemaもstateとpoll範囲を同じ定義から生成する。明示nullや不正型は観測前に拒否する。workflow v1のselector限定という既存契約は維持した。
+[WaitRequest](../lib/src/commands/wait_request.dart) を時間待機・対象待機の型に分け、target、state、poll間隔の検証を1箇所へ集約した。CLIとhandlerが同じparserを使い、workflow schemaもstateとpoll範囲を同じ定義から生成する。明示nullや不正型は観測前に拒否する。workflow v1のselector限定という既存契約は維持した。
 
 null拒否とref保持をテストし、実Simulatorでref・selector・時間待機、poll間隔50/1000の受理と49/1001の拒否を確認した。SPECと日本語CLI referenceに残っていた「waitはrefを受理しない」という古い説明も修正した。
 
@@ -34,7 +34,7 @@ null拒否とref保持をテストし、実Simulatorでref・selector・時間�
 
 CLIの通常解析、構文エラー回復、Invocation、IPC client/managerでsession非依存コマンドを別々に列挙していた。`close --all --timeout 0` と未知optionの構文エラーは、全体操作なのに選択sessionを返していた。
 
-[usesSession](../packages/marionette_agent/lib/src/protocol/command_scope.dart) を共通定義にし、CLI・Request・daemonの応答経路で使用した。IPCではworkflow実行だけを送るため、Request側でrunとして判定する。構文エラー回復でも、optionの値として現れた `--all` をflagと誤認しない。
+[usesSession](../lib/src/protocol/command_scope.dart) を共通定義にし、CLI・Request・daemonの応答経路で使用した。IPCではworkflow実行だけを送るため、Request側でrunとして判定する。構文エラー回復でも、optionの値として現れた `--all` をflagと誤認しない。
 
 上記2種類のエラーをCLI parserと実CLIで確認した。両方ともsession:null、終了2となり、runtimeを生成しなかった。
 

@@ -20,7 +20,7 @@ agent-browserの導入→クイックスタート→リファレンスという�
 | agent-browserの実行時処理 | [検索API](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/docs/src/app/api/search/route.ts)がリクエストの検索語を処理し、[チャットAPI](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/docs/src/app/api/docs-chat/route.ts)がモデルを呼ぶ。[layout](https://github.com/vercel-labs/agent-browser/blob/72007a6788d863611b23bed0b59d0d659c638d8e/docs/src/app/layout.tsx)もcookieを読む | 現行実装をそのままPagesへ置く構成にはできない |
 | 既存原稿 | [日本語入口](ja/README.md)、[CLIリファレンス](ja/cli-reference.ja.md)など、`docs/ja/`は6ファイル・2,094行。ルートREADMEはない | 既存原稿の整理・英訳を中心にする。ルートREADMEに言語別の入口を作る |
 | 原稿の対象読者 | [command-contract](ja/command-contract.ja.md)はコマンド追加時の実装契約 | 利用者向けサイトと開発者向け内部文書を区別する |
-| 配布状態の記述 | [pubspec.yaml](../packages/marionette_agent/pubspec.yaml)は`0.0.1`・`publish_to: none`、[CHANGELOG](../packages/marionette_agent/CHANGELOG.md)先頭は`1.0.0` | 公開前に版表記を整える。pub.devから導入できるとは案内しない |
+| 配布状態の記述 | [pubspec.yaml](../pubspec.yaml)は`0.0.1`・`publish_to: none`、[CHANGELOG](../CHANGELOG.md)先頭は`1.0.0` | 公開前に版表記を整える。pub.devから導入できるとは案内しない |
 | 公開ワークフロー | 調査対象の`.github/workflows/`にあるのはラベル同期のみ | docs検証・Pagesデプロイを追加する必要がある。GitHub側のPages設定は未確認 |
 
 Next.jsでも静的exportは可能だが、cookieやリクエスト依存のRoute Handlerなどは対象外。agent-browserと同等のAIチャットを提供するならPagesとは別のバックエンド設計が必要になる。今回の文書公開ではPagefindによる静的検索を採用する。[Next.jsの静的export制約](https://nextjs.org/docs/app/guides/static-exports#unsupported-features)
@@ -138,7 +138,7 @@ export default defineConfig({
 1. 公開対象のページ集合を両言語で一致させる。ディレクトリ相対パスをページIDとして使い、初期段階で別のID管理基盤は作らない。
 2. CLIの利用方法・結果・制約が変わるPRでは、対応する日英本文を同じPRで更新する。日本語の校正だけなら翻訳影響なしと理由を記録できるようにする。
 3. `session`、`snapshot`、`ref`などの用語・訳語を小さな対訳表で揃える。コマンド、フラグ、JSON key、error codeは翻訳しない。コードコメントや説明文は訳す。
-4. コード例、JSON/YAMLサンプル、機械的な既定値は同じ入力元を使う。既存の[workflow例](../packages/marionette_agent/examples/workflows/README.md)を活用する。
+4. コード例、JSON/YAMLサンプル、機械的な既定値は同じ入力元を使う。既存の[workflow例](../samples/workflows/README.md)を活用する。
 5. CIでページ欠落、内部リンク、設定・生成データの不整合を検出する。両方のファイルが変更されたことだけでは訳の正確さを保証できないため、意味・数値・否定条件はレビューする。
 6. AI翻訳を使う場合は下訳としてPRへ含める。英語でも手順が通り、条件・禁止事項・結果が同じ意味であることを確認する。
 
@@ -148,11 +148,11 @@ Starlightには未翻訳ページを既定言語で表示して通知する機�
 
 ## リファレンスと生成範囲
 
-現状の[CliCommand](../packages/marionette_agent/lib/src/cli/command.dart)は`ArgParser`と`decode`を持ち、[help](../packages/marionette_agent/lib/src/cli/help.dart)には手書き構文説明もある。全ての位置引数・前提・副作用・復旧手順を一つの構造化データから取得できる設計ではない。**CLIリファレンスをすぐ完全自動生成できるとは見積もらない。**
+現状の[CliCommand](../lib/src/cli/command.dart)は`ArgParser`と`decode`を持ち、[help](../lib/src/cli/help.dart)には手書き構文説明もある。全ての位置引数・前提・副作用・復旧手順を一つの構造化データから取得できる設計ではない。**CLIリファレンスをすぐ完全自動生成できるとは見積もらない。**
 
 初期公開は既存ガイドを整理し、コマンド索引と現行parserの一覧を照合するところから始める。次段階で、共通オプションや列挙値など確実に取り出せる項目の生成を検討する。利用例・意味・制約は執筆し、実装から抽出できない意味を生成処理で推測しない。
 
-MCP tool schemaの入力元は[mcp/catalog.dart](../packages/marionette_agent/lib/src/mcp/catalog.dart)、workflow schemaの入力元は[workflow/schema_catalog.dart](../packages/marionette_agent/lib/src/workflow/schema_catalog.dart)。これらの機械的な構造を別の手書きJSONで再定義しない。生成物はサイトビルドに入力し、Dartの契約コードがサイト側へ依存する構成にはしない。
+MCP tool schemaの入力元は[mcp/catalog.dart](../lib/src/mcp/catalog.dart)、workflow schemaの入力元は[workflow/schema_catalog.dart](../lib/src/workflow/schema_catalog.dart)。これらの機械的な構造を別の手書きJSONで再定義しない。生成物はサイトビルドに入力し、Dartの契約コードがサイト側へ依存する構成にはしない。
 
 この製品の主な利用面はCLIとstdio MCPなので、初期サイトはコマンド・設定・ツールの説明を優先する。Dart APIドキュメントやpub.devへの導線は、公開ライブラリ・配布方針が整った段階で追加する。
 

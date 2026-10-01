@@ -329,9 +329,9 @@ Missing/nonfinite bounds skip a ref as missing_or_invalid_bounds. Nonpositive wi
 4. Verify PageView changes and Dismissible dismissal with swipe, including coordinate mode on Simulator.
 5. Run wait, scroll, PNG/JPEG persistence, and log retrieval through shared session, deadline, and error contracts.
 6. Verify JSON/YAML workflow validation, binding, queue occupancy, wait, failure progress, and final-snapshot handoff through automated tests and Simulator.
-7. For code changes, run format, analyze, and relevant tests in `packages/marionette_agent`. When CLI contracts change, run `example/` on iOS Simulator and check both product CLI results and the resulting screen state.
+7. For code changes, run format, analyze, and relevant tests from the repository root. When CLI contracts change, run `example/` on iOS Simulator and check both product CLI results and the resulting screen state.
 
-Unit, IPC, and contract tests live in `packages/marionette_agent/test/`; Simulator scenarios live in `packages/marionette_agent/integration_test/`. Passing FakeBackend tests alone does not replace Simulator verification.
+Unit, IPC, and contract tests live in `test/`; Simulator scenarios live in `integration_test/`. Passing FakeBackend tests alone does not replace Simulator verification.
 
 <a id="bundled-skill-distribution"></a>
 <a id="同梱skillの配信"></a>
@@ -346,7 +346,7 @@ Unit, IPC, and contract tests live in `packages/marionette_agent/test/`; Simulat
 - `skills path` returns search directories one per line; `skills path <name>` returns the matching Skill directory. Lookup uses frontmatter name, not directory name.
 - `skills --help` / `-h` displays dedicated help. `--json` works before or after the command. Shared validation rejects unknown/duplicate options and extra arguments.
 
-`packages/marionette_agent/skills/marionette-agent/SKILL.md` is an introductory stub with `hidden: true`. `skill-data/core/` and `skill-data/simulator-verify/` contain runtime guides and supporting references/templates. A simple parser reads name, description, and hidden from SKILL.md in immediate subdirectories. Indented description continuation lines join with spaces; hidden recognizes true/yes. Missing/empty names, malformed frontmatter, and unreadable entries are ignored. Frontmatter boundaries must be standalone `---` lines; LF and CRLF are accepted. Hidden entries are excluded from list/--all but can be retrieved by explicit name with get/path. An empty list succeeds; no get targets or unknown names fail. Duplicate names remain in the listing; explicit lookup uses the first in discovery order.
+`skills/marionette-agent/SKILL.md` is an introductory stub with `hidden: true`. `skill-data/core/` and `skill-data/simulator-verify/` contain runtime guides and supporting references/templates. A simple parser reads name, description, and hidden from SKILL.md in immediate subdirectories. Indented description continuation lines join with spaces; hidden recognizes true/yes. Missing/empty names, malformed frontmatter, and unreadable entries are ignored. Frontmatter boundaries must be standalone `---` lines; LF and CRLF are accepted. Hidden entries are excluded from list/--all but can be retrieved by explicit name with get/path. An empty list succeeds; no get targets or unknown names fail. Duplicate names remain in the listing; explicit lookup uses the first in discovery order.
 
 An existing `MARIONETTE_AGENT_SKILLS_DIR` (one parent directory of Skills) has highest discovery priority. Invalid/missing overrides fall back to normal discovery. Normal discovery resolves executable symlinks and uses skills/ and skill-data/ in a distribution root with skills/ two levels above the executable, or an ancestor root with skills/. Dart execution can fall back to resolving the package root through its package URI, never selecting a different package from the caller's cwd. Installed/upgraded binaries prefer their embedded version-specific bundle adjacent to the executable over normal discovery. A missing embedded bundle does not fall back to another version.
 

@@ -8,8 +8,7 @@
     ai = codex
 
 [hooks]
-    postCreate = cd packages/marionette_agent && flutter pub get
-    postCreate = cd example && flutter pub get
+    postCreate = flutter pub get
 
 [sparse]
     inherit = true

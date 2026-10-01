@@ -7,7 +7,7 @@ OS・端末ごとのコマンド、ネイティブAPI、依存ツールの判定
 - `package:marionette_agent_util/marionette_agent_util.dart`: ホスト側の録画・アプリ起動・端末管理。Flutterをimportせず、Dart VM／コンパイル済みCLIで実行できる。
 - `package:marionette_agent_util/flutter.dart`: Flutterアプリ側の型付き観測・操作と非表示時の描画維持。ホスト側のOS処理をexportしない。
 
-パッケージの依存取得にはFlutter SDKと`flutter pub get`が必要。CLIパッケージからの間接依存でも同じ手順を使う。
+CLI・util・exampleはPub workspaceを共有する。依存取得にはFlutter SDKが必要で、リポジトリルートで`flutter pub get`を一度実行する。lockfileとpackage configはルートだけで管理する。
 
 CLI解析・JSON envelope・session/ref・VM Service操作には依存しない。CLIは公開APIを呼び出して`PlatformException`を製品エラーへ変換する。隣接リポジトリやMCPプロセスには依存しない。
 
@@ -31,8 +31,9 @@ CLI解析・JSON envelope・session/ref・VM Service操作には依存しない�
 
 ホスト側のテストは`test/`、Flutter engineを使うテストは`flutter_test/`に配置する。
 
+依存取得後、次の検証をこのパッケージ内で実行する。
+
 ```sh
-flutter pub get
 dart format lib test flutter_test
 dart analyze
 dart test

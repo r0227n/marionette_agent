@@ -18,14 +18,14 @@ Marionette対応Flutterアプリを操作するDart CLIとstdio MCPサーバー�
 ## 担当と実装規約
 
 - コア基盤とswipeはAstra担当。その他の初版機能は別モデル担当。
-- 実装対象は `packages/marionette_agent/`。隣接する `../agent-browser` と `../marionette_mcp` は参考実装として読み、変更や配布時のpath依存を前提にしない。
+- CLI本体はリポジトリルートの `bin/`・`lib/`。共有補助機能は `packages/marionette_agent_util/`、Flutter検証アプリは `example/`、CLI入力例は `samples/workflows/` に置く。隣接する `../agent-browser` と `../marionette_mcp` は参考実装として読み、変更や配布時のpath依存を前提にしない。
 - 上流 `marionette_mcp/src/` のimportはbackend adapterに集約する。個別コマンドは共通のsession、対象解決、失効、エラー契約を使う。
 - UI操作を自動再送しない。古いrefや曖昧な対象はSPECのエラーとして返す。
 - stdoutはCLIの結果、診断はstderrに送る。認証URI・入力文字列を診断ログへ出力しない。
 
 ## 検証と引き継ぎ
 
-コード変更後は `packages/marionette_agent` 内で `dart format`、`dart analyze`、関連する `dart test` を実行する。引き継ぎ時は全体テストも実行する。Simulator検証が必要なタスクは実環境で確認し、未実施なら理由を記録して未完了のままにする。文書のみの変更ではリンク・仕様・タスクの整合性を確認する。
+依存はルートで `flutter pub get` を一度実行し、Pub workspace共通の `pubspec.lock` と `.dart_tool/package_config.json` を使う。メンバーごとのlockfileは管理しない。コード変更後は対象ソースに `dart format`、ルートで `dart analyze`、関連するテストを実行する。引き継ぎ時はルートでCLIの `dart test`、util内で `dart test` と `flutter test flutter_test`、example内で `flutter test` を実行する。Simulator検証が必要なタスクは実環境で確認し、未実施なら理由を記録して未完了のままにする。文書のみの変更ではリンク・仕様・タスクの整合性を確認する。
 
 文書編集・CLI入力や出力の変更では、[文書の配置・翻訳方針](docs/ja/documentation.ja.md) を読み、該当する日英のサイトページと補足を同じPRで更新する。公開言語は英語を主とし、英語の補足は`docs/`直下、日本語は`docs/ja/`へ置く。利用ガイドはwebsiteを正本として重複させない。
 

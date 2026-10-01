@@ -20,10 +20,9 @@ git switch --detach DOCUMENTED_COMMIT
 
 ## CLIと同梱Skillsを配置する
 
-リポジトリルートから実行します。
+リポジトリルートがCLIパッケージ兼Pub workspaceのルートです。ここで `flutter pub get` を一度実行すると、CLI・util・exampleの依存をまとめて解決します。ルートの `pubspec.lock` とpackage configを共有します。
 
 ```sh
-cd packages/marionette_agent
 flutter pub get
 mkdir -p "$HOME/.local/bin"
 dart run bin/marionette_agent.dart install "$HOME/.local/bin" --timeout 120000
@@ -37,7 +36,7 @@ PATHの設定を次回のシェルでも使うには、利用しているシェ�
 
 ## コンパイルせずに試す
 
-依存取得後の`packages/marionette_agent`内では、Dartから直接実行できます。
+依存取得後はリポジトリルートで、Dartから直接実行できます。
 
 ```sh
 dart run bin/marionette_agent.dart --help
@@ -47,10 +46,10 @@ dart run bin/marionette_agent.dart --help
 
 ## 更新する
 
-使いたいコミットをcheckoutし、CLIパッケージで依存を取得し直した後、リポジトリルートから実行します。
+使いたいコミットをcheckoutし、リポジトリルートでworkspaceの依存を取得し直した後、同じ場所から実行します。
 
 ```sh
-marionette-agent upgrade --source packages/marionette_agent \
+marionette-agent upgrade --source . \
   "$HOME/.local/bin" --timeout 120000
 ```
 

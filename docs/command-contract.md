@@ -2,7 +2,7 @@
 
 [日本語](ja/command-contract.ja.md) · [Documentation index](README.md)
 
-This document describes boundaries for CLI handlers and backend adapters. See the [site](https://r0227n.github.io/marionette_agent/en/) for usage, [SPEC](SPEC.md) for the product contract, and [ARCHITECTURE](ARCHITECTURE.md) for dependency direction. Read versions from [pubspec](../packages/marionette_agent/pubspec.yaml) and [protocol constants](../packages/marionette_agent/lib/src/protocol/protocol.dart) rather than duplicating them here.
+This document describes boundaries for CLI handlers and backend adapters. See the [site](https://r0227n.github.io/marionette_agent/en/) for usage, [SPEC](SPEC.md) for the product contract, and [ARCHITECTURE](ARCHITECTURE.md) for dependency direction. Read versions from [pubspec](../pubspec.yaml) and [protocol constants](../lib/src/protocol/protocol.dart) rather than duplicating them here.
 
 <a id="boundaries"></a>
 ## Boundaries and registration
@@ -18,7 +18,7 @@ CliParser / CliCommand
 
 Define syntax in `cli/commands/` and the catalog, with shared types in `cli/command.dart`. Register ordinary handlers under the same name in `coreCommands()`. Decode converts ArgResults into string-keyed JSON params. Because IPC can bypass the CLI, handlers also validate allowed fields, types, required fields, and exclusions. Unknown fields must not be ignored. Common options belong in the root parser’s `cli/common_options.dart`; selectors use `addSelectorOptions`, `parseTarget`, and shared decoding.
 
-Internal handlers directly import necessary backend/protocol/commands/snapshot definitions, without depending on CLI/args or the public barrel. External composition uses `marionette_agent.dart`. Restrict upstream `marionette_mcp/src/` imports to `backend/marionette_backend.dart`; handlers must not consume raw upstream maps or connector exceptions. See [probe_cli.dart](../packages/marionette_agent/integration_test/support/probe_cli.dart) for an executable registration example.
+Internal handlers directly import necessary backend/protocol/commands/snapshot definitions, without depending on CLI/args or the public barrel. External composition uses `marionette_agent.dart`. Restrict upstream `marionette_mcp/src/` imports to `backend/marionette_backend.dart`; handlers must not consume raw upstream maps or connector exceptions. See [probe_cli.dart](../integration_test/support/probe_cli.dart) for an executable registration example.
 
 Recording delegates from the shared session queue to RecordService and util. OS screen recording can run without a VM Service connection; Flutter rendering recording requires one. Platform operations and shutdown signals belong in util and do not change operation refs or connection generations.
 
@@ -32,7 +32,7 @@ Points must be finite and nonnegative; swipe distance must be finite and positiv
 <a id="context"></a>
 ## CommandContext and dispatch count
 
-Access session state through [CommandContext](../packages/marionette_agent/lib/src/commands/command_context.dart).
+Access session state through [CommandContext](../lib/src/commands/command_context.dart).
 
 | API | Contract |
 | --- | --- |
@@ -62,7 +62,7 @@ Reobserve before mutation. Zero matches mean STALE_REF for refs or TARGET_NOT_FO
 
 Use typed Backend primitives and capability interfaces. Validate upstream Success and response structure in the adapter. Connection_uri normalizes HTTP(S) into WS(S), preserves path/query for the connection, and exposes only host/port in status. Scroll uses the swipe primitive and adds command:scroll to its result.
 
-Screenshot passes base64 PNG from the daemon to the CLI, where [artifact_writer.dart](../packages/marionette_agent/lib/src/cli/artifact_writer.dart) validates it, converts to the requested format, and saves exclusively. See the [image contract](cli-reference.md#capture) for PNG/JPEG quality, paths, and failure cleanup. Handlers must not introduce separate persistence rules; capture through saving shares the original deadline.
+Screenshot passes base64 PNG from the daemon to the CLI, where [artifact_writer.dart](../lib/src/cli/artifact_writer.dart) validates it, converts to the requested format, and saves exclusively. See the [image contract](cli-reference.md#capture) for PNG/JPEG quality, paths, and failure cleanup. Handlers must not introduce separate persistence rules; capture through saving shares the original deadline.
 
 Logs returns entries, nullable configured, and limitation when necessary. False means unconfigured was observed; null means the backend cannot distinguish unconfigured from empty. App logs are stdout result data, not diagnostics.
 

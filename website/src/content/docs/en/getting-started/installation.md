@@ -20,10 +20,9 @@ git switch --detach DOCUMENTED_COMMIT
 
 ## Install the CLI and bundled Skills
 
-Start in the repository root.
+The repository root is the CLI package and Pub workspace root. Run `flutter pub get` there once to resolve the CLI, util, and example together. The workspace shares the root `pubspec.lock` and package config.
 
 ```sh
-cd packages/marionette_agent
 flutter pub get
 mkdir -p "$HOME/.local/bin"
 dart run bin/marionette_agent.dart install "$HOME/.local/bin" --timeout 120000
@@ -37,7 +36,7 @@ Add the same PATH export to your shell configuration if you want it to persist a
 
 ## Try the source entrypoint
 
-After resolving dependencies, you can run Dart directly inside `packages/marionette_agent`.
+After resolving dependencies, you can run Dart directly from the repository root.
 
 ```sh
 dart run bin/marionette_agent.dart --help
@@ -47,10 +46,10 @@ You can substitute this Dart entrypoint for `marionette-agent` in the rest of th
 
 ## Update an installation
 
-Check out your desired revision and refresh dependencies in the CLI package. Then run this from the repository root.
+Check out your desired revision and refresh the workspace dependencies at the repository root. Then run this from the repository root.
 
 ```sh
-marionette-agent upgrade --source packages/marionette_agent \
+marionette-agent upgrade --source . \
   "$HOME/.local/bin" --timeout 120000
 ```
 

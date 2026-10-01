@@ -63,7 +63,9 @@ Dependencies point from MCP to CLI/IPC. Backend, session, and commands do not de
 ### Directories
 
 ```text
-packages/marionette_agent/
+marionette_agent/
+  pubspec.yaml  # CLI package and Pub workspace root
+  pubspec.lock  # Shared dependency resolution
   bin/marionette_agent.dart
   skills/       # Hidden stub for external discovery
   skill-data/   # Runtime core/simulator-verify guides and supporting files
@@ -82,11 +84,15 @@ packages/marionette_agent/
     backend/    # Backend interface and Marionette adapter
     commands/   # Operations using shared services
     workflow/   # Schema, model, parent/step execution control
-  examples/     # JSON/YAML workflows and input examples
+  samples/workflows/ # JSON/YAML workflows and input samples
+  packages/marionette_agent_util/ # Shared host and Flutter helpers
+  example/      # Flutter verification app
   test/         # Unit, IPC, and contract tests
     support/    # FakeBackend, input-recording fakes, shared Request fixtures
   integration_test/ # CLI scenarios on Simulator
 ```
+
+The root CLI, util, and example form one [Pub workspace](https://dart.dev/tools/pub/workspaces). The root lists both members; their pubspecs use `resolution: workspace`. Both the CLI and example declare explicit relative path dependencies on util. Run `flutter pub get` once at the repository root; only the root lockfile and package config are retained. Flutter SDK constraints also apply to the shared test dependencies.
 
 Protocol handles only Dart values and JSON; it does not depend on CLI or args. The commands layer owns IPC parameter validation, typed requests, and handlers. CLI syntax invokes the same validation without introducing a dependency from handlers back to CLI. Internal code imports required definitions directly instead of creating cycles through the public barrel. `architecture_test.dart` rejects dependencies from daemon layers to CLI, args, or the public barrel.
 

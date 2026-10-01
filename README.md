@@ -14,7 +14,7 @@ Install from a local checkout. You need Flutter and Dart **3.13.2 or newer, belo
 
 ```sh
 git clone --branch develop https://github.com/r0227n/marionette_agent.git
-cd marionette_agent/packages/marionette_agent
+cd marionette_agent
 flutter pub get
 mkdir -p "$HOME/.local/bin"
 dart run bin/marionette_agent.dart install "$HOME/.local/bin" --timeout 120000
@@ -24,7 +24,9 @@ marionette-agent --version
 
 Add the PATH export to your shell configuration to keep it across terminals. `install` creates the executable and an adjacent `.marionette-agent-*` Skills bundle; keep them together if you move the installation. It requires an existing destination directory and refuses to overwrite an existing executable.
 
-To run directly from the CLI package after resolving dependencies:
+The repository root is the CLI package and Pub workspace root. One `flutter pub get` resolves the CLI, `packages/marionette_agent_util`, and `example` into the root lockfile.
+
+To run directly from the repository root after resolving dependencies:
 
 ```sh
 dart run bin/marionette_agent.dart --help
@@ -33,7 +35,7 @@ dart run bin/marionette_agent.dart --help
 To update, check out the desired revision, refresh its dependencies, and run this from the repository root:
 
 ```sh
-marionette-agent upgrade --source packages/marionette_agent   "$HOME/.local/bin" --timeout 120000
+marionette-agent upgrade --source . "$HOME/.local/bin" --timeout 120000
 ```
 
 `upgrade` compiles the local source before replacing the executable. It does not download source updates or update Flutter.
@@ -126,8 +128,9 @@ Flutter tester is useful for shared Flutter UI; verify native plugins and OS beh
 
 | Location | Purpose |
 | --- | --- |
-| [packages/marionette_agent](packages/marionette_agent/) | CLI, daemon, MCP server, and tests |
+| [Repository root](pubspec.yaml) | CLI, daemon, MCP server, and tests |
 | [packages/marionette_agent_util](packages/marionette_agent_util/) | Optional app providers and runtime helpers |
+| [samples/workflows](samples/workflows/README.md) | CLI workflow and input samples |
 | [example](example/README.md) | Flutter app for reproducible verification |
 | [website](website/README.md) | Starlight site, built and verified with Bun |
 | [docs](docs/README.md) | English supplements and internal design documents |

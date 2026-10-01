@@ -2,6 +2,7 @@ name: marionette_agent_util
 description: Platform services and Flutter debug utilities for marionette_agent.
 version: 0.0.1
 publish_to: none
+resolution: workspace
 environment:
   sdk: ^3.13.2
 dependencies:

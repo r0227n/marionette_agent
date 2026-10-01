@@ -3,10 +3,7 @@ import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const english = Astro.currentLocale === 'en';
-const pubspec = readFileSync(
-  '../packages/marionette_agent/pubspec.yaml',
-  'utf8',
-);
+const pubspec = readFileSync('../pubspec.yaml', 'utf8');
 const version = /^version:\s*(\S+)/m.exec(pubspec)?.[1] ?? 'development';
 const revision =
   process.env.GITHUB_SHA ||

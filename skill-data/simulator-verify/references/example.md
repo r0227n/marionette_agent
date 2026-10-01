@@ -33,7 +33,7 @@ Back in the checkout root, use the task's entrypoint (installed users substitute
 
 ```sh
 set +x
-MRA_VERIFY_CLI=packages/marionette_agent/bin/marionette_agent.dart
+MRA_VERIFY_CLI=bin/marionette_agent.dart
 MRA_VERIFY_URI=$(cat "$MRA_VERIFY_URI_FILE")
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" connect "$MRA_VERIFY_URI"
 unset MRA_VERIFY_URI

@@ -116,7 +116,7 @@ marionette-agent --session manual-ios close
 
 Compare counter and input changes in the video and screenshot. Recording covers one Flutter view, excluding OS keyboards/dialogs. See [recording details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#recording) for fps, VFR, deadlines, and recovery.
 
-For an automated smoke check, use [integration_test/record_smoke.dart](https://github.com/r0227n/marionette_agent/blob/develop/packages/marionette_agent/integration_test/record_smoke.dart) from the CLI package. Set `MARIONETTE_RECORD_PLATFORM=flutter`, `MARIONETTE_TEST_VM_URI_FILE`, and a new `MARIONETTE_RECORD_EVIDENCE` output path each time. Existing Android verification used `MARIONETTE_RECORD_FPS=2`. These instructions are not evidence that a new run has been performed.
+For an automated smoke check, use [integration_test/record_smoke.dart](https://github.com/r0227n/marionette_agent/blob/develop/integration_test/record_smoke.dart) from the CLI package. Set `MARIONETTE_RECORD_PLATFORM=flutter`, `MARIONETTE_TEST_VM_URI_FILE`, and a new `MARIONETTE_RECORD_EVIDENCE` output path each time. Existing Android verification used `MARIONETTE_RECORD_FPS=2`. These instructions are not evidence that a new run has been performed.
 
 <a id="cleanup"></a>
 

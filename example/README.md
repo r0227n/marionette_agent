@@ -22,8 +22,9 @@ Snapshot filter検証用に、keyを持たない2つの`SnapshotLabel`（Semanti
 
 `flutter devices`で2つのiOS SimulatorのUDIDを確認する。別Simulatorなら同じbundle IDでもプロセス・VM Service・画面状態が独立する。各runnerは別ターミナルで実行する。
 
+依存はリポジトリルートで `flutter pub get` を一度実行する。次のrunnerは `example/` 内から起動する。
+
 ```sh
-flutter pub get
 flutter run -d <SIMULATOR_A_UDID> --debug --no-pub --vmservice-out-file=/tmp/mra-a-uri
 flutter run -d <SIMULATOR_B_UDID> --debug --no-pub --vmservice-out-file=/tmp/mra-b-uri
 ```
@@ -32,7 +33,7 @@ URIは認証情報を含むためログ・検証記録へ転記しない。各�
 
 ```sh
 # シェルのトレース（set -x）は使わない。
-CLI=packages/marionette_agent/bin/marionette_agent.dart
+CLI=bin/marionette_agent.dart
 dart "$CLI" --session alpha connect "$(cat /tmp/mra-a-uri)"
 dart "$CLI" --session beta connect "$(cat /tmp/mra-b-uri)"
 dart "$CLI" --session alpha snapshot
@@ -49,9 +50,9 @@ dart "$CLI" --session alpha close
 dart "$CLI" --session beta close
 ```
 
-最後にFlutter runnerを`d`でdetachし、URIの一時ファイルを削除する。動作検証はCLIの成功応答に加え、次のsnapshotと画面の変化を確認する。swipe/scrollの方向は指の動きであり、ページ切替・到達を保証しない。
+最後に各Flutter runnerを`q`で終了し、URIの一時ファイルを削除する。動作検証はCLIの成功応答に加え、次のsnapshotと画面の変化を確認する。swipe/scrollの方向は指の動きであり、ページ切替・到達を保証しない。
 
-自動widget確認は `flutter test`、CLIによる実環境確認は[全コマンドの動作確認手順](../packages/marionette_agent/examples/workflows/README.md)を参照。結果と画像・動画はPR本文と添付に残す。
+自動widget確認は `flutter test`、CLIによる実環境確認は[全コマンドの動作確認手順](../docs/ja/runtime-verification.ja.md)を参照。結果と画像・動画はPR本文と添付に残す。
 
 ## 注釈Screenshotのopt-in provider
 
@@ -61,11 +62,11 @@ debug構成は`lib/mapped_screenshot.dart`の固定名providerを登録する。
 
 ## Workflow検証
 
-全コマンドをiOS/Androidで確認する手順は [全コマンドの動作確認](../packages/marionette_agent/examples/workflows/README.md) を参照してください。全6 actionを含む `all-actions.yaml` と、接続・観測・録画・終了まで実行する `all_commands_smoke.dart` を提供します。
+全コマンドをiOS/Androidで確認する手順は [全コマンドの動作確認](../docs/ja/runtime-verification.ja.md) を参照してください。全6 actionを含む `all-actions.yaml` と、接続・観測・録画・終了まで実行する `all_commands_smoke.dart` を提供します。
 
-Controls/Aboutのタブ（controls_tab/about_tab）とAbout画面のabout_contentをworkflow用に提供する。packages/marionette_agent/examples/workflows/reach-controls.yamlはタブ移動、wait、PageView swipe、snapshotを実行する。JSON版も同じ到達状態を検証する。
+Controls/Aboutのタブ（controls_tab/about_tab）とAbout画面のabout_contentをworkflow用に提供する。samples/workflows/reach-controls.yamlはタブ移動、wait、PageView swipe、snapshotを実行する。JSON版も同じ到達状態を検証する。
 
-アプリを新規起動した状態で、packages/marionette_agentから次を実行する。URIは認証情報を含むので、ファイルのアクセス権を制限する。
+アプリを新規起動した状態で、リポジトリルートから次を実行する。URIは認証情報を含むので、ファイルのアクセス権を制限する。
 
 ```sh
 MARIONETTE_TEST_VM_URI_FILE=/tmp/private-vm-uri \

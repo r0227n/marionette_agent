@@ -45,14 +45,11 @@ Issueに紐づくコード・文書・設定の変更には、Issueごとに git
 
 ## セットアップ結果
 
-`.gtrconfig` の `postCreate` は、次の依存を各 worktree で生成する。
-
-- `packages/marionette_agent`: `flutter pub get`
-- `example`: `flutter pub get`
+`.gtrconfig` の `postCreate` は、各 worktree のルートで `flutter pub get` を一度実行する。CLI・`packages/marionette_agent_util`・`example`はPub workspaceとして依存を共有し、ルートのlockfileとpackage configを生成する。
 
 `hook_status` は次のように扱う。
 
-- `ran`: 両方の hook が完了している。
+- `ran`: 依存取得の hook が完了している。
 - `none` または `disabled`: hook は実行されていない。必要な依存取得を明示的に実行する。
 - `skipped-untrusted` または `partial`: Agent は `git gtr trust` を実行せず、人間に状態を報告する。作業に必要なら、上記の既知の依存取得コマンドだけを対象 worktree で明示的に実行する。
 

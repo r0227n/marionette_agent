@@ -20,7 +20,7 @@ umask 077
 MRA_VERIFY_DIR=$(mktemp -d /tmp/mra-check.XXXXXX)
 export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_VERIFY_DIR/runtime"
 MRA_VERIFY_SESSION=verify
-MRA_VERIFY_CLI="$PWD/packages/marionette_agent/bin/marionette_agent.dart"
+MRA_VERIFY_CLI="$PWD/bin/marionette_agent.dart"
 mkdir -m 700 "$MRA_VERIFY_DIR/evidence"
 ```
 
