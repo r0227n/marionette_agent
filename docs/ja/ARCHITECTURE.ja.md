@@ -25,7 +25,7 @@ URI・remote error本文を境界の外へ返さない。finallyと遅延完了h
 診断結果は共通Resultのdataに入れ、runnerがdoctorのdata.exitCodeをprocess終了値に適用する。
 text rendererはcheck状態/理由/次手順/details、JSONは共通envelopeを表示する。
 
-本書は[SPEC.md](SPEC.ja.md)の`marionette_agent 0.0.1`契約を実現する現行構成を定義する。単独コマンドとworkflow v1は実装済み。コマンド追加時の具体的な不変条件は[実装契約](command-contract.ja.md)を参照する。
+本書は[SPEC.md](SPEC.ja.md)の`marionette_agent 1.0.0`契約を実現する現行構成を定義する。単独コマンドとworkflow v1は実装済み。コマンド追加時の具体的な不変条件は[実装契約](command-contract.ja.md)を参照する。
 
 <a id="system-structure"></a>
 <a id="構成"></a>

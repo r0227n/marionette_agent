@@ -33,7 +33,7 @@ Check IDs and targets:
 
 Authenticated probe URIs, remote exceptions, and input strings are excluded from results and diagnostics. The independent connection is released on completion, failure, or timeout; connections established late are also closed. External query processes are terminated on timeout.
 
-Status: the implemented `marionette_agent 0.0.1` contract, including standalone commands and workflow v1. See the [English site](https://r0227n.github.io/marionette_agent/en/) for usage, [supplements](cli-reference.md) for detailed execution rules, and [architecture](ARCHITECTURE.md) for internal implementation boundaries.
+Status: the implemented `marionette_agent 1.0.0` contract, including standalone commands and workflow v1. See the [English site](https://r0227n.github.io/marionette_agent/en/) for usage, [supplements](cli-reference.md) for detailed execution rules, and [architecture](ARCHITECTURE.md) for internal implementation boundaries.
 
 <a id="purpose-and-scope"></a>
 <a id="目的と対象"></a>
