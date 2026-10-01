@@ -16,7 +16,7 @@ git clone --branch v1.0.0 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 ```
 
-To use the exact revision described by these docs, open the commit link in the page banner, copy its full SHA, and replace `DOCUMENTED_COMMIT` below.
+Optional, for development revisions only: skip this step when installing released 1.0.0. To use the exact development revision described by these docs, open the commit link in the page banner, copy its full SHA, and replace `DOCUMENTED_COMMIT` below.
 
 ```sh
 git switch --detach DOCUMENTED_COMMIT

@@ -14,7 +14,7 @@ git clone --branch v1.0.0 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 ```
 
-ページ上部のコミットと同じ内容を使う場合は、そのリンク先の完全なSHAを取得し、`DOCUMENTED_COMMIT`を置き換えて実行します。
+開発版を使う場合だけの任意手順です。公開版1.0.0の導入では省略してください。この文書の開発基点と同じ内容を使う場合は、ページ上部のコミットから完全なSHAを取得し、`DOCUMENTED_COMMIT`を置き換えて実行します。
 
 ```sh
 git switch --detach DOCUMENTED_COMMIT
