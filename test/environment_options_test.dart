@@ -304,6 +304,8 @@ void main() {
         expect(defaults['session'], 'default');
         expect(backend.calls, isEmpty);
       },
+      // Seven cold CLI processes are independent of the validation contract.
+      timeout: const Timeout(Duration(minutes: 2)),
     );
 
     test(

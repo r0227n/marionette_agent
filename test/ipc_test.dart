@@ -67,7 +67,8 @@ void main() {
       expect(File('${runtime.path}/daemon.json').existsSync(), false);
       expect(body(await cli(['session', 'list']))['data'], {'sessions': []});
     },
-    timeout: Timeout(const Duration(seconds: 60)),
+    // This covers many cold CLI processes, not a product response deadline.
+    timeout: const Timeout(Duration(minutes: 2)),
   );
   test('stale socket recovery and private runtime files', () async {
     final socket = await ServerSocket.bind(

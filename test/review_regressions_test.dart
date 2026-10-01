@@ -195,7 +195,8 @@ void main() {
     final output = process.stdout.transform(utf8.decoder).join();
     final errors = process.stderr.transform(utf8.decoder).join();
     try {
-      expect(await process.exitCode.timeout(const Duration(seconds: 3)), 2);
+      // Include cold Dart startup; the CLI's 100ms operation budget is unchanged.
+      expect(await process.exitCode.timeout(const Duration(seconds: 30)), 2);
       expect(
         (jsonDecode(await output) as Map)['error']['code'],
         'INVALID_ARGUMENT',
@@ -206,7 +207,7 @@ void main() {
       await process.exitCode;
       await dir.delete(recursive: true);
     }
-  });
+  }, timeout: const Timeout(Duration(minutes: 1)));
   test(
     'a stalled response cannot keep the daemon lifetime lock after close',
     () async {
