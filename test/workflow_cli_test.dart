@@ -200,6 +200,7 @@ void main() {
     expect((missing['error'] as Map)['code'], 'TIMEOUT');
     expect((missing['error'] as Map)['outcome'], 'not_sent');
   });
+  // This covers eight cold CLI processes, not a product response deadline.
   test('schema and template/bound validation never prepare runtime, stdin and errors are private', () async {
     final schema = body(await cli(['workflow', 'schema', 'tap']));
     expect(schema['session'], isNull);
@@ -279,7 +280,7 @@ void main() {
       2,
     );
     expect(Directory(runtimePath).existsSync(), false);
-  }, timeout: const Timeout(Duration(seconds: 30)));
+  }, timeout: const Timeout(Duration(minutes: 2)));
   test(
     'separate CLI requests retain workflow ref and IPC error details',
     () async {

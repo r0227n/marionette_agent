@@ -42,7 +42,9 @@ jobs:
           dart run tool/check_release.dart
           dart run tool/license_notices.dart --check
       - name: CLI tests
-        run: dart test --concurrency=1
+        # Cold child-CLI JIT startup varies on hosted macOS; product deadlines
+        # and explicitly configured test timeouts still apply.
+        run: dart test --concurrency=1 --timeout=2m
       - name: Util tests
         working-directory: packages/marionette_agent_util
         run: |

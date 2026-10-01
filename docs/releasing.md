@@ -47,7 +47,9 @@ redistribution of generated sites or new bundled assets needs its own scope audi
 
 Use the pinned baseline Flutter 3.47.2 / Dart 3.13.2 on macOS. Run from the root,
 then the indicated member directories. `--concurrency=1` avoids process-heavy
-test contention. The tester smoke builds no native app and boots no Simulator.
+test contention. The CLI test runner's `--timeout=2m` includes cold child-process
+JIT startup on hosted macOS; product deadlines and explicit test timeouts still
+apply. The tester smoke builds no native app and boots no Simulator.
 
 ```sh
 flutter pub get --enforce-lockfile
@@ -55,7 +57,7 @@ dart format --output=none --set-exit-if-changed bin lib test tool integration_te
 dart analyze
 dart run tool/check_release.dart
 dart run tool/license_notices.dart --check
-dart test --concurrency=1
+dart test --concurrency=1 --timeout=2m
 (cd packages/marionette_agent_util && dart test --concurrency=1 && flutter test flutter_test)
 (cd example && flutter test)
 dart run integration_test/release_smoke.dart

@@ -18,7 +18,7 @@ skills-lock.jsonの外部開発skillは[mattpocock/skills](https://github.com/ma
 
 ## ローカルの検証
 
-macOS、Flutter 3.47.2、Dart 3.13.2を基準に、ルートから以下を実行します。子directory指定は括弧内です。processを多用するtestの競合を避けて直列実行します。tester smokeはnative appをビルドせず、Simulatorも起動しません。
+macOS、Flutter 3.47.2、Dart 3.13.2を基準に、ルートから以下を実行します。子directory指定は括弧内です。processを多用するtestの競合を避けて直列実行します。CLI test runnerの`--timeout=2m`はhosted macOSでの子processのcold JIT起動を含む待機枠です。製品のdeadlineとtestで明示したtimeoutは引き続き適用されます。tester smokeはnative appをビルドせず、Simulatorも起動しません。
 
 ```sh
 flutter pub get --enforce-lockfile
@@ -26,7 +26,7 @@ dart format --output=none --set-exit-if-changed bin lib test tool integration_te
 dart analyze
 dart run tool/check_release.dart
 dart run tool/license_notices.dart --check
-dart test --concurrency=1
+dart test --concurrency=1 --timeout=2m
 (cd packages/marionette_agent_util && dart test --concurrency=1 && flutter test flutter_test)
 (cd example && flutter test)
 dart run integration_test/release_smoke.dart
