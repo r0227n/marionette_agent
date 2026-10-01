@@ -17,9 +17,9 @@ These supplements cover details beyond the site. English files live directly in 
 | [Command implementation contract](command-contract.md) | Developing handlers and backend adapters | [コマンド実装契約](ja/command-contract.ja.md) |
 | [Runtime verification](runtime-verification.md) | Reproducing CLI acceptance checks against the example app | [実環境検証](ja/runtime-verification.ja.md) |
 | [Documentation policy](documentation.md) | Choosing a location and updating both languages | [文書の配置・翻訳方針](ja/documentation.ja.md) |
+| [Release preparation](releasing.md) | Licensing, distribution scope, checks, and publication gates | [リリース準備](ja/releasing.ja.md) |
 
 Existing Japanese filenames remain valid entry points. Duplicated installation instructions, basic command lists, quick starts, and managed-launch guides have been removed from those supplements.
-| [Release preparation](releasing.md) | Licensing, distribution scope, checks, and publication gates | [リリース準備](ja/releasing.ja.md) |
 
 ## Internal documents
 
