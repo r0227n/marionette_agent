@@ -1,0 +1,13 @@
+marionette_agent
+Copyright 2026 r0227n and contributors.
+
+Original project code and documentation are licensed under Apache-2.0.
+Third-party components retain their own licenses and copyright notices.
+See THIRD_PARTY_NOTICES.txt for resolved CLI/util dependencies and Dart runtime.
+See third_party/mattpocock-skills-LICENSE for the development skills listed in
+skills-lock.json. Those skills are not installed with the CLI.
+
+The Apache-2.0 license choice follows leancodepl/marionette_mcp:
+https://github.com/leancodepl/marionette_mcp/blob/main/LICENSE
+Marionette dependencies originate from LeanCode and their contributors;
+this project does not claim ownership of their work or endorsement by them.

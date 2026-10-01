@@ -19,6 +19,7 @@
 | [文書の配置・翻訳方針](documentation.ja.md) | 文書の追加先を決め、日英を更新する | [Documentation policy](../documentation.md) |
 
 従来のファイル名は既存リンクから詳細へ到達できるよう維持しています。導入、基本コマンド一覧、クイックスタート、管理されたlaunchの重複説明は削除しました。
+| [リリース準備](releasing.ja.md) | ライセンス・配布対象・検証・公開条件 | [Release preparation](../releasing.md) |
 
 ## 内部文書
 

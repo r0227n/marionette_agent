@@ -19,6 +19,7 @@ These supplements cover details beyond the site. English files live directly in 
 | [Documentation policy](documentation.md) | Choosing a location and updating both languages | [文書の配置・翻訳方針](ja/documentation.ja.md) |
 
 Existing Japanese filenames remain valid entry points. Duplicated installation instructions, basic command lists, quick starts, and managed-launch guides have been removed from those supplements.
+| [Release preparation](releasing.md) | Licensing, distribution scope, checks, and publication gates | [リリース準備](ja/releasing.ja.md) |
 
 ## Internal documents
 

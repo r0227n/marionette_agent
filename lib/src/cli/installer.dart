@@ -56,6 +56,15 @@ Future<Json> installCli(Json params, String action, DateTime deadline) async {
         deadline,
       );
     }
+    // Legal notices travel with the executable and its matching Skills bundle.
+    for (final name in ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt']) {
+      final notice = File(p.join(root, name));
+      if (await FileSystemEntity.type(notice.path, followLinks: false) !=
+          FileSystemEntityType.file) {
+        invalid('Source must include license and third-party notices');
+      }
+      await notice.copy(p.join(staging.path, name));
+    }
     final binary = p.join(staging.path, 'marionette-agent');
     final pending = Process.start('dart', [
       'compile',

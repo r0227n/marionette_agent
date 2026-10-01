@@ -20,6 +20,7 @@ const pairs = [
   ['command-contract.md', 'command-contract.ja.md'],
   ['documentation.md', 'documentation.ja.md'],
   ['runtime-verification.md', 'runtime-verification.ja.md'],
+  ['releasing.md', 'releasing.ja.md'],
 ];
 const paired = new Set();
 const explicitIds = (text) =>

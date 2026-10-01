@@ -18,7 +18,7 @@ const maxFrameBytes = 64 * 1024 * 1024;
 const ipcResponseGrace = Duration(milliseconds: 250);
 
 /// Public CLI version for this package.
-const version = '0.0.1';
+const version = '1.0.0';
 
 /// JSON object exchanged by protocol layer; do not carry upstream response types.
 typedef Json = Map<String, Object?>;
