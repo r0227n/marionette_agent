@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from git_flow import GitHub, candidate, check_files, prepare, route, sync, version
+from git_flow import GitHub, candidate, check_files, prepare, route, sync, unpublished, version
 
 REPO = 'owner/repo'
 SHA = 'a' * 40
@@ -82,6 +82,27 @@ class PolicyTests(unittest.TestCase):
 
     def test_release_metadata(self):
         self.assertEqual(check_files(files().__getitem__, '1.1.0'), '- Reviewed changes.')
+
+    def test_pubspec_unpublished_scalar_forms(self):
+        for scalar in ['none', "'none'", '"none"']:
+            for comment in ['', ' # GitHub source releases only; keep pub.dev disabled.']:
+                with self.subTest(scalar=scalar, comment=comment):
+                    data = files()
+                    data['example/pubspec.yaml'] = 'version: 1.1.0+1\npublish_to: ' + scalar + comment + '\n'
+                    check_files(data.__getitem__, '1.1.0')
+
+    def test_real_repository_pubspecs_remain_unpublished(self):
+        for name in ['pubspec.yaml', 'example/pubspec.yaml',
+                     'packages/marionette_agent_util/pubspec.yaml']:
+            with self.subTest(name=name):
+                self.assertTrue(unpublished(Path(name).read_text()))
+
+    def test_unsafe_publish_targets_are_rejected(self):
+        for text in ['publish_to: https://pub.dev\n',
+                     'publish_to: none\npublish_to: https://pub.dev\n',
+                     'publish_to: "none # not a comment"\n', 'publish_to: none-more\n']:
+            with self.subTest(text=text):
+                self.assertFalse(unpublished(text))
 
     def test_bad_metadata(self):
         for path, value in [('pubspec.yaml', 'version: 1.1.0\npublish_to: https://pub.dev\n'),

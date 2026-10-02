@@ -4,7 +4,7 @@
 
 ## 現在の配布と対象
 
-公開版は固定Gitタグと、ソースarchiveを持つGitHub Releaseから導入します。1.0.0は`v1.0.0`を指定し、commit済みlockfileを解決して手元でコンパイルします。CLI/util/exampleの`publish_to: none`を維持し、Pub global activationとpub.dev公開は対象外です。開発版はレビュー済みdevelop commitを指定でき、そのSHAを記録し、リリース版と同じ動作を前提にしません。
+公開版は固定Gitタグと、ソースarchiveを持つGitHub Releaseから導入します。1.0.1は`v1.0.1`を指定し、commit済みlockfileを解決して手元でコンパイルします。CLI/util/exampleの`publish_to: none`を維持し、Pub global activationとpub.dev公開は対象外です。開発版はレビュー済みdevelop commitを指定でき、そのSHAを記録し、リリース版と同じ動作を前提にしません。
 
 installerの配布物は実行ファイルと、対応する隣接`.marionette-agent-*`ディレクトリです。SkillsとLICENSE/NOTICE/THIRD_PARTY_NOTICESを含め、移設・再配布でも保持します。upgradeは旧bundleを残すので、実行ファイルが参照しなくなったものだけ削除してください。アプリ側utilも同じcheckoutを使います。複数platformのビルド済み配布物は約束しません。
 
@@ -44,8 +44,8 @@ dart run integration_test/release_smoke.dart
 - [ ] 新規ソースcheckout、固定依存の解決、install、smokeが成功し、撮影画像を確認した。
 - [ ] 正確な依存・SDK・配布素材にライセンス表示が対応する。
 - [ ] SECURITYが指定された公開Issuesを窓口とし、秘密情報・個人情報・トークン・悪用可能な詳細の投稿を避けるよう案内している。GitHubの非公開報告は2026-10-01の読み取りで無効で、非公開窓口や設定変更を約束しない。
-- [ ] CLI/util pubspec、CLI/MCP表示、CHANGELOG、tag、Releaseが1.0.0で一致する。
-- [ ] 導入例は`v1.0.0`を指定し、公開後にタグを検証する。
+- [ ] CLI/util pubspec、CLI/MCP表示、CHANGELOG、tag、Releaseが1.0.1で一致する。
+- [ ] 導入例は`v1.0.1`を指定し、公開後にタグを検証する。
 - [ ] サイトは`develop`から公開する開発文書を維持し、stable版の導入手順はリリースタグを指定する。bannerのSHAはサイトのビルド基点で、最新リリースの約束ではない。
 - [ ] push/PR/merge/tag/Releaseの許可を得る。hostingや権限の変更は別途対象を定める。
 - [ ] 許可後にPages deployとlive URLを確認する。run 35617308091ではbuild/check/uploadが成功し、GitHubのdeploy作成がHTTP 500を返した。既存workflowのgateとartifact/environment名は整合し、ログから構成欠陥は確認できなかった。ユーザーによるPR #48マージ後、[run 36854804049](https://github.com/r0227n/marionette_agent/actions/runs/36854804049)はverify/deployとも成功した。このタスクからredeployは要求していない。
@@ -64,12 +64,12 @@ dart run integration_test/release_smoke.dart
 
 準備は版数をまたいで直列化します。再実行では変更されていないbranchとopen PRを再利用し、変更済みbranchやclosed PRは拒否し、既存タグを上書きしません。安定化commit後のprepare再実行は意図的に拒否するため、既存release PRのレビューを続けてください。branch作成後にAPI権限で失敗した場合はbranchが残ります。権限問題を承認付きで解決して再実行するとPR作成から回復します。明示的な404以外は「存在しない」ではなく失敗として扱います。handoffの失敗jobは同じmerge eventで再実行でき、逆同期済みなら何もしません。
 
-### 初回導入とmaintainerの設定判断
+### 初回導入とrepository設定
 
-手動dispatchにはworkflowがmainへ入っている必要があります。まず本実装PRをdevelopへmergeします。初回だけ、developで版数増加をレビューしてrelease branchを手動作成し、main向けDraft PRを開きます。追加されたPR検証と人間の受入確認を経てmergeしてください。これは実際の候補判断であり、自動的なbootstrap releaseではありません。その後mainからdispatchできます。実装中にmerge・候補作成・公開は実行しません。
+手動dispatchにはworkflowがmainへ入っている必要があります。PR #51でdevelopへ導入済みです。初回の1.0.1候補は、そのレビュー済みdevelopから手動で`release/1.0.1`を作成し、版数増加をmain向けrelease PRでレビューします。追加されたPR検証と人間の受入確認を経てmergeしてください。その後mainからdispatchでき、以降は前述のdevelop上で版数変更をレビューする通常手順に従います。
 
-2026-10-02の調査時、main/developはいずれも`69c409c5eb317d41da4008b7f5b0adf63fd0649c`で、既定はdevelop、v1.0.0は公開済みでした。ruleset `22644545`（`block`）は`~DEFAULT_BRANCH`を対象に、履歴の非fast-forward更新・削除を禁止し、PR/code-owner reviewを要求しますが、CI必須checkはありません。defaultをmainへ変更するとdevelopが対象外になります。導入前に**mainとdevelopの両方**を保護し、最新CI・適切な人間の承認を必須化し、必要に応じて迂回を禁止する設定について承認を得てください。従来のbranch protection取得は403、ActionsのPR作成設定は利用可能な接続では取得不可で、状態は不明です。
+2026-10-02の初回調査時、main/developはいずれも`69c409c5eb317d41da4008b7f5b0adf63fd0649c`で、既定はdevelop、v1.0.0は公開済みでした。ruleset `22644545`（`block`）は当時`~DEFAULT_BRANCH`のみを対象にしており、CI必須checkはありませんでした。承認された導入作業でmaintainerが既定を既存mainへ変更し、対象を`refs/heads/main`と`refs/heads/develop`の両方へ明示変更しました。PR/code-owner、非fast-forward・削除禁止、迂回なしの既存条件は維持しています。設定変更によってbranchの履歴は移動していません。
 
-書込jobはYAML内でbranch/PR作成jobだけに`contents: write`と`pull-requests: write`を要求します。repository方針でPR作成が拒否される場合は、**Allow GitHub Actions to create and approve pull requests**（本workflowはapproveしない）の有効化、または別案について承認を得てください。無断で有効化したりPATを追加したりしません。今回の接続では既定ブランチ管理機能が利用できず、maintainerが既存mainへ変更し再読確認する必要があります。どちらのcommitも移動しません。本実装では設定変更を行っていません。
+maintainerは、PR作成と承認を一体で許可する**Allow GitHub Actions to create and approve pull requests**について別途承認を得て有効化しました。本workflowはPR作成だけを行い、承認reviewは投稿しません。既定のGITHUB_TOKENはcontents/packages読取のみを維持し、branch/PR作成jobだけがYAML内で`contents: write`と`pull-requests: write`を要求します。追加のPATやsecretは使いません。初回release PRのmerge前に、前述の3つのCI checkが必須化されていることを確認してください。正確なcheck名と初回成功runはPR #51から確認できます。追加の保護・権限変更には明示承認が必要です。
 
 GitHubの参照: [手動dispatchの条件](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow)、[GITHUB_TOKENによるeventの扱い](https://docs.github.com/en/actions/concepts/security/github_token)。

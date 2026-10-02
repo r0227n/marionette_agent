@@ -42,6 +42,14 @@ def route(pr, repo):
         raise ValueError('Unsupported PR base')
 
 
+def unpublished(text):
+    # Pubspec accepts plain or quoted scalars and trailing comments. Reject
+    # duplicate keys instead of accepting one safe value beside an unsafe one.
+    fields = re.findall(r'^publish_to:[^\n]*$', text, re.M)
+    return len(fields) == 1 and re.fullmatch(
+        r"""publish_to:[ \t]*(?:none|'none'|"none")[ \t]*(?:#.*)?""", fields[0]) is not None
+
+
 def check_files(read, expected):
     version(expected)
     for path in SPECS:
@@ -49,7 +57,7 @@ def check_files(read, expected):
         matches = re.findall(r'^version:\s*([^\s]+)\s*$', text, re.M)
         require(len(matches) == 1 and matches[0].split('+')[0] == expected,
                 f'{path}: version must match {expected}')
-        require(re.search(r'^publish_to: none\s*$', text, re.M),
+        require(unpublished(text),
                 f'{path}: pub.dev must remain disabled')
     require(re.search(r"^const version = '" + re.escape(expected) + r"';$",
                       read('lib/src/protocol/protocol.dart'), re.M), 'CLI version mismatch')

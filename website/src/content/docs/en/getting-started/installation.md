@@ -5,18 +5,18 @@ description: Build and update marionette-agent from a local checkout.
 
 Install the CLI from the repository source. You need Dart SDK 3.13.2 or newer, below 4.0.0, and a Flutter SDK. The example uses Flutter 3.47.2.
 
-Install the released 1.0.0 source from its immutable tag and compile locally.
+Install the released 1.0.1 source from its immutable tag and compile locally.
 GitHub Releases provide notes and source archives; pub.dev remains disabled.
 The documentation site tracks `develop`; the release tag pins the installation.
 
 ## Get the source
 
 ```sh
-git clone --branch v1.0.0 https://github.com/r0227n/marionette_agent.git
+git clone --branch v1.0.1 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 ```
 
-Optional, for development revisions only: skip this step when installing released 1.0.0. To use the exact development revision described by these docs, open the commit link in the page banner, copy its full SHA, and replace `DOCUMENTED_COMMIT` below.
+Optional, for development revisions only: skip this step when installing released 1.0.1. To use the exact development revision described by these docs, open the commit link in the page banner, copy its full SHA, and replace `DOCUMENTED_COMMIT` below.
 
 ```sh
 git switch --detach DOCUMENTED_COMMIT

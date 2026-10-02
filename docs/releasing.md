@@ -5,7 +5,7 @@
 ## Current route and scope
 
 Released versions use immutable Git tags and GitHub Releases with source archives.
-For 1.0.0, select `v1.0.0`, resolve the committed lockfile, and compile locally.
+For 1.0.1, select `v1.0.1`, resolve the committed lockfile, and compile locally.
 Keep `publish_to: none` in CLI/util/example; global Pub activation and pub.dev
 publication are not supported. Development installations may select a reviewed
 `develop` commit and must record that SHA instead of assuming release behavior.
@@ -88,8 +88,8 @@ Simulator resources before native acceptance checks.
       against posting secrets, personal information, tokens, or abuse-enabling
       details. GitHub private reporting was disabled at the 2026-10-01 read-only
       check; no private route or setting change is promised.
-- [ ] CLI/util pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.0.
-- [ ] Installation examples use `v1.0.0`; verify the tag after publishing.
+- [ ] CLI/util pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.1.
+- [ ] Installation examples use `v1.0.1`; verify the tag after publishing.
 - [ ] Keep the site as development documentation published from `develop`; stable
       installation instructions select the release tag. The banner SHA is the
       site build revision, not a promise of the latest release.
@@ -153,33 +153,32 @@ approval and rerun to recover the PR. API errors other than an explicit 404 are
 failures, not evidence that a resource is absent. Failed handoff jobs can be rerun
 on the same merge event; already-integrated back-sync is a no-op.
 
-### Initial rollout and settings requiring maintainer review
+### Initial rollout and repository settings
 
-The automation must reach `main` before manual dispatch is available. First merge
-this implementation PR into `develop`. For the initial rollout only, prepare a
-reviewed version increment on develop, create its release branch manually and
-open the Draft PR to main; run the added PR checks and human acceptance before
-merging. This is a real candidate decision, not an automatic bootstrap release.
-Afterward the dispatch workflow is available on main. This change does not merge,
-create a release candidate, or execute publication during implementation.
+The automation must reach `main` before manual dispatch is available. PR #51
+installed it on `develop`. The 1.0.1 bootstrap candidate is prepared manually
+from that reviewed develop commit on `release/1.0.1`, with its version increment
+reviewed in the main-targeted release PR. Run the added PR checks and human
+acceptance before merging. Afterward the dispatch workflow is available on main;
+future releases follow the normal develop version-review procedure above.
 
-At the 2026-10-02 inspection, main and develop both pointed to
+At the initial 2026-10-02 inspection, main and develop both pointed to
 `69c409c5eb317d41da4008b7f5b0adf63fd0649c`, default was develop, and v1.0.0 was already
-published. Ruleset `22644545` (`block`) targets `~DEFAULT_BRANCH`, prohibits
-non-fast-forward updates/deletion and requires a PR/code-owner review; it has no
-required CI checks. Changing the default to main moves that ruleset's scope away
-from develop. Before rollout, request approval to protect **both main and develop**,
-require current CI checks and appropriate human review, and disallow bypass as
-appropriate. Traditional branch-protection reads returned 403; Actions PR creation
-settings could not be read with the available connection. Their state is unknown.
+published. Ruleset `22644545` (`block`) then targeted `~DEFAULT_BRANCH` without
+required CI checks. During the approved rollout, the maintainer changed the
+default to the existing main and made the ruleset explicitly protect both
+`refs/heads/main` and `refs/heads/develop`, retaining its existing PR/code-owner,
+non-fast-forward, deletion, and no-bypass conditions. No branch history was moved
+by those setting changes.
 
-The write jobs need `contents: write` and `pull-requests: write`, scoped in YAML to
-branch/PR creation jobs. If repository policy blocks Actions PR creation, request
-approval for **Allow GitHub Actions to create and approve pull requests** (the
-workflows never approve PRs), or an approved alternative; do not silently enable
-it or introduce a PAT. Default-branch administration was unavailable in the task
-connection; a maintainer must change it to the existing main and read it back,
-without moving either branch. No settings were modified by this implementation.
+The maintainer separately approved and enabled **Allow GitHub Actions to create
+and approve pull requests**, whose setting combines both capabilities. These
+workflows only create PRs; they never submit approval reviews. The default
+GITHUB_TOKEN remains contents/packages read-only. Only branch/PR creation jobs
+request `contents: write` and `pull-requests: write` in YAML. No additional PAT or
+secret is used. Confirm the three named required CI checks are enforced before
+merging the first release PR; check names and their initial successful runs come
+from PR #51. Further protection or permission changes need explicit approval.
 
 GitHub references: [manual dispatch availability](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow)
 and [GITHUB_TOKEN event behavior](https://docs.github.com/en/actions/concepts/security/github_token).

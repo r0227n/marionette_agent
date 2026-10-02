@@ -5,16 +5,16 @@ description: ローカルcheckoutからmarionette-agentをビルドし、更新�
 
 現在はリポジトリのソースからCLIを導入します。Dart SDK 3.13.2以上・4.0.0未満とFlutter SDKを用意してください。exampleではFlutter 3.47.2を使用しています。
 
-1.0.0の固定タグからソースを取得し、手元でコンパイルします。GitHub Releaseはリリースノートとソースarchiveを提供し、pub.dev公開は無効のままです。文書サイトは`develop`を追跡しますが、導入はリリースタグで固定します。
+1.0.1の固定タグからソースを取得し、手元でコンパイルします。GitHub Releaseはリリースノートとソースarchiveを提供し、pub.dev公開は無効のままです。文書サイトは`develop`を追跡しますが、導入はリリースタグで固定します。
 
 ## ソースを取得する
 
 ```sh
-git clone --branch v1.0.0 https://github.com/r0227n/marionette_agent.git
+git clone --branch v1.0.1 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 ```
 
-開発版を使う場合だけの任意手順です。公開版1.0.0の導入では省略してください。この文書の開発基点と同じ内容を使う場合は、ページ上部のコミットから完全なSHAを取得し、`DOCUMENTED_COMMIT`を置き換えて実行します。
+開発版を使う場合だけの任意手順です。公開版1.0.1の導入では省略してください。この文書の開発基点と同じ内容を使う場合は、ページ上部のコミットから完全なSHAを取得し、`DOCUMENTED_COMMIT`を置き換えて実行します。
 
 ```sh
 git switch --detach DOCUMENTED_COMMIT

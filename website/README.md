@@ -55,7 +55,7 @@ PRs verify without deploying. Relevant changes on `develop`, or manual runs on `
 
 PR verification builds GitHub’s merge commit. Deployment rebuilds from the actual `develop` commit. Each page banner identifies the package version from the CLI pubspec and the built SHA. During local uncommitted work, the SHA refers to the checkout’s HEAD.
 
-This site remains development documentation published from `develop`; release installation instructions select the immutable `v1.0.0` tag. The banner describes the site build revision. A future switch to a separately frozen stable site would need a release-tag deployment policy and any corresponding environment authorization.
+This site remains development documentation published from `develop`; release installation instructions select the immutable `v1.0.1` tag. The banner describes the site build revision. A future switch to a separately frozen stable site would need a release-tag deployment policy and any corresponding environment authorization.
 
 ## Human acceptance
 
