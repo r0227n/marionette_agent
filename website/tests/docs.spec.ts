@@ -159,7 +159,7 @@ test('keyboard navigation and code copying work', async ({ page, context }) => {
   await page.keyboard.press('Enter');
   await page.locator('.expressive-code .copy button').first().click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
-    'git clone --branch v1.0.0',
+    'git clone --branch v1.0.1',
   );
 });
 

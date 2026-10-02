@@ -40,7 +40,7 @@ check IDと対象:
 probeの認証URI・remote exception・入力文字列は結果/診断へ出力しない。probe終了/失敗/期限切れでは
 独立接続を解放し、遅れて成立した接続も閉じる。外部照会processは期限切れで終了させる。
 
-状態: `marionette_agent 1.0.0` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法は[日本語サイト](https://r0227n.github.io/marionette_agent/ja/)、詳細な実行契約は[補足](cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.ja.md)を参照する。
+状態: `marionette_agent 1.0.1` の実装済み契約。単独コマンドとworkflow v1を含む。利用方法は[日本語サイト](https://r0227n.github.io/marionette_agent/ja/)、詳細な実行契約は[補足](cli-reference.ja.md)、内部の実装境界は[アーキテクチャ](ARCHITECTURE.ja.md)を参照する。
 
 <a id="purpose-and-scope"></a>
 <a id="目的と対象"></a>

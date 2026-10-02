@@ -1,0 +1,64 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Reviewed version already present on develop (MAJOR.MINOR.PATCH)
+        required: true
+        type: string
+      dry_run:
+        description: Validate the exact candidate without creating a branch or PR
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Only one release preparation at a time, including different requested versions.
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - name: Require reviewed main workflow
+        run: test "$GITHUB_REF" = refs/heads/main
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 .github/scripts/git_flow.py resolve --version "$RELEASE_VERSION"
+
+  quality:
+    needs: candidate
+    uses: ./.github/workflows/quality.yml
+    with:
+      ref: ${{ needs.candidate.outputs.sha }}
+
+  prepare:
+    if: ${{ !inputs.dry_run }}
+    needs: [candidate, quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Execute main's reviewed automation, never candidate scripts with write credentials.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          CANDIDATE_SHA: ${{ needs.candidate.outputs.sha }}
+        run: python3 .github/scripts/git_flow.py prepare --version "$RELEASE_VERSION" --sha "$CANDIDATE_SHA"

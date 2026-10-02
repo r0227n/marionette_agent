@@ -5,7 +5,7 @@
 ## Current route and scope
 
 Released versions use immutable Git tags and GitHub Releases with source archives.
-For 1.0.0, select `v1.0.0`, resolve the committed lockfile, and compile locally.
+For 1.0.1, select `v1.0.1`, resolve the committed lockfile, and compile locally.
 Keep `publish_to: none` in CLI/util/example; global Pub activation and pub.dev
 publication are not supported. Development installations may select a reviewed
 `develop` commit and must record that SHA instead of assuming release behavior.
@@ -88,8 +88,8 @@ Simulator resources before native acceptance checks.
       against posting secrets, personal information, tokens, or abuse-enabling
       details. GitHub private reporting was disabled at the 2026-10-01 read-only
       check; no private route or setting change is promised.
-- [ ] CLI/util pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.0.
-- [ ] Installation examples use `v1.0.0`; verify the tag after publishing.
+- [ ] CLI/util pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.1.
+- [ ] Installation examples use `v1.0.1`; verify the tag after publishing.
 - [ ] Keep the site as development documentation published from `develop`; stable
       installation instructions select the release tag. The banner SHA is the
       site build revision, not a promise of the latest release.
@@ -104,3 +104,81 @@ Simulator resources before native acceptance checks.
 
 Do not remove `publish_to: none` as a release shortcut. A future pub.dev decision
 needs workspace/path dependency design and a separate package-content dry run.
+
+## Git-flow automation
+
+The default branch is intended to be `main`. Normal development PRs still target
+`develop`, including compatibility fixes. Only same-repository
+`release/MAJOR.MINOR.PATCH` PRs target `main`; same-repository `fix/*` branches may
+stabilize a release branch. Git flow, Quality, and Documentation verify PRs into
+these branches. Git flow also reruns on base edits. Configure these as required
+checks (`Git flow policy`, `Quality checks`, `Documentation checks`) before relying
+on them to block merges; workflow files alone cannot do so.
+Keep Pages deployment on `develop` under the existing environment policy.
+
+1. Review version changes on `develop` before starting a release. Align all three
+   pubspec versions and the protocol's public version; put substantive reviewed
+   notes under the first CHANGELOG heading. Keep `publish_to: none`. The requested
+   stable version must exceed `main`, and its tag must not exist. Version edits
+   and release notes are deliberately reviewed development changes.
+2. In Actions, select **Prepare release**, choose **main**, and enter the version
+   without `v`. The default **dry_run=true** validates the fixed develop SHA and
+   runs the existing macOS Quality workflow without writing branches or PRs.
+   With dry run disabled, successful checks create `release/<version>` at that
+   exact SHA and a Draft PR to `main`. If develop moves during verification, rerun.
+   main must be an ancestor of develop; complete the previous back-sync first.
+3. Review and stabilize the candidate. Bot-created PR checks may require **Approve
+   workflows to run**; if checks are absent, close/reopen the PR as a maintainer.
+   Do not bypass missing checks or substitute the preparation run for final PR
+   checks. No PAT or extra automation secret is required. Require current
+   Git flow, Quality, Documentation, and native acceptance before a human marks
+   the PR ready and merges it. Prefer merge commits to retain branch ancestry.
+4. A merged release PR runs Quality again on its exact merge SHA. **Release
+   handoff** then saves a source archive, reviewed notes, and a manifest with the
+   proposed tag and SHA as a 30-day Actions artifact. It creates no remote tag,
+   GitHub Release (including draft), or pub.dev publication. Download before
+   expiry; a separately authorized human publication must use that exact SHA.
+5. Handoff creates an idempotent Draft PR from `sync/main-<merge-SHA>` to `develop`,
+   or does nothing if develop already contains the commit. Review conflicts and
+   checks, then use a **merge commit** for this PR so develop contains main's
+   ancestry. Squash/rebase back-sync causes the next preparation to fail until
+   ancestry is restored. Nothing auto-merges or force-pushes.
+
+Release preparation is serialized across versions. Retries reuse unchanged
+branches and open PRs, reject moved branches or closed PRs, and never overwrite
+existing tags. A stabilization commit means rerunning preparation is intentionally
+rejected; continue reviewing the existing release PR. If API permissions fail
+after branch creation, the branch remains; resolve the permission issue with
+approval and rerun to recover the PR. API errors other than an explicit 404 are
+failures, not evidence that a resource is absent. Failed handoff jobs can be rerun
+on the same merge event; already-integrated back-sync is a no-op.
+
+### Initial rollout and repository settings
+
+The automation must reach `main` before manual dispatch is available. PR #51
+installed it on `develop`. The 1.0.1 bootstrap candidate is prepared manually
+from that reviewed develop commit on `release/1.0.1`, with its version increment
+reviewed in the main-targeted release PR. Run the added PR checks and human
+acceptance before merging. Afterward the dispatch workflow is available on main;
+future releases follow the normal develop version-review procedure above.
+
+At the initial 2026-10-02 inspection, main and develop both pointed to
+`69c409c5eb317d41da4008b7f5b0adf63fd0649c`, default was develop, and v1.0.0 was already
+published. Ruleset `22644545` (`block`) then targeted `~DEFAULT_BRANCH` without
+required CI checks. During the approved rollout, the maintainer changed the
+default to the existing main and made the ruleset explicitly protect both
+`refs/heads/main` and `refs/heads/develop`, retaining its existing PR/code-owner,
+non-fast-forward, deletion, and no-bypass conditions. No branch history was moved
+by those setting changes.
+
+The maintainer separately approved and enabled **Allow GitHub Actions to create
+and approve pull requests**, whose setting combines both capabilities. These
+workflows only create PRs; they never submit approval reviews. The default
+GITHUB_TOKEN remains contents/packages read-only. Only branch/PR creation jobs
+request `contents: write` and `pull-requests: write` in YAML. No additional PAT or
+secret is used. Confirm the three named required CI checks are enforced before
+merging the first release PR; check names and their initial successful runs come
+from PR #51. Further protection or permission changes need explicit approval.
+
+GitHub references: [manual dispatch availability](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow)
+and [GITHUB_TOKEN event behavior](https://docs.github.com/en/actions/concepts/security/github_token).
