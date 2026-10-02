@@ -306,13 +306,33 @@ class MarionetteBackend
         validateResponse(await call());
       });
   @override
-  Future<List<ElementInfo>> inspect() => _call(
-    () async => decodeElements(
-      _extended
-          ? await _connector.callCustomExtension('marionette_agent.inspect')
-          : await _connector.getInteractiveElements(),
-    ),
-  );
+  Future<List<ElementInfo>> inspect() => _call(() async {
+    if (_extended) {
+      return decodeElements(
+        await _connector.callCustomExtension('marionette_agent.inspect'),
+      );
+    }
+    final response = validateResponse(
+      await _connector.getInteractiveElements(),
+    );
+    final elements = response['elements'];
+    if (elements is! List) {
+      throw const AgentError('BACKEND_ERROR', 'Invalid element list');
+    }
+    return decodeElements({
+      ...response,
+      'elements': elements.map((raw) {
+        final element = _elementObject(raw);
+        // Binding 0.6.0 flattens debugFillProperties into string diagnostics.
+        // Only these explicit protocol fields are observations in legacy mode;
+        // names such as enabled/checked must not acquire typed-provider meaning.
+        return {
+          for (final key in ['type', 'text', 'key', 'bounds', 'visible'])
+            if (element.containsKey(key)) key: element[key],
+        };
+      }).toList(),
+    });
+  });
   @override
   Future<void> tap(TapTarget target) {
     final args = switch (target) {
