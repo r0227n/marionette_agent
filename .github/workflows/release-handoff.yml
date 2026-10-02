@@ -1,0 +1,62 @@
+name: Release handoff
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-handoff-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    uses: ./.github/workflows/quality.yml
+    with:
+      ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+  artifacts:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - name: Prepare source archive and proposed tag metadata only
+        env:
+          RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: python3 .github/scripts/git_flow.py metadata --version "${RELEASE_BRANCH#release/}" --sha "$MERGE_SHA"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-preparation-${{ github.event.pull_request.merge_commit_sha }}
+          path: release-preparation/
+          retention-days: 30
+          if-no-files-found: error
+          overwrite: true
+
+  sync:
+    needs: artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: python3 .github/scripts/git_flow.py sync --sha "$MERGE_SHA"

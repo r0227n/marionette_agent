@@ -2,28 +2,8 @@ name: Documentation
 
 on:
   pull_request:
-    branches: [develop]
-    paths:
-      - 'website/**'
-      - 'packages/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
-      - 'bin/**'
-      - 'lib/**'
-      - 'test/**'
-      - 'integration_test/**'
-      - 'skills/**'
-      - 'skill-data/**'
-      - 'samples/**'
-      - 'example/**'
-      - 'docs/**'
-      - 'README.md'
-      - 'SECURITY.md'
-      - 'CONTRIBUTING.md'
-      - 'LICENSE'
-      - 'NOTICE'
-      - 'AGENTS.md'
-      - '.github/workflows/docs.yml'
+    branches: [develop, main, 'release/**']
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   push:
     branches: [develop]
     paths:
@@ -61,6 +41,7 @@ concurrency:
 
 jobs:
   verify:
+    name: Documentation checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
