@@ -8,6 +8,8 @@ Source release via the `v1.0.1` Git tag and GitHub Release; pub.dev remains disa
   strict validation for typed providers.
 - Add regression coverage for diagnostic property collisions, malformed legacy
   attributes, and typed-provider validation. No app-side binding upgrade is required.
+- Add reviewed Git-flow release preparation and handoff automation; publication
+  remains a separately authorized action.
 
 ## 1.0.0
 
