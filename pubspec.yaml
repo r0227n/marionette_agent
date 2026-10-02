@@ -1,6 +1,6 @@
 name: marionette_agent
 description: A session-based CLI for Marionette-enabled Flutter apps.
-version: 1.0.0
+version: 1.0.1
 publish_to: none
 repository: https://github.com/r0227n/marionette_agent
 

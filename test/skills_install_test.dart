@@ -80,7 +80,7 @@ void main() {
       body(
         await product(['--version', '--json'], compiled: true),
       )['data']['version'],
-      '1.0.0',
+      '1.0.1',
     );
 
     expect(

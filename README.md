@@ -4,13 +4,13 @@ Flutter app automation for AI agents. Observe the UI, act on a target, and verif
 
 [English documentation](https://r0227n.github.io/marionette_agent/en/) · [日本語ドキュメント](https://r0227n.github.io/marionette_agent/ja/) · [Detailed references](docs/README.md)
 
-Version 1.0.0 runs on **macOS** and connects to **debug Flutter apps with Marionette enabled**. It supports named sessions, snapshot refs, text input, gestures, screenshots, recordings, and sequential workflows. Apps can run in iOS Simulator, Android Emulator, macOS, Chrome, or Flutter tester, subject to the selected platform’s requirements.
+Version 1.0.1 runs on **macOS** and connects to **debug Flutter apps with Marionette enabled**. It supports named sessions, snapshot refs, text input, gestures, screenshots, recordings, and sequential workflows. Apps can run in iOS Simulator, Android Emulator, macOS, Chrome, or Flutter tester, subject to the selected platform’s requirements.
 
 The documentation site is deployed from `develop`. For offline reading, use the [English source](website/src/content/docs/en/getting-started/overview.md), [Japanese source](website/src/content/docs/ja/getting-started/overview.md), or [local preview](website/README.md).
 
 ## Installation
 
-Install 1.0.0 from the immutable Git tag and compile locally. GitHub Releases
+Install 1.0.1 from the immutable Git tag and compile locally. GitHub Releases
 provide the release notes and source archives; pub.dev publication is disabled.
 The documentation site tracks development on `develop`, while this installation
 uses the released source revision.
@@ -19,7 +19,7 @@ You need Flutter and Dart **3.13.2 or newer, below 4.0.0**. The example pins Flu
 3.47.2; platform SDKs such as Xcode are needed for the corresponding app runtime.
 
 ```sh
-git clone --branch v1.0.0 https://github.com/r0227n/marionette_agent.git
+git clone --branch v1.0.1 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 flutter pub get --enforce-lockfile
 mkdir -p "$HOME/.local/bin"
@@ -28,7 +28,7 @@ export PATH="$HOME/.local/bin:$PATH"
 marionette-agent --version
 ```
 
-Expected version: `1.0.0`.
+Expected version: `1.0.1`.
 
 Add the PATH export to your shell configuration to keep it across terminals. `install` creates the executable and an adjacent `.marionette-agent-*` Skills and license notices bundle; keep them together if you move the installation. It requires an existing destination directory and refuses to overwrite an existing executable.
 

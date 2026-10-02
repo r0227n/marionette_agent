@@ -5,7 +5,7 @@
 ## Current route and scope
 
 Released versions use immutable Git tags and GitHub Releases with source archives.
-For 1.0.0, select `v1.0.0`, resolve the committed lockfile, and compile locally.
+For 1.0.1, select `v1.0.1`, resolve the committed lockfile, and compile locally.
 Keep `publish_to: none` in CLI/util/example; global Pub activation and pub.dev
 publication are not supported. Development installations may select a reviewed
 `develop` commit and must record that SHA instead of assuming release behavior.
@@ -88,8 +88,8 @@ Simulator resources before native acceptance checks.
       against posting secrets, personal information, tokens, or abuse-enabling
       details. GitHub private reporting was disabled at the 2026-10-01 read-only
       check; no private route or setting change is promised.
-- [ ] CLI/util pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.0.
-- [ ] Installation examples use `v1.0.0`; verify the tag after publishing.
+- [ ] CLI/util pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.1.
+- [ ] Installation examples use `v1.0.1`; verify the tag after publishing.
 - [ ] Keep the site as development documentation published from `develop`; stable
       installation instructions select the release tag. The banner SHA is the
       site build revision, not a promise of the latest release.
