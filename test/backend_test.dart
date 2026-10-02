@@ -8,6 +8,16 @@ import 'package:test/test.dart';
 class ConnectorFixture extends VmServiceConnector {
   Map<String, dynamic> args = {};
   Object? failure;
+  bool extended = false;
+  @override
+  Future<void> connect(String uri) async {}
+  @override
+  Future<Map<String, dynamic>> listExtensions() async => {
+    'status': 'Success',
+    'extensions': [
+      if (extended) {'name': 'marionette_agent.inspect'},
+    ],
+  };
   Map<String, dynamic> response = {'status': 'Success', 'message': 'arbitrary'};
   Future<Map<String, dynamic>> call(Map<String, dynamic> input) async {
     args = input;
@@ -39,6 +49,175 @@ class ConnectorFixture extends VmServiceConnector {
 }
 
 void main() {
+  group('inspect provider contracts', () {
+    late ConnectorFixture connector;
+    late MarionetteBackend backend;
+    final bounds = {'x': 0, 'y': 0, 'width': 48, 'height': 48};
+    final button = <String, dynamic>{
+      'type': 'FilledButton',
+      'key': 'camera.replay.sample',
+      'visible': true,
+      'bounds': bounds,
+      'enabled': 'true',
+    };
+    final backendError = throwsA(
+      isA<AgentError>().having((e) => e.code, 'code', 'BACKEND_ERROR'),
+    );
+
+    setUp(() {
+      connector = ConnectorFixture();
+      backend = MarionetteBackend(connector: connector);
+    });
+
+    Future<void> connect({bool extended = false}) async {
+      connector.extended = extended;
+      connector.response = {
+        'status': 'Success',
+        'version': 1,
+        'interactions': <String>[],
+      };
+      await backend.connect(Uri.parse('ws://localhost:1234/ws'));
+    }
+
+    void respond(List<Object?> elements) {
+      connector.response = {'status': 'Success', 'elements': elements};
+    }
+
+    test(
+      'legacy buttons retain protocol attributes, not string diagnostics',
+      () async {
+        await connect();
+        // Representative rows from the reported binding 0.6.0 response:
+        // debugFillProperties values are strings; visible/bounds are protocol data.
+        respond([
+          button,
+          {
+            ...button,
+            'type': 'OutlinedButton',
+            'key': 'camera.mock.imagePicker',
+          },
+          {'type': 'Text', 'text': 'Replay sample', 'visible': true},
+          {'type': 'Semantics', 'text': 'Camera', 'visible': false},
+        ]);
+        final elements = await backend.inspect();
+        expect(elements.map((e) => e.toJson()), [
+          {
+            'type': 'FilledButton',
+            'key': 'camera.replay.sample',
+            'visible': true,
+            'bounds': bounds,
+          },
+          {
+            'type': 'OutlinedButton',
+            'key': 'camera.mock.imagePicker',
+            'visible': true,
+            'bounds': bounds,
+          },
+          {'type': 'Text', 'text': 'Replay sample', 'visible': true},
+          {'type': 'Semantics', 'text': 'Camera', 'visible': false},
+        ]);
+        expect(elements.map((e) => e.textMatchable), [
+          false,
+          false,
+          true,
+          false,
+        ]);
+        expect(connector.args, isEmpty);
+      },
+    );
+
+    test('legacy diagnostic names never become typed observations', () async {
+      await connect();
+      for (final diagnostics in [
+        {
+          'enabled': 'false',
+          'checked': 'true',
+          'interactive': 'true',
+          'depth': '3',
+        },
+        {'enabled': true, 'checked': false, 'interactive': true, 'depth': 3},
+      ]) {
+        respond([
+          {
+            'type': 'CustomWidget',
+            ...diagnostics,
+            'identifier': 'diagnostic id',
+            'inputValue': 'diagnostic value',
+            'role': 'button',
+            'label': 'diagnostic label',
+            'placeholder': 'diagnostic placeholder',
+          },
+        ]);
+        expect((await backend.inspect()).single.toJson(), {
+          'type': 'CustomWidget',
+        });
+      }
+    });
+
+    test(
+      'legacy protocol attributes and envelopes still reject malformed values',
+      () async {
+        await connect();
+        for (final row in <Object?>[
+          null,
+          'element',
+          {1: 'value'},
+          {'type': 1},
+          {'text': false},
+          {'key': []},
+          {'visible': 'true'},
+          {'bounds': 'diagnostic'},
+          {
+            'bounds': {...bounds, 'width': -1},
+          },
+        ]) {
+          respond([row]);
+          await expectLater(backend.inspect(), backendError);
+        }
+        for (final response in <Map<String, dynamic>>[
+          {'status': 'Failure', 'elements': []},
+          {'elements': []},
+          {'status': 'Success', 'elements': {}},
+        ]) {
+          connector.response = response;
+          await expectLater(backend.inspect(), backendError);
+        }
+      },
+    );
+
+    test('typed provider preserves typed attributes and rejects string diagnostics', () async {
+      await connect(extended: true);
+      final typed = {
+        ...button,
+        'enabled': true,
+        'checked': false,
+        'interactive': true,
+        'depth': 3,
+        'identifier': 'camera',
+        'inputValue': '',
+        'role': 'button',
+        'label': 'Replay',
+        'placeholder': 'Choose sample',
+      };
+      respond([typed]);
+      expect((await backend.inspect()).single.toJson(), typed);
+      expect(connector.args, {'extension': 'marionette_agent.inspect'});
+      for (final field in [
+        'visible',
+        'enabled',
+        'checked',
+        'interactive',
+        'depth',
+      ]) {
+        respond([
+          {...typed, field: 'true'},
+        ]);
+        await expectLater(backend.inspect(), backendError);
+      }
+      respond([button]);
+      await expectLater(backend.inspect(), backendError);
+    });
+  });
   test('mapped capture validates capability at the adapter boundary', () async {
     final connector = ConnectorFixture();
     final backend = MarionetteBackend(connector: connector);
