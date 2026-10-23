@@ -52,7 +52,7 @@ jobs:
           ffprobe -version
       - name: Check formatting and analysis
         run: |
-          dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test
+          dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages example/lib example/test
           dart analyze
       - name: Check release versions and third-party notices
         run: |
@@ -62,11 +62,16 @@ jobs:
         # Cold child-CLI JIT startup varies on hosted macOS; product deadlines
         # and explicitly configured test timeouts still apply.
         run: dart test --concurrency=1 --timeout=2m
-      - name: Util tests
-        working-directory: packages/marionette_agent_util
+      - name: Platform implementation tests
         run: |
-          dart test --concurrency=1
-          flutter test flutter_test
+          for package in platform_interface ios android macos web flutter; do
+            if [ -d "packages/marionette_agent_$package/test" ]; then
+              (cd "packages/marionette_agent_$package" && dart test --concurrency=1)
+            fi
+          done
+      - name: Flutter provider tests
+        working-directory: packages/marionette_agent_flutter
+        run: flutter test flutter_test
       - name: Example tests
         working-directory: example
         run: flutter test

@@ -28,7 +28,7 @@ marionette-agent screenshot --annotate artifacts/targets.png
 
 ## Flutterアプリの描画を録画する
 
-接続済みsessionとffmpegを用意します。Flutter描画の録画は、headlessの環境でも同じ構文です。
+接続済みsessionと、ネイティブライブラリを同梱したCLI一式を用意します。Flutter描画の録画は、headlessの環境でも同じ構文です。
 
 ```sh
 marionette-agent record start artifacts/interaction.mp4 --platform flutter

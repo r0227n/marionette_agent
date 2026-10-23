@@ -6,15 +6,25 @@ import 'package:path/path.dart' as p;
 import 'package:marionette_agent/src/protocol/protocol.dart' as protocol;
 
 /// Source-only checkout -> AOT install -> owned tester -> observe/act -> shutdown.
-/// No Simulator, native build, credentials, or raw app output in the report.
+/// No Simulator, native app build, credentials, or raw app output in the report.
 Future<void> main() async {
   final root = Directory.current.path;
   final private = Directory('/tmp').createTempSync('mra-release-');
   await Process.run('chmod', ['700', private.path]);
   final runtime = p.join(private.path, 'runtime');
-  final destination = Directory(p.join(private.path, 'bin'))..createSync();
-  final binary = p.join(destination.path, 'marionette-agent');
-  final environment = {'MARIONETTE_AGENT_RUNTIME_DIR': runtime};
+  var destination = Directory(p.join(private.path, 'bin'))..createSync();
+  var binary = p.join(destination.path, 'marionette-agent');
+  final tools = Directory(p.join(private.path, 'tools'))..createSync();
+  final externalCall = File(p.join(private.path, 'external-ffmpeg-called'));
+  final trap = File(p.join(tools.path, 'ffmpeg'));
+  trap.writeAsStringSync(
+    '#!/bin/sh\nprintf used > "${externalCall.path}"\nexit 99\n',
+  );
+  await Process.run('chmod', ['700', trap.path]);
+  final environment = {
+    'MARIONETTE_AGENT_RUNTIME_DIR': runtime,
+    'PATH': '${tools.path}:${Platform.environment['PATH'] ?? ''}',
+  };
   final steps = <String>[];
   Future<Map<String, dynamic>> cli(
     List<String> args, {
@@ -55,14 +65,34 @@ Future<void> main() async {
             (row) => row['key'] == key,
           )['text']
           as String;
+  Future<Map<String, dynamic>> observe(String key, String expected) async {
+    final limit = DateTime.now().add(const Duration(seconds: 5));
+    while (true) {
+      final snapshot = await cli(['snapshot']);
+      if (text(snapshot, key) == expected) return snapshot;
+      if (!DateTime.now().isBefore(limit)) {
+        throw StateError('Fixture label $key did not reach its expected state');
+      }
+      // Poll only observations; each UI operation above is sent exactly once.
+      await cli(['wait', '100ms']);
+    }
+  }
+
   try {
     await cli(['install', destination.path], source: true);
+    destination = destination.renameSync(p.join(private.path, 'relocated'));
+    binary = p.join(destination.path, 'marionette-agent');
     final version = await cli(['--version']);
     check(
       version['data']['version'] == protocol.version,
       'Installed version mismatch',
     );
-    final bundle = destination.listSync().whereType<Directory>().single;
+    final installation = destination.listSync().whereType<Directory>().single;
+    final bundle = Directory(p.join(installation.path, 'bundle'));
+    check(
+      Directory(p.join(bundle.path, 'lib')).existsSync(),
+      'Missing bundled native libraries',
+    );
     for (final name in ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt']) {
       check(
         File(p.join(bundle.path, name)).readAsStringSync() ==
@@ -71,16 +101,18 @@ Future<void> main() async {
       );
     }
     await cli(['launch', p.join(root, 'example'), '--platform', 'tester']);
+    final recording = p.join(private.path, 'rendered.mp4');
+    await cli(['record', 'start', recording, '--platform', 'flutter']);
     final before = await cli(['snapshot']);
     check(text(before, 'tap_result') == 'Tap count: 0', 'Fixture is not fresh');
     await cli(['tap', '--key', 'tap_button']);
-    final afterTap = await cli(['snapshot']);
+    final afterTap = await observe('tap_result', 'Tap count: 1');
     check(
       text(afterTap, 'tap_result') == 'Tap count: 1',
       'Tap did not change app state',
     );
     await cli(['fill', '--key', 'text_input', 'hello']);
-    final afterFill = await cli(['snapshot']);
+    final afterFill = await observe('fill_result', '5 characters');
     check(
       text(afterFill, 'fill_result') == '5 characters',
       'Fill did not change app state',
@@ -90,6 +122,18 @@ Future<void> main() async {
     check(File(screenshot).lengthSync() > 0, 'Screenshot empty');
     final evidence = Platform.environment['MARIONETTE_RELEASE_SCREENSHOT'];
     if (evidence != null) File(screenshot).copySync(evidence);
+    final stopped = await cli(['record', 'stop']);
+    check(
+      stopped['data']['recordingState'] == 'stopped',
+      'Recording did not finalize',
+    );
+    check(File(recording).lengthSync() > 0, 'Recording empty');
+    check(
+      !externalCall.existsSync(),
+      'Recording invoked a host ffmpeg executable',
+    );
+    final videoEvidence = Platform.environment['MARIONETTE_RELEASE_RECORDING'];
+    if (videoEvidence != null) File(recording).copySync(videoEvidence);
     await cli(['close']);
     for (
       var i = 0;

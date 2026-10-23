@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:marionette_agent_util/marionette_agent_util.dart';
+import 'package:marionette_agent/src/platform/platform_services.dart';
 
 import '../protocol/protocol.dart';
 import 'backend.dart';

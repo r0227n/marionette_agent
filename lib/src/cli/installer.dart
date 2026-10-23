@@ -47,32 +47,16 @@ Future<Json> installCli(Json params, String action, DateTime deadline) async {
       invalid('Upgrade requires an existing regular marionette-agent binary');
     }
     staging = await Directory(directory).createTemp('.marionette-agent-');
-    // The binary names its sibling bundle, so moving the whole installation
-    // keeps skills available and upgrades cannot mix code and guide versions.
-    for (final name in skillDirectories) {
-      await _copySkillDirectory(
-        Directory(p.join(root, name)),
-        Directory(p.join(staging.path, name)),
-        deadline,
-      );
-    }
-    // Legal notices travel with the executable and its matching Skills bundle.
-    for (final name in ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt']) {
-      final notice = File(p.join(root, name));
-      if (await FileSystemEntity.type(notice.path, followLinks: false) !=
-          FileSystemEntityType.file) {
-        invalid('Source must include license and third-party notices');
-      }
-      await notice.copy(p.join(staging.path, name));
-    }
-    final binary = p.join(staging.path, 'marionette-agent');
+    await Directory(p.join(staging.path, 'bundle')).create();
+    final bundle = p.join(staging.path, 'bundle');
+    final binary = p.join(bundle, 'bin', 'marionette_agent');
     final pending = Process.start('dart', [
-      'compile',
-      'exe',
-      '-DMARIONETTE_AGENT_SKILL_BUNDLE=${p.basename(staging.path)}',
+      'build',
+      'cli',
+      '--target',
       entry,
-      '-o',
-      binary,
+      '--output',
+      staging.path,
     ], workingDirectory: root);
     try {
       process = await pending.timeout(deadline.difference(DateTime.now()));
@@ -101,8 +85,43 @@ Future<Json> installCli(Json params, String action, DateTime deadline) async {
     if (!deadline.isAfter(DateTime.now())) {
       throw const AgentError('TIMEOUT', 'Installation deadline exceeded');
     }
-    // Only a verified temporary binary replaces the explicitly selected target.
-    await File(binary).rename(destination);
+    // Each real executable retains its own version of the bundled guides.
+    for (final name in skillDirectories) {
+      await _copySkillDirectory(
+        Directory(p.join(root, name)),
+        Directory(p.join(staging.path, 'bundle', name)),
+        deadline,
+      );
+    }
+    // Legal notices travel with the executable and its matching Skills bundle.
+    for (final name in ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt']) {
+      final notice = File(p.join(root, name));
+      if (await FileSystemEntity.type(notice.path, followLinks: false) !=
+          FileSystemEntityType.file) {
+        invalid('Source must include license and third-party notices');
+      }
+      await notice.copy(p.join(staging.path, 'bundle', name));
+    }
+    // Keep native assets next to the real executable. The regular launcher can
+    // be atomically replaced on upgrade while old version bundles stay intact.
+    await File(p.join(bundle, '.marionette-agent-bundle')).writeAsString('1\n');
+    final launcher = File(p.join(staging.path, 'launcher'));
+    await launcher.writeAsString(
+      '#!/bin/sh\n'
+      'MRA_INSTALL_DIR=\$(CDPATH= cd -- "\$(dirname "\$0")" && pwd) || exit 1\n'
+      'exec "\$MRA_INSTALL_DIR/${p.basename(staging.path)}/bundle/bin/marionette_agent" "\$@"\n',
+    );
+    final permissions = await Process.run('/bin/chmod', [
+      '755',
+      launcher.path,
+    ]).timeout(deadline.difference(DateTime.now()));
+    if (permissions.exitCode != 0) {
+      throw const AgentError('IO_ERROR', 'Cannot prepare CLI launcher');
+    }
+    if (!deadline.isAfter(DateTime.now())) {
+      throw const AgentError('TIMEOUT', 'Installation deadline exceeded');
+    }
+    await launcher.rename(destination);
     reserved = false;
     installed = true;
     return {

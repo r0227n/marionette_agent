@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from git_flow import GitHub, candidate, check_files, prepare, route, sync, version
+from git_flow import SPECS, GitHub, candidate, check_files, prepare, route, sync, version
 
 REPO = 'owner/repo'
 SHA = 'a' * 40
@@ -15,7 +15,7 @@ MAIN = 'b' * 40
 def files(v='1.1.0'):
     return {
         **{p: f'version: {v}\npublish_to: none\n' for p in
-           ('pubspec.yaml', 'packages/marionette_agent_util/pubspec.yaml', 'example/pubspec.yaml')},
+           SPECS},
         'lib/src/protocol/protocol.dart': f"const version = '{v}';\n",
         'CHANGELOG.md': f'## {v}\n\n- Reviewed changes.\n\n## 1.0.0\nOld notes.\n',
     }

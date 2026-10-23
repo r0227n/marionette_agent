@@ -243,13 +243,18 @@ void main() {
     timeout: const Timeout(Duration(minutes: 2)),
   );
   test('compiled executable starts the same binary in daemon mode', () async {
-    final executable = '${runtime.path}/cli';
+    final output = '${runtime.path}/compiled';
+    final executable =
+        '$output/bundle/bin/${File(script).uri.pathSegments.last.replaceAll('.dart', '')}';
     final build = await Process.run(Platform.resolvedExecutable, [
-      'compile',
-      'exe',
+      'build',
+      'cli',
+      '--target',
       script,
-      '-o',
-      executable,
+      '--output',
+      output,
+      '--root-package',
+      'marionette_agent',
     ]);
     expect(build.exitCode, 0, reason: 'Compilation failed');
     Future<ProcessResult> compiled(List<String> args) => Process.run(

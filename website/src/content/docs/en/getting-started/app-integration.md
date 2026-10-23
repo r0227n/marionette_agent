@@ -50,15 +50,17 @@ An operation is rejected if multiple observed targets share a key. Keep each tar
 
 ## Enable additional providers
 
-Register the Flutter extensions from `marionette_agent_util` for `get value`, `is checked`, and additional input operations. This is currently a local package in this repository. Add a path dependency pointing to `packages/marionette_agent_util` in your checkout, then register it after the binding is initialized.
+Register the Flutter extensions from `marionette_agent_flutter` for `get value`, `is checked`, and additional input operations. This is currently a local package in this repository. Add a path dependency pointing to `packages/marionette_agent_flutter` in your checkout, then register it after the binding is initialized.
 
 ```dart
-import 'package:marionette_agent_util/flutter.dart';
+import 'package:marionette_agent_flutter/flutter.dart';
 
 // After MarionetteBinding.ensureInitialized(), in the debug branch:
 registerAgentExtensions();
 ```
 
+The package includes FFmpegKit native assets. Native app targets need Android API 26+, iOS 13+, or macOS 13+; raise a lower deployment target before building. Host recording uses the CLI’s configured video/LGPL runtime. Registering the debug provider does not require FFmpeg initialization in your app.
+
 The example already registers it. Annotated screenshots require a separate mapped screenshot provider that maps element bounds to the captured image.
 
-See the [example initialization](https://github.com/r0227n/marionette_agent/blob/develop/example/lib/main.dart) and [helper package](https://github.com/r0227n/marionette_agent/tree/develop/packages/marionette_agent_util) for implementations. A missing capability may return `UNSUPPORTED_CAPABILITY`; an unobserved value is distinct from an empty string or false.
+See the [example initialization](https://github.com/r0227n/marionette_agent/blob/develop/example/lib/main.dart) and [helper package](https://github.com/r0227n/marionette_agent/tree/develop/packages/marionette_agent_flutter) for implementations. A missing capability may return `UNSUPPORTED_CAPABILITY`; an unobserved value is distinct from an empty string or false.

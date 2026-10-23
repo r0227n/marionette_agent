@@ -21,22 +21,26 @@ The current source installation route remains in place; pub.dev is disabled.
   stdout protocol are separate contracts; do not apply the regular envelope to
   them. Human-readable wording, whitespace, diagnostics, and error message/hint
   prose can change; use JSON rather than parsing text.
-- Workflow schema version 1 and app-side util's documented public functions and
+- Workflow schema version 1 and app-side Flutter provider's documented public functions and
   service-extension payloads. Required-field/type/meaning changes or removals
   require a major version or an explicit new negotiated schema.
 
 A patch fixes behavior to match the existing contract. A minor adds compatible
 capabilities. A major provides migration instructions in CHANGELOG and paired
-docs, including affected flags, JSON/errors, and CLI/util combinations. Security
+docs, including affected flags, JSON/errors, and CLI/platform combinations. Security
 fixes that must break a contract will explain the exception and migration.
 
 ## CLI, daemon, and app versions
 
-Use CLI and `marionette_agent_util` from the **same release checkout**. This is
+Use CLI and `marionette_agent_flutter` from the **same release checkout**. This is
 the supported pair; arbitrary cross-release combinations are not promised.
+The CLI shares a workspace with `marionette_agent_platform_interface` and the
+`marionette_agent_{ios,android,macos,web,flutter}` implementations. The former
+`marionette_agent_util` package is removed. App dependencies and provider imports
+move to `marionette_agent_flutter` and `package:marionette_agent_flutter/flutter.dart`.
 The current upstream pair is `marionette_mcp: 0.6.0` and
 `marionette_flutter: 0.6.0`. Stock binding covers baseline capabilities; optional
-util providers enable additional ones. Missing extensions return
+Flutter providers enable additional ones. Missing extensions return
 `UNSUPPORTED_CAPABILITY`, not a guessed fallback.
 
 CLI package version, JSON `schemaVersion`, internal IPC `protocolVersion`,

@@ -187,8 +187,11 @@ void main() {
             )['data']['path']
             as String;
     expect(p.isWithin(destination.path, relocated), true);
-    Directory(p.dirname(p.dirname(relocated)))
-        .renameSync(p.join(temp.path, 'removed-bundle'));
+    final relocatedBundle = p.dirname(p.dirname(relocated));
+    for (final name in ['skills', 'skill-data']) {
+      Directory(p.join(relocatedBundle, name))
+          .renameSync(p.join(temp.path, 'removed-$name'));
+    }
     final missing = body(
       await product(['skills', 'path', '--json'], compiled: true),
       code: 1,
