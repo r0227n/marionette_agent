@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:marionette_agent_util/flutter.dart';
+import 'package:marionette_agent_flutter/flutter.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'mapped_screenshot.dart';

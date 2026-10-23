@@ -161,8 +161,8 @@ GitHubの可変masterは版の根拠にせず、Flutterについてはローカ�
 - [R1] [MarionetteBackend](../lib/src/backend/marionette_backend.dart): connectのprovider検出、inspectの分岐、上流API境界。
 - [R2] [SPEC](ja/SPEC.ja.md)、[ARCHITECTURE](ja/ARCHITECTURE.ja.md): 対応範囲、close、session/ref/timeout、責務分離。
 - [R3] [SessionManager](../lib/src/session/session_manager.dart)、[Session](../lib/src/session/session.dart)、[RuntimeDirectory](../lib/src/daemon/runtime.dart)。
-- [R4] [現行example main](../example/lib/main.dart)、[typed provider](../packages/marionette_agent_util/lib/flutter.dart)、[mapped screenshot](../example/lib/mapped_screenshot.dart)。
+- [R4] [現行example main](../example/lib/main.dart)、[typed provider](../packages/marionette_agent_flutter/lib/flutter.dart)、[mapped screenshot](../example/lib/mapped_screenshot.dart)。
 - [R5] [期限付きprocess runner](../lib/src/cli/process_runner.dart)。
-- [R6] [内部util](../packages/marionette_agent_util/lib/)、[終了signal処理](../packages/marionette_agent_util/lib/src/lifecycle/termination_signals.dart)、ARCHITECTUREの内部プラットフォームサービス。
+- [R6] [内部util](../packages/marionette_agent_platform_interface/lib/)、[終了signal処理](../packages/marionette_agent_platform_interface/lib/src/termination_signals.dart)、ARCHITECTUREの内部プラットフォームサービス。
 - [R7] [Doctor](../lib/src/cli/doctor.dart): host.osとsimulators.iosの診断。
 - [R8] [workflow smoke](../integration_test/workflow_smoke.dart)、[YAML workflow](../samples/workflows/reach-controls.yaml)、[JSON workflow](../samples/workflows/reach-controls.json)。

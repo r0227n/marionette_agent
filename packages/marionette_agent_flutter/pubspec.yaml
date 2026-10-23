@@ -1,0 +1,22 @@
+name: marionette_agent_flutter
+description: Flutter services for marionette_agent.
+version: 1.0.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  marionette_agent_platform_interface:
+    path: ../marionette_agent_platform_interface
+  flutter:
+    sdk: flutter
+  marionette_flutter: 0.6.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter

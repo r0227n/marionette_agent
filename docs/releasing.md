@@ -57,12 +57,17 @@ provides the tools on its macOS runner. They are not included in release assets.
 
 ```sh
 flutter pub get --enforce-lockfile
-dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test
+dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages example/lib example/test
 dart analyze
 dart run tool/check_release.dart
 dart run tool/license_notices.dart --check
 dart test --concurrency=1 --timeout=2m
-(cd packages/marionette_agent_util && dart test --concurrency=1 && flutter test flutter_test)
+for package in platform_interface ios android macos web flutter; do
+  if [ -d "packages/marionette_agent_$package/test" ]; then
+    (cd "packages/marionette_agent_$package" && dart test --concurrency=1)
+  fi
+done
+(cd packages/marionette_agent_flutter && flutter test flutter_test)
 (cd example && flutter test)
 dart run integration_test/release_smoke.dart
 (cd website && bun install --frozen-lockfile && bun run verify)

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:marionette_agent_util/marionette_agent_util.dart';
+import 'package:marionette_agent/src/platform/platform_services.dart';
 
 import '../backend/backend.dart';
 import '../backend/connection_uri.dart';

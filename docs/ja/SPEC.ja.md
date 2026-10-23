@@ -395,7 +395,7 @@ MCP通信内容や認証URI・入力文字列を診断ログへ記録しない�
 
 [追加コマンド仕様](cli-parity.ja.md)を本仕様の一部とする。snapshotのinteractive/compact/depth、型付きget/is、find、追加interaction、ref/時間wait、crop/diff、clipboard、config/namespace、接続state、batch/policy、record restart/fps、device list、doctor追加モード、install/upgradeの構文・出力・対応範囲を定義する。
 
-任意の `marionette_agent_util/flutter.dart` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
+任意の `marionette_agent_flutter/flutter.dart` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
 
 IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
 
@@ -475,7 +475,7 @@ Flutter実行ファイルは--flutter（省略時daemon PATH）、entrypointは-
 
 launchはdaemon自動起動対象で、session queueとaction policyを共有する。既存接続・所有アプリ・録画があるsession、管理中project、利用中Android portはSESSION_CONFLICT。projectのビルド出力競合を防ぐため、同一projectは実pathとOSファイルlockで排他にする。別環境への自動fallback・操作再送・自動再起動はしない。
 
-起動処理はmarionette_agent_utilに配置する。tester/web/macOSはFlutter runner、iOSは固有private device set、Androidは明示AVDの-no-window -no-snapshot -read-onlyプロセスを所有する。macOSアプリは非表示windowのopt-in対応を要する。CLIから環境変数やOSコマンドを組み立てず、utilの共通APIを呼ぶ。
+起動処理はmarionette_agent_platform_interfaceの契約とios/android/macos/web/flutterの実装パッケージで構成する。tester/web/macOSはFlutter runner、iOSは固有private device set、Androidは明示AVDの-no-window -no-snapshot -read-onlyプロセスを所有する。macOSアプリは非表示windowのopt-in対応を要する。CLIが対象実装の選択と共通lifecycleの調整を行い、対象別パッケージが環境変数やOSコマンドを組み立てる。
 
 closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
 

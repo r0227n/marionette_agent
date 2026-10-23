@@ -50,10 +50,10 @@ marionette-agent snapshot
 
 ## 追加providerを使う
 
-`get value`、`is checked`、追加の入力操作などには`marionette_agent_util`のFlutter拡張を登録します。現状はこのリポジトリ内のローカルパッケージです。アプリの依存にcheckout内の`packages/marionette_agent_util`へのpathを設定し、bindingの初期化後に登録します。
+`get value`、`is checked`、追加の入力操作などには`marionette_agent_flutter`のFlutter拡張を登録します。現状はこのリポジトリ内のローカルパッケージです。アプリの依存にcheckout内の`packages/marionette_agent_flutter`へのpathを設定し、bindingの初期化後に登録します。
 
 ```dart
-import 'package:marionette_agent_util/flutter.dart';
+import 'package:marionette_agent_flutter/flutter.dart';
 
 // After MarionetteBinding.ensureInitialized(), in the debug branch:
 registerAgentExtensions();
@@ -61,4 +61,4 @@ registerAgentExtensions();
 
 exampleには登録済みです。注釈付きスクリーンショットには、これとは別にboundsを画像へ対応付けるmapped screenshot providerが必要です。
 
-[exampleの初期化コード](https://github.com/r0227n/marionette_agent/blob/develop/example/lib/main.dart)と[補助パッケージ](https://github.com/r0227n/marionette_agent/tree/develop/packages/marionette_agent_util)で実装例を確認できます。登録していない機能は`UNSUPPORTED_CAPABILITY`となる場合があり、未観測の値は空文字やfalseとは区別されます。
+[exampleの初期化コード](https://github.com/r0227n/marionette_agent/blob/develop/example/lib/main.dart)と[補助パッケージ](https://github.com/r0227n/marionette_agent/tree/develop/packages/marionette_agent_flutter)で実装例を確認できます。登録していない機能は`UNSUPPORTED_CAPABILITY`となる場合があり、未観測の値は空文字やfalseとは区別されます。

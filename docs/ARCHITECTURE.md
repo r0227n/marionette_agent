@@ -85,14 +85,15 @@ marionette_agent/
     commands/   # Operations using shared services
     workflow/   # Schema, model, parent/step execution control
   samples/workflows/ # JSON/YAML workflows and input samples
-  packages/marionette_agent_util/ # Shared host and Flutter helpers
+  packages/marionette_agent_platform_interface/ # Contracts and host lifecycle
+  packages/marionette_agent_{ios,android,macos,web,flutter}/ # Target implementations
   example/      # Flutter verification app
   test/         # Unit, IPC, and contract tests
     support/    # FakeBackend, input-recording fakes, shared Request fixtures
   integration_test/ # CLI scenarios on Simulator
 ```
 
-The root CLI, util, and example form one [Pub workspace](https://dart.dev/tools/pub/workspaces). The root lists both members; their pubspecs use `resolution: workspace`. Both the CLI and example declare explicit relative path dependencies on util. Run `flutter pub get` once at the repository root; only the root lockfile and package config are retained. Flutter SDK constraints also apply to the shared test dependencies.
+The root CLI, platform packages, and example form one [Pub workspace](https://dart.dev/tools/pub/workspaces). The root lists all members; their pubspecs use `resolution: workspace`. The CLI depends on the platform packages; example depends on the Flutter implementation. All use explicit relative paths. Run `flutter pub get` once at the repository root; only the root lockfile and package config are retained. Flutter SDK constraints also apply to the shared test dependencies.
 
 Protocol handles only Dart values and JSON; it does not depend on CLI or args. The commands layer owns IPC parameter validation, typed requests, and handlers. CLI syntax invokes the same validation without introducing a dependency from handlers back to CLI. Internal code imports required definitions directly instead of creating cycles through the public barrel. `architecture_test.dart` rejects dependencies from daemon layers to CLI, args, or the public barrel.
 
@@ -155,7 +156,7 @@ An OS exclusive lock serializes startup; after acquiring it, the client rechecks
 
 Stale sockets are reclaimed under a lock after liveness checks. A PID alone is never sufficient reason to kill another process. A management queue serializes the final close and new connect. A connection to a stopping daemon can be retried before sending, but a UI operation is never resent after transmission.
 
-The initial IPC limit is 64MiB per frame. Images travel from daemon to CLI as base64; exceeding the limit is an explicit error. The caller CLI saves screenshots and resolves relative paths against its own cwd. Recording is an exception: util saves it within the daemon, and the CLI supplies an absolute path.
+The initial IPC limit is 64MiB per frame. Images travel from daemon to CLI as base64; exceeding the limit is an explicit error. The caller CLI saves screenshots and resolves relative paths against its own cwd. Recording is an exception: the platform recording coordinator saves it within the daemon, and the CLI supplies an absolute path.
 
 `cli/common_options.dart` registers `--screenshot-dir` and rejects empty strings/NUL. `CommonOptions.screenshotDir` reaches `cli/artifact_writer.dart` through the runner; it is not added to IPC params or daemon settings. The writer selects explicit path > directory > temporary storage, leaving directory untouched when a path is supplied. A supplied directory must already exist and be a real directory; it is not created automatically, and a symlink at the directory itself is not followed (ancestor symlinks are allowed). Relative paths are normalized against the caller's cwd, and returned paths are absolute.
 
@@ -294,26 +295,25 @@ CommonOptions owns `--debug` and its recovery during syntax errors. Request.debu
 
 ## Internal platform services
 
-`packages/marionette_agent_util` is an internal package for OS/device-specific operations needed by marionette_agent and Flutter app-side debug helpers, not just recording. It has no reverse dependency on CLI/session/protocol or marionette_mcp. Future device-information functionality also belongs in independent services.
+Platform services use a federated package layout. `marionette_agent_platform_interface` owns `PlatformException`, recording/launch contracts, target identity, and reusable host process/deadline/cleanup helpers in `host_support.dart`. The implementation packages depend only on that interface and their own SDK dependencies; they never depend on the CLI or each other.
 
-```text
-CLI parser → RecordService (shared argument validation and error conversion)
-            → RecordingManager (ownership, device exclusion, storage, shutdown)
-              → ScreenRecorder / RecordingHandle
-                → iOS: simctl / Android: adb / macOS: screencapture
-                → Web: Chrome CDP lifecycle + macOS screencapture
-                → Flutter: FlutterScreenRecorder → PngScreenRecorder + ffmpeg
-```
+| Package | Responsibility |
+| --- | --- |
+| `marionette_agent_ios` | Simulator inventory, private-device launch/cleanup, simctl recording |
+| `marionette_agent_android` | adb inventory, SDK discovery, emulator launch, screenrecord retrieval |
+| `marionette_agent_macos` | Hidden Flutter runner configuration, native display recording |
+| `marionette_agent_web` | Headless Chrome runner, visible Chrome recording lifecycle/permission checks; display recorder is injected |
+| `marionette_agent_flutter` | Tester runner, PNG/ffmpeg recording, optional Flutter debug providers |
 
-`marionette_agent_util.dart` exports host-side Dart APIs; `flutter.dart` exports app-side Flutter APIs. They do not export each other. CLI execution and compilation require no Flutter engine, but both CLI and util use `flutter pub get` to resolve Flutter SDK dependencies. Host tests live in `test/`; Flutter tests live in `flutter_test/`.
+`lib/src/platform/` composes these implementations by the explicitly selected **target** platform, independently of the host OS. It owns recording reservations/storage/FPS conversion and application startup/disposal coordination. Host process support stays behind `host_support.dart`; `marionette_agent_flutter/flutter.dart` exports app-side Flutter providers only. The CLI's import graph requires no Flutter engine. Flutter plugin auto-registration is not used: a macOS CLI can target iOS, Android, or Web.
 
-The CLI has a path dependency on `../marionette_agent_util` within the same repository. Both packages use publish_to:none. Distribution runs from a checkout containing both packages or uses a compiled CLI binary. No path dependency on neighboring reference repositories is introduced.
+The former `marionette_agent_util` package is removed. Flutter apps must change their dependency to `packages/marionette_agent_flutter` and import `package:marionette_agent_flutter/flutter.dart`; public provider functions and extension names are preserved. The CLI directly depends on the six platform packages in the same Pub workspace. All remain `publish_to: none`, with one root lockfile and `flutter pub get` at the root. Distribution requires the complete checkout or a compiled CLI binary.
 
-Record start, connect, and launch can automatically start the daemon. A session can be reserved and retained solely for recording, with VM Service connected later. Record start/stop/status and close are serialized on the existing session queue; long-running frame processing continues outside it. Recording does not use the UI-mutation Execution.bound: util manages startup deadlines, bounded cleanup after stopping, and state. Discarding a VM Service epoch does not affect the recording handle. Failure to acquire the Flutter recording connection marks that recording as failed.
+Record start, connect, and launch can automatically start the daemon. A session can be reserved and retained solely for recording, with VM Service connected later. Record start/stop/status and close are serialized on the existing session queue; long-running frame processing continues outside it. Recording does not use the UI-mutation Execution.bound: the CLI coordinator manages startup deadlines, bounded cleanup after stopping, and state. Discarding a VM Service epoch does not affect the recording handle. Failure to acquire the Flutter recording connection marks that recording as failed.
 
 RecordingManager reserves the device before starting and returns after backend startup confirmation. Waiting for the backend is bounded by the request deadline and a 30-second maximum. Stopping late-created handles and reclaiming reservations continue as tracked cleanup. Even a shutdown race during start or a stop failure retains the device reservation until handle termination is confirmed. Finalization continues after a stop request times out, and no new recording may use the device until it finishes. Android automatic completion joins the same finalization path. Close finalizes recording before releasing ownership. On daemon SIGINT/SIGTERM, RecordingManager.dispose bounds pending starts, stops, saves, and tracked cleanup to 60 seconds. On expiration, RecordingHandle.abort force-stops owned processes, cancels file reads, and closes output, with at most five more seconds of waiting. Staging and unfinalized reserved destinations remain, and late completion cannot publish a video. Android attempts forced stop after matching a unique remote path and PID, but success is not guaranteed for a disconnected device. In-flight OS I/O cannot be guaranteed cancellable, so deletion is not raced against it.
 
-Destination reservation, private staging, iOS SIGINT, Android's unique remote filenames and SIGINT to a PID verified by cmdline, adb pull, and macOS startup-liveness checks/shutdown remain inside util. Child-process output is never forwarded to CLI stdout. PlatformException becomes AgentError. Unsupported linux/windows are also rejected in util and validated through shared checks in both CLI parser and daemon.
+CLI RecordingManager owns destination reservation and private staging. The iOS, Android, and macOS implementations own native startup, signaling, and retrieval, using shared process helpers. Child-process output is never forwarded to CLI stdout. PlatformException becomes AgentError. Unsupported linux/windows are rejected by CLI platform composition and validated through shared checks in both CLI parser and daemon.
 
 Unit tests cover save protection, device exclusion, startup failure, stop deadlines, abnormal exit, and shutdown races. CLI tests cover disconnected recording sessions, ref retention, continuation after connection loss, close, and unsupported platforms. `integration_test/record_smoke.dart` uses the product CLI to verify start → connect → action → video finalization → duplicate stop → overwrite rejection → close finalization. It decodes the actual video and checks screen changes.
 
@@ -374,23 +374,23 @@ At Web startup, CoreGraphics `CGPreflightScreenCaptureAccess` is read through Da
 
 The [Flutter extensions in SPEC](SPEC.md#flutter-extensions) and [additional command specification](cli-parity.md) are the sources of truth.
 
-- `marionette_agent_util/flutter.dart` exposes optional debug-only providers. It reads attributes through public Widget/State APIs, separates controller values from display text, and never transmits password values. Mounted-Widget observation, target re-matching, and a finite interaction set stay within fixed-name extensions. No complete Semantics tree or persistent IDs are introduced.
+- `marionette_agent_flutter/flutter.dart` exposes optional debug-only providers. It reads attributes through public Widget/State APIs, separates controller values from display text, and never transmits password values. Mounted-Widget observation, target re-matching, and a finite interaction set stay within fixed-name extensions. No complete Semantics tree or persistent IDs are introduced.
 - Only `MarionetteBackend` detects provider registration, checks versions, converts DTOs, and uses pinned-binding APIs. Without registration, it uses stock observations. `InteractionBackend` and `ClipboardBackend` are optional capabilities that never expose upstream maps to normal commands.
 - Snapshot filtering happens after collision checks and numbering across the full observation but before ref retention is finalized. Positional find selection also becomes a unique existing matcher and goes through the shared action path. Crop uses target checks before/after capture and explicit geometry, sharing the artifact writer's exclusive persistence. Diff reads a baseline on the CLI side and compares it with an image or nonpublic read observation. Clipboard write/copy tracks the send outcome through an effect path that does not invalidate UI refs.
 - Batch occupies one session queue entry. Each step has a separate Execution, preserving the single-send guard. It stops at the first failure and returns progress. Workflow v1 syntax is unchanged.
 - Action policy is checked inside the session queue before execution, including actions nested in find/batch/workflow. Pending requests are bound to a session connection generation and expiry. Approval consumes a request once and then uses normal target resolution. Close/disconnect discards pending requests. Policy is an opt-in feature modifiable by the same user, not an IPC authorization boundary.
 - Config, connection state, diff, and install/upgrade are CLI-side file operations. Authenticated URIs in connection state pass through private IPC into newly created mode-0600 files, never public responses. Namespace separates runtime names. Doctor is normally read-only; only fix repairs the mode of a runtime directory owned by the user.
-- `marionette_agent_util` owns device-enumeration and FPS-conversion processes. FPS conversion happens after recording finalization in private staging and does not guarantee native capture frequency. Restart performs stop→start in the same recording queue, finalizing the old video. Failure to start the new recording never resumes the old one.
+- The iOS/Android packages own device-enumeration processes; CLI platform composition owns FPS conversion. FPS conversion happens after recording finalization in private staging and does not guarantee native capture frequency. Restart performs stop→start in the same recording queue, finalizing the old video. Failure to start the new recording never resumes the old one.
 
 <a id="ownership-of-hybrid-execution-environments"></a>
 <a id="ハイブリッド実行環境の所有権"></a>
 
 ## Ownership of hybrid execution environments
 
-The CLI catalog's launch validates arguments through util LaunchOptions before passing them to IPC. SessionManager synchronously reserves the session, applies policy, then calls ApplicationLauncher.start. It retains the owned RunningApplication returned by util and reports launch success only after connection and the first inspect succeed. Connection reuses existing _connect rather than duplicating URI ownership, connection-generation, or ref rules. Normal connect does not acquire app ownership.
+The CLI catalog's launch validates arguments through platform-interface LaunchOptions before passing them to IPC. SessionManager synchronously reserves the session, applies policy, then calls ApplicationLauncher.start. It retains the owned RunningApplication returned by the launcher and reports launch success only after connection and the first inspect succeed. Connection reuses existing _connect rather than duplicating URI ownership, connection-generation, or ref rules. Normal connect does not acquire app ownership.
 
-marionette_agent_util/src/application provides LaunchOptions, PlatformApplicationLauncher, RunningApplication, and OwnedProcess. Platform-specific Flutter/simctl/emulator/adb arguments, SDK discovery, private temporary storage, project exclusion, URI discovery, and execution shutdown stay inside util. Util does not depend on CLI, IPC, or the Marionette backend. The agent's backend adapter handles Marionette connection and observation. The NSWindow/rendering support inside macOS apps is app-side opt-in; the Dart CLI never creates a native view.
+The platform interface provides LaunchOptions, RunningApplication, ManagedApplication, and OwnedProcess. Target packages own Flutter/simctl/emulator/adb arguments and SDK discovery. CLI PlatformApplicationLauncher coordinates project exclusion and lifecycle through shared host support. Platform packages do not depend on CLI, IPC, or the Marionette backend. The agent's backend adapter handles Marionette connection and observation. The NSWindow/rendering support inside macOS apps is app-side opt-in; the Dart CLI never creates a native view.
 
 OwnedProcess starts with an argument array, retains bounded stdout, and interprets Flutter machine app.start. Web waits for the corresponding app.started as well as URI output to avoid connecting before Flutter initialization. Raw logs are not forwarded to stderr. It requests normal exit with app.stop and signals only owned processes on timeout, never killing processes by name. iOS creates, shuts down, and deletes a private device set. Android owns only the new read-only Emulator and never stops the shared adb server. The owner also cleans up disposal during startup and late Process.start completion.
 
-Close finalizes through the existing RecordingManager, calls RunningApplication.stop, then discards the session. An app-exit notification invalidates the generation only if that handle still belongs to the same session. Close --all and daemon disposal use the same util shutdown. CLI tests cover launch, connection-readiness failure, policy, nonownership of external connections, and abnormal exit. Util tests use real fixture processes for startup, timeout, interruption, project exclusion, and shutdown.
+Close finalizes through the existing RecordingManager, calls RunningApplication.stop, then discards the session. An app-exit notification invalidates the generation only if that handle still belongs to the same session. Close --all and daemon disposal use the same shared host shutdown. CLI tests cover launch, connection-readiness failure, policy, nonownership of external connections, and abnormal exit. Platform and CLI lifecycle tests use real fixture processes for startup, timeout, interruption, project exclusion, and shutdown.
