@@ -146,7 +146,7 @@ final class MarionetteMcpServer extends MCPServer with ToolsSupport {
         'response': execution.response,
       };
       final content = <Content>[TextContent(text: jsonEncode(structured))];
-      if (definition.name == 'screenshot' && execution.response['ok'] == true) {
+      if (definition.capturesScreenshot && execution.response['ok'] == true) {
         await _appendImages(execution.response, content);
       }
       return CallToolResult(

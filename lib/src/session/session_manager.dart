@@ -5,12 +5,14 @@ import 'package:marionette_agent/src/platform/platform_services.dart';
 import '../backend/backend.dart';
 import '../backend/connection_uri.dart';
 import '../commands/batch.dart';
+import '../commands/native_request.dart';
 import '../commands/command_context.dart';
 import '../commands/registry.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import '../output/content.dart';
 import '../protocol/protocol.dart';
 import '../recording/record_service.dart';
+import '../platform/native/native_service.dart';
 import '../snapshot/snapshot_service.dart';
 import '../workflow/model.dart';
 import '../workflow/workflow_runner.dart';
@@ -23,8 +25,11 @@ class SessionManager {
     this.commands, {
     RecordService? recordings,
     ApplicationLauncher? launcher,
+    NativeService? native,
   }) : recordings = recordings ?? RecordService(),
+       native = native ?? NativeService(),
        launcher = launcher ?? PlatformApplicationLauncher();
+  final NativeService native;
   final RecordService recordings;
   final ApplicationLauncher launcher;
   final BackendFactory factory;
@@ -42,6 +47,10 @@ class SessionManager {
     'state': session.status,
     'uri': session.uri == null ? null : redactUri(session.uri!),
     'snapshotValid': session.observation != null,
+    if (session.nativeTarget != null) ...{
+      'nativeTarget': session.nativeTarget,
+      'nativeSnapshotValid': session.nativeObservation != null,
+    },
     'connectionGeneration': session.epoch,
     if (session.application != null)
       'application': session.application!.description,
@@ -96,6 +105,7 @@ class SessionManager {
           ],
         });
       }
+      if (request.command == 'native') validateNative(request.params);
       final existing = sessions[request.session];
       if (existing == null && request.command == 'close') {
         if (request.params.isNotEmpty) invalid();
@@ -108,6 +118,7 @@ class SessionManager {
       if (existing == null &&
           request.command != 'connect' &&
           request.command != 'launch' &&
+          request.command != 'native' &&
           request.command != 'record') {
         throw const AgentError(
           'NOT_CONNECTED',
@@ -118,6 +129,7 @@ class SessionManager {
       // Reservation is synchronous, before the first await. A pending connect
       // keeps the daemon alive even while the last connected session closes.
       final session = existing ?? Session(request.session);
+      if (request.command == 'native') session.nativeActive = true;
       sessions[request.session] = session;
       session.pending++;
       debug.emit(DebugStage.sessionQueue);
@@ -145,6 +157,7 @@ class SessionManager {
             if (!hasPending) onQueueIdle?.call();
             if ((session.closed ||
                     (session.uri == null &&
+                        !session.nativeActive &&
                         !session.actionPolicy.hasPending &&
                         session.application == null)) &&
                 session.pending == 0 &&
@@ -222,7 +235,11 @@ class SessionManager {
     }
     data = limitContent(data, request.maxOutput, request.outputJson);
     if (request.maxOutput != null) {
-      snapshots.retainPublished(session, data);
+      if (request.command == 'native') {
+        native.retainPublished(session, data);
+      } else {
+        snapshots.retainPublished(session, data);
+      }
     }
     return data;
   }
@@ -338,6 +355,8 @@ class SessionManager {
     final request = context.request;
     final session = context.session;
     switch (request.command) {
+      case 'native':
+        return native.handle(context, sessions.values);
       case 'connect':
         if (request.params.length != 1 || request.params['uri'] is! String) {
           invalid('Usage: connect <uri>');

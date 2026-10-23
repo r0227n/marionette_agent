@@ -54,6 +54,7 @@ export default defineConfig({
           'guides/agents',
           'guides/workflows',
           'guides/capture',
+          'guides/native-ui',
           'guides/headless',
           'guides/manual-headless',
         ]),

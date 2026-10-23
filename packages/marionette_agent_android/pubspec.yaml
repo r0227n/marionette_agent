@@ -8,6 +8,7 @@ environment:
   sdk: ^3.13.2
 
 dependencies:
+  xml: ^7.0.1
   marionette_agent_platform_interface:
     path: ../marionette_agent_platform_interface
 

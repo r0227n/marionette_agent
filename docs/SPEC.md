@@ -46,6 +46,8 @@ The initial host is macOS, and the primary UI target is an already-running Flutt
 
 A stdio MCP server exposes the existing CLI interaction model to MCP clients. It uses the Dart connection implementation from `marionette_mcp` as a library to invoke Flutter extensions through VM Service. Providing an MCP client product or HTTP transport is out of scope.
 
+Native device commands additionally observe and operate foreground OS UI on iOS Simulator and Android, including permission dialogs and photo pickers. They do not require a VM connection. See [native UI](#native-ui).
+
 <a id="terminology"></a>
 <a id="用語"></a>
 
@@ -136,6 +138,7 @@ Idle time starts only after all session queues and request deliveries are idle; 
 | `session show` | Returns selected-session state, a redacted endpoint, and snapshot validity |
 | `close [--all]` | Finalizes recording if present, then disconnects/discards the selected session (all sessions with --all). Absence also succeeds. Does not terminate the Flutter app |
 | `snapshot` | Refreshes the observation and returns elements and refs |
+| `native snapshot\|tap\|swipe\|screenshot --platform ios\|android --device <id>` | Observes, operates, or captures the explicit device's native foreground screen; independent of Flutter connection |
 | `get text <ref\|selector>` | Returns one element's observed text |
 | `get box <ref\|selector>` | Returns one element's bounds in Flutter logical coordinates |
 | `get count <selector>` | Counts exact observed candidates; refs are not accepted |
@@ -471,3 +474,19 @@ Startup uses marionette_agent_platform_interface contracts and the ios/android/m
 Close finalizes recording, stops the launched environment, and discards the connection. Connect to an external app closes only the connection. Close --all and daemon shutdown also reclaim owned resources. App exit invalidates the connection generation and refs. Startup/readiness failure or timeout cleans up owned processes, devices, and URIs; cleanup may continue past the request deadline. Per-process shutdown allows eight seconds for normal exit, three for TERM, and three for KILL; iOS device cleanup is bounded to 30 seconds. Unconfirmed shutdown is not success, and temporary storage remains. Shared devices and the adb server are untouched. Automatic recovery after SIGKILL or host shutdown is out of scope.
 
 Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares existing session operations and record --platform flutter. See the [headless guide](headless.md) for procedures and limitations.
+
+<a id="native-ui"></a>
+
+## Native device UI
+
+`native snapshot|tap|swipe|screenshot` requires `--platform ios|android` and an explicit `--device` on every invocation. iOS accepts Simulator UUIDs; Android accepts adb serials. A valid command can start and retain a native-only session without connect. Close/idle shutdown releases that session; it does not boot, terminate, or reset externally managed devices or idb companions. Native commands are excluded from batch and workflow v1. The MCP `native` profile exposes native_snapshot/native_tap/native_swipe/native_screenshot, with the normal prefix and typed platform/device fields.
+
+Snapshots return `source:native`, `platform`, `device`, `coordinateSpace`, `generation`, and `elements`. Element fields are type, text, identifier, value, package, enabled, bounds, and optional ref/reason. iOS uses idb's accessibility label/unique ID; Android text falls back to content-desc and identifier is the resource ID. Accessibility is incomplete: iOS system-hosted pickers may expose only an application root. An empty/root-only observation returns a limitation. Screenshots include the OS surface; the existing artifact writer owns PNG/JPEG, deadlines, exclusive creation, and directories. Native screenshot results retain source/platform/device/coordinateSpace alongside paths.
+
+Tap accepts exactly one `@nN` ref, exact text/identifier/type selector, or x/y pair. Native refs and Flutter `@eN` refs cannot be interchanged. A native snapshot replaces the session's previous native refs without expiring Flutter refs. Re-observation compares the full normalized element, including bounds; zero ref matches yields STALE_REF, zero selector matches TARGET_NOT_FOUND, multiple matches AMBIGUOUS_TARGET, disabled/invalid bounds UNRESOLVABLE_TARGET. Identical duplicate elements and application roots receive no refs. Tap injects one input at the observed rectangle's center; re-observation and injection are not atomic and do not establish a persistent OS identity. There is no implicit coordinate fallback.
+
+Explicit tap coordinates and swipe startX/startY/endX/endY are finite numbers from 0 to 10,000,000. Swipe endpoints differ. iOS coordinates are screen_points, Android screen_pixels, rounded to integer tool coordinates; swipe lasts 300ms. Explicit coordinate operations do not require an accessibility dump. The caller must inspect the current native screenshot and account for scale/orientation. Screenshot pixels must not be mistaken for iOS points.
+
+All native requests share session queue/deadline/policy/error contracts. Observation plus action is serialized per device within one daemon. Native tap/swipe use policy action `native`; reads do not require mutation approval. A native action invalidates same-device native refs across sessions and all Flutter refs in the daemon, since VM endpoints do not prove device identity. Flutter UI mutation invalidates native refs in its own session. Native reads preserve Flutter refs. A native screenshot on another device expires the session’s prior native refs. Output limiting removes undisclosed native refs without reusing their numbers; content boundaries mark native rows as untrusted. Pre-dispatch errors are not_sent; tool failure or timeout after dispatch is unknown. No UI action is automatically resent. Same-device use across runtimes or by external operators requires external serialization.
+
+Host tool output is bounded and diagnostics are discarded rather than echoing screen text. Missing idb/adb yields UNSUPPORTED_CAPABILITY, tool failure IO_ERROR, malformed observations BACKEND_ERROR. Every process gets an explicit target and the original deadline, and owned child processes are terminated on timeout. iOS observation/input require idb plus idb_companion; screenshots use simctl. Android uses adb uiautomator dump, input, and screencap. Physical iOS devices, arbitrary shell commands, blanket permission grants, native text entry, and stable native IDs are outside this contract. See the [native UI guide](https://r0227n.github.io/marionette_agent/en/guides/native-ui/) for setup and the Flutter/native observation loop.

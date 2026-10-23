@@ -56,11 +56,14 @@ Start with the [agent integration guide](https://r0227n.github.io/marionette_age
 | `actions` | dblclick, focus, hover, check, uncheck, scrollintoview, type, select, press, keydown, keyup, keyboard_press, keyboard_type, keyboard_inserttext, clipboard_read, clipboard_write, clipboard_copy, clipboard_paste, drag |
 | `workflow` | workflow_run, workflow_validate, workflow_schema, batch, confirm, deny |
 | `record` | record_start, record_restart, record_stop, record_status |
+| `native` | native_snapshot, native_tap, native_swipe, native_screenshot |
 | `all` | All of the above |
 
 `marionette_agent_tools_profiles` is always available. Find/diff/state/skills/install/upgrade are not exposed through MCP. `tools/list` returns up to 20 tools; pass its `nextCursor` as the next `cursor`. Omitted/null means the first page; invalid values or types return JSON-RPC `-32602`. Tools in disabled profiles cannot be called.
 
 Use each tool’s `inputSchema` as the input definition. A `target` contains exactly one of ref/key/identifier/text/type. Per-request `session`, `timeoutMs`, `maxOutput`, and `contentBoundaries` override startup settings. Connection, target resolution, policies, and ref expiration follow the CLI contract.
+
+Native tap targets instead accept exactly one native `@n` ref, text, identifier, or type; key and Flutter refs are invalid. Native calls require platform/device. The `native` action policy covers tap/swipe; read-only native tools are not mutation actions.
 
 CLI tools return `{exitCode,response}` in text and `structuredContent`, where response is the normal CLI envelope. Failures set `isError:true` and preserve code/outcome. Tools_profiles returns profile information directly. Inline screenshot images are limited to 16 MiB total; oversized or unreadable images yield saved paths and an omission reason.
 

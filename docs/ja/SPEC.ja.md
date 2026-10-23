@@ -53,6 +53,8 @@ Dart製CLIから、Marionette対応FlutterアプリをAI Agentが観測・操作
 
 stdio MCPサーバーを提供し、MCPクライアントからも既存CLIの操作体系を利用できる。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。MCPクライアント製品とHTTP transportの提供は対象外。
 
+native端末コマンドは、iOS SimulatorとAndroidの前面OS UIを観測・操作し、権限ダイアログや写真ピッカーにも対応する。VM接続は不要。[ネイティブ端末UI](#native-ui)を参照。
+
 <a id="terminology"></a>
 <a id="用語"></a>
 
@@ -143,6 +145,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
 | `close [--all]` | 録画があれば確定し、選択session（--allは全session）を切断・破棄。対象不在も成功。Flutterアプリは終了しない |
 | `snapshot` | 観測を更新し、要素一覧とrefを返す |
+| `native snapshot\|tap\|swipe\|screenshot --platform ios\|android --device <id>` | 明示端末のnative前面画面を観測・操作・撮影する。Flutter接続は不要 |
 | `get text <ref\|selector>` | 単一要素の観測textを返す |
 | `get box <ref\|selector>` | 単一要素のboundsをFlutter論理座標で返す |
 | `get count <selector>` | 完全一致する観測候補の件数を返す（ref不可） |
@@ -480,3 +483,19 @@ launchはdaemon自動起動対象で、session queueとaction policyを共有す
 closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
 
 testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作と録画は既存session/record --platform flutterを共用する。手順と制約は[日本語ガイド](headless.ja.md)を参照。
+
+<a id="native-ui"></a>
+
+## ネイティブ端末UI
+
+`native snapshot|tap|swipe|screenshot`は、毎回`--platform ios|android`と明示的な`--device`を必須とする。iOSはSimulatorのUUID、Androidはadbのserialを受け付ける。正しい要求はconnectなしでもnative専用sessionを起動・保持できる。close/idle終了でsessionを解放するが、外部管理の端末やidb companionの起動・終了・resetは行わない。batch・workflow v1には含めない。MCPの`native` profileは通常のprefixと型付きplatform/device fieldでnative_snapshot/native_tap/native_swipe/native_screenshotを公開する。
+
+snapshotは`source:native`、`platform`、`device`、`coordinateSpace`、`generation`、`elements`を返す。要素はtype、text、identifier、value、package、enabled、boundsとref/reasonを持つ。iOSはidbのaccessibility label/unique IDを使用し、Androidのtextは空ならcontent-desc、identifierはresource IDとする。アクセシビリティは完全ではなく、iOSのOS側ピッカーではアプリrootしか取得できない場合がある。空/rootのみの観測ではlimitationを返す。screenshotはOS画面を含み、PNG/JPEG・期限・上書き防止・保存先は既存artifact writerが所有する。native screenshotの結果はpathsとともにsource/platform/device/coordinateSpaceを保持する。
+
+tapは`@nN` ref、完全一致のtext/identifier/type selector、x/yのいずれか1つを受け付ける。native refとFlutterの`@eN`は相互利用できない。native snapshotはsession内の前回native refを置換し、Flutter refは保持する。操作直前の再観測ではboundsを含む正規化要素全体を比較し、refが0件ならSTALE_REF、selectorが0件ならTARGET_NOT_FOUND、複数ならAMBIGUOUS_TARGET、無効化/不正boundsならUNRESOLVABLE_TARGETとする。同一内容の重複要素とアプリrootにはrefを発行しない。観測した矩形の中心へ入力を1回送る。再観測と入力はatomicではなく、OS上の永続的な同一性を保証しない。座標への暗黙fallbackは行わない。
+
+明示tap座標とswipeのstartX/startY/endX/endYは0〜10,000,000の有限数。swipeの始終点は異なること。iOSはscreen_points、Androidはscreen_pixelsで、platformツールの整数座標へ丸め、swipeは300msとする。明示座標操作ではアクセシビリティdumpを必須にしない。呼出側が現在のnative screenshotを確認し、scale/orientationを考慮する。撮影画像のpixelをiOSのpointと混同しない。
+
+native要求はsession queue・期限・policy・エラー契約を共有し、同じdaemon内の同じ端末では観測から操作まで直列化する。tap/swipeのpolicy actionは`native`、読み取りには変更操作の承認を要しない。native操作は同じ端末のnative refをsession横断で失効させ、VM endpointから端末の同一性を証明できないためdaemon内の全Flutter refも失効させる。Flutter UI操作は自sessionのnative refを失効させる。native読み取りはFlutter refを保持する。別端末のnative screenshotを撮ると、同じsessionの旧native refは失効する。出力上限で未公開になったnative refを削除し、番号を再利用しない。content boundariesでnative行も未信頼と示す。送信前の失敗はnot_sent、送信後のツール失敗・timeoutはunknownとし、UI操作を自動再送しない。別runtimeや外部担当との端末利用は別途直列化が必要。
+
+hostツール出力には上限を設け、診断出力は画面文言をechoせず破棄する。idb/adb不足はUNSUPPORTED_CAPABILITY、ツール失敗はIO_ERROR、不正観測はBACKEND_ERROR。全プロセスに明示対象と元の期限を渡し、timeoutでは所有する子プロセスを終了する。iOSの観測・入力はidbとidb_companion、撮影はsimctlを使う。Androidはadb経由のuiautomator dump・input・screencapを使う。iOS実機・任意shell実行・一括権限付与・native文字入力・永続native IDは契約外。準備とFlutter/nativeの観測ループは[ネイティブUIガイド](https://r0227n.github.io/marionette_agent/ja/guides/native-ui/)を参照。

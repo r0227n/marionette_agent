@@ -46,6 +46,19 @@ Successful get and is queries read observations without issuing new refs. Do not
 
 Directions are `left`, `right`, `up`, and `down`, describing **finger movement**. Verify the resulting content position or page in a subsequent snapshot.
 
+## Native device UI
+
+All commands below require `--platform ios|android --device ID`. No Flutter VM connection is required. See the [native UI guide](/marionette_agent/en/guides/native-ui/) for setup, coordinate units, and the photo-picker workflow.
+
+| Syntax                                                       | Behavior                                        |
+| ------------------------------------------------------------ | ----------------------------------------------- |
+| `native snapshot`                                            | Observe OS accessibility and issue `@n` refs    |
+| `native tap REF`                                             | Reobserve, validate, and tap one native element |
+| `native tap --text TEXT`                                     | Exact text; identifier/type are alternatives    |
+| `native tap --x X --y Y`                                     | Explicit device-screen coordinates              |
+| `native swipe --start-x X --start-y Y --end-x X2 --end-y Y2` | One 300ms finger gesture                        |
+| `native screenshot [PATH]`                                   | Capture the whole device, including OS overlays |
+
 ## Additional interactions
 
 Most of these operations need a compatible app-side provider; dblclick and press can use binding APIs directly. Try supported interactions on the example app’s Advanced screen.

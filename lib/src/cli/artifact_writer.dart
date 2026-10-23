@@ -216,6 +216,12 @@ Future<Json> saveScreenshots(
     checkDeadline();
     return {
       'paths': paths,
+      if (data['source'] == 'native') ...{
+        'source': 'native',
+        'platform': data['platform'],
+        'device': data['device'],
+        'coordinateSpace': data['coordinateSpace'],
+      },
       if (data.containsKey('crop')) 'cropped': true,
       if (annotated != null) ...{
         'annotated': true,
