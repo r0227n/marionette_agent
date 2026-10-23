@@ -101,6 +101,7 @@ class DaemonClient {
             request.command == 'record' &&
             ['start', 'restart'].contains(request.params['action']);
         if (request.command != 'connect' &&
+            request.command != 'native' &&
             request.command != 'launch' &&
             !startsRecording) {
           if (request.command == 'record' &&

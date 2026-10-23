@@ -31,9 +31,13 @@ class Session {
   final actionPolicy = SessionActionPolicy();
   // Set by SnapshotService; lifecycle owns invalidation, not command handlers.
   Object? observation;
+  String? nativeTarget;
+  bool nativeActive = false;
+  Object? nativeObservation;
   Future<void>? _disposal;
   void invalidate() {
     observation = null;
+    nativeObservation = null;
   }
 
   // Only active executions register here; completed requests retain no listener.
@@ -115,6 +119,15 @@ class Execution {
     bool invalidate = true,
   }) async {
     requireConnected();
+    await mutateExternal(() => call(session.backend!), invalidate: invalidate);
+  }
+
+  /// Platform operations use the same dispatch guard without requiring a VM.
+  Future<void> mutateExternal(
+    Future<void> Function() call, {
+    bool invalidate = true,
+  }) async {
+    check();
     if (sent) {
       throw const AgentError(
         'INTERNAL_ERROR',
@@ -123,7 +136,7 @@ class Execution {
     }
     if (invalidate) session.invalidate();
     sent = true;
-    await call(session.backend!);
+    await call();
     check();
   }
 

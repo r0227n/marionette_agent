@@ -16,6 +16,7 @@ import 'is_visible.dart';
 import 'keyboard.dart';
 import 'launch.dart';
 import 'mcp.dart';
+import 'native.dart';
 import 'observations.dart';
 import 'record.dart';
 import 'skills.dart';
@@ -26,6 +27,7 @@ import 'workflow.dart';
 
 Map<String, CliCommand> builtInCommands() => {
   'mcp': mcpCommand(),
+  'native': nativeCommand(),
   'skills': skillsCommand(),
   'device': CliCommand(
     ArgParser()..addCommand(

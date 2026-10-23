@@ -3,7 +3,15 @@ import 'package:dart_mcp/server.dart';
 import '../cli/common_options.dart';
 import '../protocol/protocol.dart' show invalid;
 
-const mcpProfiles = ['core', 'inspect', 'actions', 'workflow', 'record', 'all'];
+const mcpProfiles = [
+  'core',
+  'inspect',
+  'actions',
+  'workflow',
+  'record',
+  'native',
+  'all',
+];
 
 List<String> parseMcpProfiles(String value) {
   final profiles = value.split(',').map((part) => part.trim()).toSet();
@@ -44,6 +52,7 @@ class McpToolDefinition {
     this.options = const {},
     this.positionals = const [],
     this.target = false,
+    this.targetSchema,
   });
 
   final String name, description, profile;
@@ -51,6 +60,8 @@ class McpToolDefinition {
   final Map<String, Schema> properties;
   final Map<String, String> options;
   final bool readOnly, openWorld, target;
+  final Schema? targetSchema;
+  bool get capturesScreenshot => command.last == 'screenshot';
 
   String get toolName => 'marionette_agent_$name';
 
@@ -67,7 +78,7 @@ class McpToolDefinition {
         'timeoutMs': _positive,
         'maxOutput': _positive,
         'contentBoundaries': _boolean,
-        if (target) 'target': _target,
+        if (target) 'target': targetSchema ?? _target,
         ...properties,
       },
       required: required,
@@ -106,7 +117,7 @@ class McpToolDefinition {
         '--max-output=$limit',
       if (defaults.idleTimeoutMs != null)
         '--idle-timeout=${defaults.idleTimeoutMs}',
-      if (command.first == 'screenshot') ...[
+      if (capturesScreenshot) ...[
         '--screenshot-format=$format',
         if (format == 'jpeg')
           '--screenshot-quality=${input['quality'] ?? defaults.screenshotQuality}',
@@ -140,6 +151,61 @@ class McpToolDefinition {
 }
 
 List<McpToolDefinition> mcpToolCatalog() => [
+  for (final action in ['snapshot', 'tap', 'swipe', 'screenshot'])
+    McpToolDefinition(
+      'native_$action',
+      'Native device $action (permission dialogs and photo pickers). '
+          'No Flutter VM required. iOS requires idb; Android requires adb. '
+          'Use native snapshot refs; after an action observe again, never automatically retry. '
+          'Coordinates are iOS screen points or Android screen pixels.',
+      ['native', action],
+      profile: 'native',
+      readOnly: ['snapshot', 'screenshot'].contains(action),
+      target: action == 'tap',
+      targetSchema: Schema.object(
+        properties: {
+          'ref': Schema.string(pattern: r'^@n[1-9][0-9]*$'),
+          for (final key in ['text', 'identifier', 'type']) key: _string,
+        },
+        minProperties: 1,
+        maxProperties: 1,
+        additionalProperties: false,
+      ),
+      properties: {
+        'platform': _enum(['ios', 'android']),
+        'device': _string,
+        if (action == 'tap') ...{
+          'x': Schema.num(minimum: 0),
+          'y': Schema.num(minimum: 0),
+        },
+        if (action == 'swipe')
+          for (final key in ['startX', 'startY', 'endX', 'endY'])
+            key: Schema.num(minimum: 0),
+        if (action == 'screenshot') ...{
+          'path': _string,
+          'format': _enum(['png', 'jpeg']),
+          'quality': Schema.int(minimum: 0, maximum: 100),
+        },
+      },
+      required: [
+        'platform',
+        'device',
+        if (action == 'swipe') ...['startX', 'startY', 'endX', 'endY'],
+      ],
+      options: {
+        'platform': 'platform',
+        'device': 'device',
+        if (action == 'tap') 'x': 'x',
+        if (action == 'tap') 'y': 'y',
+        if (action == 'swipe') ...{
+          'startX': 'start-x',
+          'startY': 'start-y',
+          'endX': 'end-x',
+          'endY': 'end-y',
+        },
+      },
+      positionals: [if (action == 'screenshot') 'path'],
+    ),
   McpToolDefinition(
     'connect',
     'Connect to a Marionette Flutter VM Service URI. '

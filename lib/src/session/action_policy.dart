@@ -10,6 +10,7 @@ import '../workflow/model.dart';
 
 const policyActions = {
   'tap',
+  'native',
   'click',
   'fill',
   'swipe',
@@ -73,6 +74,10 @@ String _decision(Json policy, String action) {
 }
 
 Set<String> _actions(String command, Json params) {
+  if (command == 'native' &&
+      ['snapshot', 'screenshot'].contains(params['action'])) {
+    return {};
+  }
   if (command == 'find') {
     validateFind(params);
     return _actions((params['action'] ?? 'show') as String, params);

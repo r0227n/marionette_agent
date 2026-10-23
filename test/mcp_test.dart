@@ -14,11 +14,13 @@ import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/mcp/catalog.dart';
 import 'package:marionette_agent/src/mcp/executor.dart';
+import 'package:marionette_agent/src/platform/native/native_service.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart' as agent;
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/native_backend.dart';
 
 void main() {
   final cli = File('bin/marionette_agent.dart').absolute.path;
@@ -95,6 +97,27 @@ void main() {
         'deviceType': 'com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro',
         'runtime': 'com.apple.CoreSimulator.SimRuntime.iOS-26-2',
       },
+      'native_snapshot': {'platform': 'android', 'device': 'emulator-5554'},
+      'native_tap': {
+        'platform': 'android',
+        'device': 'emulator-5554',
+        'target': {'ref': '@n1'},
+      },
+      'native_swipe': {
+        'platform': 'android',
+        'device': 'emulator-5554',
+        'startX': 10,
+        'startY': 100,
+        'endX': 10,
+        'endY': 200,
+      },
+      'native_screenshot': {
+        'platform': 'android',
+        'device': 'emulator-5554',
+        'path': 'native.jpg',
+        'format': 'jpeg',
+        'quality': 80,
+      },
       'swipe': {'startX': 20, 'startY': 50, 'endX': 200, 'endY': 50},
       'wait': {
         'target': {'text': 'done'},
@@ -150,6 +173,7 @@ void main() {
     late MCPClient client;
     late ServerConnection server;
     late _InputBackend backend;
+    late FakeNativeBackend native;
     late List<int> png;
 
     Future<CallToolResult> call(
@@ -164,6 +188,8 @@ void main() {
     setUp(() async {
       temp = await Directory('/tmp').createTemp('mcp-test-');
       png = image.encodePng(image.Image(width: 3, height: 2));
+      native = FakeNativeBackend()
+        ..png = image.encodePng(image.Image(width: 3, height: 2));
       backend = _InputBackend()
         ..elements = [
           ElementInfo(key: 'button', type: 'Button', visible: true),
@@ -177,7 +203,11 @@ void main() {
       );
       daemon = DaemonServer(
         runtime,
-        SessionManager(() => backend, coreCommands()),
+        SessionManager(
+          () => backend,
+          coreCommands(),
+          native: NativeService(backends: {'android': native}),
+        ),
       );
       serving = daemon.run();
       while (!File(runtime.metadata).existsSync()) {
@@ -339,6 +369,36 @@ void main() {
           (await call('screenshot', {'path': '${temp.path}/shot.png'})).isError,
           true,
         );
+        expect((await call('close')).isError, false);
+      },
+      timeout: const Timeout(Duration(minutes: 2)),
+    );
+
+    test(
+      'native tools operate without VM and return inline screenshot content',
+      () async {
+        const targetDevice = {'platform': 'android', 'device': 'emulator-5554'};
+        final snapshot = await call('native_snapshot', targetDevice);
+        expect(snapshot.isError, false);
+        final ref = response(snapshot)['data']['elements'][0]['ref'];
+        final tapArgs = {
+          ...targetDevice,
+          'target': {'ref': ref},
+        };
+        expect((await call('native_tap', tapArgs)).isError, false);
+        expect(native.taps, [(60.0, 40.0)]);
+        final stale = await call('native_tap', tapArgs);
+        expect(response(stale)['error']['code'], 'STALE_REF');
+        expect(native.taps, hasLength(1));
+        final shot = await call('native_screenshot', {
+          ...targetDevice,
+          'path': '${temp.path}/native.png',
+        });
+        expect(shot.isError, false);
+        expect(response(shot)['data']['source'], 'native');
+        expect((shot.content.last as Map)['mimeType'], 'image/png');
+        expect(base64Decode((shot.content.last as Map)['data'] as String), png);
+        expect(backend.calls, isEmpty);
         expect((await call('close')).isError, false);
       },
       timeout: const Timeout(Duration(minutes: 2)),

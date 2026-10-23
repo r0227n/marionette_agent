@@ -132,12 +132,18 @@ String render(
     final source = field == 'elements' ? 'snapshot' : 'logs';
     final filter = data['filter'] as Map?;
     return [
-      field == 'elements' ? 'Snapshot ${data['generation']}' : 'Logs',
+      field == 'elements'
+          ? data['source'] == 'native'
+                ? 'Native snapshot ${data['generation']} (${data['platform']}, ${data['device']}; ${data['coordinateSpace']})'
+                : 'Snapshot ${data['generation']}'
+          : 'Logs',
       if (filter != null)
         'Filter: ${filter['kind']}=${jsonEncode(filter['value'])}; matchedCount: ${filter['matchedCount']}; totalCount: ${filter['totalCount']}',
       if (field == 'entries' && data['configured'] != null)
         'Configured: ${data['configured']}',
       if (field == 'entries' && data['limitation'] != null)
+        '${data['limitation']}',
+      if (data['source'] == 'native' && data['limitation'] != null)
         '${data['limitation']}',
       if (boundary != null)
         '--- BEGIN UNTRUSTED $source ${boundary['nonce']} ---',
