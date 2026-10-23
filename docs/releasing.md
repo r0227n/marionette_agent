@@ -6,14 +6,15 @@
 
 Released versions use immutable Git tags and GitHub Releases with source archives.
 For 1.0.0, select `v1.0.0`, resolve the committed lockfile, and compile locally.
-Keep `publish_to: none` in CLI/util/example; global Pub activation and pub.dev
+Keep `publish_to: none` in CLI/platform/example; global Pub activation and pub.dev
 publication are not supported. Development installations may select a reviewed
 `develop` commit and must record that SHA instead of assuming release behavior.
 
-The installer distributes the native executable and its matching sibling
-`.marionette-agent-*` directory with Skills and LICENSE/NOTICE/THIRD_PARTY_NOTICES.
+The installer distributes an executable launcher and its matching sibling
+`.marionette-agent-*` directory. That directory contains `bundle/bin/` (CLI),
+`bundle/lib/` (FFmpegKit native assets), Skills, and LICENSE/NOTICE/THIRD_PARTY_NOTICES.
 Retain all of these when moving or redistributing a binary. Upgrades preserve old
-bundles; remove only those no installed executable uses. App-side util is consumed
+bundles; remove only those no installed executable uses. App-side Flutter helpers is consumed
 from the same checkout. No prebuilt multi-platform assets are promised.
 
 ## Licensing audit
@@ -23,7 +24,7 @@ Original project code/docs use Apache-2.0, following
 (blob `261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`, checked 2026-10-01).
 NOTICE names this project's contributors without appropriating upstream ownership.
 The dependency files remain verbatim in THIRD_PARTY_NOTICES.txt. The generator
-walks **production** dependencies of CLI/util/example, including app-side Flutter/engine
+walks **production** dependencies of CLI/platform/example, including app-side Flutter/engine
 notices and the Dart runtime. It fails on missing licenses; `--check` rejects
 stale notices. It deliberately overincludes the declared closure instead of
 claiming every package is linked into the AOT executable.
@@ -56,7 +57,9 @@ Install the `.mise.toml` pin of Lefthook (2.2.1) with mise and install ffmpeg
 [Contributing](../CONTRIBUTING.md). The hook fails when either
 encoder tool is missing, so real MP4 tests cannot silently skip. Prepare these
 tools locally; release automation assumes the local gate passed and does not
-install or run Lefthook. The tools are not included in release assets.
+install or run Lefthook. These external tools independently validate recordings and are not included in
+release assets. Runtime encoding uses the FFmpegKit native library bundled with
+each installation.
 
 `mise exec -- lefthook run pre-commit --all-files` runs all workspace gates below through
 `tool/quality.sh`; website verification remains separate. Ordinary commits select
@@ -73,12 +76,17 @@ tests with `python3 tool/test_quality_hooks.py`.
 
 ```sh
 flutter pub get --enforce-lockfile
-dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test
+dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages example/lib example/test
 dart analyze
 dart run tool/check_release.dart
 dart run tool/license_notices.dart --check
 dart test --concurrency=1 --timeout=2m
-(cd packages/marionette_agent_util && dart test --concurrency=1 && flutter test flutter_test)
+for package in platform_interface ios android macos web flutter; do
+  if [ -d "packages/marionette_agent_$package/test" ]; then
+    (cd "packages/marionette_agent_$package" && dart test --concurrency=1)
+  fi
+done
+(cd packages/marionette_agent_flutter && flutter test flutter_test)
 (cd example && flutter test)
 dart run integration_test/release_smoke.dart
 (cd website && bun install --frozen-lockfile && bun run verify)
@@ -104,7 +112,7 @@ Simulator resources before native acceptance checks.
       against posting secrets, personal information, tokens, or abuse-enabling
       details. GitHub private reporting was disabled at the 2026-10-01 read-only
       check; no private route or setting change is promised.
-- [ ] CLI/util pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.0.
+- [ ] CLI/platform pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.0.
 - [ ] Installation examples use `v1.0.0`; verify the tag after publishing.
 - [ ] Keep the site as development documentation published from `develop`; stable
       installation instructions select the release tag. The banner SHA is the

@@ -18,7 +18,7 @@ chmod 700 "$MRA_HEADLESS_ROOT"
 flutter pub get
 ```
 
-Store authenticated URIs and logs in this private directory. Parallel runs need separate runtimes, sessions, devices, and output paths without concurrent builds in the same checkout. Flutter recording requires ffmpeg (PNG/libx264/concat/setts), space for temporary PNGs, and conversion time at stop. Keep the host awake.
+Store authenticated URIs and logs in this private directory. Parallel runs need separate runtimes, sessions, devices, and output paths without concurrent builds in the same checkout. Flutter recording uses the CLI’s bundled FFmpegKit (PNG/VideoToolbox/concat/setts) and requires space for temporary PNGs and conversion time at stop. Keep the host awake.
 
 <a id="ios"></a>
 

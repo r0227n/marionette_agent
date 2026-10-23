@@ -1,14 +1,14 @@
 # Contributing
 
 Open an [issue](https://github.com/r0227n/marionette_agent/issues) with a minimal
-reproduction, CLI/util versions, Flutter/Dart versions, macOS version, and target
+reproduction, CLI/platform versions, Flutter/Dart versions, macOS version, and target
 runtime. Redact credentials and personal data. Security reports follow
 [SECURITY.md](SECURITY.md).
 
 Read [AGENTS.md](AGENTS.md), [SPEC](docs/SPEC.md), and
 [architecture](docs/ARCHITECTURE.md) before changing code. Base PRs on `develop`;
 follow the repository's branch/worktree rules and keep changes focused. The root Pub
-workspace resolves CLI, util, and example together.
+workspace resolves CLI, platform packages, and example together.
 
 Use [mise](https://mise.jdx.dev/) to manage [Lefthook](https://lefthook.dev/).
 Run `mise install` at the repository root to install the pinned versions in
@@ -35,7 +35,7 @@ coverage, not evidence of native platform behavior.
 Update paired English/Japanese pages and supplements in the same change; use
 [documentation policy](docs/documentation.md) and [website checks](website/README.md).
 Do not edit externally managed skills or remove their lock entries. Dependency
-changes must refresh and review third-party notices. Public CLI/util contracts
+changes must refresh and review third-party notices. Public CLI/platform contracts
 follow the [1.x compatibility policy](website/src/content/docs/en/reference/compatibility.md).
 
 Contributions to original project material are accepted under Apache-2.0;

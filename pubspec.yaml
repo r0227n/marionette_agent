@@ -8,12 +8,27 @@ environment:
   sdk: ^3.13.2
 
 workspace:
-  - packages/marionette_agent_util
+  - packages/marionette_agent_platform_interface
+  - packages/marionette_agent_ios
+  - packages/marionette_agent_android
+  - packages/marionette_agent_macos
+  - packages/marionette_agent_web
+  - packages/marionette_agent_flutter
   - example
 
 dependencies:
-  marionette_agent_util:
-    path: packages/marionette_agent_util
+  marionette_agent_platform_interface:
+    path: packages/marionette_agent_platform_interface
+  marionette_agent_ios:
+    path: packages/marionette_agent_ios
+  marionette_agent_android:
+    path: packages/marionette_agent_android
+  marionette_agent_macos:
+    path: packages/marionette_agent_macos
+  marionette_agent_web:
+    path: packages/marionette_agent_web
+  marionette_agent_flutter:
+    path: packages/marionette_agent_flutter
   # PNG/JPEG codec internal APIs are isolated in artifact_writer.dart.
   image: 4.9.1
   yaml: 3.1.4
@@ -32,3 +47,10 @@ dev_dependencies:
 
 executables:
   marionette-agent: marionette_agent
+
+hooks:
+  user_defines:
+    ffmpeg_kit_extended_flutter:
+      type: video
+      gpl: false
+      small: true

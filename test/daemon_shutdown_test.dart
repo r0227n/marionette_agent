@@ -7,7 +7,7 @@ import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/recording/record_service.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
-import 'package:marionette_agent_util/marionette_agent_util.dart';
+import 'package:marionette_agent/src/platform/platform_services.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';

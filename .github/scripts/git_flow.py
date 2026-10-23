@@ -9,7 +9,13 @@ from pathlib import Path
 from urllib.parse import quote
 
 VERSION = r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
-SPECS = ('pubspec.yaml', 'packages/marionette_agent_util/pubspec.yaml',
+SPECS = ('pubspec.yaml',
+         'packages/marionette_agent_platform_interface/pubspec.yaml',
+         'packages/marionette_agent_ios/pubspec.yaml',
+         'packages/marionette_agent_android/pubspec.yaml',
+         'packages/marionette_agent_macos/pubspec.yaml',
+         'packages/marionette_agent_web/pubspec.yaml',
+         'packages/marionette_agent_flutter/pubspec.yaml',
          'example/pubspec.yaml')
 
 

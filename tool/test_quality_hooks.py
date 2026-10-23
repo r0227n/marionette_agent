@@ -57,7 +57,13 @@ class QualityHooks(unittest.TestCase):
         self.git('config', 'commit.gpgsign', 'false')
         for name in ('lefthook.yml', '.mise.toml', 'tool/quality.sh'):
             self.write(name, (SOURCE / name).read_text())
-        for directory in ('lib', 'packages/marionette_agent_util', 'example'):
+        for directory in ('lib', 'example',
+                          'packages/marionette_agent_platform_interface/test',
+                          'packages/marionette_agent_ios/test',
+                          'packages/marionette_agent_android',
+                          'packages/marionette_agent_macos',
+                          'packages/marionette_agent_web',
+                          'packages/marionette_agent_flutter/test'):
             self.write(f'{directory}/fixture.dart', 'void main() {}\n')
         self.git('add', '.')
         self.git('commit', '-qm', 'fixture')
@@ -163,6 +169,23 @@ class QualityHooks(unittest.TestCase):
         self.run_process([LEFTHOOK, 'run', 'pre-commit', '--all-files'])
         self.assertEqual(self.calls()[-1],
                          ['dart', ['run', 'integration_test/release_smoke.dart']])
+
+    def test_platform_tests_run_only_in_packages_with_tests(self):
+        self.stage('lib/fixture.dart', '// changed\n')
+        self.run_process([LEFTHOOK, 'run', 'pre-commit'])
+        rows = [json.loads(line) for line in self.log.read_text().splitlines()]
+        tested = [Path(cwd).resolve().relative_to(self.root.resolve()).as_posix()
+                  for name, args, cwd in rows
+                  if name == 'dart' and args == ['test', '--concurrency=1']]
+        self.assertEqual(tested, [
+            'packages/marionette_agent_platform_interface',
+            'packages/marionette_agent_ios',
+            'packages/marionette_agent_flutter',
+        ])
+        provider = [Path(cwd).resolve().relative_to(self.root.resolve()).as_posix()
+                    for name, args, cwd in rows
+                    if name == 'flutter' and args == ['test', 'flutter_test']]
+        self.assertEqual(provider, ['packages/marionette_agent_flutter'])
 
     def test_missing_encoder_blocks_commit_instead_of_skipping_tests(self):
         self.env['PATH'] = f'{self.bin}:/usr/bin:/bin'

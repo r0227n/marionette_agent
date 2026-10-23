@@ -28,7 +28,7 @@ Annotations require a current valid snapshot and a mapped screenshot provider. T
 
 ## Record the Flutter rendering
 
-Prepare a connected session and ffmpeg. The same command works for Flutter rendering in headless environments.
+Prepare a connected session and a complete CLI installation with its bundled native libraries. The same command works for Flutter rendering in headless environments.
 
 ```sh
 marionette-agent record start artifacts/interaction.mp4 --platform flutter

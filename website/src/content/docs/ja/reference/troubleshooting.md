@@ -51,7 +51,7 @@ probeは独立した接続で確認し、通常sessionのrefは変更しませ�
 
 - 保存先の親ディレクトリと書込権限を確認し、既存ファイルと重ならない名前にする。
 - `.jpg`を使う場合は`--screenshot-format jpeg`も明示する。
-- Flutter描画の録画は接続済みsessionとffmpegを用意する。
+- Flutter描画の録画は接続済みsessionとCLI同梱のネイティブライブラリを用意する。
 - 端末画面の録画は正しいUDID・serial・display番号を使い、必要な画面収録許可を確認する。
 - stopやcloseの期限に余裕を持たせ、動画確定中のprocessを途中で終了しない。
 

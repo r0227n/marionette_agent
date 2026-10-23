@@ -49,6 +49,9 @@ Future<List<Directory>> findSkillsDirectories({
 
   final parent = p.dirname(exe);
   final adjacent = p.dirname(parent);
+  if (File(p.join(adjacent, '.marionette-agent-bundle')).existsSync()) {
+    return at(adjacent);
+  }
   final root = Directory(p.join(adjacent, 'skills')).existsSync()
       ? adjacent
       : rootFrom(parent);

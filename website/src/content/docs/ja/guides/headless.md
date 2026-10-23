@@ -27,7 +27,7 @@ CLIの[インストール](/marionette_agent/ja/getting-started/installation/)�
 flutter pub get
 ```
 
-`launch`は`--no-pub`でビルドします。初回buildと端末bootも含めてtimeoutを長く指定してください。録画にはPATH上のffmpegと、一時PNG・動画用の空き容量も必要です。
+`launch`は`--no-pub`でビルドします。初回buildと端末bootも含めてtimeoutを長く指定してください。録画は同梱FFmpegKitを使い、一時PNG・動画用の空き容量が必要です。システムへのffmpeg導入は不要です。
 
 ## testerで操作を確認する
 
@@ -125,12 +125,12 @@ closeは録画を確定してから、そのsessionが所有するアプリ・�
 
 ## うまく動かないとき
 
-| 状況                               | 確認すること                                                                           |
-| ---------------------------------- | -------------------------------------------------------------------------------------- |
-| SESSION_CONFLICT                   | 同じsession/project/Android portを別の起動が使用していないか。前のsessionをcloseしたか |
-| 起動時TIMEOUT                      | 初回build・bootに十分な期限か。session showで回収後の状態を確認する                    |
-| UNSUPPORTED_CAPABILITY             | SDK実行ファイル・Chrome・ffmpegと、必要なアプリ側capabilityがあるか                    |
-| macOSの画像が変わらない            | native window処理とDart描画維持の両方を実装したか                                      |
-| iOSのwindowが表示される            | 専用device setを使っているか。手動でSimulator.appに開いていないか                      |
-| 録画が低fps・停止する              | PNG取得時間、空き容量、host sleep、寸法変更、接続断を確認する                          |
-| screenshotやrecordの保存に失敗する | 親directoryが存在し、出力pathが新しいか                                                |
+| 状況                               | 確認すること                                                                               |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| SESSION_CONFLICT                   | 同じsession/project/Android portを別の起動が使用していないか。前のsessionをcloseしたか     |
+| 起動時TIMEOUT                      | 初回build・bootに十分な期限か。session showで回収後の状態を確認する                        |
+| UNSUPPORTED_CAPABILITY             | SDK実行ファイル・Chrome・CLIのネイティブライブラリ一式と、必要なアプリ側capabilityがあるか |
+| macOSの画像が変わらない            | native window処理とDart描画維持の両方を実装したか                                          |
+| iOSのwindowが表示される            | 専用device setを使っているか。手動でSimulator.appに開いていないか                          |
+| 録画が低fps・停止する              | PNG取得時間、空き容量、host sleep、寸法変更、接続断を確認する                              |
+| screenshotやrecordの保存に失敗する | 親directoryが存在し、出力pathが新しいか                                                    |

@@ -4,13 +4,13 @@
 
 ## 現在の配布と対象
 
-公開版は固定Gitタグと、ソースarchiveを持つGitHub Releaseから導入します。1.0.0は`v1.0.0`を指定し、commit済みlockfileを解決して手元でコンパイルします。CLI/util/exampleの`publish_to: none`を維持し、Pub global activationとpub.dev公開は対象外です。開発版はレビュー済みdevelop commitを指定でき、そのSHAを記録し、リリース版と同じ動作を前提にしません。
+公開版は固定Gitタグと、ソースarchiveを持つGitHub Releaseから導入します。1.0.0は`v1.0.0`を指定し、commit済みlockfileを解決して手元でコンパイルします。CLI/platform/exampleの`publish_to: none`を維持し、Pub global activationとpub.dev公開は対象外です。開発版はレビュー済みdevelop commitを指定でき、そのSHAを記録し、リリース版と同じ動作を前提にしません。
 
-installerの配布物は実行ファイルと、対応する隣接`.marionette-agent-*`ディレクトリです。SkillsとLICENSE/NOTICE/THIRD_PARTY_NOTICESを含め、移設・再配布でも保持します。upgradeは旧bundleを残すので、実行ファイルが参照しなくなったものだけ削除してください。アプリ側utilも同じcheckoutを使います。複数platformのビルド済み配布物は約束しません。
+installerの配布物は実行用launcherと、対応する隣接`.marionette-agent-*`ディレクトリです。ディレクトリ内の`bundle/bin/`にCLI本体、`bundle/lib/`にFFmpegKit native assetsを置き、SkillsとLICENSE/NOTICE/THIRD_PARTY_NOTICESも含めて移設・再配布時に保持します。upgradeは旧bundleを残すので、実行ファイルが参照しなくなったものだけ削除してください。アプリ側Flutter補助も同じcheckoutを使います。複数platformのビルド済み配布物は約束しません。
 
 ## ライセンス確認
 
-本プロジェクトのコードと文書は[leancodepl/marionette_mcpのLICENSE](https://github.com/leancodepl/marionette_mcp/blob/main/LICENSE)を参考にApache-2.0としました。2026-10-01確認のblobは`261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`です。NOTICEには本プロジェクトの寄稿者を記載し、上流の権利を取り込みません。THIRD_PARTY_NOTICES.txtに依存の原文を保持します。generatorはCLI/util/exampleのproduction依存をたどり、アプリ側Flutter/engineとDart runtimeも含めます。ライセンス不足で失敗し、`--check`は更新漏れを検出します。宣言した依存全体を広めに含め、全てがAOTに組み込まれるとは主張しません。
+本プロジェクトのコードと文書は[leancodepl/marionette_mcpのLICENSE](https://github.com/leancodepl/marionette_mcp/blob/main/LICENSE)を参考にApache-2.0としました。2026-10-01確認のblobは`261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`です。NOTICEには本プロジェクトの寄稿者を記載し、上流の権利を取り込みません。THIRD_PARTY_NOTICES.txtに依存の原文を保持します。generatorはCLI/platform/exampleのproduction依存をたどり、アプリ側Flutter/engineとDart runtimeも含めます。ライセンス不足で失敗し、`--check`は更新漏れを検出します。宣言した依存全体を広めに含め、全てがAOTに組み込まれるとは主張しません。
 
 MarionetteはApache-2.0、image/archiveはMIT、Dart/Flutterの各packageはBSD等です。元の表示を保持してください。Flutter 3.47.2でcommit済みlockfileを解決して生成します。依存・SDK変更時は同梱素材やpackage内の入れ子の第三者表示も再確認します。生成結果は法的適合性の自動判定ではありません。
 
@@ -20,18 +20,23 @@ skills-lock.jsonの外部開発skillは[mattpocock/skills](https://github.com/ma
 
 macOS、Flutter 3.47.2、Dart 3.13.2を基準に、ルートから以下を実行します。子directory指定は括弧内です。processを多用するtestの競合を避けて直列実行します。CLI test runnerの`--timeout=2m`はhosted macOSでの子processのcold JIT起動を含む待機枠です。製品のdeadlineとtestで明示したtimeoutは引き続き適用されます。tester smokeはnative appをビルドせず、Simulatorも起動しません。
 
-この検証の前にmiseで`.mise.toml`に固定したLefthook 2.2.1を導入し、ffmpeg（ffprobeを含む）は別途導入して、[Contributing](../../CONTRIBUTING.md)の手順でhookを有効化してください。どちらかのencoder toolがない場合はhookを失敗させ、実MP4テストのskipを防ぎます。これらのtoolはローカルに用意してください。リリース自動化はローカル検証済みを前提とし、Lefthookの導入・実行は行いません。Releaseの配布物にも含めません。
+この検証の前にmiseで`.mise.toml`に固定したLefthook 2.2.1を導入し、ffmpeg（ffprobeを含む）は別途導入して、[Contributing](../../CONTRIBUTING.md)の手順でhookを有効化してください。どちらかのencoder toolがない場合はhookを失敗させ、実MP4テストのskipを防ぎます。これらのtoolはローカルに用意してください。リリース自動化はローカル検証済みを前提とし、Lefthookの導入・実行は行いません。これらの外部toolは動画の独立した検証用で、Releaseの配布物には含めません。実行時の変換にはCLIへ同梱するFFmpegKit nativeライブラリを使います。
 
 `mise exec -- lefthook run pre-commit --all-files`は`tool/quality.sh`経由で以下のworkspace検証をすべて実行します。website検証は別途実行します。通常のcommitでは`website/`外の`.dart`・`.yaml`・`.yml`・`.json`・`.lock`、`.mise.toml`、CHANGELOG、ライセンス表示、同梱Skills、hook用toolの変更でworkspace検証を選択します。最初にステージ済みの存在するDartファイルだけをformat確認し、workspace検証では全ソースのformat・解析・版数・表示・全テスト・install/tester smokeを実行します。削除もworkspace検証の対象です。Lefthookは部分ステージしたファイルの未ステージ編集を一時的に隠し、検証後に復元します。自動修正・自動stageは行いません。他のMarkdownやwebsiteだけのcommitではDart検証を省略し、リリース前には必ず全検証を実行します。hook用toolの編集後は`python3 tool/test_quality_hooks.py`で分離したGit結合テストも実行してください。
 
 ```sh
 flutter pub get --enforce-lockfile
-dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test
+dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages example/lib example/test
 dart analyze
 dart run tool/check_release.dart
 dart run tool/license_notices.dart --check
 dart test --concurrency=1 --timeout=2m
-(cd packages/marionette_agent_util && dart test --concurrency=1 && flutter test flutter_test)
+for package in platform_interface ios android macos web flutter; do
+  if [ -d "packages/marionette_agent_$package/test" ]; then
+    (cd "packages/marionette_agent_$package" && dart test --concurrency=1)
+  fi
+done
+(cd packages/marionette_agent_flutter && flutter test flutter_test)
 (cd example && flutter test)
 dart run integration_test/release_smoke.dart
 (cd website && bun install --frozen-lockfile && bun run verify)
@@ -46,7 +51,7 @@ dart run integration_test/release_smoke.dart
 - [ ] 新規ソースcheckout、固定依存の解決、install、smokeが成功し、撮影画像を確認した。
 - [ ] 正確な依存・SDK・配布素材にライセンス表示が対応する。
 - [ ] SECURITYが指定された公開Issuesを窓口とし、秘密情報・個人情報・トークン・悪用可能な詳細の投稿を避けるよう案内している。GitHubの非公開報告は2026-10-01の読み取りで無効で、非公開窓口や設定変更を約束しない。
-- [ ] CLI/util pubspec、CLI/MCP表示、CHANGELOG、tag、Releaseが1.0.0で一致する。
+- [ ] CLI/platform pubspec、CLI/MCP表示、CHANGELOG、tag、Releaseが1.0.0で一致する。
 - [ ] 導入例は`v1.0.0`を指定し、公開後にタグを検証する。
 - [ ] サイトは`develop`から公開する開発文書を維持し、stable版の導入手順はリリースタグを指定する。bannerのSHAはサイトのビルド基点で、最新リリースの約束ではない。
 - [ ] push/PR/merge/tag/Releaseの許可を得る。hostingや権限の変更は別途対象を定める。

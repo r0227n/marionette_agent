@@ -32,7 +32,7 @@ export PATH="$HOME/.local/bin:$PATH"
 marionette-agent --version
 ```
 
-`install`はCLIをコンパイルし、指定した既存ディレクトリへ配置します。同じ名前の実行ファイルが存在すると失敗します。バイナリの隣に作られる`.marionette-agent-*`ディレクトリは同梱Skillsと`LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.txt`を保持します。バイナリを移す場合は、このディレクトリも一緒に移してください。
+`install`はDartのnative assets対応ビルドでCLIをコンパイルし、指定した既存ディレクトリへ実行用launcherを配置します。同じ名前の実行ファイルが存在すると失敗します。隣の`.marionette-agent-*`ディレクトリには、`bundle/bin/`のCLI本体、`bundle/lib/`の同梱FFmpegKit、Skills、`LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.txt`を保持します。移動時はlauncherとこのディレクトリを一緒に運んでください。
 
 PATHの設定を次回のシェルでも使うには、利用しているシェルの設定ファイルに同じexportを追加します。
 

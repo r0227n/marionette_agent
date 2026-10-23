@@ -356,9 +356,9 @@ boundsが欠損・非有限ならmissing_or_invalid_bounds、幅/高さが非正
 
 `skills/marionette-agent/SKILL.md`は`hidden: true`の導入用stub。`skill-data/core/`と`skill-data/simulator-verify/`が実行時ガイドで、それぞれ補助reference/templateも同梱する。直下サブディレクトリのSKILL.mdからname・description・hiddenを簡易パースする。descriptionのインデント継続行は空白で連結、hiddenはtrue/yesを認識する。name欠損・空文字、frontmatter不正、読取不能なエントリは無視。frontmatterの開始・終了は独立した`---`行とし、LFとCRLFを受理する。hiddenはlist/--allから除外するが明示名でget/pathできる。空一覧は成功、get対象なしや未知名は失敗。重複nameは両方を一覧に残し、明示名では探索順の先頭を使う。
 
-保存先の解決は、既存の`MARIONETTE_AGENT_SKILLS_DIR`（単独のSkill親ディレクトリ）を最優先する。不正・不存在のoverrideは通常探索へ戻す。通常は実行ファイルのsymlinkを解決し、親の親にskills/がある配布root、または実行ファイルから上方のskills/を持つrootのskills/とskill-data/を使う。Dart起動では実行package URIからpackage rootを解決するfallbackを持ち、呼出元cwdから別packageを選ばない。install/upgrade済みバイナリは、自身に記録された実行ファイル隣接のバージョン別bundleを通常探索より優先する。そのbundleが失われた場合に別版へfallbackしない。
+保存先の解決は、既存の`MARIONETTE_AGENT_SKILLS_DIR`（単独のSkill親ディレクトリ）を最優先する。不正・不存在のoverrideは通常探索へ戻す。通常は実行ファイルのsymlinkを解決し、親の親にskills/がある配布root、または実行ファイルから上方のskills/を持つrootのskills/とskill-data/を使う。Dart起動では実行package URIからpackage rootを解決するfallbackを持ち、呼出元cwdから別packageを選ばない。install/upgrade済みCLIは、実行ファイルのbinディレクトリに隣接するmarkerで版別bundleを識別する。そのbundle内のガイドが失われた場合に別版へfallbackしない。
 
-install/upgradeは指定checkoutの両ディレクトリをbin-directory内の専用`.marionette-agent-*` bundleへコピーしてからコンパイルする。相対bundle名だけをバイナリへ埋め込み、成功したバイナリを配置するため、ソースcheckoutなしでも移動可能。配布時はバイナリと対応する隠しbundleを一緒に運ぶ。失敗時は新bundleと自身の予約先を回収し、upgrade前のバイナリを保持する。旧bundleは実行中の旧版との整合性のため自動削除しない。手動コンパイルではskills/・skill-data/とbin/を持つ配布rootを用意するか、環境変数で明示する。コピー元のsymlink・特殊ファイルは自己完結した配布を保証できないため拒否する。
+install/upgradeは専用`.marionette-agent-*`版別ディレクトリ内にnative assets付きCLIをビルドする。ビルド後にガイドとnoticeを`bundle/bin/`・`bundle/lib/`の隣へコピーする。通常ファイルの実行用launcherがその版のCLI本体を選ぶため、launcherと隠しディレクトリ一式を一緒に配布する。bundle markerによりガイド欠落時に別版へfallbackしない。失敗時は新規版ディレクトリと自身の予約先を回収し、upgrade前のlauncherを保持する。実行中の旧版との整合性のため旧bundleは自動削除しない。手動ビルドでもnative assetsとガイドをbundle内に保持する。コピー元のsymlink・特殊ファイルは自己完結した配布を保証できないため拒否する。
 
 互換性のためskillsだけは`{"success":true,"data":...}`、失敗は`{"success":false,"error":"説明"}`。listはname/descriptionの配列、getはname/contentの配列（--fullで補助ファイルがあればfilesのpath/content配列）、pathはpaths配列を持つobjectまたはname/path object。専用helpはdata.help。session/schemaVersion/outcomeを付けない。text失敗はstderr、JSON結果はstdoutへ1 object。成功0、skillsと識別された引数エラー・未知名・探索失敗・期限切れは1。`--config`の不存在・JSON不正・未知optionによる失敗もこの形式と終了値を使う。通常コマンドのJSON/終了値は変更しない。共通timeoutを読取前後で確認し、同期filesystem I/Oの即時中断は保証しない。
 
@@ -395,7 +395,7 @@ MCP通信内容や認証URI・入力文字列を診断ログへ記録しない�
 
 [追加コマンド仕様](cli-parity.ja.md)を本仕様の一部とする。snapshotのinteractive/compact/depth、型付きget/is、find、追加interaction、ref/時間wait、crop/diff、clipboard、config/namespace、接続state、batch/policy、record restart/fps、device list、doctor追加モード、install/upgradeの構文・出力・対応範囲を定義する。
 
-任意の `marionette_agent_util/flutter.dart` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
+任意の `marionette_agent_flutter/flutter.dart` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
 
 IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
 
@@ -413,7 +413,7 @@ IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追�
 | android | オンライン・認証済みadb serial | `.mp4`、Android platform-tools。Emulator／実機の標準screenrecord |
 | macos | 1から始まるディスプレイ番号 | `.mov`、macOS標準screencaptureと実行元アプリの画面収録許可 |
 | web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`、macOSと可視Chrome、専用debug profileと画面収録許可。明示したディスプレイ全体 |
-| flutter | CLIでは省略、結果はsession名 | `.mp4`、接続済みMarionette debugアプリとffmpeg。アプリ内の描画を保存。非表示の実行環境でも利用可能 |
+| flutter | CLIでは省略、結果はsession名 | `.mp4`、接続済みMarionette debugアプリと同梱FFmpegKit。アプリ内の描画を保存。非表示の実行環境でも利用可能 |
 | linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
 
 - platform/pathは必須。flutterではdeviceを指定できず、その他はdeviceも必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
@@ -441,7 +441,7 @@ IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追�
 
 `record start <new.mp4> --platform flutter [--fps 1..60]`は、選択sessionのVM Serviceへ先にconnectして使う。未接続はNOT_CONNECTED、対応していないbackend・複数viewはUNSUPPORTED_CAPABILITY。CLIに`--device`を渡すとINVALID_ARGUMENT。結果のplatformはflutter、deviceはsession名。同一sessionの録画を排他にし、同じアプリを別sessionで明示的に録画することは妨げない。restart、status、stop、close、保存保護、要求期限は共通契約を使う。
 
-録画専用の読み取り接続から実アプリのPNGを連続取得する。最初のPNGを確認してからstartを返す。既定fpsは10で、1〜60は各取得完了後の待機間隔を指定する。取得・保存にかかる時間は別に加わるため、指定fpsの取得は保証しない。実際の取得時刻でVFR（可変フレームレート）の無音H.264 MP4へ確定する。高速アニメーションを取りこぼす場合がある。画像はprivate stagingへ逐次保存し、停止時のffmpeg変換は最大30秒。録画時間に応じた一時ディスク容量が必要。ffmpeg欠落はUNSUPPORTED_CAPABILITY、不正PNGや変換失敗はIO_ERROR、取得失敗は失敗状態とし、白画像へ置換して成功にしない。画像サイズ変更はUNSUPPORTED_CAPABILITYで停止する。
+録画専用の読み取り接続から実アプリのPNGを連続取得する。最初のPNGを確認してからstartを返す。既定fpsは10で、1〜60は各取得完了後の待機間隔を指定する。取得・保存にかかる時間は別に加わるため、指定fpsの取得は保証しない。実際の取得時刻でVFR（可変フレームレート）の無音H.264 MP4へ確定する。高速アニメーションを取りこぼす場合がある。画像はprivate stagingへ逐次保存し、停止時の同梱FFmpegKit変換は最大30秒。録画時間に応じた一時ディスク容量が必要。同梱nativeライブラリの欠落はUNSUPPORTED_CAPABILITY、不正PNGや変換失敗はIO_ERROR、取得失敗は失敗状態とし、白画像へ置換して成功にしない。画像サイズ変更はUNSUPPORTED_CAPABILITYで停止する。
 
 対象はFlutterが描画した単一viewで、OSのキーボード・ダイアログ・ブラウザーUIやplatform viewの収録を保証しない。画面収録許可は不要だが、アプリ側のMarionette debug bindingが必要。録画停止は操作用接続・ref・押下中キーに作用しない。録画用接続が失われると失敗して再接続・再送しない。操作用接続だけの切断は録画用接続を閉じない。hot restart中の継続は保証しない。
 
@@ -475,7 +475,7 @@ Flutter実行ファイルは--flutter（省略時daemon PATH）、entrypointは-
 
 launchはdaemon自動起動対象で、session queueとaction policyを共有する。既存接続・所有アプリ・録画があるsession、管理中project、利用中Android portはSESSION_CONFLICT。projectのビルド出力競合を防ぐため、同一projectは実pathとOSファイルlockで排他にする。別環境への自動fallback・操作再送・自動再起動はしない。
 
-起動処理はmarionette_agent_utilに配置する。tester/web/macOSはFlutter runner、iOSは固有private device set、Androidは明示AVDの-no-window -no-snapshot -read-onlyプロセスを所有する。macOSアプリは非表示windowのopt-in対応を要する。CLIから環境変数やOSコマンドを組み立てず、utilの共通APIを呼ぶ。
+起動処理はmarionette_agent_platform_interfaceの契約とios/android/macos/web/flutterの実装パッケージで構成する。tester/web/macOSはFlutter runner、iOSは固有private device set、Androidは明示AVDの-no-window -no-snapshot -read-onlyプロセスを所有する。macOSアプリは非表示windowのopt-in対応を要する。CLIが対象実装の選択と共通lifecycleの調整を行い、対象別パッケージが環境変数やOSコマンドを組み立てる。
 
 closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
 
