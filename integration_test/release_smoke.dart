@@ -65,6 +65,19 @@ Future<void> main() async {
             (row) => row['key'] == key,
           )['text']
           as String;
+  Future<Map<String, dynamic>> observe(String key, String expected) async {
+    final limit = DateTime.now().add(const Duration(seconds: 5));
+    while (true) {
+      final snapshot = await cli(['snapshot']);
+      if (text(snapshot, key) == expected) return snapshot;
+      if (!DateTime.now().isBefore(limit)) {
+        throw StateError('Fixture label $key did not reach its expected state');
+      }
+      // Poll only observations; each UI operation above is sent exactly once.
+      await cli(['wait', '100ms']);
+    }
+  }
+
   try {
     await cli(['install', destination.path], source: true);
     destination = destination.renameSync(p.join(private.path, 'relocated'));
@@ -93,13 +106,13 @@ Future<void> main() async {
     final before = await cli(['snapshot']);
     check(text(before, 'tap_result') == 'Tap count: 0', 'Fixture is not fresh');
     await cli(['tap', '--key', 'tap_button']);
-    final afterTap = await cli(['snapshot']);
+    final afterTap = await observe('tap_result', 'Tap count: 1');
     check(
       text(afterTap, 'tap_result') == 'Tap count: 1',
       'Tap did not change app state',
     );
     await cli(['fill', '--key', 'text_input', 'hello']);
-    final afterFill = await cli(['snapshot']);
+    final afterFill = await observe('fill_result', '5 characters');
     check(
       text(afterFill, 'fill_result') == '5 characters',
       'Fill did not change app state',
