@@ -139,8 +139,8 @@ def prepare(api, requested, sha):
     api.ensure_branch(branch, sha)
     pr = api.ensure_pr(branch, 'main', 'Release ' + requested,
         '## 概要\nPrepare ' + requested + ' from verified develop commit `' + sha + '`.\n\n'
-        '## 動作確認方法\nQuality passed before branch creation. Approve pending bot PR workflows '
-        '(or close/reopen as a maintainer if checks are absent). Require Quality, Documentation '
+        '## 動作確認方法\nThe full Lefthook gate passed before branch creation. Approve pending bot PR workflows '
+        '(or close/reopen as a maintainer if checks are absent). Require local Lefthook, Documentation '
         'and Git flow checks on the final candidate. Review native acceptance and release notes.\n\n'
         '- [ ] 人間が最終候補を確認し、Ready化とmainへのmergeを判断した\n\n'
         '## エビデンス\nCI logs and checks record mechanical verification. '
@@ -164,7 +164,7 @@ def sync(api, sha):
         'Resolve conflicts on this branch without force-pushing main/develop. '
         'Use a merge commit to preserve main ancestry.\n\n'
         '- [ ] 人間が差分・CI・競合解消を確認した\n\n'
-        '## エビデンス\nSee main quality run and this PR checks. No automatic merge.\n')
+        '## エビデンス\nSee the release handoff Lefthook run and this PR checks. No automatic merge.\n')
     print(pr['html_url'])
 
 

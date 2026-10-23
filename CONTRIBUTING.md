@@ -10,10 +10,21 @@ Read [AGENTS.md](AGENTS.md), [SPEC](docs/SPEC.md), and
 follow the repository's branch/worktree rules and keep changes focused. The root Pub
 workspace resolves CLI, util, and example together.
 
-Resolve dependencies once at the root with `flutter pub get --enforce-lockfile`.
-The [release checks](docs/releasing.md) list the same analysis and test commands
-used by CI. Run relevant checks while developing and all handoff checks before
-submitting. Behavior changes also need example-app verification on iOS Simulator
+Install [Lefthook](https://lefthook.dev/) 2.2.1 or newer and ffmpeg on macOS
+(`brew install lefthook ffmpeg`). Mise users can install the pinned Lefthook from
+the root `.tool-versions`. Run `lefthook install` once after cloning; also run it
+in each new worktree. Resolve dependencies once at the root with
+`flutter pub get --enforce-lockfile`.
+
+The pre-commit hook checks staged Dart formatting and runs the full workspace
+gate for Dart, YAML, JSON, lockfile, and distribution inputs. Documentation-only and
+website-only commits skip that gate; website checks remain in the Documentation
+workflow. Hooks check without rewriting or automatically staging your files.
+Run `lefthook run pre-commit --all-files` for the complete gate, including before
+handoff; the [release checks](docs/releasing.md#local-gates) describe its scope
+and the separate website/native checks. The former Quality PR workflow is removed;
+release preparation and handoff still run the same Lefthook gate on the exact SHA.
+Behavior changes also need example-app verification on iOS Simulator
 under the repository's resource-coordination rules. A tester smoke is additional
 coverage, not evidence of native platform behavior.
 

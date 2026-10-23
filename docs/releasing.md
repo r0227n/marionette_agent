@@ -51,9 +51,23 @@ test contention. The CLI test runner's `--timeout=2m` includes cold child-proces
 JIT startup on hosted macOS; product deadlines and explicit test timeouts still
 apply. The tester smoke builds no native app and boots no Simulator.
 
-Install ffmpeg and ffprobe before these gates. Two real MP4 encoding tests skip
-when either tool is absent; both must execute for release verification. CI
+Install Lefthook 2.2.1 or newer and ffmpeg (including ffprobe), then enable hooks
+as described in [Contributing](../CONTRIBUTING.md). The hook fails when either
+encoder tool is missing, so real MP4 tests cannot silently skip. Release automation
 provides the tools on its macOS runner. They are not included in release assets.
+
+`lefthook run pre-commit --all-files` runs all workspace gates below through
+`tool/quality.sh`; website verification remains separate. Ordinary commits select
+the workspace gate for `.dart`, `.yaml`, `.yml`, `.json`, and `.lock` files outside
+`website/`, as well as `.tool-versions`, CHANGELOG, license notices, bundled Skills,
+and hook tooling. Dart formatting first checks only staged surviving Dart paths;
+the workspace gate also checks the complete source tree, analysis, release metadata,
+notices, all tests, and the install/tester smoke. Deletions trigger workspace checks
+too. Lefthook temporarily hides unstaged edits to partially staged files and
+restores them afterward. Checks neither fix nor stage files automatically.
+Other Markdown and website-only commits skip the Dart gate; always run the full
+gate before release. After editing hook tooling, run its isolated Git integration
+tests with `python3 tool/test_quality_hooks.py`.
 
 ```sh
 flutter pub get --enforce-lockfile
@@ -110,10 +124,12 @@ needs workspace/path dependency design and a separate package-content dry run.
 The default branch is intended to be `main`. Normal development PRs still target
 `develop`, including compatibility fixes. Only same-repository
 `release/MAJOR.MINOR.PATCH` PRs target `main`; same-repository `fix/*` branches may
-stabilize a release branch. Git flow, Quality, and Documentation verify PRs into
-these branches. Git flow also reruns on base edits. Configure these as required
-checks (`Git flow policy`, `Quality checks`, `Documentation checks`) before relying
-on them to block merges; workflow files alone cannot do so.
+stabilize a release branch. Git flow and Documentation verify PRs into these
+branches; workspace quality runs locally before commits using Lefthook. Git flow
+also reruns on base edits. Configure `Git flow policy` and `Documentation checks`
+as required checks before relying on them to block merges. Remove the retired
+`Quality checks` requirement if configured, or it will wait for a check that no
+longer runs. Local hooks can be bypassed and do not enforce a remote merge gate.
 Keep Pages deployment on `develop` under the existing environment policy.
 
 1. Review version changes on `develop` before starting a release. Align all three
@@ -123,7 +139,7 @@ Keep Pages deployment on `develop` under the existing environment policy.
    and release notes are deliberately reviewed development changes.
 2. In Actions, select **Prepare release**, choose **main**, and enter the version
    without `v`. The default **dry_run=true** validates the fixed develop SHA and
-   runs the existing macOS Quality workflow without writing branches or PRs.
+   runs the complete Lefthook gate on macOS without writing branches or PRs.
    With dry run disabled, successful checks create `release/<version>` at that
    exact SHA and a Draft PR to `main`. If develop moves during verification, rerun.
    main must be an ancestor of develop; complete the previous back-sync first.
@@ -131,9 +147,9 @@ Keep Pages deployment on `develop` under the existing environment policy.
    workflows to run**; if checks are absent, close/reopen the PR as a maintainer.
    Do not bypass missing checks or substitute the preparation run for final PR
    checks. No PAT or extra automation secret is required. Require current
-   Git flow, Quality, Documentation, and native acceptance before a human marks
+   Git flow, local Lefthook, Documentation, and native acceptance before a human marks
    the PR ready and merges it. Prefer merge commits to retain branch ancestry.
-4. A merged release PR runs Quality again on its exact merge SHA. **Release
+4. A merged release PR runs the full Lefthook gate again on its exact merge SHA. **Release
    handoff** then saves a source archive, reviewed notes, and a manifest with the
    proposed tag and SHA as a 30-day Actions artifact. It creates no remote tag,
    GitHub Release (including draft), or pub.dev publication. Download before
