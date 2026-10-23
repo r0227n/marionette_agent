@@ -48,8 +48,8 @@ sessions, reconnections, or mutations.
 
 ## Environment and support
 
-Contributors use [Lefthook](https://lefthook.dev/) for extension-filtered pre-commit
-quality checks on macOS. Install the hook after cloning or creating a worktree;
+Contributors use [Lefthook](https://lefthook.dev/), managed with mise, for extension-filtered pre-commit
+quality checks on macOS. Install the pinned version and hook after cloning or creating a worktree;
 see [Contributing](https://github.com/r0227n/marionette_agent/blob/develop/CONTRIBUTING.md)
 and the [release gates](https://github.com/r0227n/marionette_agent/blob/develop/docs/releasing.md#local-gates)
 for setup, file selection, and full verification. Documentation checks remain in

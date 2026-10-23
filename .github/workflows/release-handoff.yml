@@ -25,7 +25,19 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.merge_commit_sha }}
-      - uses: ./.github/actions/quality
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+      - name: Set up Lefthook with mise
+        uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - name: Set up real recording test tools
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: brew install ffmpeg
+      - name: Verify the complete candidate
+        run: mise exec -- lefthook run pre-commit --all-files
 
   artifacts:
     needs: quality

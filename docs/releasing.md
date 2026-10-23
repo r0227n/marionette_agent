@@ -51,12 +51,13 @@ test contention. The CLI test runner's `--timeout=2m` includes cold child-proces
 JIT startup on hosted macOS; product deadlines and explicit test timeouts still
 apply. The tester smoke builds no native app and boots no Simulator.
 
-Install Lefthook 2.2.1 or newer and ffmpeg (including ffprobe), then enable hooks
-as described in [Contributing](../CONTRIBUTING.md). The hook fails when either
+Install the `.tool-versions` pin of Lefthook (2.2.1) with mise and install ffmpeg
+(including ffprobe) separately, then enable hooks as described in
+[Contributing](../CONTRIBUTING.md). The hook fails when either
 encoder tool is missing, so real MP4 tests cannot silently skip. Release automation
 provides the tools on its macOS runner. They are not included in release assets.
 
-`lefthook run pre-commit --all-files` runs all workspace gates below through
+`mise exec -- lefthook run pre-commit --all-files` runs all workspace gates below through
 `tool/quality.sh`; website verification remains separate. Ordinary commits select
 the workspace gate for `.dart`, `.yaml`, `.yml`, `.json`, and `.lock` files outside
 `website/`, as well as `.tool-versions`, CHANGELOG, license notices, bundled Skills,
@@ -139,7 +140,8 @@ Keep Pages deployment on `develop` under the existing environment policy.
    and release notes are deliberately reviewed development changes.
 2. In Actions, select **Prepare release**, choose **main**, and enter the version
    without `v`. The default **dry_run=true** validates the fixed develop SHA and
-   runs the complete Lefthook gate on macOS without writing branches or PRs.
+   installs the pinned Lefthook with mise and runs the complete gate directly on
+   macOS without writing branches or PRs.
    With dry run disabled, successful checks create `release/<version>` at that
    exact SHA and a Draft PR to `main`. If develop moves during verification, rerun.
    main must be an ancestor of develop; complete the previous back-sync first.

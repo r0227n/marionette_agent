@@ -10,17 +10,19 @@ Read [AGENTS.md](AGENTS.md), [SPEC](docs/SPEC.md), and
 follow the repository's branch/worktree rules and keep changes focused. The root Pub
 workspace resolves CLI, util, and example together.
 
-Install [Lefthook](https://lefthook.dev/) 2.2.1 or newer and ffmpeg on macOS
-(`brew install lefthook ffmpeg`). Mise users can install the pinned Lefthook from
-the root `.tool-versions`. Run `lefthook install` once after cloning; also run it
-in each new worktree. Resolve dependencies once at the root with
+Use [mise](https://mise.jdx.dev/) to manage [Lefthook](https://lefthook.dev/).
+Run `mise install` at the repository root to install the version pinned in
+`.tool-versions` (2.2.1), and install ffmpeg separately (`brew install ffmpeg`).
+Run `mise exec -- lefthook install` once after cloning and in each new worktree.
+The installed Git hook also invokes Lefthook through mise, using the same pin.
+Resolve dependencies once at the root with
 `flutter pub get --enforce-lockfile`.
 
 The pre-commit hook checks staged Dart formatting and runs the full workspace
 gate for Dart, YAML, JSON, lockfile, and distribution inputs. Documentation-only and
 website-only commits skip that gate; website checks remain in the Documentation
 workflow. Hooks check without rewriting or automatically staging your files.
-Run `lefthook run pre-commit --all-files` for the complete gate, including before
+Run `mise exec -- lefthook run pre-commit --all-files` for the complete gate, including before
 handoff; the [release checks](docs/releasing.md#local-gates) describe its scope
 and the separate website/native checks. The former Quality PR workflow is removed;
 release preparation and handoff still run the same Lefthook gate on the exact SHA.
