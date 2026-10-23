@@ -5,7 +5,7 @@ export 'package:marionette_agent_platform_interface/marionette_agent_platform_in
 export 'package:marionette_agent_platform_interface/host_support.dart'
     show terminationRequests;
 export 'package:marionette_agent_flutter/marionette_agent_flutter.dart'
-    show PngScreenRecorder;
+    show PngScreenRecorder, VideoEncoder, FfmpegKitVideoEncoder;
 
 export 'recording/recording_manager.dart';
 export 'devices.dart';

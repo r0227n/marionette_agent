@@ -47,3 +47,10 @@ dev_dependencies:
 
 executables:
   marionette-agent: marionette_agent
+
+hooks:
+  user_defines:
+    ffmpeg_kit_extended_flutter:
+      type: video
+      gpl: false
+      small: true

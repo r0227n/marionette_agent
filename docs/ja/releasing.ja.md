@@ -4,13 +4,13 @@
 
 ## 現在の配布と対象
 
-公開版は固定Gitタグと、ソースarchiveを持つGitHub Releaseから導入します。1.0.0は`v1.0.0`を指定し、commit済みlockfileを解決して手元でコンパイルします。CLI/util/exampleの`publish_to: none`を維持し、Pub global activationとpub.dev公開は対象外です。開発版はレビュー済みdevelop commitを指定でき、そのSHAを記録し、リリース版と同じ動作を前提にしません。
+公開版は固定Gitタグと、ソースarchiveを持つGitHub Releaseから導入します。1.0.0は`v1.0.0`を指定し、commit済みlockfileを解決して手元でコンパイルします。CLI/platform/exampleの`publish_to: none`を維持し、Pub global activationとpub.dev公開は対象外です。開発版はレビュー済みdevelop commitを指定でき、そのSHAを記録し、リリース版と同じ動作を前提にしません。
 
-installerの配布物は実行ファイルと、対応する隣接`.marionette-agent-*`ディレクトリです。SkillsとLICENSE/NOTICE/THIRD_PARTY_NOTICESを含め、移設・再配布でも保持します。upgradeは旧bundleを残すので、実行ファイルが参照しなくなったものだけ削除してください。アプリ側utilも同じcheckoutを使います。複数platformのビルド済み配布物は約束しません。
+installerの配布物は実行用launcherと、対応する隣接`.marionette-agent-*`ディレクトリです。ディレクトリ内の`bundle/bin/`にCLI本体、`bundle/lib/`にFFmpegKit native assetsを置き、SkillsとLICENSE/NOTICE/THIRD_PARTY_NOTICESも含めて移設・再配布時に保持します。upgradeは旧bundleを残すので、実行ファイルが参照しなくなったものだけ削除してください。アプリ側Flutter補助も同じcheckoutを使います。複数platformのビルド済み配布物は約束しません。
 
 ## ライセンス確認
 
-本プロジェクトのコードと文書は[leancodepl/marionette_mcpのLICENSE](https://github.com/leancodepl/marionette_mcp/blob/main/LICENSE)を参考にApache-2.0としました。2026-10-01確認のblobは`261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`です。NOTICEには本プロジェクトの寄稿者を記載し、上流の権利を取り込みません。THIRD_PARTY_NOTICES.txtに依存の原文を保持します。generatorはCLI/util/exampleのproduction依存をたどり、アプリ側Flutter/engineとDart runtimeも含めます。ライセンス不足で失敗し、`--check`は更新漏れを検出します。宣言した依存全体を広めに含め、全てがAOTに組み込まれるとは主張しません。
+本プロジェクトのコードと文書は[leancodepl/marionette_mcpのLICENSE](https://github.com/leancodepl/marionette_mcp/blob/main/LICENSE)を参考にApache-2.0としました。2026-10-01確認のblobは`261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`です。NOTICEには本プロジェクトの寄稿者を記載し、上流の権利を取り込みません。THIRD_PARTY_NOTICES.txtに依存の原文を保持します。generatorはCLI/platform/exampleのproduction依存をたどり、アプリ側Flutter/engineとDart runtimeも含めます。ライセンス不足で失敗し、`--check`は更新漏れを検出します。宣言した依存全体を広めに含め、全てがAOTに組み込まれるとは主張しません。
 
 MarionetteはApache-2.0、image/archiveはMIT、Dart/Flutterの各packageはBSD等です。元の表示を保持してください。Flutter 3.47.2でcommit済みlockfileを解決して生成します。依存・SDK変更時は同梱素材やpackage内の入れ子の第三者表示も再確認します。生成結果は法的適合性の自動判定ではありません。
 
@@ -20,7 +20,7 @@ skills-lock.jsonの外部開発skillは[mattpocock/skills](https://github.com/ma
 
 macOS、Flutter 3.47.2、Dart 3.13.2を基準に、ルートから以下を実行します。子directory指定は括弧内です。processを多用するtestの競合を避けて直列実行します。CLI test runnerの`--timeout=2m`はhosted macOSでの子processのcold JIT起動を含む待機枠です。製品のdeadlineとtestで明示したtimeoutは引き続き適用されます。tester smokeはnative appをビルドせず、Simulatorも起動しません。
 
-この検証の前にffmpegとffprobeを導入してください。どちらかがない場合、実MP4エンコードの2件はskipされます。リリース検証では両方を実行する必要があります。CIはmacOS runnerに両toolを用意します。Releaseの配布物には含めません。
+この検証の前にffmpegとffprobeを導入してください。どちらかがない場合、実MP4エンコードの2件はskipされます。リリース検証では両方を実行する必要があります。CIはmacOS runnerに両toolを用意します。これらの外部toolは動画の独立した検証用です。実行時の変換にはCLIへ同梱するFFmpegKit nativeライブラリを使います。
 
 ```sh
 flutter pub get --enforce-lockfile

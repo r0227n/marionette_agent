@@ -85,3 +85,5 @@ Advancedタブ（key: `advanced_tab`）に型付き入力・状態・double-tap�
 ## ヘッドレス実行と録画
 
 4環境の必要条件、非表示起動、接続・操作・録画、終了、トラブルシューティングは[ヘッドレス実行と録画](../docs/ja/headless.ja.md)にまとめています。
+
+FFmpegKit native assetsに合わせ、AndroidはAPI 26以上、macOSは13以上を対象とする。iOSは既存の15以上を維持する。録画変換はhost CLI側で行い、アプリのdebug provider登録でFFmpegの初期化は要らない。

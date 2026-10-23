@@ -11,19 +11,13 @@ void main() {
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0ioAAAAASUVORK5CYII=',
   );
   late Directory dir;
-  late String encoder;
+  late FixtureEncoder encoder;
   final target = RecordingTarget(RecordingPlatform.flutter, 'test', fps: 60);
   DateTime deadline() => DateTime.now().add(const Duration(seconds: 5));
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('png-recorder-test-');
-    encoder = '${dir.path}/encoder';
-    await File(encoder).writeAsString(r'''#!/bin/sh
-if [ "$1" = "-version" ]; then exit 0; fi
-for last; do :; done
-printf 'encoded fixture' > "$last"
-''');
-    await Process.run('chmod', ['700', encoder]);
+    encoder = FixtureEncoder();
   });
   tearDown(() => dir.delete(recursive: true));
 
@@ -127,11 +121,7 @@ printf 'encoded fixture' > "$last"
   );
 
   test('encoder failure is not published by the recording manager', () async {
-    await File(encoder).writeAsString(r'''#!/bin/sh
-if [ "$1" = "-version" ]; then exit 0; fi
-echo private-encoder-message >&2
-exit 9
-''');
+    encoder.fail = true;
     final manager = RecordingManager();
     addTearDown(manager.dispose);
     await manager.start(
@@ -188,4 +178,24 @@ exit 9
       expect(File(path).readAsStringSync(), 'existing');
     },
   );
+}
+
+class FixtureEncoder implements VideoEncoder {
+  bool fail = false;
+  @override
+  List<String> get h264Arguments => const [];
+  @override
+  bool get isRunning => false;
+  @override
+  Future<void> get ended => Future.value();
+  @override
+  Future<void> abort() async {}
+  @override
+  Future<void> run(List<String> arguments, DateTime deadline) async {
+    if (arguments.first == '-version') return;
+    if (fail) {
+      throw const PlatformException('IO_ERROR', 'Video encoding failed');
+    }
+    await File(arguments.last).writeAsString('encoded fixture');
+  }
 }

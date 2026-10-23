@@ -7,3 +7,4 @@ export 'src/recording/recorder.dart';
 export 'src/recording/web_target.dart';
 export 'src/application/launch_options.dart';
 export 'src/application/application.dart';
+export 'src/recording/video_encoder.dart';

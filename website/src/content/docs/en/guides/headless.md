@@ -27,7 +27,7 @@ Finish [CLI installation](/marionette_agent/en/getting-started/installation/) an
 flutter pub get
 ```
 
-`launch` builds with `--no-pub`. Allow enough timeout for the first build and device boot. Recording also needs ffmpeg on PATH and disk space for temporary PNGs and video.
+`launch` builds with `--no-pub`. Allow enough timeout for the first build and device boot. Recording uses bundled FFmpegKit and needs disk space for temporary PNGs and video; a system ffmpeg executable is unnecessary.
 
 ## Verify an interaction with tester
 
@@ -125,12 +125,12 @@ Apps you start yourself and attach through connect remain running after close. S
 
 ## Troubleshooting
 
-| Symptom                               | What to check                                                                          |
-| ------------------------------------- | -------------------------------------------------------------------------------------- |
-| SESSION_CONFLICT                      | Another launch owns the session/project/Android port; close the earlier session        |
-| Launch TIMEOUT                        | Allow enough first-build/boot time; inspect session show after cleanup                 |
-| UNSUPPORTED_CAPABILITY                | Check SDK executables, Chrome, ffmpeg, and required app capabilities                   |
-| Unchanging macOS image                | Implement both native window handling and Dart rendering support                       |
-| Visible iOS window                    | Use a dedicated device set and avoid opening it in Simulator.app                       |
-| Slow or stopped recording             | Check PNG capture time, disk space, host sleep, dimension changes, and connection loss |
-| Screenshot/record persistence failure | Ensure the parent directory exists and the output path is new                          |
+| Symptom                               | What to check                                                                                |
+| ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| SESSION_CONFLICT                      | Another launch owns the session/project/Android port; close the earlier session              |
+| Launch TIMEOUT                        | Allow enough first-build/boot time; inspect session show after cleanup                       |
+| UNSUPPORTED_CAPABILITY                | Check SDK executables, Chrome, the complete CLI native bundle, and required app capabilities |
+| Unchanging macOS image                | Implement both native window handling and Dart rendering support                             |
+| Visible iOS window                    | Use a dedicated device set and avoid opening it in Simulator.app                             |
+| Slow or stopped recording             | Check PNG capture time, disk space, host sleep, dimension changes, and connection loss       |
+| Screenshot/record persistence failure | Ensure the parent directory exists and the output path is new                                |

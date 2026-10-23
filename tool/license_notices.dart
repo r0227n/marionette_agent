@@ -52,6 +52,11 @@ void main(List<String> args) {
                 basename.startsWith('NOTICE.');
           }).toList()
           ..sort((a, b) => p.basename(a.path).compareTo(p.basename(b.path)));
+    // This Flutter SDK package shares the SDK's BSD license rather than
+    // carrying a package-local copy. Keep an explicit section for it.
+    if (name == 'flutter_web_plugins' && notices.isEmpty) {
+      notices.add(File(p.join(roots['flutter']!.path, 'LICENSE')));
+    }
     if (!notices.any(
       (f) =>
           p.basename(f.path).toUpperCase().startsWith('LICENSE') ||

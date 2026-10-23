@@ -18,7 +18,7 @@ chmod 700 "$MRA_HEADLESS_ROOT"
 flutter pub get
 ```
 
-認証URIとログはこのprivate directoryへ保存します。並行実行ではruntime・session・端末・出力先を分離し、同じcheckoutのbuildを競合させません。Flutter録画にはffmpeg（PNG/libx264/concat/setts）、一時PNG用の空き容量、停止時の変換時間が必要です。ホストをスリープさせないでください。
+認証URIとログはこのprivate directoryへ保存します。並行実行ではruntime・session・端末・出力先を分離し、同じcheckoutのbuildを競合させません。Flutter録画はCLI同梱のFFmpegKit（PNG/VideoToolbox/concat/setts）を使い、一時PNG用の空き容量と停止時の変換時間が必要です。ホストをスリープさせないでください。
 
 <a id="ios"></a>
 

@@ -51,7 +51,7 @@ For `UNSUPPORTED_CAPABILITY`, check binding and auxiliary-provider registration.
 
 - Check that the parent directory exists and is writable, and choose a filename that does not already exist.
 - Select `--screenshot-format jpeg` explicitly when saving `.jpg` files.
-- Prepare a connected session and ffmpeg for recording Flutter rendering.
+- Prepare a connected session and retain the CLI’s bundled native libraries for recording Flutter rendering.
 - Use the correct UDID, serial, or display number for device capture and check required screen-recording permissions.
 - Allow enough time for stop or close; do not terminate the process while it finalizes video.
 

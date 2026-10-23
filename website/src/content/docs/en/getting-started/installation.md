@@ -34,7 +34,7 @@ export PATH="$HOME/.local/bin:$PATH"
 marionette-agent --version
 ```
 
-`install` compiles the CLI into the existing destination directory. It fails if the executable already exists. The adjacent `.marionette-agent-*` directory contains the bundled Skills and `LICENSE`, `NOTICE`, and `THIRD_PARTY_NOTICES.txt`. Move that directory together with the executable if you relocate the installation.
+`install` uses Dart’s native-assets build to compile the CLI and places an executable launcher in the existing destination directory. It fails if that executable already exists. The adjacent `.marionette-agent-*` directory contains the real CLI in `bundle/bin/`, bundled FFmpegKit in `bundle/lib/`, Skills, and `LICENSE`, `NOTICE`, and `THIRD_PARTY_NOTICES.txt`. Move that directory together with the launcher if you relocate the installation.
 
 Add the same PATH export to your shell configuration if you want it to persist across new shells.
 
