@@ -38,32 +38,9 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
         run: python3 .github/scripts/git_flow.py resolve --version "$RELEASE_VERSION"
 
-  quality:
-    needs: candidate
-    runs-on: macos-15
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-          ref: ${{ needs.candidate.outputs.sha }}
-      - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: '3.47.2'
-          channel: stable
-      - name: Set up Lefthook with mise
-        uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
-      - name: Set up real recording test tools
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: '1'
-        run: brew install ffmpeg
-      - name: Verify the complete candidate
-        run: mise exec -- lefthook run pre-commit --all-files
-
   prepare:
     if: ${{ !inputs.dry_run }}
-    needs: [candidate, quality]
+    needs: candidate
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

@@ -133,17 +133,17 @@ def candidate(api, requested):
 
 
 def prepare(api, requested, sha):
-    # Recheck after the long quality gate; never release a different develop snapshot.
+    # Recheck the selected candidate; never release a different develop snapshot.
     require(candidate(api, requested) == sha, 'develop changed during verification; rerun')
     branch = 'release/' + requested
     api.ensure_branch(branch, sha)
     pr = api.ensure_pr(branch, 'main', 'Release ' + requested,
-        '## 概要\nPrepare ' + requested + ' from verified develop commit `' + sha + '`.\n\n'
-        '## 動作確認方法\nThe full Lefthook gate passed before branch creation. Approve pending bot PR workflows '
-        '(or close/reopen as a maintainer if checks are absent). Require local Lefthook, Documentation '
+        '## 概要\nPrepare ' + requested + ' from reviewed develop commit `' + sha + '`.\n\n'
+        '## 動作確認方法\nVerify local quality results for this exact commit. Approve pending bot PR workflows '
+        '(or close/reopen as a maintainer if checks are absent). Require local quality verification, Documentation '
         'and Git flow checks on the final candidate. Review native acceptance and release notes.\n\n'
         '- [ ] 人間が最終候補を確認し、Ready化とmainへのmergeを判断した\n\n'
-        '## エビデンス\nCI logs and checks record mechanical verification. '
+        '## エビデンス\nReview local quality results and this PR checks. '
         'No tag, GitHub Release or pub.dev publication is performed.\n')
     print(pr['html_url'])
 
@@ -164,7 +164,7 @@ def sync(api, sha):
         'Resolve conflicts on this branch without force-pushing main/develop. '
         'Use a merge commit to preserve main ancestry.\n\n'
         '- [ ] 人間が差分・CI・競合解消を確認した\n\n'
-        '## エビデンス\nSee the release handoff Lefthook run and this PR checks. No automatic merge.\n')
+        '## エビデンス\nReview local quality results and this PR checks. No automatic merge.\n')
     print(pr['html_url'])
 
 

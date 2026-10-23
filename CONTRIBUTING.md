@@ -24,8 +24,9 @@ website-only commits skip that gate; website checks remain in the Documentation
 workflow. Hooks check without rewriting or automatically staging your files.
 Run `mise exec -- lefthook run pre-commit --all-files` for the complete gate, including before
 handoff; the [release checks](docs/releasing.md#local-gates) describe its scope
-and the separate website/native checks. The former Quality PR workflow is removed;
-release preparation and handoff still run the same Lefthook gate on the exact SHA.
+and the separate website/native checks. The former Quality PR workflow is removed.
+Release preparation and handoff assume the exact candidate passed these checks
+locally; they do not install or run Lefthook in CI.
 Behavior changes also need example-app verification on iOS Simulator
 under the repository's resource-coordination rules. A tester smoke is additional
 coverage, not evidence of native platform behavior.

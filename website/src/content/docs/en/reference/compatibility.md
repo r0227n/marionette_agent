@@ -53,7 +53,7 @@ quality checks on macOS. Install the pinned version and hook after cloning or cr
 see [Contributing](https://github.com/r0227n/marionette_agent/blob/develop/CONTRIBUTING.md)
 and the [release gates](https://github.com/r0227n/marionette_agent/blob/develop/docs/releasing.md#local-gates)
 for setup, file selection, and full verification. Documentation checks remain in
-CI; release preparation and handoff reuse the full Lefthook gate.
+CI; release preparation and handoff assume workspace quality was verified locally.
 
 The supported CLI host is macOS; the tested baseline is macOS arm64 with Flutter
 3.47.2 and Dart 3.13.2. The SDK constraint is Dart >=3.13.2 <4.0.0, but it is not an

@@ -54,8 +54,9 @@ apply. The tester smoke builds no native app and boots no Simulator.
 Install the `.tool-versions` pin of Lefthook (2.2.1) with mise and install ffmpeg
 (including ffprobe) separately, then enable hooks as described in
 [Contributing](../CONTRIBUTING.md). The hook fails when either
-encoder tool is missing, so real MP4 tests cannot silently skip. Release automation
-provides the tools on its macOS runner. They are not included in release assets.
+encoder tool is missing, so real MP4 tests cannot silently skip. Prepare these
+tools locally; release automation assumes the local gate passed and does not
+install or run Lefthook. The tools are not included in release assets.
 
 `mise exec -- lefthook run pre-commit --all-files` runs all workspace gates below through
 `tool/quality.sh`; website verification remains separate. Ordinary commits select
@@ -139,10 +140,10 @@ Keep Pages deployment on `develop` under the existing environment policy.
    stable version must exceed `main`, and its tag must not exist. Version edits
    and release notes are deliberately reviewed development changes.
 2. In Actions, select **Prepare release**, choose **main**, and enter the version
-   without `v`. The default **dry_run=true** validates the fixed develop SHA and
-   installs the pinned Lefthook with mise and runs the complete gate directly on
-   macOS without writing branches or PRs.
-   With dry run disabled, successful checks create `release/<version>` at that
+   without `v`. The default **dry_run=true** validates the version, ancestry, and
+   release metadata at the fixed develop SHA without writing branches or PRs.
+   It assumes workspace quality passed locally on that exact SHA.
+   With dry run disabled, successful validation creates `release/<version>` at that
    exact SHA and a Draft PR to `main`. If develop moves during verification, rerun.
    main must be an ancestor of develop; complete the previous back-sync first.
 3. Review and stabilize the candidate. Bot-created PR checks may require **Approve
@@ -151,8 +152,8 @@ Keep Pages deployment on `develop` under the existing environment policy.
    checks. No PAT or extra automation secret is required. Require current
    Git flow, local Lefthook, Documentation, and native acceptance before a human marks
    the PR ready and merges it. Prefer merge commits to retain branch ancestry.
-4. A merged release PR runs the full Lefthook gate again on its exact merge SHA. **Release
-   handoff** then saves a source archive, reviewed notes, and a manifest with the
+4. **Release handoff** assumes the local quality checks passed and saves a source
+   archive, reviewed notes, and a manifest from the exact merge SHA with the
    proposed tag and SHA as a 30-day Actions artifact. It creates no remote tag,
    GitHub Release (including draft), or pub.dev publication. Download before
    expiry; a separately authorized human publication must use that exact SHA.

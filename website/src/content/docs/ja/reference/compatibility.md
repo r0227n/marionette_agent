@@ -22,7 +22,7 @@ CLI package version、JSON `schemaVersion`、内部IPC `protocolVersion`、workf
 
 ## 対応環境と問い合わせ
 
-開発者はmacOSでmise管理の[Lefthook](https://lefthook.dev/)を使い、拡張子に応じたpre-commit品質検証を実行します。cloneやworktree作成後に固定版とhookを導入してください。セットアップ・対象ファイル・全検証は[Contributing](https://github.com/r0227n/marionette_agent/blob/develop/CONTRIBUTING.md)と[リリース検証](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/releasing.ja.md#ローカルの検証)を参照してください。文書の検証はCIに残り、リリース準備・引き継ぎもLefthookの全検証を再利用します。
+開発者はmacOSでmise管理の[Lefthook](https://lefthook.dev/)を使い、拡張子に応じたpre-commit品質検証を実行します。cloneやworktree作成後に固定版とhookを導入してください。セットアップ・対象ファイル・全検証は[Contributing](https://github.com/r0227n/marionette_agent/blob/develop/CONTRIBUTING.md)と[リリース検証](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/releasing.ja.md#ローカルの検証)を参照してください。文書の検証はCIに残り、リリース準備・引き継ぎはworkspace品質をローカル検証済みであることを前提とします。
 
 CLIの対応ホストはmacOSで、検証の基準はmacOS arm64、Flutter 3.47.2、Dart 3.13.2です。SDK制約はDart >=3.13.2 <4.0.0ですが、全SDK組合せの保証ではありません。Linux/Windowsホストは対応しません。iOS SimulatorにはXcode、AndroidにはSDK/adb、macOSとChromeには各runtimeが必要です。testerはFlutter UI向けで、native pluginやOS動作の確認には使えません。端末録画の権限と範囲はbackendごとに異なり、iOS実機録画には対応しません。
 
