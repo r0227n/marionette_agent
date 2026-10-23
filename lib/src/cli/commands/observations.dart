@@ -33,7 +33,10 @@ CliCommand snapshotCommand() {
 }
 
 CliCommand screenshotCommand() {
-  final parser = ArgParser()..addFlag('annotate', negatable: false);
+  final parser = ArgParser()
+    ..addFlag('annotate', negatable: false)
+    ..addOption('source', allowed: screenshotSources)
+    ..addOption('device');
   addSelectorOptions(parser);
   return CliCommand(parser, (args) {
     final rest = args.rest.toList();
@@ -48,6 +51,9 @@ CliCommand screenshotCommand() {
       invalid('Usage: screenshot [ref|selector] [--annotate] [path]');
     }
     if (rest.isNotEmpty) params['path'] = rest.single;
+    for (final option in ['source', 'device']) {
+      if (args.wasParsed(option)) params[option] = args.option(option);
+    }
     if (args.flag('annotate')) params['annotate'] = true;
     screenshotTarget(params);
     return params;

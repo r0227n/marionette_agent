@@ -338,7 +338,7 @@ void main() {
     final stderr = process.stderr.transform(utf8.decoder).join();
     // Leave EOF pending. Allow cold Dart compilation on a loaded CI host;
     // the CLI's own 150ms absolute request deadline is unchanged.
-    final code = await process.exitCode.timeout(const Duration(seconds: 15));
+    final code = await process.exitCode.timeout(const Duration(minutes: 1));
     expect(code, 5);
     expect((jsonDecode(await stdout) as Map)['error']['code'], 'TIMEOUT');
     expect(await stderr, '');

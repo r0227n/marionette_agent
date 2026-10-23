@@ -19,6 +19,7 @@ import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
 
 void main() {
   final cli = File('bin/marionette_agent.dart').absolute.path;
@@ -177,7 +178,11 @@ void main() {
       );
       daemon = DaemonServer(
         runtime,
-        SessionManager(() => backend, coreCommands()),
+        SessionManager(
+          () => backend,
+          coreCommands(),
+          screenCapturer: FakeScreenCapturer(png),
+        ),
       );
       serving = daemon.run();
       while (!File(runtime.metadata).existsSync()) {
@@ -328,6 +333,18 @@ void main() {
         expect(shot.content.whereType<Map>().last['type'], 'image');
         expect(base64Decode((shot.content.last as Map)['data'] as String), png);
         expect(await File('${temp.path}/shot.png').readAsBytes(), png);
+        final native = await call('screenshot', {
+          'source': 'ios-simulator',
+          'device': screenshotDevice,
+          'path': '${temp.path}/native.png',
+        });
+        expect(native.isError, false);
+        expect(response(native)['data']['capture']['device'], screenshotDevice);
+        expect(response(native)['data']['capture']['pixelWidth'], 3);
+        expect(
+          base64Decode((native.content.last as Map)['data'] as String),
+          png,
+        );
         final jpeg = await call('screenshot', {
           'path': '${temp.path}/shot.jpg',
           'format': 'jpeg',

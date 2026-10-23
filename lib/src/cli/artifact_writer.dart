@@ -49,6 +49,7 @@ Future<Json> saveScreenshots(
   }
   final images = <Uint8List>[];
   AnnotatedScreenshot? annotated;
+  Json? capture;
   try {
     for (final value in payloads) {
       checkDeadline();
@@ -58,6 +59,26 @@ Future<Json> saveScreenshots(
       if (decoded == null) throw const FormatException();
       checkDeadline();
       images.add(bytes);
+      if (data['capture'] case final Map metadata) {
+        if (payloads.length != 1 ||
+            data.containsKey('crop') ||
+            data.containsKey('annotations')) {
+          throw const AgentError(
+            'UNSUPPORTED_CAPABILITY',
+            'Native capture requires one unmodified device image',
+          );
+        }
+        capture = {
+          ...asJson(metadata),
+          'pixelWidth': decoded.width,
+          'pixelHeight': decoded.height,
+          'orientation': decoded.width == decoded.height
+              ? 'square'
+              : decoded.width > decoded.height
+              ? 'landscape'
+              : 'portrait',
+        };
+      }
       // Synchronous codecs cannot be interrupted; never publish late output.
       checkDeadline();
     }
@@ -216,6 +237,7 @@ Future<Json> saveScreenshots(
     checkDeadline();
     return {
       'paths': paths,
+      'capture': ?capture,
       if (data.containsKey('crop')) 'cropped': true,
       if (annotated != null) ...{
         'annotated': true,

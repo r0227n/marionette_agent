@@ -67,8 +67,9 @@ void main() {
       expect(File('${runtime.path}/daemon.json').existsSync(), false);
       expect(body(await cli(['session', 'list']))['data'], {'sessions': []});
     },
-    // This covers many cold CLI processes, not a product response deadline.
-    timeout: const Timeout(Duration(minutes: 2)),
+    // Many cold CLI processes may each take 15–20s on a loaded host.
+    // This harness limit is separate from every product response deadline.
+    timeout: const Timeout(Duration(minutes: 6)),
   );
   test('stale socket recovery and private runtime files', () async {
     final socket = await ServerSocket.bind(
@@ -203,7 +204,7 @@ void main() {
       expect(syntax.stderr, isNot(contains('secret')));
     },
     // Hosted cold CLI startup consumed almost 60s; operation deadlines stay local.
-    timeout: const Timeout(Duration(minutes: 2)),
+    timeout: const Timeout(Duration(minutes: 6)),
   );
 
   test(
@@ -240,7 +241,7 @@ void main() {
       );
     },
     // Eight cold CLI requests share this harness budget, not an operation budget.
-    timeout: const Timeout(Duration(minutes: 2)),
+    timeout: const Timeout(Duration(minutes: 6)),
   );
   test('compiled executable starts the same binary in daemon mode', () async {
     final output = '${runtime.path}/compiled';

@@ -58,5 +58,7 @@ steps:
   - id: add-log
     action: tap
     target: {key: log_button}
+  - id: capture-bottom
+    action: screenshot
   - id: inspect-bottom
     action: snapshot

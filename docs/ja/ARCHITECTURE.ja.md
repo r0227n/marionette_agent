@@ -131,7 +131,7 @@ Skillの互換JSONは`SkillsOutput`の専用境界で生成し、protocolのResu
 | tap | tap |
 | fill | enterText |
 | swipe / 初版scroll | swipe |
-| screenshot | takeScreenshots |
+| screenshot (source=flutter) | takeScreenshots |
 | screenshot --annotate | callCustomExtensionで固定名marionette_agent.captureMappedScreenshotを呼ぶ（opt-in providerが必要） |
 | logs | getLogs |
 
@@ -144,6 +144,18 @@ Backend interfaceはconnect、disconnect、inspect、tap、fill、swipe、captur
 固定binding 0.6.0はRenderViewのlayerをFlutterView.physicalSizeへ描画し、maxScreenshotSize設定時にはfloorした寸法へresizeする。失敗viewを画像配列から除くため、配列indexをview IDと見なせない。ElementInfo.boundsはRenderBox.localToGlobal(Offset.zero)とsizeであり、通常応答は対応metadataを含まない。このため通常takeScreenshotsの結果を注釈へ流用しない。example/lib/mapped_screenshot.dartはdebug時にopt-in providerを登録し、単一RenderViewのlayerから未resize画像とそのviewの明示geometryを一緒に返す。capture中のview数・identity・physicalSize・devicePixelRatio変更は非対応として返す。上流パッケージの変更、隣接repoへのpath依存、overlay注入は不要。一般binding対応には同等のcapture metadata契約の上流提供が必要であり、現時点ではexample provider構成だけが実環境検証対象である。
 
 SnapshotService.annotationTargetsは公開済みrefsを再観測して照合する読み取り専用経路である。capture前後に照合し、refを新規発行・失効しない。CLIのscreenshot_annotationは純粋なPNG合成境界で、bounds不備とラベル配置不足を明示的に省略する。artifact_writerが元bytesとは別のPNGを排他的に保存し、同じdeadlineをdecode・合成・encode・保存まで確認する。一般の独自拡張CLIは引き続き対象外で、固定名providerはSPECの限定例外である。
+
+<a id="native-screen-capture"></a>
+## ネイティブ画面取得
+
+`platform_interface/ScreenCapturer`と`DeviceScreenshot`は、CLIに依存せずPNG bytesと端末由来metadataを定義する。`marionette_agent_ios/IosScreenCapturer`がSDK検出、UDID完全一致、iOS一覧のfilter、simctl引数、上限付きbinary stdout、stderr破棄、プロセス期限・終了を所有する。`lib/src/platform/screen_capture.dart`が実装を選び、個別handlerやMarionette adapterにはOSコマンドを置かない。実機sourceは取得前に明示的に拒否する。
+
+`commands/screenshot_request.dart`は実行状態に依存せずCLI/IPC/workflow引数を検証する。`CommandContext.captureDeviceScreen`がplatform errorを変換し、共通Executionを取得前後に確認する。SessionManagerはnative取得とnativeのみのworkflowに未接続sessionの予約を認め、混在workflowは従来どおり接続とselectorを事前確認する。撮影はqueueと期限を共用し、Flutter backendの呼出しや成功時のref失効を行わない。
+
+共通`artifact_writer`がPNG検証、物理寸法・画像縦横比の算出、取得元保持、JPEG変換、出力予約・cleanupを担当し、native専用の保存処理は複製しない。WorkflowExecutionはfinalSnapshotを保持しながら画像payloadを集め、callerの`workflow_artifacts`が実行成功後だけ同じwriterで保存する。保存失敗は新規workflow画像を削除し、完了した実行進捗と`phase:screenshot-save`を返す。完了済みUI操作は再送しない。合計IPC応答には既存frame上限を適用する。MCPは型付きsource/deviceをCLIへ渡す。
+
+exampleのdebug限定iOS channelは本物のPhotos権限画面とPHPickerを表示し、選択写真の読込・ログ出力はしない。所有プロセスのfixtureで端末選択とtimeoutを、差替え可能なScreenCapturerでsession・workflow・保存・MCPの契約をテストする。
+
 
 <a id="ipc-and-daemon-startup"></a>
 <a id="ipcとdaemon起動"></a>

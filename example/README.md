@@ -62,7 +62,7 @@ debug構成は`lib/mapped_screenshot.dart`の固定名providerを登録する。
 
 ## Workflow検証
 
-全コマンドをiOS/Androidで確認する手順は [全コマンドの動作確認](../docs/ja/runtime-verification.ja.md) を参照してください。全6 actionを含む `all-actions.yaml` と、接続・観測・録画・終了まで実行する `all_commands_smoke.dart` を提供します。
+全コマンドをiOS/Androidで確認する手順は [全コマンドの動作確認](../docs/ja/runtime-verification.ja.md) を参照してください。全7 actionを含む `all-actions.yaml` と、接続・観測・録画・終了まで実行する `all_commands_smoke.dart` を提供します。
 
 Controls/Aboutのタブ（controls_tab/about_tab）とAbout画面のabout_contentをworkflow用に提供する。samples/workflows/reach-controls.yamlはタブ移動、wait、PageView swipe、snapshotを実行する。JSON版も同じ到達状態を検証する。
 
@@ -87,3 +87,9 @@ Advancedタブ（key: `advanced_tab`）に型付き入力・状態・double-tap�
 4環境の必要条件、非表示起動、接続・操作・録画、終了、トラブルシューティングは[ヘッドレス実行と録画](../docs/ja/headless.ja.md)にまとめています。
 
 FFmpegKit native assetsに合わせ、AndroidはAPI 26以上、macOSは13以上を対象とする。iOSは既存の15以上を維持する。録画変換はhost CLI側で行い、アプリのdebug provider登録でFFmpegの初期化は要らない。
+
+## iOSネイティブ画面取得のfixture
+
+debug iOSのAboutタブに`native_photo_permission`（Photos権限要求）と`native_photo_picker`（PHPicker）を用意する。専用Simulatorにダミー写真だけを追加し、通常画面→キーボード→権限画面→写真ピッカーを製品CLIの`--source ios-simulator --device <UDID>`で保存する。標準UIの操作・回転は人間または外部Simulator操作ツールで行い、製品CLIの機能と区別する。選択画像の読込・コピー・ログ出力はしない。権限ダイアログの初回状態は新規Simulatorまたは人間による権限リセットで用意する。撮影機能自身は権限を変更しない。
+
+通常Flutter撮影との比較、PNG/JPEG、縦横寸法・UDIDの照合、未接続撮影、停止端末・不正ID・複数起動・取得失敗を確認する。詳細は[日英captureガイド](../website/src/content/docs/ja/guides/capture.md)と[SPEC](../docs/ja/SPEC.ja.md#native-ios-screenshots)。

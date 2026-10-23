@@ -154,7 +154,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | 明示した始点から終点へスワイプ |
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | 要素の出現または消失を観測だけで待つ |
-| `screenshot [--annotate] [path]` | PNG（既定）またはJPEGを排他的に保存。明示path > `--screenshot-dir` > 一時ファイル。注釈は対応providerと直近の有効snapshotが必要 |
+| `screenshot [--source <source>] [--device <UDID>] [--annotate] [path]` | PNG（既定）またはJPEGを排他的に保存。明示path > `--screenshot-dir` > 一時ファイル。注釈は対応providerと直近の有効snapshotが必要 |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
 | `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
 | `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
@@ -182,11 +182,29 @@ scrollは初版では指定領域を既存swipe機構で操作する。direction
 - 共通`--timeout`は取得・転送・復号・白背景合成・JPEG変換・保存を含む元の絶対期限。codec処理前後・合成中・保存中に期限を確認し、期限後に成功を返さない。同期codecや進行中のOS I/Oの即時中断は保証しない。
 - 全画像の復号・変換が成功してから全保存先を排他的に予約し、書き込む。既存file/directory/symlinkはIO_ERRORで拒否する。途中の変換失敗は出力を作らず、予約・書込みの失敗やTIMEOUTではこの要求が作成した全fileと自動作成directoryの削除を試みる。既存fileを削除・上書きしない。OSがcleanupを拒否した場合は部分artifactが残る場合があり、成功pathsは返さない。意図的な予約後の差し替えは従来どおり保証外。
 
+<a id="native-ios-screenshots"></a>
+### iOSネイティブスクリーンショット（Issue #56）
+
+`screenshot --source flutter|ios-simulator|ios-device [--device <UDID>] [path]`で取得元を選ぶ。source省略時は従来の`flutter`を維持し、結果とtester対応も変えない。Flutterには接続済みsessionが必要で、deviceは拒否する。自動選択やfallbackは行わない。
+
+`ios-simulator`には、既定CoreSimulator device set内のUUID形式UDID、macOS、simctlを含む選択済みの完全なXcodeが必要。VM ServiceやMarionette binding、選択sessionの接続は不要。撮影対象はsessionのアプリではなくUDIDで決まり、前面アプリの一致は確認しない。名前、`booted`、ID省略は起動端末が1台でもINVALID_ARGUMENT。利用可能なiOS Simulatorの一覧だけを対象とする。存在しない・停止済み端末はUNRESOLVABLE_TARGET、UDID重複はAMBIGUOUS_TARGET、SDK・host未対応はUNSUPPORTED_CAPABILITY、ネイティブ処理失敗はIO_ERROR、期限切れはTIMEOUT。不正PNGは既存のBACKEND_ERROR契約に従う。起動、UI操作、権限変更、retry、Flutterへのfallbackは行わない。
+
+internal displayを`--mask=ignored`で全解像度の矩形PNGとして取得する。表示中のOSダイアログ、ソフトウェアキーボード、ステータスバー、セーフエリアを含む。対象はシミュレートされた端末のframebufferであり、MacのSimulatorウィンドウではない。ウィンドウ倍率、Macデスクトップ、ウィンドウ枠、端末外枠は含まず、ノッチ・角丸maskも適用しない。画面保護やOS制約のある内容は取得を保証せず、制限も回避しない。専用端末とダミーデータを使う。
+
+native成功dataは`paths`に加え、`capture:{source,device,runtime,display,scope,mask,coordinateSpace,pixelWidth,pixelHeight,orientation}`を返す。値は`source:ios-simulator`、`display:internal`、`scope:device-screen`、`mask:ignored`、`coordinateSpace:physical-pixels`。寸法は取得PNGのdecode結果で、JPEGでも変えない。orientationは画像の縦横比（`portrait`・`landscape`・`square`）であり、センサー角度や内容の正立を保証する値ではない。現在のpixelを回転・resizeせず保存するため、回転完了を待って使う。Flutter論理座標との対応は定義しない。
+
+PNG/JPEG、品質、明示path > screenshot-dir > private一時保存、排他的作成、共通の絶対期限、失敗cleanupは既存artifact writerを使う。ネイティブ処理のbinary stdoutは32 MiB上限とし、private stderrを破棄、timeoutでは所有プロセスを停止する。ネイティブ側の画像一時ファイルは作らない。成功時のrefは保持する。nativeの`--annotate`、ref/selector cropはUNSUPPORTED_CAPABILITY。`diff screenshot`はFlutter専用のままでnative source指定を受け付けず、native画像をFlutter diffのbaselineとして使うことも対応対象外。
+
+MCP screenshotは`source`と`device`を受け取り、同じCLI経路でcapture metadataと従来のinline画像を返す。workflow v1には任意の`source/device/path`を持つ`screenshot` stepを追加する。画像保存と進捗は[workflow仕様](workflow-file-spec.ja.md#screenshots)に従う。
+
+`ios-device --device <id>`は常にUNSUPPORTED_CAPABILITY。実機をsimctlへ問い合わせない。`XCUIScreen.main.screenshot()`を使う署名済みXCTest UI-test runnerが別経路の候補だが、runner配布・署名、pairing・信頼、Developer Mode、OS/Xcode互換性は本実装で対応・検証していない。対応を宣言する実機OS版はない。[実現性調査](../native-ios-capture-feasibility.md)を参照。
+
+
 <a id="workflow-v1"></a>
 
 ### workflow v1
 
-workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
+workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`、`screenshot`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
 
 workflow内の操作対象はselectorだけを受理し、refと座標操作は受理しない。入力値は型付き参照でbindingし、文字列展開、環境変数展開、shell実行は行わない。`--timeout`はworkflow／inputsの読込、検証、daemonへの配送、queue待ち、全stepを含む絶対期限である。
 
