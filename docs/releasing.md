@@ -51,7 +51,7 @@ test contention. The CLI test runner's `--timeout=2m` includes cold child-proces
 JIT startup on hosted macOS; product deadlines and explicit test timeouts still
 apply. The tester smoke builds no native app and boots no Simulator.
 
-Install the `.tool-versions` pin of Lefthook (2.2.1) with mise and install ffmpeg
+Install the `.mise.toml` pin of Lefthook (2.2.1) with mise and install ffmpeg
 (including ffprobe) separately, then enable hooks as described in
 [Contributing](../CONTRIBUTING.md). The hook fails when either
 encoder tool is missing, so real MP4 tests cannot silently skip. Prepare these
@@ -61,7 +61,7 @@ install or run Lefthook. The tools are not included in release assets.
 `mise exec -- lefthook run pre-commit --all-files` runs all workspace gates below through
 `tool/quality.sh`; website verification remains separate. Ordinary commits select
 the workspace gate for `.dart`, `.yaml`, `.yml`, `.json`, and `.lock` files outside
-`website/`, as well as `.tool-versions`, CHANGELOG, license notices, bundled Skills,
+`website/`, as well as `.mise.toml`, CHANGELOG, license notices, bundled Skills,
 and hook tooling. Dart formatting first checks only staged surviving Dart paths;
 the workspace gate also checks the complete source tree, analysis, release metadata,
 notices, all tests, and the install/tester smoke. Deletions trigger workspace checks

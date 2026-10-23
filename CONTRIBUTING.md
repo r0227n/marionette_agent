@@ -11,8 +11,9 @@ follow the repository's branch/worktree rules and keep changes focused. The root
 workspace resolves CLI, util, and example together.
 
 Use [mise](https://mise.jdx.dev/) to manage [Lefthook](https://lefthook.dev/).
-Run `mise install` at the repository root to install the version pinned in
-`.tool-versions` (2.2.1), and install ffmpeg separately (`brew install ffmpeg`).
+Run `mise install` at the repository root to install the pinned versions in
+`.mise.toml` (Lefthook 2.2.1 and Bun 1.4.2), and install ffmpeg separately
+(`brew install ffmpeg`).
 Run `mise exec -- lefthook install` once after cloning and in each new worktree.
 The installed Git hook also invokes Lefthook through mise, using the same pin.
 Resolve dependencies once at the root with

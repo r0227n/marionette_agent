@@ -16,7 +16,7 @@ pre-commit:
       # Without a file template, deleted paths also participate in selection.
       glob:
         - '**/*.{dart,yaml,yml,json,lock}'
-        - '.tool-versions'
+        - '.mise.toml'
         - 'CHANGELOG.md'
         - 'LICENSE'
         - 'NOTICE'

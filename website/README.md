@@ -4,7 +4,7 @@ Astro + Starlight documentation with English as the default public language and 
 
 ## Local development
 
-Use Bun 1.4.2, pinned by `.tool-versions` and `package.json`’s `packageManager`. With mise, run `mise install` in `website/` to select the pinned runtime. Run all commands below from this directory.
+Use Bun 1.4.2, pinned by the repository root's [`.mise.toml`](../.mise.toml) and `package.json`’s `packageManager`. With mise, run `mise install` from the root or `website/` to select the pinned runtime. CI reads `packageManager` through `website/package.json` without installing Lefthook. Run all commands below from this directory.
 
 ```sh
 bun install --frozen-lockfile

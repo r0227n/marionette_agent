@@ -45,7 +45,8 @@ class QualityHooks(unittest.TestCase):
             path.chmod(0o755)
         self.log = self.root / 'commands.jsonl'
         self.env = dict(os.environ, PATH=f'{self.bin}:{os.environ["PATH"]}',
-                        QUALITY_LOG=str(self.log), LEFTHOOK_VERBOSE='0')
+                        QUALITY_LOG=str(self.log), LEFTHOOK_VERBOSE='0',
+                        MISE_TRUSTED_CONFIG_PATHS=str(self.root))
         # Do not inherit the caller's Git hook context into the fixture repository.
         for key in list(self.env):
             if key.startswith('GIT_') or key in ('LEFTHOOK', 'LEFTHOOK_EXCLUDE'):
@@ -54,7 +55,7 @@ class QualityHooks(unittest.TestCase):
         self.git('config', 'user.name', 'Hook test')
         self.git('config', 'user.email', 'hook@example.test')
         self.git('config', 'commit.gpgsign', 'false')
-        for name in ('lefthook.yml', '.tool-versions', 'tool/quality.sh'):
+        for name in ('lefthook.yml', '.mise.toml', 'tool/quality.sh'):
             self.write(name, (SOURCE / name).read_text())
         for directory in ('lib', 'packages/marionette_agent_util', 'example'):
             self.write(f'{directory}/fixture.dart', 'void main() {}\n')
@@ -86,13 +87,15 @@ class QualityHooks(unittest.TestCase):
             if self.log.exists() else []
 
     def test_extension_and_distribution_inputs_run_complete_gate(self):
-        for name in ('lib/new.dart', 'pubspec.yaml', 'pubspec.lock',
+        for name in ('.mise.toml', 'lib/new.dart', 'pubspec.yaml', 'pubspec.lock',
                      'analysis_options.yaml', 'samples/workflows/new.yml',
                      'samples/workflows/new.json', 'test/fixtures/new.json',
                      'CHANGELOG.md', 'THIRD_PARTY_NOTICES.txt', 'LICENSE',
                      'NOTICE', 'skill-data/core/SKILL.md', 'tool/check.sh'):
             with self.subTest(name=name):
-                self.stage(name, 'void main() {}\n')
+                text = (SOURCE / name).read_text() + '\n# changed\n' \
+                    if name == '.mise.toml' else 'void main() {}\n'
+                self.stage(name, text)
                 self.run_process([LEFTHOOK, 'run', 'pre-commit'])
                 calls = self.calls()
                 self.assertIn(['flutter', ['pub', 'get', '--enforce-lockfile']], calls)
