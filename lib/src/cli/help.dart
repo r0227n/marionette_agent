@@ -21,6 +21,8 @@ String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
     'scroll uses finger movement direction; reaching content is not guaranteed.\n'
     'screenshot [--annotate] [path] | logs\n'
+    '  --platform android --device <serial> [--display 0]: native Emulator screen.\n'
+    '  Default: flutter. Native capture has no Flutter crop/annotation or fallback.\n'
     '  --annotate requires a valid snapshot and an opt-in mapped screenshot provider.\n'
     'Screenshot destination: explicit path > --screenshot-dir > temporary directory.\n'
     'Screenshot directories must exist; --screenshot-dir must not be a symlink.\n'

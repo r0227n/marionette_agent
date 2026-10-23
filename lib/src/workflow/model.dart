@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../commands/screenshot_request.dart';
+
 import '../backend/backend.dart';
 import '../commands/wait_request.dart';
 import '../protocol/protocol.dart';
@@ -201,6 +203,18 @@ class WorkflowPlan {
               target.values.single as String,
             );
       final params = <String, Object?>{...target};
+      if (action == 'screenshot') {
+        for (final key in [
+          'path',
+          'platform',
+          'device',
+          'display',
+          'annotate',
+        ]) {
+          if (step.containsKey(key)) params[key] = step[key];
+        }
+        screenshotTarget(params);
+      }
       if (action == 'fill') {
         final text = asJson(step['text']);
         if (text.containsKey('literal')) {

@@ -118,7 +118,9 @@ String render(
   }
   if (data['completedSteps'] case final int count) {
     final snapshot = data['finalSnapshot'];
+    final screenshots = data['screenshots'] as List?;
     return 'Workflow ${data['workflow']}: $count steps completed'
+        '${screenshots == null ? '' : '\nScreenshots: ${jsonEncode(screenshots)}'}'
         '${snapshot == null ? '\nRun snapshot to inspect the current UI.' : '\n${render(Result.success(result.session, asJson(snapshot)), json: false)}'}';
   }
   final field = data['elements'] is List

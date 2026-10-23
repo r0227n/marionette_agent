@@ -40,12 +40,13 @@ Every step requires a unique id (`^[A-Za-z][A-Za-z0-9_-]{0,63}$`) and an action.
 | Action | Additional fields |
 | --- | --- |
 | snapshot | None |
+| screenshot | Optional path, platform, device, display, annotate, target |
 | tap | target |
 | fill | target, text |
 | swipe / scroll | target, direction, optional distance |
 | wait | target, state, optional timeoutMs/pollIntervalMs |
 
-Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Binding 0.6.0 does not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, screenshots, and logs.
+Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Binding 0.6.0 does not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, and logs.
 
 Swipe/scroll direction is left/right/up/down and describes finger movement. Distance is finite and positive, defaulting to 200 logical pixels. Scroll uses the same swipe primitive. Success means gesture completion, not arrival at a particular content position.
 
@@ -101,7 +102,7 @@ The workflow occupies its session queue until completion; other requests cannot 
 
 Schema errors in later steps, binding, and selector capabilities are checked before any UI access. Each step gets a fresh Execution with the same one-mutation limit as regular commands. Old Futures completing after timeout/disconnection cannot update progress, run subsequent steps, or affect reconnected refs. Execution stops at the first failure without rollback, retry, resume, or automatic replay of the workflow.
 
-Snapshot publishes refs. The last snapshot inside the workflow becomes a candidate; later tap/fill/swipe/scroll discards it, while wait preserves it. Preexisting snapshots and snapshots from failed workflows are not returned. Returned refs remain the latest public snapshot after queue release but expire on another snapshot/mutation/close/reconnect. Reobserve on STALE_REF instead of rerunning the workflow.
+Snapshot publishes refs. The last snapshot inside the workflow becomes a candidate; later tap/fill/swipe/scroll discards it, while wait and screenshot preserve it. Preexisting snapshots and snapshots from failed workflows are not returned. Returned refs remain the latest public snapshot after queue release but expire on another snapshot/mutation/close/reconnect. Reobserve on STALE_REF instead of rerunning the workflow.
 
 <a id="results"></a>
 ## Success and failure results
@@ -131,3 +132,10 @@ Workflow content, inputs, resolved params, and fill values are not copied into d
 - [workflow_runner.dart](../lib/src/workflow/workflow_runner.dart): execution and progress.
 - [wait.dart](../lib/src/commands/wait.dart): conditions.
 - [workflow_model_test.dart](../test/workflow_model_test.dart), [workflow_cli_test.dart](../test/workflow_cli_test.dart), [workflow_execution_test.dart](../test/workflow_execution_test.dart): boundary verification.
+
+<a id="screenshots"></a>
+## Screenshot steps
+
+`screenshot` shares standalone capture validation. Platform defaults to flutter; android requires an explicit device serial and supports only string display `"0"`. Flutter may use target or annotate, never both. Native mode rejects both. Path is relative to the caller’s cwd; omitted paths use the common screenshot directory/temporary rule. Common screenshot format/quality/directory options apply to all steps. Invalid path extensions are rejected locally before any workflow action.
+
+Workflow run still requires a connected session. Native capture itself never calls the Marionette backend. Images are captured in step order, with at most 48 MiB of accumulated base64 image data. Persistence happens on the CLI only after every step succeeds, within the original deadline. Success adds `screenshots:[{stepId,paths,capture?}]` (and existing annotation/crop metadata where applicable). No raw images appear in the public result. Text output includes the saved screenshot results. Failed execution publishes no images; a saving failure attempts to remove this request’s already-created files/directories and reports `phase:"screenshot-save"`, known completedSteps and no successful paths. Already executed UI actions are not rolled back. If cleanup is refused by the OS, artifacts may remain.

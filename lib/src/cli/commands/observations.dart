@@ -33,7 +33,11 @@ CliCommand snapshotCommand() {
 }
 
 CliCommand screenshotCommand() {
-  final parser = ArgParser()..addFlag('annotate', negatable: false);
+  final parser = ArgParser()
+    ..addFlag('annotate', negatable: false)
+    ..addOption('platform', allowed: ['flutter', 'android'])
+    ..addOption('device')
+    ..addOption('display');
   addSelectorOptions(parser);
   return CliCommand(parser, (args) {
     final rest = args.rest.toList();
@@ -49,6 +53,9 @@ CliCommand screenshotCommand() {
     }
     if (rest.isNotEmpty) params['path'] = rest.single;
     if (args.flag('annotate')) params['annotate'] = true;
+    for (final option in ['platform', 'device', 'display']) {
+      if (args.wasParsed(option)) params[option] = args.option(option);
+    }
     screenshotTarget(params);
     return params;
   });

@@ -94,6 +94,27 @@ Parent directories must exist. A symlink at the specified directory itself is re
 
 Annotations require a mapped provider and a valid snapshot. Metadata includes `annotated`, `generation`, `annotationCount`, and `skippedAnnotations`. Omission reasons are `missing_or_invalid_bounds`, `bounds_outside_view`, and `label_space_exhausted`. Target changes across capture produce STALE_REF. Multiple images, relative rotation, unknown image/view mapping, and PNG dimension mismatches produce UNSUPPORTED_CAPABILITY. JPEG conversion follows annotation on PNG. Refs are preserved. Cropping and annotation cannot be combined.
 
+<a id="native-android-capture"></a>
+## Native Android screenshot contract
+
+`screenshot [path] --platform android --device <serial> [--display 0]` selects `adb exec-out screencap -p`. Omitted platform or `--platform flutter` preserves the existing Marionette path and result shape. Explicit Android capture is independent of VM Service, starts a daemon when needed, shares the session queue, and does not publish/invalidate refs on success. An otherwise unconnected temporary session is released after capture. It captures only the serial supplied by the caller; no device discovery fallback is used. MCP `screenshot` accepts the same `platform`, `device`, and string `display` fields.
+
+Support is limited to Android Emulator (`emulator-<port>` and `ro.kernel.qemu=1`) on the supported macOS host. Physical devices are outside this release's scope. The backend requires a readable `dumpsys display` topology containing only display 0; additional or unidentifiable displays yield UNSUPPORTED_CAPABILITY. Supplying a display other than the string `"0"` is also rejected. The topology check is a preflight, not an atomic lock against external display reconfiguration.
+
+The output adds `capture:{source:"android-adb",platform:"android",device,display:0,scope:"entire-display",coordinateSpace:"physical-pixels",protectedContent:"not-detectable",width,height}` to `paths`. Width/height come from the decoded image. Portrait/landscape and resolution/density changes use the current composed display pixels without rescaling or mapping to Flutter logical coordinates. Visible status/navigation bars, IME and OS overlays are included; hidden bars are not synthesized. PNG/JPEG conversion, destination precedence, exclusive creation and rollback use the shared image writer. `--timeout` includes ADB inventory/topology/capture, conversion and saving; the owned ADB client is killed on timeout, without restarting the shared server. Binary output is limited to 32 MiB, and inventory/topology output to 1 MiB each.
+
+| Condition | Error |
+| --- | --- |
+| Missing/malformed serial, serial absent or duplicated in inventory | INVALID_ARGUMENT |
+| Unauthorized device | IO_ERROR, authorization explanation |
+| Offline/disconnected device | CONNECTION_LOST |
+| ADB missing/unstartable, unsupported hardware or display topology | UNSUPPORTED_CAPABILITY |
+| Capture deadline | TIMEOUT |
+| Reported permission/security denial, nonzero capture exit, oversized output | IO_ERROR |
+| Undecodable PNG | BACKEND_ERROR; no saved paths |
+
+Multiple connected devices are allowed only with an explicit serial. Neither authorization nor USB debugging settings are changed. Capture never switches to Flutter after a failure. Native annotation/crop are rejected before capture, and the diff command accepts no native source selection because a baseline's OS/Flutter coordinate correspondence cannot be established. `FLAG_SECURE` is honored by Android: content may be blank or capture may fail. Only explicit API failure is reported as denial; black-pixel heuristics are not used. See [ADB capture](https://developer.android.com/tools/adb#screencap) and [FLAG_SECURE](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#FLAG_SECURE).
+
 <a id="recording"></a>
 ## Recording lifetime and recovery
 

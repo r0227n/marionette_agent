@@ -102,7 +102,9 @@ class DaemonClient {
             ['start', 'restart'].contains(request.params['action']);
         if (request.command != 'connect' &&
             request.command != 'launch' &&
-            !startsRecording) {
+            !startsRecording &&
+            !(request.command == 'screenshot' &&
+                request.params['platform'] == 'android')) {
           if (request.command == 'record' &&
               request.params.length == 1 &&
               ['status', 'stop'].contains(request.params['action'])) {

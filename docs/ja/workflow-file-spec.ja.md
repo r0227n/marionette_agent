@@ -40,12 +40,13 @@ JSONはescape後に同名となるduplicate key、trailing comma、非有限numb
 | Action | 追加field |
 | --- | --- |
 | snapshot | なし |
+| screenshot | 任意のpath・platform・device・display・annotate・target |
 | tap | target |
 | fill | target、text |
 | swipe / scroll | target、direction、任意distance |
 | wait | target、state、任意timeoutMs/pollIntervalMs |
 
-targetはkey/identifier/text/typeのどれか1つを持つobjectで、値は空でないstring、照合は完全一致です。binding 0.6.0のidentifierは非対応で、含まれていれば最初のUIアクセス前にUNSUPPORTED_CAPABILITYです。ref、座標操作、snapshot filterはv1にありません。条件分岐、loop、並列、shell、include、接続寿命操作、screenshot、logsもありません。
+targetはkey/identifier/text/typeのどれか1つを持つobjectで、値は空でないstring、照合は完全一致です。binding 0.6.0のidentifierは非対応で、含まれていれば最初のUIアクセス前にUNSUPPORTED_CAPABILITYです。ref、座標操作、snapshot filterはv1にありません。条件分岐、loop、並列、shell、include、接続寿命操作、logsもありません。
 
 swipe/scrollのdirectionはleft/right/up/downで指の移動方向です。distanceは有限の正数、既定200 logical pixelsです。scrollは同じswipe primitiveを使います。成功はgesture処理完了で、到達位置を保証しません。
 
@@ -101,7 +102,7 @@ workflowは同じsessionのqueueを完了まで占有し、step間に別要求�
 
 後半stepのschema error、binding、selector capabilityも最初のUIアクセス前に確認します。各stepは新しいExecutionで通常コマンドと同じ1 mutation制約を使います。timeout・切断後の古いFutureは進捗・後続step・再接続後のrefを変更できません。最初の失敗で停止し、rollback・retry・途中再開・全体の自動再実行はしません。
 
-snapshotは公開refを発行します。workflow内の最後のsnapshotが候補となり、後続tap/fill/swipe/scrollで破棄、waitでは保持します。開始前のsnapshotや失敗時のsnapshotは返しません。返したrefはqueue解放後も最新snapshotとして残りますが、別要求のsnapshot/mutation/close/reconnectで失効します。STALE_REFならworkflowを再実行せず観測し直します。
+snapshotは公開refを発行します。workflow内の最後のsnapshotが候補となり、後続tap/fill/swipe/scrollで破棄、wait・screenshotでは保持します。開始前のsnapshotや失敗時のsnapshotは返しません。返したrefはqueue解放後も最新snapshotとして残りますが、別要求のsnapshot/mutation/close/reconnectで失効します。STALE_REFならworkflowを再実行せず観測し直します。
 
 <a id="results"></a>
 ## 成功・失敗の結果
@@ -131,3 +132,10 @@ workflow本文・inputs・解決済みparams・fill入力を診断や実行報�
 - [workflow_runner.dart](../../lib/src/workflow/workflow_runner.dart): 実行と進捗。
 - [wait.dart](../../lib/src/commands/wait.dart): 条件判定。
 - [workflow_model_test.dart](../../test/workflow_model_test.dart)、[workflow_cli_test.dart](../../test/workflow_cli_test.dart)、[workflow_execution_test.dart](../../test/workflow_execution_test.dart): 境界検証。
+
+<a id="screenshots"></a>
+## Screenshot step
+
+`screenshot`は単独撮影と引数検証を共有します。platformは既定flutterで、androidはdevice serial必須、displayは文字列`"0"`だけに対応します。Flutterはtargetまたはannotateを指定でき、両者の併用は不可です。ネイティブは両方を拒否します。pathは呼出元のcwd基準で、省略時は共通の撮影ディレクトリ・一時保存規則を使います。共通の画像形式・品質・ディレクトリ設定は全stepへ適用します。不正な拡張子はworkflowの操作前にCLIで拒否します。
+
+workflow runには引き続き接続済みsessionが必要です。ネイティブ撮影自体はMarionette backendを呼びません。画像をstep順に取得し、base64画像の蓄積は48 MiBまでとします。全stepの成功後、元のdeadline内でCLIが保存します。成功時は`screenshots:[{stepId,paths,capture?}]`を追加し、適用時は既存の注釈・crop metadataも含めます。公開結果に生の画像データを残さず、text出力にも保存結果を表示します。実行失敗時は画像を公開しません。保存失敗時はこの要求が作ったファイル・ディレクトリの削除を試み、`phase:"screenshot-save"`と既知のcompletedStepsを返し、成功pathを返しません。実行済みUI操作はrollbackしません。OSにcleanupを拒否された場合はartifactが残ることがあります。

@@ -1,3 +1,7 @@
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
+
+import '../platform/screen_capture.dart';
+
 import '../protocol/protocol.dart';
 import 'registry.dart';
 import 'swipe.dart';
@@ -12,7 +16,9 @@ import 'keyboard.dart';
 import 'drag.dart';
 
 /// Registers the initial product command set.
-CommandRegistry coreCommands() {
+CommandRegistry coreCommands({
+  ScreenCapturer capturer = defaultScreenCapturer,
+}) {
   final registry = CommandRegistry()
     ..register('swipe', handleSwipe)
     ..register('tap', handleTap)
@@ -25,7 +31,11 @@ CommandRegistry coreCommands() {
         'command': 'scroll',
       },
     )
-    ..register('screenshot', handleScreenshot)
+    ..register(
+      'screenshot',
+      (context, params) =>
+          handleScreenshot(context, params, capturer: capturer),
+    )
     ..register('logs', handleLogs)
     ..register('wait', handleWait)
     ..register('get', handleGet)

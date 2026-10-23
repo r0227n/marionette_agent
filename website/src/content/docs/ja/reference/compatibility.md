@@ -18,7 +18,7 @@ patchは既存契約に合わせる修正、minorは互換性のある機能追�
 
 CLIと`marionette_agent_flutter`は**同じリリースcheckout**から使用してください。これがサポートする組合せで、任意の異なるリリースの混在は保証しません。CLIは`marionette_agent_platform_interface`と`marionette_agent_{ios,android,macos,web,flutter}`の実装パッケージでworkspaceを構成します。旧`marionette_agent_util`は削除しました。アプリの依存は`marionette_agent_flutter`、providerのimportは`package:marionette_agent_flutter/flutter.dart`へ移してください。現在の上流は`marionette_mcp: 0.6.0`と`marionette_flutter: 0.6.0`です。stock bindingは基本capabilityを、任意のFlutter providerは追加capabilityを提供します。不足extensionは推測による代替でなく`UNSUPPORTED_CAPABILITY`を返します。
 
-CLI package version、JSON `schemaVersion`、内部IPC `protocolVersion`、workflow schema version、app extension versionは独立しています。この版ではJSON/workflowは1、IPCは7、app extensionは1を維持します。内部IPCは1.xの途中でも変更できます。更新前にsessionをcloseし、新binaryでdaemonを新規起動してください。snapshot、session、再接続、変更操作をまたいでrefを使い回さないでください。
+CLI package version、JSON `schemaVersion`、内部IPC `protocolVersion`、workflow schema version、app extension versionは独立しています。この版ではJSON/workflowは1、IPCは8、app extensionは1を維持します。内部IPCは1.xの途中でも変更できます。更新前にsessionをcloseし、新binaryでdaemonを新規起動してください。snapshot、session、再接続、変更操作をまたいでrefを使い回さないでください。
 
 ## 対応環境と問い合わせ
 

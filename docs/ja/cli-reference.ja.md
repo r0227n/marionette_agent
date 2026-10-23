@@ -94,6 +94,27 @@ install/upgradeはローカルsourceをAOTコンパイルし、隣接する専�
 
 注釈はmapped providerと有効snapshotが必要です。返却metadataは`annotated`、`generation`、`annotationCount`、`skippedAnnotations`です。省略理由は`missing_or_invalid_bounds`、`bounds_outside_view`、`label_space_exhausted`。capture前後の対象変更はSTALE_REF、複数画像・回転・不明な画像/view対応・PNG寸法不一致はUNSUPPORTED_CAPABILITYです。JPEGはPNGへ注釈後に変換します。refは更新しません。領域cropと注釈は併用できません。
 
+<a id="native-android-capture"></a>
+## Androidネイティブスクリーンショット契約
+
+`screenshot [path] --platform android --device <serial> [--display 0]`は`adb exec-out screencap -p`を選択します。platform省略または`--platform flutter`は既存のMarionette経路と結果形式を維持します。Android指定はVM Serviceから独立し、必要ならdaemonを起動してsession queueを共有します。成功時にrefを発行・失効させません。未接続の一時sessionは撮影後に解放します。指定されたserialだけを撮影し、端末の自動選択は行いません。MCP `screenshot`も同じ`platform`・`device`・文字列`display`を受け付けます。
+
+対応対象は、対応hostであるmacOS上のAndroid Emulator（`emulator-<port>`かつ`ro.kernel.qemu=1`）に限定します。実機はこの版の対象外です。`dumpsys display`でdisplay 0のみの構成を読めることを必須とし、追加displayや不明な構成はUNSUPPORTED_CAPABILITYで拒否します。displayに文字列`"0"`以外を指定した場合も拒否します。構成確認は事前確認であり、外部からのdisplay再構成を原子的にロックするものではありません。
+
+結果は`paths`に`capture:{source:"android-adb",platform:"android",device,display:0,scope:"entire-display",coordinateSpace:"physical-pixels",protectedContent:"not-detectable",width,height}`を追加します。width/heightは画像をデコードして得た寸法です。縦横回転や解像度・density変更後も合成済みdisplayのpixelを取得し、拡縮やFlutter論理座標への対応付けをしません。表示中のstatus/navigation bar・IME・OS overlayを含み、非表示のbarを補いません。PNG/JPEG変換、保存先優先順位、排他的作成、rollbackは共通画像writerを使います。`--timeout`はADBの端末一覧・構成確認・撮影・変換・保存を含み、timeout時は所有するADB clientだけを終了し、共有serverは再起動しません。画像出力は32 MiB、端末一覧・構成出力は各1 MiBまでです。
+
+| 条件 | エラー |
+| --- | --- |
+| serial省略・不正、一覧に存在しない・重複 | INVALID_ARGUMENT |
+| unauthorized | IO_ERROR、認証に関する説明 |
+| offline・切断 | CONNECTION_LOST |
+| ADB未導入・起動不能、未対応端末・display構成 | UNSUPPORTED_CAPABILITY |
+| 撮影期限超過 | TIMEOUT |
+| APIの権限・保護拒否、撮影の非0終了、出力上限超過 | IO_ERROR |
+| PNGデコード不能 | BACKEND_ERROR、保存済みpathなし |
+
+複数接続はserialを明示した場合だけ利用できます。認証やUSBデバッグ設定は変更しません。取得失敗時にFlutterへ切り替えません。ネイティブの注釈・cropは撮影前に拒否し、baselineとのOS/Flutter座標対応を確定できないためdiffコマンドはネイティブ取得元の指定を受け付けません。Androidの`FLAG_SECURE`を尊重し、保護対象が空白になる場合や撮影が失敗する場合があります。明示的なAPI失敗だけを拒否として報告し、黒pixelからの推測はしません。[ADB撮影](https://developer.android.com/tools/adb#screencap)・[FLAG_SECURE](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#FLAG_SECURE)を参照してください。
+
 <a id="recording"></a>
 ## 録画の寿命と復旧
 

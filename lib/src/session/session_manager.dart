@@ -108,7 +108,9 @@ class SessionManager {
       if (existing == null &&
           request.command != 'connect' &&
           request.command != 'launch' &&
-          request.command != 'record') {
+          request.command != 'record' &&
+          !(request.command == 'screenshot' &&
+              request.params['platform'] == 'android')) {
         throw const AgentError(
           'NOT_CONNECTED',
           'Session is not connected',
@@ -365,7 +367,10 @@ class SessionManager {
         }
         return show(session);
       default:
-        context.requireConnected();
+        if (!(request.command == 'screenshot' &&
+            request.params['platform'] == 'android')) {
+          context.requireConnected();
+        }
         return commands.dispatch(
           CommandContext(context, snapshots),
           request.command,

@@ -62,7 +62,7 @@ debug構成は`lib/mapped_screenshot.dart`の固定名providerを登録する。
 
 ## Workflow検証
 
-全コマンドをiOS/Androidで確認する手順は [全コマンドの動作確認](../docs/ja/runtime-verification.ja.md) を参照してください。全6 actionを含む `all-actions.yaml` と、接続・観測・録画・終了まで実行する `all_commands_smoke.dart` を提供します。
+全コマンドをiOS/Androidで確認する手順は [全コマンドの動作確認](../docs/ja/runtime-verification.ja.md) を参照してください。全7 actionを含む `all-actions.yaml` と、接続・観測・録画・終了まで実行する `all_commands_smoke.dart` を提供します。
 
 Controls/Aboutのタブ（controls_tab/about_tab）とAbout画面のabout_contentをworkflow用に提供する。samples/workflows/reach-controls.yamlはタブ移動、wait、PageView swipe、snapshotを実行する。JSON版も同じ到達状態を検証する。
 
@@ -87,3 +87,7 @@ Advancedタブ（key: `advanced_tab`）に型付き入力・状態・double-tap�
 4環境の必要条件、非表示起動、接続・操作・録画、終了、トラブルシューティングは[ヘッドレス実行と録画](../docs/ja/headless.ja.md)にまとめています。
 
 FFmpegKit native assetsに合わせ、AndroidはAPI 26以上、macOSは13以上を対象とする。iOSは既存の15以上を維持する。録画変換はhost CLI側で行い、アプリのdebug provider登録でFFmpegの初期化は要らない。
+
+## Androidネイティブ撮影fixture
+
+Android debug版のNativeタブ（`native_tab`）に`native_permission`、`native_photoPicker`（API 33以上）、`native_documentPicker`、`native_secureOn`、`native_secureOff`、`native_text_input`を配置する。権限要求・Photo Picker・ACTION_OPEN_DOCUMENT・FLAG_SECUREはAndroidのAPIを使う。カメラは権限ダイアログだけを要求し、撮影や読み取りは行わない。ダミー画像をEmulatorに用意し、OS UIを開いたまま製品CLIのAndroid screenshotで撮影する。secureOffはこのfixture自身のテスト用FLAG_SECUREを解除するためのボタンで、他アプリの保護を変更しない。縦横回転とIME・system barも保存画像で確認する。実機は本Issueの対応・検証範囲外。
