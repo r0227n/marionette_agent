@@ -30,13 +30,16 @@ Map<String, CliCommand> builtInCommands() => {
   'device': CliCommand(
     ArgParser()..addCommand(
       'list',
-      ArgParser()
-        ..addOption('platform', allowed: ['ios', 'android'], defaultsTo: 'ios'),
+      ArgParser()..addOption(
+        'platform',
+        allowed: ['ios', 'android', 'macos'],
+        defaultsTo: 'ios',
+      ),
     ),
     (args) {
       final child = args.command;
       if (child == null || args.rest.isNotEmpty || child.rest.isNotEmpty) {
-        invalid('Usage: device list [--platform ios|android]');
+        invalid('Usage: device list [--platform ios|android|macos]');
       }
       return {'platform': child.option('platform')};
     },

@@ -122,3 +122,8 @@ marionette-agent --session web-demo record start ./web.mov --platform web \
 Displays range from 1–999. Screen recording permission is required. The entire display, including other visible apps and OS dialogs, is captured. Chrome placement is neither checked nor followed when it moves. Device strings cannot contain localhost, remote hosts, credentials, queries, or fragments. Headless Chrome is unsupported in this mode.
 
 Web/macOS recordings on the same display are mutually exclusive. Tab closure, crashes, or debug disconnection produce CONNECTION_LOST, failed status, and an error from stop. Inspect the recovery path. See the [Web recording design](web-recording.md) for the implementation rationale and startup examples.
+
+<a id="native-capture"></a>
+## Native capture metadata
+
+MCP screenshot exposes `source: "flutter" | "macos"` and `display: 1..999`. Native capture adds `capture` to saved paths in both text and JSON. See [SPEC](SPEC.md#native-macos-screenshots) for display selection, Retina geometry, permission errors and protected-UI limitations, and the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/) for commands. `diff screenshot` remains Flutter-only. Workflow screenshot results return paths and metadata, while only the standalone MCP screenshot tool emits inline ImageContent.

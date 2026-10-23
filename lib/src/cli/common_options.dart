@@ -1,25 +1,9 @@
 import 'package:args/args.dart';
-import 'package:path/path.dart' as p;
 
 import '../protocol/protocol.dart';
+import '../artifacts/screenshot_format.dart';
+export '../artifacts/screenshot_format.dart';
 import '../protocol/command_scope.dart';
-
-enum ScreenshotFormat {
-  png('.png'),
-  jpeg('.jpg');
-
-  const ScreenshotFormat(this.extension);
-  final String extension;
-
-  String destinationPath(String path) {
-    final suffix = p.extension(path).toLowerCase();
-    if (suffix.isEmpty) return '$path$extension';
-    if (suffix != extension && !(this == jpeg && suffix == '.jpeg')) {
-      invalid('Screenshot extension must match --screenshot-format');
-    }
-    return path;
-  }
-}
 
 /// Single source for common grammar, defaults, recovery and typed values.
 class CommonOptions {

@@ -8,6 +8,7 @@ environment:
   sdk: ^3.13.2
 
 dependencies:
+  ffi: ^2.1.4
   marionette_agent_platform_interface:
     path: ../marionette_agent_platform_interface
 

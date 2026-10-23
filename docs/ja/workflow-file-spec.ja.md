@@ -44,8 +44,9 @@ JSONはescape後に同名となるduplicate key、trailing comma、非有限numb
 | fill | target、text |
 | swipe / scroll | target、direction、任意distance |
 | wait | target、state、任意timeoutMs/pollIntervalMs |
+| screenshot | 任意source・display・path・annotate・target。[screenshot step](#screenshot-steps)を参照 |
 
-targetはkey/identifier/text/typeのどれか1つを持つobjectで、値は空でないstring、照合は完全一致です。binding 0.6.0のidentifierは非対応で、含まれていれば最初のUIアクセス前にUNSUPPORTED_CAPABILITYです。ref、座標操作、snapshot filterはv1にありません。条件分岐、loop、並列、shell、include、接続寿命操作、screenshot、logsもありません。
+targetはkey/identifier/text/typeのどれか1つを持つobjectで、値は空でないstring、照合は完全一致です。binding 0.6.0のidentifierは非対応で、含まれていれば最初のUIアクセス前にUNSUPPORTED_CAPABILITYです。ref、座標操作、snapshot filterはv1にありません。条件分岐、loop、並列、shell、include、接続寿命操作、logsもありません。
 
 swipe/scrollのdirectionはleft/right/up/downで指の移動方向です。distanceは有限の正数、既定200 logical pixelsです。scrollは同じswipe primitiveを使います。成功はgesture処理完了で、到達位置を保証しません。
 
@@ -101,7 +102,7 @@ workflowは同じsessionのqueueを完了まで占有し、step間に別要求�
 
 後半stepのschema error、binding、selector capabilityも最初のUIアクセス前に確認します。各stepは新しいExecutionで通常コマンドと同じ1 mutation制約を使います。timeout・切断後の古いFutureは進捗・後続step・再接続後のrefを変更できません。最初の失敗で停止し、rollback・retry・途中再開・全体の自動再実行はしません。
 
-snapshotは公開refを発行します。workflow内の最後のsnapshotが候補となり、後続tap/fill/swipe/scrollで破棄、waitでは保持します。開始前のsnapshotや失敗時のsnapshotは返しません。返したrefはqueue解放後も最新snapshotとして残りますが、別要求のsnapshot/mutation/close/reconnectで失効します。STALE_REFならworkflowを再実行せず観測し直します。
+snapshotは公開refを発行します。workflow内の最後のsnapshotが候補となり、後続tap/fill/swipe/scrollで破棄、waitとscreenshotでは保持します。開始前のsnapshotや失敗時のsnapshotは返しません。返したrefはqueue解放後も最新snapshotとして残りますが、別要求のsnapshot/mutation/close/reconnectで失効します。STALE_REFならworkflowを再実行せず観測し直します。
 
 <a id="results"></a>
 ## 成功・失敗の結果
@@ -131,3 +132,10 @@ workflow本文・inputs・解決済みparams・fill入力を診断や実行報�
 - [workflow_runner.dart](../../lib/src/workflow/workflow_runner.dart): 実行と進捗。
 - [wait.dart](../../lib/src/commands/wait.dart): 条件判定。
 - [workflow_model_test.dart](../../test/workflow_model_test.dart)、[workflow_cli_test.dart](../../test/workflow_cli_test.dart)、[workflow_execution_test.dart](../../test/workflow_execution_test.dart): 境界検証。
+
+<a id="screenshot-steps"></a>
+## Screenshot step
+
+`screenshot`は任意の`source`（既定`flutter`、または`macos`）、`display`（整数1〜999、macosだけ必須）、`path`、`annotate`、selectorの`target`を受け付けます。nativeではannotation/targetを拒否します。全stepのshapeを実行前に検証します。CLIがpath・`--screenshot-dir`をcwd基準で解決し、共通の`--screenshot-format`/qualityと拡張子を照合して出力設定を送ります。直接IPCでは絶対pathが必要です。
+
+各stepは次の操作へ進む前に共通writerで取得・排他的保存を完了します。成功結果に`screenshots:[{stepId,paths,capture?}]`、失敗時は確認済み保存結果を`error.details.screenshots`に含めます。base64画像は返しません。以前のstepの保存はrollbackしません。保存中timeoutではそのstepで作ったfileだけを除去します。保存確定後に接続が切れて結果を届けられなかった場合、artifactが残ることがあります。UI操作の再送は行いません。screenshotは既存のtimeout/切断時を除きfinal snapshotとrefを保持します。annotation/cropには単独撮影と同じFlutter geometryの検証を使います。

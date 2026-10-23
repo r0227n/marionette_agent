@@ -1,7 +1,8 @@
 import '../backend/backend.dart';
+import '../platform/screenshot_service.dart';
 import '../protocol/protocol.dart';
-import '../snapshot/target.dart';
-import 'arguments.dart';
+import 'screenshot_request.dart';
+export 'screenshot_request.dart';
 import 'command_context.dart';
 
 Selector? snapshotFilter(Json params) {
@@ -41,30 +42,23 @@ Future<Json> handleSnapshot(CommandContext context, Json params) =>
       depth: params['depth'] as int?,
     );
 
-TargetQuery? screenshotTarget(Json params) {
-  final target = {...params}
-    ..remove('path')
-    ..remove('annotate');
-  if (target.isEmpty) return null;
-  if (params['annotate'] == true) {
-    invalid('Crop and annotation cannot be combined');
-  }
-  if (target.keys.any(
-    (key) =>
-        key != 'ref' && !SelectorKind.values.any((kind) => kind.name == key),
-  )) {
-    invalid('Invalid screenshot target');
-  }
-  return decodeTarget(target);
-}
-
-/// Images cross IPC; the CLI owns local path resolution and writing.
-Future<Json> handleScreenshot(CommandContext context, Json params) async {
+/// Standalone images cross IPC; workflow images are saved by the workflow runner.
+/// The caller owns local path resolution in both cases.
+Future<Json> handleScreenshot(
+  CommandContext context,
+  Json params, {
+  NativeScreenshotCapture captureNative = captureMacosScreenshot,
+}) async {
   final target = screenshotTarget(params);
   if ((params.containsKey('annotate') && params['annotate'] is! bool) ||
       (params.containsKey('path') &&
           (params['path'] is! String || (params['path'] as String).isEmpty))) {
     invalid('Usage: screenshot [--annotate] [path]');
+  }
+  if (screenshotSource(params) == 'macos') {
+    return context.read(
+      (_) => captureNative(params['display'] as int, context.deadline),
+    );
   }
   if (target != null) {
     final before = await context.observeTarget(target);

@@ -8,3 +8,4 @@ export 'src/application/owned_process.dart';
 export 'src/recording/process_recording.dart';
 export 'src/device_inventory.dart';
 export 'src/termination_signals.dart';
+export 'src/screen_capture_permission.dart';

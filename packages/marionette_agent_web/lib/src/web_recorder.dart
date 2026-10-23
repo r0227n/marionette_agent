@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 
-import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
+import 'package:marionette_agent_platform_interface/host_support.dart';
 
 const _lost = PlatformException(
   'CONNECTION_LOST',
@@ -16,7 +15,7 @@ const _lost = PlatformException(
 class WebScreenRecorder implements ScreenRecorder {
   const WebScreenRecorder(
     this.displayRecorder, {
-    this.captureAllowed = _captureAllowed,
+    this.captureAllowed = screenCaptureAllowed,
   });
   final bool Function() captureAllowed;
   final ScreenRecorder displayRecorder;
@@ -130,22 +129,6 @@ class WebScreenRecorder implements ScreenRecorder {
         hint: 'Start visible Chrome with a separate --user-data-dir and loopback --remote-debugging-port; use its exact page endpoint. Check debugging policy and access permissions.',
       );
     }
-  }
-}
-
-bool _captureAllowed() {
-  try {
-    final library = DynamicLibrary.open(
-      '/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics',
-    );
-    return library.lookupFunction<Bool Function(), bool Function()>(
-      'CGPreflightScreenCaptureAccess',
-    )();
-  } catch (_) {
-    throw const PlatformException(
-      'UNSUPPORTED_CAPABILITY',
-      'macOS screen recording permission API is unavailable',
-    );
   }
 }
 

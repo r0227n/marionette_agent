@@ -17,6 +17,20 @@ marionette-agent screenshot artifacts/after.jpg --screenshot-format jpeg
 
 pathを省略すると、専用の一時ディレクトリへ保存してパスを返します。`--screenshot-dir`で既存ディレクトリを指定することもできます。既存ファイルを上書きしません。
 
+## macOSの標準UIを含める
+
+接続済みsessionで、まずdisplay一覧を確認して対象番号を選びます。次はmain display（1）の例です。既定のFlutter撮影は変わりません。
+
+```sh
+marionette-agent device list --platform macos
+marionette-agent screenshot --source macos --display 1 artifacts/native.png
+marionette-agent screenshot --source macos --display 1 artifacts/native.jpg --screenshot-format jpeg
+```
+
+選択display全体を取得するため、他アプリや個人情報も写ります。共有前に画像を確認してください。現在表示中のfile panel・menu・取得可能な権限dialogを含みますが、別display・Space・非表示windowや保護UIは取得を保証しません。windowの移動に追従せず、遮蔽物もそのまま写ります。native撮影ではFlutterのref注釈・cropは使えません。
+
+実行元terminal/host appに画面収録権限が必要です。権限不足、対象消失、timeoutは失敗となり、Flutter画像へ切り替えません。結果の`capture`にdisplay番号・ID・画像pixel寸法・撮影範囲・倍率を返します。MCP screenshotも`source: "macos"`と整数`display`で同じ処理を使います。`diff screenshot`はFlutter画像専用です。
+
 ## refを画像へ重ねる
 
 ```sh

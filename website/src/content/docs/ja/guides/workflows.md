@@ -69,3 +69,20 @@ marionette-agent --session docs-demo workflow run observe-edit.yaml --json
 `--timeout`はファイル読込、検証、queue待ち、全stepを含む期限です。stepごとに時間がリセットされるわけではありません。
 
 [workflowファイル仕様](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/workflow-file-spec.ja.md)に全field、parser制限、上限、binding、失敗時の進捗を定義しています。
+
+## 途中の画面を保存する
+
+`screenshot` stepは単独コマンドと同じ取得・排他的保存を行い、保存完了後に次のstepへ進みます。`path`はCLIのcwd基準で、省略時は`--screenshot-dir`または一時領域です。形式・品質はworkflow呼出時の共通オプションで指定します。nativeはdisplay全体と他アプリを含み、annotation/cropを受け付けません。
+
+```yaml
+schemaVersion: 1
+name: capture-native
+steps:
+  - id: proof
+    action: screenshot
+    source: macos
+    display: 1
+    path: artifacts/native.png
+```
+
+結果の`screenshots`配列に`stepId`・`paths`・native時の`capture`を返します。後続stepが失敗しても保存済み画像は保持し、確認済み結果を`error.details.screenshots`に含めます。ファイル名を変えて再実行し、完了済みUI操作を自動再送しないでください。
