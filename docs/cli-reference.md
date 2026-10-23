@@ -86,6 +86,9 @@ Install/upgrade AOT-compiles local source and installs an adjacent dedicated `.m
 <a id="capture"></a>
 ## Image persistence and annotation edge cases
 
+Native screenshots select `--source ios-simulator --device <UDID>`; the default remains `flutter`. They need no connection and share all format/path/deadline rules above. Native results add `capture` with source, UDID, runtime, internal display, device-screen scope, ignored mask, physical-pixel coordinates, decoded pixel dimensions and raster orientation. Native annotation/crop and physical-device source are unsupported; diff remains Flutter-only. See the [native contract](SPEC.md#native-ios-screenshots). MCP screenshot accepts the same `source/device` fields; workflow screenshot steps share acquisition and the caller's saving rules.
+
+
 Start with the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/). An explicit path bypasses `--screenshot-dir` inspection. Directory-based names use `screen-<32 hex digits>.png` or `.jpg`; omitting both uses `screen.png` or `screen.jpg` in a private temporary directory. Multiple images add `-1`, `-2`, etc. before the extension.
 
 Accepted extensions are `.png` for PNG and `.jpg/.jpeg` for JPEG, case-insensitive while preserving spelling. Missing extensions are appended for the selected format. The extension does not infer the format. JPEG quality defaults to 90; 0 maps to encoder quality 1, and 100 is still lossy. PNG retains original bytes, dimensions, and transparency. JPEG retains dimensions and composites transparency onto white.

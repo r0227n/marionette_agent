@@ -314,7 +314,8 @@ steps:
       final step = <String, Object?>{
         'id': 's',
         'action': action,
-        if (action != 'snapshot') 'target': {'key': 'k'},
+        if (!['snapshot', 'screenshot'].contains(action))
+          'target': {'key': 'k'},
         if (action == 'fill') 'text': {'literal': ''},
         if (['swipe', 'scroll'].contains(action)) 'direction': 'left',
         if (action == 'wait') 'state': 'exists',

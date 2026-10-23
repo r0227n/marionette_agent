@@ -147,7 +147,7 @@ Idle time starts only after all session queues and request deliveries are idle; 
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | Swipes from an explicit start to end |
 | `scroll <ref> <direction> [--distance <n>]` | Sends a directional gesture to a scroll region; selectors also supported |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | Waits for appearance/disappearance through observation only |
-| `screenshot [--annotate] [path]` | Exclusively saves PNG (default) or JPEG. Explicit path > `--screenshot-dir` > temporary file. Annotation requires a supported provider and the latest valid snapshot |
+| `screenshot [--source <source>] [--device <UDID>] [--annotate] [path]` | Exclusively saves PNG (default) or JPEG. Explicit path > `--screenshot-dir` > temporary file. Annotation requires a supported provider and the latest valid snapshot |
 | `logs` | Retrieves binding-collected logs without subscription or indefinite waiting |
 | `record start <path> --platform <platform> --device <id>` | Starts device-screen recording without requiring VM Service |
 | `record status` / `record stop` | Queries recording state / stops and waits for video finalization |
@@ -175,11 +175,29 @@ Standalone `wait` defaults `state` to `exists` and also accepts `gone`. State an
 - Common `--timeout` is the original absolute deadline covering capture, transfer, decoding, white-background composition, JPEG conversion, and saving. It is checked before/after codecs, during composition, and during persistence; late success is forbidden. Immediate interruption of synchronous codecs or in-flight OS I/O is not guaranteed.
 - Only after every image decodes/converts successfully are all destinations exclusively reserved and written. Existing files/directories/symlinks yield IO_ERROR. Conversion failure creates no output. Reservation/write failure or TIMEOUT attempts to remove every file and automatic directory created by this request, never preexisting files. OS cleanup refusal may leave partial artifacts, but no successful paths are returned. Deliberate replacement after reservation remains outside the guarantee.
 
+<a id="native-ios-screenshots"></a>
+### Native iOS screenshots (Issue #56)
+
+`screenshot --source flutter|ios-simulator|ios-device [--device <UDID>] [path]` selects the acquisition source. Omitting source preserves the existing `flutter` default, response and tester support. Flutter requires a connected session and rejects device. There is no automatic source selection or fallback.
+
+`ios-simulator` requires an explicit UUID-shaped UDID in the default CoreSimulator device set, a macOS host and selected full Xcode with simctl. It needs no VM Service or Marionette binding and does not require the selected session to be connected. The UDID, not the session's app, determines the screen; the CLI does not verify which app is in the foreground. Names, `booted`, and omitted IDs are INVALID_ARGUMENT even with one booted device. Only available iOS Simulator inventory entries are considered. Missing/stopped targets yield UNRESOLVABLE_TARGET, duplicate UDIDs AMBIGUOUS_TARGET, missing SDK/host support UNSUPPORTED_CAPABILITY, native process failures IO_ERROR, and deadline expiry TIMEOUT. Invalid returned PNG uses the existing BACKEND_ERROR contract. No boot, UI action, permission change, retry, or Flutter fallback is performed.
+
+The internal display is captured as full-resolution rectangular PNG with `--mask=ignored`. Pixels include OS dialogs, the software keyboard, status bar and safe-area regions when visible. This is the simulated device framebuffer, not the Mac's Simulator window; window scale, Mac desktop, window borders and device bezel are excluded. Notch/corner masking is not applied. Protected or OS-restricted content is not guaranteed and restrictions are never bypassed. Use dedicated devices and dummy content.
+
+Successful native data retains `paths` and adds `capture:{source,device,runtime,display,scope,mask,coordinateSpace,pixelWidth,pixelHeight,orientation}`. Values include `source:ios-simulator`, `display:internal`, `scope:device-screen`, `mask:ignored`, and `coordinateSpace:physical-pixels`. Dimensions come from decoding the captured PNG and remain unchanged for JPEG. Orientation is the raster aspect (`portrait`, `landscape`, or `square`), not sensor angle or a promise of upright content. Capture preserves current pixels without rotating or resizing them; callers must wait for rotation to settle. It does not establish correspondence with Flutter logical coordinates.
+
+PNG/JPEG, quality, explicit path > screenshot-dir > private temporary storage, exclusive creation, shared absolute timeout and failure cleanup all use the existing artifact writer. The native process returns binary stdout (bounded to 32 MiB), drains private stderr, and is killed on timeout; no native staging image is created. Refs survive successful capture. Native `--annotate`, ref/selector crop return UNSUPPORTED_CAPABILITY. `diff screenshot` remains Flutter-only; native source options are not accepted there, and a native image is not a supported Flutter diff baseline.
+
+MCP screenshot accepts `source` and `device` and delegates to this same CLI route, preserving capture metadata plus its existing inline image behavior. Workflow v1 adds a `screenshot` step with optional `source/device/path`; its artifact and progress rules are defined in the [workflow reference](workflow-file-spec.md#screenshots).
+
+`ios-device --device <id>` always returns UNSUPPORTED_CAPABILITY. Physical devices are not queried through simctl. A separate signed XCTest UI-test runner using `XCUIScreen.main.screenshot()` is feasible, but runner provisioning, pairing/trust, Developer Mode and OS/Xcode compatibility are not implemented or verified here. No physical-device OS version is declared supported. See the [feasibility investigation](native-ios-capture-feasibility.md).
+
+
 <a id="workflow-v1"></a>
 
 ### Workflow v1
 
-Workflow v1 executes `snapshot`, `tap`, `fill`, `swipe`, `scroll`, and `wait` in declared order from JSON or restricted YAML. `run` occupies one queue entry in one session for all steps and stops at the first failure. There is no rollback of completed steps, automatic retry, or mid-workflow resume.
+Workflow v1 executes `snapshot`, `tap`, `fill`, `swipe`, `scroll`, `wait`, and `screenshot` in declared order from JSON or restricted YAML. `run` occupies one queue entry in one session for all steps and stops at the first failure. There is no rollback of completed steps, automatic retry, or mid-workflow resume.
 
 Workflow targets accept selectors only, not refs or coordinates. Inputs bind through typed references, without string expansion, environment expansion, or shell execution. `--timeout` is an absolute deadline covering workflow/input reading, validation, daemon delivery, queue waiting, and every step.
 

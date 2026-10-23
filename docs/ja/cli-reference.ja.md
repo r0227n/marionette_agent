@@ -86,6 +86,9 @@ install/upgradeはローカルsourceをAOTコンパイルし、隣接する専�
 <a id="capture"></a>
 ## 画像保存と注釈の境界条件
 
+ネイティブ撮影は`--source ios-simulator --device <UDID>`を指定し、既定は`flutter`のままです。接続不要で、上記の形式・path・期限契約を共用します。native結果の`capture`には取得元、UDID、runtime、internal display、device-screen範囲、ignored mask、物理pixel座標系、decodeした寸法と画像の縦横比を含めます。native注釈・crop・実機sourceは非対応で、diffはFlutter専用です。[native契約](SPEC.ja.md#native-ios-screenshots)を参照してください。MCP screenshotにも同じ`source/device`を指定でき、workflow screenshot stepも取得経路とcallerの保存契約を共用します。
+
+
 基本操作は[画像・動画ガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。明示pathがあれば`--screenshot-dir`を検査しません。directory指定時の自動名は`screen-<32桁hex>.png`または`.jpg`、両方省略時はprivate一時directoryの`screen.png`または`screen.jpg`です。複数画像は拡張子前に`-1`、`-2`を付けます。
 
 拡張子はPNGなら`.png`、JPEGなら`.jpg/.jpeg`で、大文字小文字を区別せず綴りを保持します。拡張子なしなら形式に応じて補います。形式の自動推定はしません。JPEG品質の既定は90、0はencoderの1と同じで、100もlosslessではありません。PNGは元のbytes・寸法・透過を保ちます。JPEGは同じ寸法で透過を白へ合成します。

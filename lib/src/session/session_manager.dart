@@ -5,6 +5,8 @@ import 'package:marionette_agent/src/platform/platform_services.dart';
 import '../backend/backend.dart';
 import '../backend/connection_uri.dart';
 import '../commands/batch.dart';
+import '../commands/screenshot_request.dart';
+import '../platform/screen_capture.dart';
 import '../commands/command_context.dart';
 import '../commands/registry.dart';
 import '../diagnostics/diagnostic_logging.dart';
@@ -23,8 +25,11 @@ class SessionManager {
     this.commands, {
     RecordService? recordings,
     ApplicationLauncher? launcher,
+    ScreenCapturer? screenCapturer,
   }) : recordings = recordings ?? RecordService(),
-       launcher = launcher ?? PlatformApplicationLauncher();
+       launcher = launcher ?? PlatformApplicationLauncher(),
+       screenCapturer = screenCapturer ?? platformScreenCapturer();
+  final ScreenCapturer screenCapturer;
   final RecordService recordings;
   final ApplicationLauncher launcher;
   final BackendFactory factory;
@@ -108,7 +113,13 @@ class SessionManager {
       if (existing == null &&
           request.command != 'connect' &&
           request.command != 'launch' &&
-          request.command != 'record') {
+          request.command != 'record' &&
+          !isNativeScreenshot(request.command, request.params) &&
+          !(request.command == 'workflow' &&
+              WorkflowPlan.decode(
+                request.params['workflow'],
+                inputs: request.params['inputs'],
+              ).nativeOnly)) {
         throw const AgentError(
           'NOT_CONNECTED',
           'Session is not connected',
@@ -215,6 +226,7 @@ class SessionManager {
         session,
         snapshots,
         commands,
+        screenCapturer: screenCapturer,
       ).run();
     } else {
       final execution = Execution(request, session);
@@ -365,9 +377,11 @@ class SessionManager {
         }
         return show(session);
       default:
-        context.requireConnected();
+        if (!isNativeScreenshot(request.command, request.params)) {
+          context.requireConnected();
+        }
         return commands.dispatch(
-          CommandContext(context, snapshots),
+          CommandContext(context, snapshots, screenCapturer: screenCapturer),
           request.command,
           request.params,
         );

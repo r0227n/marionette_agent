@@ -84,16 +84,17 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 
 ## 画像・動画・差分
 
-| 構文                                                    | 用途                                                |
-| ------------------------------------------------------- | --------------------------------------------------- |
-| `screenshot [PATH]`                                     | 画像を新規保存                                      |
-| `screenshot TARGET [PATH]`                              | 対象領域の画像                                      |
-| `screenshot --annotate [PATH]`                          | ref注釈付き画像。providerと有効snapshotが必要       |
-| `record start PATH --platform PLATFORM [--device ID]`   | 動画開始。Flutter描画はdevice不要                   |
-| `record restart PATH --platform PLATFORM [--device ID]` | 現在の録画を確定後、新規開始                        |
-| `record status` / `record stop`                         | 状態取得／確定して停止                              |
-| `diff snapshot --baseline PATH`                         | 保存したsnapshotとの差分                            |
-| `diff screenshot --baseline PATH`                       | 保存画像との差分。`--threshold`・`--output`も使用可 |
+| 構文                                                     | 用途                                                |
+| -------------------------------------------------------- | --------------------------------------------------- |
+| `screenshot [PATH]`                                      | 画像を新規保存                                      |
+| `screenshot --source ios-simulator --device UDID [PATH]` | OS UIを含むiOS Simulatorの画面。接続不要            |
+| `screenshot TARGET [PATH]`                               | 対象領域の画像                                      |
+| `screenshot --annotate [PATH]`                           | ref注釈付き画像。providerと有効snapshotが必要       |
+| `record start PATH --platform PLATFORM [--device ID]`    | 動画開始。Flutter描画はdevice不要                   |
+| `record restart PATH --platform PLATFORM [--device ID]`  | 現在の録画を確定後、新規開始                        |
+| `record status` / `record stop`                          | 状態取得／確定して停止                              |
+| `diff snapshot --baseline PATH`                          | 保存したsnapshotとの差分                            |
+| `diff screenshot --baseline PATH`                        | 保存画像との差分。`--threshold`・`--output`も使用可 |
 
 保存条件とプラットフォーム差は[画像と動画](/marionette_agent/ja/guides/capture/)を参照してください。
 

@@ -5,6 +5,7 @@ import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'mapped_screenshot.dart';
 import 'advanced_controls.dart';
+import 'native_capture_fixture.dart';
 
 final PrintLogCollector operationLogCollector = PrintLogCollector();
 
@@ -100,9 +101,7 @@ class _MarionetteAgentExampleScreenState
       body: _tab == 2
           ? const AdvancedControls()
           : _tab == 1
-          ? const Center(
-              child: Text('Workflow fixture', key: ValueKey('about_content')),
-            )
+          ? const NativeCaptureFixture()
           : ListView(
               key: const ValueKey('operation_scroll_area'),
               padding: const EdgeInsets.all(16),
