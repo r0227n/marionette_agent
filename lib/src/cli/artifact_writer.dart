@@ -49,6 +49,7 @@ Future<Json> saveScreenshots(
   }
   final images = <Uint8List>[];
   AnnotatedScreenshot? annotated;
+  Json? capture;
   try {
     for (final value in payloads) {
       checkDeadline();
@@ -56,6 +57,18 @@ Future<Json> saveScreenshots(
       final bytes = base64Decode(value);
       final decoded = PngDecoder().decode(bytes);
       if (decoded == null) throw const FormatException();
+      if (data['capture'] != null) {
+        if (payloads.length != 1 ||
+            data.containsKey('crop') ||
+            data.containsKey('annotations')) {
+          throw const FormatException();
+        }
+        capture = {
+          ...asJson(data['capture']),
+          'width': decoded.width,
+          'height': decoded.height,
+        };
+      }
       checkDeadline();
       images.add(bytes);
       // Synchronous codecs cannot be interrupted; never publish late output.
@@ -216,6 +229,7 @@ Future<Json> saveScreenshots(
     checkDeadline();
     return {
       'paths': paths,
+      'capture': ?capture,
       if (data.containsKey('crop')) 'cropped': true,
       if (annotated != null) ...{
         'annotated': true,

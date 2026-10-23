@@ -12,6 +12,7 @@ import '../protocol/protocol.dart';
 import '../workflow/model.dart';
 import '../workflow/schema_catalog.dart';
 import 'artifact_writer.dart';
+import 'workflow_screenshots.dart';
 import 'batch_loader.dart';
 import 'common_options.dart';
 import 'connection_state.dart';
@@ -120,6 +121,15 @@ Future<int> runCli(
               );
         final bind = params['bind'] == true;
         final plan = WorkflowPlan.decode(document, inputs: inputs, bind: bind);
+        for (final step in plan.steps.where(
+          (step) => step.action == 'screenshot',
+        )) {
+          if (step.params['path'] != null) {
+            invocation.options.screenshotFormat.destinationPath(
+              step.params['path'] as String,
+            );
+          }
+        }
         if (params['action'] == 'validate') {
           localData = {
             'workflow': plan.name,
@@ -273,6 +283,16 @@ Future<int> runCli(
         result = Result.success(
           session,
           await compareObservation(params, baseline, result.data!, deadline),
+        );
+      }
+      if (workflow && result.error == null) {
+        result = Result.success(
+          session,
+          await saveWorkflowScreenshots(
+            result.data!,
+            invocation.options,
+            deadline,
+          ),
         );
       }
       if (invocation.command == 'screenshot' && result.error == null) {

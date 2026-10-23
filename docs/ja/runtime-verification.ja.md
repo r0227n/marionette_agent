@@ -2,9 +2,9 @@
 
 [English](../runtime-verification.md) · [日本語の目次](README.md)
 
-[all-actions.yaml](../../samples/workflows/all-actions.yaml) はworkflow v1の全6 actionを使う16ステップのシナリオです。Aboutへの移動・復帰、tap、fill、PageViewのswipe、scroll、wait、snapshotを実行します。対象はリポジトリの [exampleアプリ](../../example/README.md) です。
+[all-actions.yaml](../../samples/workflows/all-actions.yaml) はworkflow v1の全7 actionを使う17ステップのシナリオです。Aboutへの移動・復帰、tap、fill、PageViewのswipe、scroll、wait、snapshot、screenshotを実行します。対象はリポジトリの [exampleアプリ](../../example/README.md) です。
 
-workflow v1には接続、get、画像、ログ、録画などのactionがありません。それらは [all_commands_smoke.dart](../../integration_test/all_commands_smoke.dart) が製品CLIの別プロセスとして実行します。YAMLの検証と実行も同じスクリプトに含みます。iOSとAndroidで同じシナリオを使い、端末IDとrecordのplatformだけを切り替えます。
+workflow v1には接続、get、ログ、録画などのactionがありません。それらは [all_commands_smoke.dart](../../integration_test/all_commands_smoke.dart) が製品CLIの別プロセスとして実行します。YAMLの検証と実行も同じスクリプトに含みます。iOSとAndroidで同じシナリオを使い、端末IDとrecordのplatformだけを切り替えます。
 
 ## 準備
 
@@ -73,9 +73,9 @@ dart run integration_test/all_commands_smoke.dart
 | `wait` | ページ・画面要素のexists、About移動後のControlsのgone |
 | `screenshot` | PNG、JPEG、注釈PNGが復号可能。別途目視で画面と注釈位置を確認 |
 | `logs` | Add log entry操作による `manual log entry added` を取得 |
-| `workflow schema` | 全体schemaと6 actionそれぞれのschemaを取得 |
-| `workflow validate` | all-actions.yamlの16ステップをbinding込みで検証 |
-| `workflow run` | 16ステップ完了、Bottom reached、finalSnapshotのrefを別CLIで使用、カウンタ合計3 |
+| `workflow schema` | 全体schemaと7 actionそれぞれのschemaを取得 |
+| `workflow validate` | all-actions.yamlの17ステップをbinding込みで検証 |
+| `workflow run` | 17ステップ完了、Bottom reached、finalSnapshotのrefを別CLIで使用、カウンタ合計3 |
 | `record start` / `record status` / `record stop` | 対象platformで録画継続、MP4確定、stop再実行で同じ成果物。別途動画内容を確認 |
 | `close` / `close --all` | 通常close後の再接続、全close後0件、未接続エラー、daemonのsocket/metadata消失 |
 

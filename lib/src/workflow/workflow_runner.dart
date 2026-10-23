@@ -22,6 +22,8 @@ class WorkflowExecution {
   WorkflowStep? activeStep;
   int? activeIndex;
   Json? finalSnapshot;
+  final captures = <Json>[];
+  int captureBytes = 0;
   void check() {
     if (stopped || session.epoch != epoch) {
       throw const AgentError('CONNECTION_LOST', 'Workflow generation retired');
@@ -94,10 +96,28 @@ class WorkflowExecution {
           () => commands.dispatch(context, step.action, step.params),
         );
         check();
+        if (step.action == 'screenshot') {
+          captureBytes += (result['images'] as List).cast<String>().fold<int>(
+            0,
+            (sum, image) => sum + image.length,
+          );
+          // Leave headroom for snapshots and the result envelope in 64 MiB IPC.
+          if (captureBytes > 48 * 1024 * 1024) {
+            throw const AgentError(
+              'IO_ERROR',
+              'Workflow screenshot payload exceeds 48 MiB',
+            );
+          }
+          captures.add({
+            'stepId': step.id,
+            'path': step.params['path'],
+            'data': result,
+          });
+        }
         completed++;
         if (step.action == 'snapshot') {
           finalSnapshot = result;
-        } else if (step.action != 'wait') {
+        } else if (step.action != 'wait' && step.action != 'screenshot') {
           finalSnapshot = null;
         }
       }
@@ -106,6 +126,7 @@ class WorkflowExecution {
         'workflow': name,
         'completedSteps': completed,
         'requiresSnapshot': finalSnapshot == null,
+        if (captures.isNotEmpty) 'screenshots': captures,
         if (finalSnapshot != null) 'finalSnapshot': finalSnapshot,
       };
     } on AgentError catch (error) {

@@ -179,7 +179,7 @@ Standalone `wait` defaults `state` to `exists` and also accepts `gone`. State an
 
 ### Workflow v1
 
-Workflow v1 executes `snapshot`, `tap`, `fill`, `swipe`, `scroll`, and `wait` in declared order from JSON or restricted YAML. `run` occupies one queue entry in one session for all steps and stops at the first failure. There is no rollback of completed steps, automatic retry, or mid-workflow resume.
+Workflow v1 executes `snapshot`, `tap`, `fill`, `swipe`, `scroll`, `wait`, and `screenshot` in declared order from JSON or restricted YAML. `run` occupies one queue entry in one session for all steps and stops at the first failure. There is no rollback of completed steps, automatic retry, or mid-workflow resume.
 
 Workflow targets accept selectors only, not refs or coordinates. Inputs bind through typed references, without string expansion, environment expansion, or shell execution. `--timeout` is an absolute deadline covering workflow/input reading, validation, daemon delivery, queue waiting, and every step.
 
@@ -361,7 +361,7 @@ For compatibility, skills alone uses `{"success":true,"data":...}` or, on failur
 
 Find supports role/label/placeholder, and get value/is enabled/is checked have been added. Normal selectors remain key/identifier/text/type. Hint/tooltip, a complete Semantics tree, and persistent target IDs are unsupported. The [Issue #14 proposal](semantics-selector-state-design.md) remains the original stock-binding investigation and future design.
 
-Formal support for physical iOS/Android devices or other host OSes, physical-iOS recording, Linux/Windows recording, an arbitrary-extension CLI, hot reload/restart, long-press/pinch, and arbitrary app-state restoration remain out of scope. Workflow v1's schema is preserved.
+Formal support for physical iOS/Android devices or other host OSes, physical-iOS recording, Linux/Windows recording, an arbitrary-extension CLI, hot reload/restart, long-press/pinch, and arbitrary app-state restoration remain out of scope. Workflow v1 remains backward-compatible and adds the screenshot action.
 
 <a id="stdio-mcp-server"></a>
 <a id="stdio-mcpサーバー"></a>
@@ -389,7 +389,7 @@ The [additional command specification](cli-parity.md) forms part of this specifi
 
 Typed mounted-Widget observation is enabled only when the optional `marionette_agent_flutter/flutter.dart` provider is present. Attributes with unknown provenance are never inferred. Ref matching, uniqueness, invalidation immediately before send, and no automatic resend retain existing contracts. UI actions and role/label searches are limited to the provider's declared scope; atomic re-observation/send and complete clipping/occlusion detection are not guaranteed.
 
-IPC protocolVersion is 7, adding managed-app launch and shutdown on close. Requests include optional session action policy. Public schemaVersion stays 1, with expanded data for launch and session information displaying owned apps. Close an old daemon using the old CLI before switching to the new CLI.
+IPC protocolVersion is 8, adding native screenshots and workflow image results (7 added managed-app launch and shutdown). Requests include optional session action policy. Public schemaVersion stays 1, with expanded data for launch and session information displaying owned apps. Close an old daemon using the old CLI before switching to the new CLI.
 
 <a id="device-screen-recording"></a>
 <a id="端末画面録画"></a>
@@ -471,3 +471,9 @@ Startup uses marionette_agent_platform_interface contracts and the ios/android/m
 Close finalizes recording, stops the launched environment, and discards the connection. Connect to an external app closes only the connection. Close --all and daemon shutdown also reclaim owned resources. App exit invalidates the connection generation and refs. Startup/readiness failure or timeout cleans up owned processes, devices, and URIs; cleanup may continue past the request deadline. Per-process shutdown allows eight seconds for normal exit, three for TERM, and three for KILL; iOS device cleanup is bounded to 30 seconds. Unconfirmed shutdown is not success, and temporary storage remains. Shared devices and the adb server are untouched. Automatic recovery after SIGKILL or host shutdown is out of scope.
 
 Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares existing session operations and record --platform flutter. See the [headless guide](headless.md) for procedures and limitations.
+
+<a id="native-android-screenshots"></a>
+
+## Native Android screenshots (Issue #57)
+
+The [native screenshot contract](cli-reference.md#native-android-capture) defines explicit Android Emulator selection, default-display scope, pixel metadata, errors, and protection limits. Flutter remains the default, preserving tester and existing annotation/crop behavior. Native capture uses ADB independently of Marionette with no fallback. Physical Android devices are outside the scope agreed for this issue. Workflow v1 adds a screenshot step using the same handler and caller-side writer; its [file contract](workflow-file-spec.md#screenshots) defines deferred persistence and progress. Public schemaVersion remains 1.

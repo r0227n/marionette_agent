@@ -1,7 +1,10 @@
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
+
+import '../platform/screen_capture.dart';
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
-import '../snapshot/target.dart';
-import 'arguments.dart';
+import 'screenshot_request.dart';
+export 'screenshot_request.dart';
 import 'command_context.dart';
 
 Selector? snapshotFilter(Json params) {
@@ -41,30 +44,27 @@ Future<Json> handleSnapshot(CommandContext context, Json params) =>
       depth: params['depth'] as int?,
     );
 
-TargetQuery? screenshotTarget(Json params) {
-  final target = {...params}
-    ..remove('path')
-    ..remove('annotate');
-  if (target.isEmpty) return null;
-  if (params['annotate'] == true) {
-    invalid('Crop and annotation cannot be combined');
-  }
-  if (target.keys.any(
-    (key) =>
-        key != 'ref' && !SelectorKind.values.any((kind) => kind.name == key),
-  )) {
-    invalid('Invalid screenshot target');
-  }
-  return decodeTarget(target);
-}
-
 /// Images cross IPC; the CLI owns local path resolution and writing.
-Future<Json> handleScreenshot(CommandContext context, Json params) async {
+Future<Json> handleScreenshot(
+  CommandContext context,
+  Json params, {
+  ScreenCapturer capturer = defaultScreenCapturer,
+}) async {
   final target = screenshotTarget(params);
   if ((params.containsKey('annotate') && params['annotate'] is! bool) ||
       (params.containsKey('path') &&
           (params['path'] is! String || (params['path'] as String).isEmpty))) {
     invalid('Usage: screenshot [--annotate] [path]');
+  }
+  if (params['platform'] == 'android') {
+    context.check();
+    final result = await captureAndroidScreen(
+      params['device'] as String,
+      context.deadline,
+      capturer: capturer,
+    );
+    context.check();
+    return result;
   }
   if (target != null) {
     final before = await context.observeTarget(target);

@@ -17,6 +17,21 @@ PNG is the default. Select JPEG explicitly with `--screenshot-format jpeg`; set 
 
 Omitting the path saves into a private temporary directory and returns the path. You can also select an existing directory with `--screenshot-dir`. Existing files are not overwritten.
 
+## Capture Android system UI
+
+The default screenshot source remains Flutter rendering, including tester. Select Android explicitly to include permission dialogs, Photo Picker/file selection, the software keyboard, and visible system bars. Start an Android Emulator and set `ANDROID_SERIAL` to its exact online, authorized ADB serial. No Marionette connection is required for a standalone native screenshot.
+
+```sh
+marionette-agent screenshot artifacts/system.png --platform android --device "$ANDROID_SERIAL" --json
+marionette-agent screenshot artifacts/system.jpg --platform android --device "$ANDROID_SERIAL" --screenshot-format jpeg
+```
+
+The result includes `capture.source`, `device`, `display`, `scope`, `coordinateSpace`, `width`, and `height`. Dimensions are the captured pixels in the current orientation, without density scaling. Keep the system UI open while taking the screenshot; capture does not dismiss dialogs or retry UI actions.
+
+This release supports Emulator default display `0` only. Physical devices and multiple displays are rejected. `--device` is always required, even with one connected device. ADB failures never fall back to Flutter. Native images cannot use Flutter refs, selectors, `--annotate`, crop, or `diff screenshot`; those features retain their Flutter behavior.
+
+Android can hide `FLAG_SECURE` content or reject capture. A black region alone cannot establish that protection is present; successful capture reports `protectedContent: "not-detectable"`. No protection or debugging authorization is bypassed. Use dummy data and check for unrelated visible content before sharing a full-screen image. See the [native capture contract](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#native-android-capture) for errors and limits.
+
 ## Overlay refs on the image
 
 ```sh

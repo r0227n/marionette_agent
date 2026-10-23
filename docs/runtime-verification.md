@@ -2,9 +2,9 @@
 
 [日本語](ja/runtime-verification.ja.md) · [Documentation index](README.md)
 
-[all-actions.yaml](../samples/workflows/all-actions.yaml) exercises all six workflow v1 actions in 16 steps: navigation to About and back, tap, fill, PageView swipe, scroll, wait, and snapshot. Its target is the repository's [example app](../example/README.md).
+[all-actions.yaml](../samples/workflows/all-actions.yaml) exercises all seven workflow v1 actions in 17 steps: navigation to About and back, tap, fill, PageView swipe, scroll, wait, snapshot, and screenshot. Its target is the repository's [example app](../example/README.md).
 
-Workflow v1 does not include connection, get, images, logs, or recording actions. [all_commands_smoke.dart](../integration_test/all_commands_smoke.dart) executes those through separate product CLI processes and also validates and runs the YAML workflow. The iOS and Android scenarios are the same except for the device and recording platform.
+Workflow v1 does not include connection, get, logs, or recording actions. [all_commands_smoke.dart](../integration_test/all_commands_smoke.dart) executes those through separate product CLI processes and also validates and runs the YAML workflow. The iOS and Android scenarios are the same except for the device and recording platform.
 
 ## Preparation
 
@@ -73,9 +73,9 @@ Do not publish the URI or raw Flutter logs, and do not enable shell tracing. The
 | `wait` | Page/screen existence and About disappearance after navigating to Controls |
 | `screenshot` | Decodable PNG, JPEG, and annotated PNG; visually inspect content and annotation positions |
 | `logs` | Add log entry produces `manual log entry added` |
-| `workflow schema` | Whole schema and each of the six action schemas |
-| `workflow validate` | Validate the 16-step all-actions.yaml with input binding |
-| `workflow run` | All 16 steps complete, Bottom reached, finalSnapshot refs work in a separate CLI, total counter 3 |
+| `workflow schema` | Whole schema and each of the seven action schemas |
+| `workflow validate` | Validate the 17-step all-actions.yaml with input binding |
+| `workflow run` | All 17 steps complete, Bottom reached, finalSnapshot refs work in a separate CLI, total counter 3 |
 | `record start/status/stop` | Active recording, finalized MP4, and repeat stop returns the same artifact; visually inspect the video |
 | `close` / `close --all` | Reconnect after normal close, zero sessions after close-all, not-connected errors, and no daemon socket/metadata |
 

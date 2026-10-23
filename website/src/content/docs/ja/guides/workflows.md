@@ -46,15 +46,16 @@ marionette-agent --session docs-demo workflow run observe-edit.yaml --json
 
 ## 使えるstep
 
-| action             | 用途                           |
-| ------------------ | ------------------------------ |
-| `snapshot`         | 観測結果を更新する             |
-| `tap`              | selectorで指定した要素をタップ |
-| `fill`             | 入力欄を文字列で置換           |
-| `swipe` / `scroll` | 指定方向へジェスチャー         |
-| `wait`             | 要素の出現・消失を待つ         |
+| action             | 用途                                        |
+| ------------------ | ------------------------------------------- |
+| `screenshot`       | Flutterまたは明示したAndroid Emulatorを撮影 |
+| `snapshot`         | 観測結果を更新する                          |
+| `tap`              | selectorで指定した要素をタップ              |
+| `fill`             | 入力欄を文字列で置換                        |
+| `swipe` / `scroll` | 指定方向へジェスチャー                      |
+| `wait`             | 要素の出現・消失を待つ                      |
 
-1〜100 stepを記述できます。条件分岐、loop、shell実行、他workflowのinclude、画像保存はworkflow v1に含まれません。
+1〜100 stepを記述できます。条件分岐、loop、shell実行、他workflowのincludeはworkflow v1に含まれません。
 
 ## 入力値を外に分ける
 
@@ -69,3 +70,15 @@ marionette-agent --session docs-demo workflow run observe-edit.yaml --json
 `--timeout`はファイル読込、検証、queue待ち、全stepを含む期限です。stepごとに時間がリセットされるわけではありません。
 
 [workflowファイル仕様](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/workflow-file-spec.ja.md)に全field、parser制限、上限、binding、失敗時の進捗を定義しています。
+
+## Workflowで画像を保存する
+
+接続済みworkflowに次のstepを追加し、serialを検証用Emulatorの値に置き換えてください。CLI単独撮影・MCPと同じネイティブ経路を使います。全step成功後に画像pathと撮影metadataを返し、後続stepが失敗した場合は画像を保存しません。取得元と保護制限は[撮影ガイド](/marionette_agent/ja/guides/capture/)を参照してください。
+
+```yaml
+- id: system-screen
+  action: screenshot
+  platform: android
+  device: emulator-5660
+  path: artifacts/system.png
+```

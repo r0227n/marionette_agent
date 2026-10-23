@@ -186,7 +186,7 @@ scrollは初版では指定領域を既存swipe機構で操作する。direction
 
 ### workflow v1
 
-workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
+workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`、`screenshot`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
 
 workflow内の操作対象はselectorだけを受理し、refと座標操作は受理しない。入力値は型付き参照でbindingし、文字列展開、環境変数展開、shell実行は行わない。`--timeout`はworkflow／inputsの読込、検証、daemonへの配送、queue待ち、全stepを含む絶対期限である。
 
@@ -369,7 +369,7 @@ install/upgradeは専用`.marionette-agent-*`版別ディレクトリ内にnativ
 
 role/label/placeholderはfindに対応し、get value/is enabled/is checkedを追加した。通常selectorはkey/identifier/text/typeのまま維持する。hint/tooltip、完全なSemanticsツリー、永続的target IDは未対応。[Issue #14設計案](../semantics-selector-state-design.md)は元のstock binding調査と将来設計として保持する。
 
-iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaは維持する。
+iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1は後方互換を維持し、screenshot actionを追加する。
 
 <a id="stdio-mcp-server"></a>
 <a id="stdio-mcpサーバー"></a>
@@ -397,7 +397,7 @@ MCP通信内容や認証URI・入力文字列を診断ログへ記録しない�
 
 任意の `marionette_agent_flutter/flutter.dart` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
 
-IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
+IPC protocolVersionは8（ネイティブ撮影とworkflow画像結果を追加。7で管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
 
 
 <a id="device-screen-recording"></a>
@@ -480,3 +480,9 @@ launchはdaemon自動起動対象で、session queueとaction policyを共有す
 closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
 
 testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作と録画は既存session/record --platform flutterを共用する。手順と制約は[日本語ガイド](headless.ja.md)を参照。
+
+<a id="native-android-screenshots"></a>
+
+## Androidネイティブ撮影（Issue #57）
+
+[ネイティブ撮影契約](cli-reference.ja.md#native-android-capture)にEmulatorの明示指定、既定displayの範囲、pixel metadata、エラー、保護制限を定義する。既定はFlutterのままとし、testerと既存の注釈・cropを維持する。ネイティブ取得はMarionetteに依存せずADBを使い、fallbackしない。本Issueで合意した範囲にAndroid実機は含めない。workflow v1に同じhandlerと呼出元writerを使うscreenshot stepを追加し、[file契約](workflow-file-spec.ja.md#screenshots)で遅延保存と進捗を定義する。public schemaVersionは1を維持する。

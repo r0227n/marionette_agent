@@ -45,7 +45,7 @@ Flutter providers enable additional ones. Missing extensions return
 
 CLI package version, JSON `schemaVersion`, internal IPC `protocolVersion`,
 workflow schema version, and app extension version are independent. This release
-keeps JSON/workflow version 1, IPC version 7, and app extension version 1. IPC is
+keeps JSON/workflow version 1, IPC version 8, and app extension version 1. IPC is
 internal and may change between 1.x releases; close sessions before upgrading
 and start a fresh daemon with the new binary. Do not reuse refs across snapshots,
 sessions, reconnections, or mutations.

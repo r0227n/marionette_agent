@@ -144,6 +144,7 @@ Future<void> main() async {
       'swipe',
       'scroll',
       'wait',
+      'screenshot',
     ]) {
       final schema = await cli(['workflow', 'schema', action], global: true);
       check(schema['action'] == action, '$action schema');
@@ -155,7 +156,7 @@ Future<void> main() async {
       '--check-inputs',
     ], global: true);
     check(
-      validated['stepCount'] == 16 && validated['inputsValidated'] == true,
+      validated['stepCount'] == 17 && validated['inputsValidated'] == true,
       'All-actions YAML validates with inputs',
     );
     check(
@@ -292,8 +293,8 @@ Future<void> main() async {
     stdout.writeln('Standalone commands passed; running all-actions workflow.');
     final flow = await cli(['workflow', 'run', workflow]);
     check(
-      flow['completedSteps'] == 16 && flow['requiresSnapshot'] == false,
-      'All 16 workflow steps complete',
+      flow['completedSteps'] == 17 && flow['requiresSnapshot'] == false,
+      'All 17 workflow steps complete',
     );
     final finalSnapshot = flow['finalSnapshot'] as Map<String, dynamic>;
     check(

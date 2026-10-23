@@ -260,11 +260,19 @@ List<McpToolDefinition> mcpToolCatalog() => [
     properties: {
       'path': _string,
       'annotate': _boolean,
+      'platform': _enum(['flutter', 'android']),
+      'device': _string,
+      'display': _enum(['0']),
       'format': _enum(['png', 'jpeg']),
       'quality': Schema.int(minimum: 0, maximum: 100),
     },
     positionals: ['path'],
-    options: {'annotate': 'annotate'},
+    options: {
+      'annotate': 'annotate',
+      'platform': 'platform',
+      'device': 'device',
+      'display': 'display',
+    },
   ),
   for (final observation in ['text', 'box', 'count', 'value'])
     McpToolDefinition(

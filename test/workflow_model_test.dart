@@ -62,7 +62,7 @@ void main() {
       plan.steps.map((step) => step.action).toSet(),
       workflowActions.toSet(),
     );
-    expect(plan.steps.last.action, 'snapshot');
+    expect(plan.steps.last.action, 'screenshot');
   });
   test('JSON and safe YAML normalize equally including literal punctuation and BOM', () {
     const yaml = '''schemaVersion: 1
