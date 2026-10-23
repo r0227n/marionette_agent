@@ -84,16 +84,17 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 
 ## 画像・動画・差分
 
-| 構文                                                    | 用途                                                |
-| ------------------------------------------------------- | --------------------------------------------------- |
-| `screenshot [PATH]`                                     | 画像を新規保存                                      |
-| `screenshot TARGET [PATH]`                              | 対象領域の画像                                      |
-| `screenshot --annotate [PATH]`                          | ref注釈付き画像。providerと有効snapshotが必要       |
-| `record start PATH --platform PLATFORM [--device ID]`   | 動画開始。Flutter描画はdevice不要                   |
-| `record restart PATH --platform PLATFORM [--device ID]` | 現在の録画を確定後、新規開始                        |
-| `record status` / `record stop`                         | 状態取得／確定して停止                              |
-| `diff snapshot --baseline PATH`                         | 保存したsnapshotとの差分                            |
-| `diff screenshot --baseline PATH`                       | 保存画像との差分。`--threshold`・`--output`も使用可 |
+| 構文                                                    | 用途                                                  |
+| ------------------------------------------------------- | ----------------------------------------------------- |
+| `screenshot [PATH]`                                     | 画像を新規保存                                        |
+| `screenshot --source macos --display N [PATH]`          | 指定display全体。OS UI・他アプリを含む。注釈/crop不可 |
+| `screenshot TARGET [PATH]`                              | 対象領域の画像                                        |
+| `screenshot --annotate [PATH]`                          | ref注釈付き画像。providerと有効snapshotが必要         |
+| `record start PATH --platform PLATFORM [--device ID]`   | 動画開始。Flutter描画はdevice不要                     |
+| `record restart PATH --platform PLATFORM [--device ID]` | 現在の録画を確定後、新規開始                          |
+| `record status` / `record stop`                         | 状態取得／確定して停止                                |
+| `diff snapshot --baseline PATH`                         | 保存したsnapshotとの差分                              |
+| `diff screenshot --baseline PATH`                       | 保存画像との差分。`--threshold`・`--output`も使用可   |
 
 保存条件とプラットフォーム差は[画像と動画](/marionette_agent/ja/guides/capture/)を参照してください。
 
@@ -106,7 +107,7 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 | `batch PATH`                                   | JSONのargv配列を順次実行。共通オプションはbatch側に指定 |
 | `state save PATH` / `state load PATH`          | 接続URIだけを私有ファイルへ保存／再接続                 |
 | `confirm ID` / `deny ID`                       | 保留中の操作を承認／拒否                                |
-| `device list --platform ios`                   | 利用可能なiOS端末。androidも指定可                      |
+| `device list --platform ios`                   | 利用可能なiOS端末。android・macos displayも指定可       |
 | `doctor`                                       | ローカル環境診断。`--probe-uri`で接続先も照会           |
 | `doctor --quick` / `--offline` / `--fix`       | 検査を限定／VM probe省略／所有runtimeのmode修復         |
 | `install DIRECTORY` / `upgrade DIRECTORY`      | ローカルソースからバイナリとSkillsを配置／更新          |

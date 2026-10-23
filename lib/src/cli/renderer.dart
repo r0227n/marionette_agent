@@ -86,6 +86,8 @@ String render(
         if (details['stepIndex'] != null)
           'Failed step ${details['stepIndex']}: ${details['stepId']} (${details['action']})',
       ],
+      if (details?['screenshots'] is List)
+        const JsonEncoder.withIndent('  ').convert(details!['screenshots']),
       'Outcome: ${error.toJson()['outcome']}',
       if (error.hint != null) error.hint!,
     ].join('\n');
@@ -119,6 +121,7 @@ String render(
   if (data['completedSteps'] case final int count) {
     final snapshot = data['finalSnapshot'];
     return 'Workflow ${data['workflow']}: $count steps completed'
+        '${data['screenshots'] == null ? '' : '\n${const JsonEncoder.withIndent('  ').convert(data['screenshots'])}'}'
         '${snapshot == null ? '\nRun snapshot to inspect the current UI.' : '\n${render(Result.success(result.session, asJson(snapshot)), json: false)}'}';
   }
   final field = data['elements'] is List

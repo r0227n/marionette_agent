@@ -33,7 +33,10 @@ CliCommand snapshotCommand() {
 }
 
 CliCommand screenshotCommand() {
-  final parser = ArgParser()..addFlag('annotate', negatable: false);
+  final parser = ArgParser()
+    ..addFlag('annotate', negatable: false)
+    ..addOption('source', allowed: ['flutter', 'macos'])
+    ..addOption('display');
   addSelectorOptions(parser);
   return CliCommand(parser, (args) {
     final rest = args.rest.toList();
@@ -49,6 +52,14 @@ CliCommand screenshotCommand() {
     }
     if (rest.isNotEmpty) params['path'] = rest.single;
     if (args.flag('annotate')) params['annotate'] = true;
+    if (args.wasParsed('source')) params['source'] = args.option('source');
+    if (args.wasParsed('display')) {
+      final value = args.option('display')!;
+      if (!RegExp(r'^[1-9][0-9]{0,2}$').hasMatch(value)) {
+        invalid('Invalid display number');
+      }
+      params['display'] = int.parse(value);
+    }
     screenshotTarget(params);
     return params;
   });

@@ -115,6 +115,14 @@ class McpToolDefinition {
         if (defaults.screenshotDir != null)
           '--screenshot-dir=${defaults.screenshotDir}',
       ],
+      if (command.first == 'workflow' &&
+          ['run', 'validate'].contains(command[1])) ...[
+        '--screenshot-format=${defaults.screenshotFormat.name}',
+        if (defaults.screenshotFormat == ScreenshotFormat.jpeg)
+          '--screenshot-quality=${defaults.screenshotQuality}',
+        if (defaults.screenshotDir != null)
+          '--screenshot-dir=${defaults.screenshotDir}',
+      ],
       ...command,
       for (final option in options.entries)
         if (input[option.key] case final Object value)
@@ -254,17 +262,19 @@ List<McpToolDefinition> mcpToolCatalog() => [
     'screenshot',
     'Save a screenshot and return image content. '
         'Optional target crops; annotate requires a fresh snapshot and provider. '
-        'Existing files are never overwritten.',
+        'source=macos requires display and captures the entire display, including other apps; no crop or annotations. Existing files are never overwritten.',
     ['screenshot'],
     target: true,
     properties: {
       'path': _string,
       'annotate': _boolean,
+      'source': _enum(['flutter', 'macos']),
+      'display': Schema.int(minimum: 1, maximum: 999),
       'format': _enum(['png', 'jpeg']),
       'quality': Schema.int(minimum: 0, maximum: 100),
     },
     positionals: ['path'],
-    options: {'annotate': 'annotate'},
+    options: {'annotate': 'annotate', 'source': 'source', 'display': 'display'},
   ),
   for (final observation in ['text', 'box', 'count', 'value'])
     McpToolDefinition(
@@ -344,7 +354,7 @@ List<McpToolDefinition> mcpToolCatalog() => [
     readOnly: true,
     openWorld: false,
     properties: {
-      'platform': _enum(['ios', 'android']),
+      'platform': _enum(['ios', 'android', 'macos']),
     },
     options: {'platform': 'platform'},
   ),

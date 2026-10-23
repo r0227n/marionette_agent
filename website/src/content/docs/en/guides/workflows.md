@@ -69,3 +69,20 @@ Execution stops at the first failure. Completed operations are not rolled back, 
 `--timeout` covers file reading, validation, queueing, and all steps. It is not reset for each step.
 
 The [workflow file reference](https://github.com/r0227n/marionette_agent/blob/develop/docs/workflow-file-spec.md) defines all fields, parser restrictions, limits, binding, and failure progress.
+
+## Save an intermediate screen
+
+A `screenshot` step uses the same acquisition and exclusive writer as the standalone command and finishes saving before the next step. `path` is relative to the CLI's cwd; omitting it uses `--screenshot-dir` or temporary storage. Select format/quality with common options on the workflow invocation. Native capture includes the entire display and other apps and rejects annotation/crop.
+
+```yaml
+schemaVersion: 1
+name: capture-native
+steps:
+  - id: proof
+    action: screenshot
+    source: macos
+    display: 1
+    path: artifacts/native.png
+```
+
+The result `screenshots` array contains `stepId`, `paths` and native `capture` metadata. Previously saved files remain if a later step fails; confirmed results appear in `error.details.screenshots`. Choose fresh filenames and never automatically replay completed UI operations.

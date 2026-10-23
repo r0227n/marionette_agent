@@ -1,4 +1,5 @@
 import '../protocol/protocol.dart';
+import '../platform/screenshot_service.dart';
 import 'registry.dart';
 import 'swipe.dart';
 import 'actions.dart';
@@ -12,7 +13,9 @@ import 'keyboard.dart';
 import 'drag.dart';
 
 /// Registers the initial product command set.
-CommandRegistry coreCommands() {
+CommandRegistry coreCommands({
+  NativeScreenshotCapture captureNative = captureMacosScreenshot,
+}) {
   final registry = CommandRegistry()
     ..register('swipe', handleSwipe)
     ..register('tap', handleTap)
@@ -25,7 +28,11 @@ CommandRegistry coreCommands() {
         'command': 'scroll',
       },
     )
-    ..register('screenshot', handleScreenshot)
+    ..register(
+      'screenshot',
+      (context, params) =>
+          handleScreenshot(context, params, captureNative: captureNative),
+    )
     ..register('logs', handleLogs)
     ..register('wait', handleWait)
     ..register('get', handleGet)

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:path/path.dart' as p;
+
 import 'package:marionette_agent/src/platform/platform_services.dart';
 
 import '../daemon/client.dart';
@@ -130,7 +132,37 @@ Future<int> runCli(
             'inputsValidated': bind,
           };
         }
-        params = {'workflow': document, 'inputs': inputs};
+        final hasScreenshots = plan.steps.any(
+          (step) => step.action == 'screenshot',
+        );
+        if (hasScreenshots) {
+          for (final raw in (document as Map)['steps'] as List) {
+            final step = raw as Map;
+            if (step['action'] == 'screenshot' && step['path'] is String) {
+              step['path'] = p.normalize(
+                p.absolute(
+                  invocation.options.screenshotFormat.destinationPath(
+                    step['path'] as String,
+                  ),
+                ),
+              );
+            }
+          }
+        }
+        params = {
+          'workflow': document,
+          'inputs': inputs,
+          if (hasScreenshots)
+            'screenshotOptions': {
+              'format': invocation.options.screenshotFormat.name,
+              if (invocation.options.screenshotFormat == ScreenshotFormat.jpeg)
+                'quality': invocation.options.screenshotQuality,
+              if (invocation.options.screenshotDir != null)
+                'directory': p.normalize(
+                  p.absolute(invocation.options.screenshotDir!),
+                ),
+            },
+        };
       }
     }
     if (workflow && !deadline.isAfter(DateTime.now())) {

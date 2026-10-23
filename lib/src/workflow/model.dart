@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../backend/backend.dart';
 import '../commands/wait_request.dart';
+import '../commands/screenshot_request.dart';
 import '../protocol/protocol.dart';
 import 'schema_catalog.dart';
 
@@ -201,6 +202,12 @@ class WorkflowPlan {
               target.values.single as String,
             );
       final params = <String, Object?>{...target};
+      if (action == 'screenshot') {
+        for (final key in ['path', 'source', 'display', 'annotate']) {
+          if (step.containsKey(key)) params[key] = step[key];
+        }
+        screenshotTarget(params);
+      }
       if (action == 'fill') {
         final text = asJson(step['text']);
         if (text.containsKey('literal')) {
@@ -257,6 +264,7 @@ AgentError workflowError(
   int? completed = 0,
   int? index,
   WorkflowStep? step,
+  List<Json> screenshots = const [],
 }) => AgentError(
   error.code,
   index == null ? error.message : 'Workflow step failed',
@@ -269,6 +277,7 @@ AgentError workflowError(
     'stepId': known ? step?.id : null,
     'action': known ? step?.action : null,
     'completedSteps': known ? completed : null,
+    if (screenshots.isNotEmpty) 'screenshots': screenshots,
   },
 );
 

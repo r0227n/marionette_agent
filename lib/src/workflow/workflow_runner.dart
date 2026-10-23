@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import '../artifacts/artifact_writer.dart';
+import '../artifacts/screenshot_options.dart';
+
 import '../commands/command_context.dart';
 import '../commands/registry.dart';
 import '../protocol/protocol.dart';
@@ -22,6 +25,7 @@ class WorkflowExecution {
   WorkflowStep? activeStep;
   int? activeIndex;
   Json? finalSnapshot;
+  final screenshots = <Json>[];
   void check() {
     if (stopped || session.epoch != epoch) {
       throw const AgentError('CONNECTION_LOST', 'Workflow generation retired');
@@ -37,7 +41,9 @@ class WorkflowExecution {
   Future<Json> run() async {
     String? name = workflowNameFrom(request.params['workflow']);
     try {
-      if (request.params.length != 2 ||
+      if (request.params.keys.any(
+            (key) => !{'workflow', 'inputs', 'screenshotOptions'}.contains(key),
+          ) ||
           !request.params.containsKey('workflow') ||
           !request.params.containsKey('inputs')) {
         invalid('Invalid workflow request');
@@ -46,6 +52,12 @@ class WorkflowExecution {
         request.params['workflow'],
         inputs: request.params['inputs'],
       );
+      final output = ScreenshotOptions.decode(
+        request.params['screenshotOptions'],
+      );
+      for (final step in plan.steps.where((s) => s.action == 'screenshot')) {
+        output.validateDestination(step.params['path']);
+      }
       name = plan.name;
       check();
       Execution(
@@ -90,12 +102,28 @@ class WorkflowExecution {
           onRetire: retire,
         );
         final context = CommandContext(child, snapshots);
-        final result = await child.bound(
-          () => commands.dispatch(context, step.action, step.params),
-        );
+        final result = await child.bound(() async {
+          final data = await commands.dispatch(
+            context,
+            step.action,
+            step.params,
+          );
+          if (step.action != 'screenshot') return data;
+          check();
+          return saveScreenshots(
+            data,
+            step.params['path'] as String?,
+            deadline,
+            format: output.format,
+            quality: output.quality,
+            screenshotDir: output.directory,
+          );
+        });
         check();
         completed++;
-        if (step.action == 'snapshot') {
+        if (step.action == 'screenshot') {
+          screenshots.add({'stepId': step.id, ...result});
+        } else if (step.action == 'snapshot') {
           finalSnapshot = result;
         } else if (step.action != 'wait') {
           finalSnapshot = null;
@@ -105,6 +133,7 @@ class WorkflowExecution {
       return {
         'workflow': name,
         'completedSteps': completed,
+        if (screenshots.isNotEmpty) 'screenshots': screenshots,
         'requiresSnapshot': finalSnapshot == null,
         if (finalSnapshot != null) 'finalSnapshot': finalSnapshot,
       };
@@ -117,6 +146,7 @@ class WorkflowExecution {
         completed: completed,
         index: activeIndex,
         step: activeStep,
+        screenshots: screenshots,
       );
     } catch (_) {
       stopped = true;
@@ -126,6 +156,7 @@ class WorkflowExecution {
         completed: completed,
         index: activeIndex,
         step: activeStep,
+        screenshots: screenshots,
       );
     }
   }

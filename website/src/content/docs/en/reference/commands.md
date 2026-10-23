@@ -84,16 +84,17 @@ The default `wait` state is `exists`: a unique match with `visible != false` suc
 
 ## Images, recordings, and differences
 
-| Syntax                                                  | Purpose                                                          |
-| ------------------------------------------------------- | ---------------------------------------------------------------- |
-| `screenshot [PATH]`                                     | Save a new image                                                 |
-| `screenshot TARGET [PATH]`                              | Capture the target region                                        |
-| `screenshot --annotate [PATH]`                          | Overlay refs; requires a provider and valid snapshot             |
-| `record start PATH --platform PLATFORM [--device ID]`   | Start recording; Flutter rendering needs no device argument      |
-| `record restart PATH --platform PLATFORM [--device ID]` | Finalize the current recording and start a new one               |
-| `record status` / `record stop`                         | Inspect recording state or finalize and stop                     |
-| `diff snapshot --baseline PATH`                         | Compare with a saved snapshot                                    |
-| `diff screenshot --baseline PATH`                       | Compare with a saved image; accepts `--threshold` and `--output` |
+| Syntax                                                  | Purpose                                                                    |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `screenshot [PATH]`                                     | Save a new image                                                           |
+| `screenshot --source macos --display N [PATH]`          | Whole explicit display, including OS UI and other apps; no annotation/crop |
+| `screenshot TARGET [PATH]`                              | Capture the target region                                                  |
+| `screenshot --annotate [PATH]`                          | Overlay refs; requires a provider and valid snapshot                       |
+| `record start PATH --platform PLATFORM [--device ID]`   | Start recording; Flutter rendering needs no device argument                |
+| `record restart PATH --platform PLATFORM [--device ID]` | Finalize the current recording and start a new one                         |
+| `record status` / `record stop`                         | Inspect recording state or finalize and stop                               |
+| `diff snapshot --baseline PATH`                         | Compare with a saved snapshot                                              |
+| `diff screenshot --baseline PATH`                       | Compare with a saved image; accepts `--threshold` and `--output`           |
 
 See [capture](/marionette_agent/en/guides/capture/) for file requirements and platform differences.
 
@@ -106,7 +107,7 @@ See [capture](/marionette_agent/en/guides/capture/) for file requirements and pl
 | `batch PATH`                                   | Execute a JSON array of argument arrays; set common options on batch itself |
 | `state save PATH` / `state load PATH`          | Save only the connection URI to a private file or reconnect from it         |
 | `confirm ID` / `deny ID`                       | Approve or reject a pending action                                          |
-| `device list --platform ios`                   | List available iOS devices; android is also supported                       |
+| `device list --platform ios`                   | List available iOS devices; android and macos displays are also supported   |
 | `doctor`                                       | Diagnose the local environment; `--probe-uri` also queries an app           |
 | `doctor --quick` / `--offline` / `--fix`       | Limit checks, skip the VM probe, or repair owned runtime permissions        |
 | `install DIRECTORY` / `upgrade DIRECTORY`      | Install or update the executable and Skills from local source               |

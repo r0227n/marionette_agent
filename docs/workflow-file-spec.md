@@ -44,8 +44,9 @@ Every step requires a unique id (`^[A-Za-z][A-Za-z0-9_-]{0,63}$`) and an action.
 | fill | target, text |
 | swipe / scroll | target, direction, optional distance |
 | wait | target, state, optional timeoutMs/pollIntervalMs |
+| screenshot | optional source, display, path, annotate, target; see [screenshot steps](#screenshot-steps) |
 
-Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Binding 0.6.0 does not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, screenshots, and logs.
+Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Binding 0.6.0 does not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, and logs.
 
 Swipe/scroll direction is left/right/up/down and describes finger movement. Distance is finite and positive, defaulting to 200 logical pixels. Scroll uses the same swipe primitive. Success means gesture completion, not arrival at a particular content position.
 
@@ -101,7 +102,7 @@ The workflow occupies its session queue until completion; other requests cannot 
 
 Schema errors in later steps, binding, and selector capabilities are checked before any UI access. Each step gets a fresh Execution with the same one-mutation limit as regular commands. Old Futures completing after timeout/disconnection cannot update progress, run subsequent steps, or affect reconnected refs. Execution stops at the first failure without rollback, retry, resume, or automatic replay of the workflow.
 
-Snapshot publishes refs. The last snapshot inside the workflow becomes a candidate; later tap/fill/swipe/scroll discards it, while wait preserves it. Preexisting snapshots and snapshots from failed workflows are not returned. Returned refs remain the latest public snapshot after queue release but expire on another snapshot/mutation/close/reconnect. Reobserve on STALE_REF instead of rerunning the workflow.
+Snapshot publishes refs. The last snapshot inside the workflow becomes a candidate; later tap/fill/swipe/scroll discards it, while wait and screenshot preserve it. Preexisting snapshots and snapshots from failed workflows are not returned. Returned refs remain the latest public snapshot after queue release but expire on another snapshot/mutation/close/reconnect. Reobserve on STALE_REF instead of rerunning the workflow.
 
 <a id="results"></a>
 ## Success and failure results
@@ -131,3 +132,10 @@ Workflow content, inputs, resolved params, and fill values are not copied into d
 - [workflow_runner.dart](../lib/src/workflow/workflow_runner.dart): execution and progress.
 - [wait.dart](../lib/src/commands/wait.dart): conditions.
 - [workflow_model_test.dart](../test/workflow_model_test.dart), [workflow_cli_test.dart](../test/workflow_cli_test.dart), [workflow_execution_test.dart](../test/workflow_execution_test.dart): boundary verification.
+
+<a id="screenshot-steps"></a>
+## Screenshot steps
+
+`screenshot` accepts optional `source` (`flutter` by default or `macos`), `display` (integer 1–999, required only for macos), `path`, `annotate` and selector `target`. Native source rejects annotation/target. All step shapes are validated before execution. The CLI resolves screenshot paths and `--screenshot-dir` relative to its cwd, validates extensions against common `--screenshot-format`/quality, then sends explicit output settings; raw IPC callers must use absolute paths.
+
+Each step acquires and exclusively saves through the shared screenshot writer before any next action. Success adds `screenshots:[{stepId,paths,capture?}]`; failure retains already confirmed saved steps under `error.details.screenshots`. No base64 images are returned from workflow. Previously saved steps are not rolled back. Timeout during saving removes only files created by that step; an already committed artifact can remain if connection interruption prevents delivery. No UI operation is replayed. Screenshot reads preserve the final snapshot and refs, except for the existing timeout/disconnection rules. Annotation/crop use the same Flutter geometry checks as standalone capture.

@@ -17,6 +17,20 @@ PNG is the default. Select JPEG explicitly with `--screenshot-format jpeg`; set 
 
 Omitting the path saves into a private temporary directory and returns the path. You can also select an existing directory with `--screenshot-dir`. Existing files are not overwritten.
 
+## Include native macOS UI
+
+With a connected session, inspect the display list and select its current index. This example selects the main display (1). The default Flutter capture is unchanged.
+
+```sh
+marionette-agent device list --platform macos
+marionette-agent screenshot --source macos --display 1 artifacts/native.png
+marionette-agent screenshot --source macos --display 1 artifacts/native.jpg --screenshot-format jpeg
+```
+
+The entire selected display is captured, including other apps and personal information; inspect images before sharing. Visible file panels, menus and capturable permission dialogs are included, but other displays/Spaces, hidden windows and protected UI are not guaranteed. Capture does not follow moving windows and includes occluding content. Flutter ref annotations and target crops are unavailable for native captures.
+
+The invoking terminal/host app needs Screen Recording permission. Missing permission, a lost display and timeout fail without switching to Flutter images. Result `capture` metadata reports the display index/ID, pixel dimensions, scope and scale. MCP screenshot uses the same route with `source: "macos"` and integer `display`. `diff screenshot` remains Flutter-only.
+
 ## Overlay refs on the image
 
 ```sh

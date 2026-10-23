@@ -186,7 +186,7 @@ scrollは初版では指定領域を既存swipe機構で操作する。direction
 
 ### workflow v1
 
-workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
+workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`、`screenshot`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
 
 workflow内の操作対象はselectorだけを受理し、refと座標操作は受理しない。入力値は型付き参照でbindingし、文字列展開、環境変数展開、shell実行は行わない。`--timeout`はworkflow／inputsの読込、検証、daemonへの配送、queue待ち、全stepを含む絶対期限である。
 
@@ -480,3 +480,23 @@ launchはdaemon自動起動対象で、session queueとaction policyを共有す
 closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
 
 testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作と録画は既存session/record --platform flutterを共用する。手順と制約は[日本語ガイド](headless.ja.md)を参照。
+
+<a id="native-macos-screenshots"></a>
+## macOSネイティブスクリーンショット（Issue #58）
+
+`screenshot --source macos --display <1-999> [path]`で撮影するdisplay全体を明示します。`source`の既定は`flutter`で、tester・既存script・注釈・領域撮影は従来どおりです。queue/deadline管理のため接続済みsessionを必要としますが、native撮影ではMarionetteのcaptureもinspectも呼びません。CLI、MCP screenshotの`source`・整数`display`、workflow screenshotは同じhandlerを通ります。失敗時にFlutter画像へfallbackしません。
+
+macOS packageがOS標準の`/usr/sbin/screencapture -x -t png -D <index>`を一度呼び、録画の開始・停止は行いません。ログイン済みWindowServerとmacOS 10.15以降の権限APIが必要で、欠けるhostは非対応です。各OS版での互換性は対象環境で検証します。source実行・コンパイル済みDart配布とも追加Swift compiler・helper executable・署名identityが不要なため標準utilityを選択しました。[SCScreenshotManager](https://developer.apple.com/documentation/screencapturekit/scscreenshotmanager)はmacOS 14以降で直接静止画を取得できますが、別途native bindingと配布境界が必要です。録画を代用する方式は採りません。
+
+`device list --platform macos`は現在のactive display順序、CoreGraphics ID・geometryを返します。index 1はmain displayで、番号は現在の順番であり永続的なhardware識別子ではありません。毎回明示的に選択します。撮影前後のID・順序・geometry・mode・rotationを比較し、変化したら`TARGET_NOT_FOUND`として画像を破棄します。別displayへの切替は行いません。utilityとの間はatomicではないため撮影中にdisplay構成を変更しないでください。hardware mirrorは描画元のprimaryを公開します。標準panel・menu・権限UIは別window/processの場合があるためwindow単体の撮影は提供しません。
+
+選択displayの見えている内容全体を取得し、**他アプリも含みます**。対象displayで現在表示中のSpace・全画面Spaceのみです。移動したアプリには追従せず、別displayへ移動したアプリは写りません。遮蔽物は写り、最小化・非表示window、別Space・displayのUIは写りません。保護UI・secure contentはOSにより除外される場合があります。dialogを閉じる、Spaceを切り替える、windowを前面へ出す、保護UIを回避する操作は行いません。アプリ終了後もdisplayは存在しますが、必要なsession接続を失った場合は明示的に再接続するまで撮影を拒否します。対象displayの切断は対象消失です。
+
+成功時は`paths`に加え`capture:{source:"macos-screencapture",scope:"display",displayIndex,displayId,pixelWidth,pixelHeight,bounds:{x,y,width,height,unit:"macos_global_points"},scaleX,scaleY,includesOtherApplications:true}`を返します。pixel寸法はPNG実データから読み共通decoderで検証します。scaleは取得pixel寸法÷display boundsでRetinaも含みます。Flutter座標ではありません。text出力にも同じmetadataを含めます。nativeと`--annotate`やref/selector cropの併用は撮影前に`INVALID_ARGUMENT`です。`diff screenshot`はFlutter撮影のままでnative source/display引数を受け付けず、Flutter baselineとOS displayの対応を保証しません。
+
+[CGPreflightScreenCaptureAccess](https://developer.apple.com/documentation/coregraphics/cgpreflightscreencaptureaccess())を権限要求なしに呼びます。falseは`SCREEN_CAPTURE_PERMISSION_REQUIRED` / exit 1 / `not_sent`で、対象消失・変更（`TARGET_NOT_FOUND` / exit 4）、timeout（exit 5）、取得失敗（`IO_ERROR` / exit 1）と区別します。公開preflightはBooleanしか返さないため、**一度も要求していない状態と明示的拒否は区別できません**。TCC状態を推測せず両者を含む旨を返します。daemon実行元のterminal/host appに画面収録権限が必要です。TCC database読取り、権限要求API、OS設定変更は行いません。Web録画も同じread-only probeを再利用し、従来の`IO_ERROR`契約を維持します。
+
+native取得は私有一時領域を使い、子processのstdout/stderrを破棄します。timeout時は子processを停止・回収してからcleanupし、遅れた成功を公開しません。PNGを共通writerへ渡し、PNG/JPEG変換・排他的保存・その要求の失敗時rollbackを再利用します。元の絶対deadlineにnative取得・IPC・保存を含みます。40 MiB超はbase64転送前に拒否します。path/directoryの優先順位と命名規則は維持します。
+
+
+workflow v1は`screenshot` stepも受け付けます。共通writerで保存してから次のstepへ進み、成功・失敗の完了prefixに保存結果を返します。[workflow仕様](workflow-file-spec.ja.md#screenshot-steps)を参照してください。

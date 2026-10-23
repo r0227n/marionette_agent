@@ -21,6 +21,8 @@ String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'scroll <ref|selector> <left|right|up|down> [--distance <n>]\n'
     'scroll uses finger movement direction; reaching content is not guaranteed.\n'
     'screenshot [--annotate] [path] | logs\n'
+    '  --source flutter|macos (default flutter); macos requires --display <1-999>.\n'
+    '  Native capture includes the entire selected display and other apps; no crop/annotation.\n'
     '  --annotate requires a valid snapshot and an opt-in mapped screenshot provider.\n'
     'Screenshot destination: explicit path > --screenshot-dir > temporary directory.\n'
     'Screenshot directories must exist; --screenshot-dir must not be a symlink.\n'
@@ -55,7 +57,7 @@ String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'wait <milliseconds|ref> | screenshot <ref|selector> [path]\n'
     'diff snapshot|screenshot --baseline <path> [--threshold <0-255> --output <path>]\n'
     'record restart <path> --platform <platform> --device <id> | record start/restart --fps <1-60>\n'
-    'device list [--platform ios|android] | batch <JSON-file|->\n'
+    'device list [--platform ios|android|macos] | batch <JSON-file|->\n'
     'state save|load <path> (connection only) | confirm|deny <confirmation-id>\n'
     'doctor --quick|--offline|--fix | install|upgrade [--source <package-directory>] <bin-directory>';
 

@@ -122,3 +122,8 @@ marionette-agent --session web-demo record start ./web.mov --platform web \
 displayは1〜999です。画面収録許可が必要で、指定display全体に映る他アプリやOSダイアログも含みます。Chromeの配置確認・移動追従はしません。localhost、remote host、認証情報、query、fragmentはdeviceに使えません。headless Chromeはこの方式では非対応です。
 
 同一displayのWeb/macOS録画は排他です。対象tabの終了・crash・debug接続断はCONNECTION_LOSTとなり、statusはfailed、stopはエラーを返します。復旧pathを確認してください。方式と起動例の詳細は[Web録画設計](../web-recording.md)を参照してください。
+
+<a id="native-capture"></a>
+## Native撮影のmetadata
+
+MCP screenshotは`source: "flutter" | "macos"`と`display: 1..999`を公開します。native撮影はtext/JSONの保存pathに`capture`を追加します。display選択・Retina geometry・権限error・保護UI制約は[SPEC](SPEC.ja.md#native-macos-screenshots)、操作は[撮影ガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。`diff screenshot`はFlutter専用です。workflow screenshotはpathとmetadataを返し、MCPのinline ImageContentは単独screenshot toolだけが返します。
