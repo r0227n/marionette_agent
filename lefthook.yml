@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://lefthook.dev/schema.json
+min_version: 2.2.1
+lefthook: mise exec -- lefthook
+assert_lefthook_installed: true
+glob_matcher: doublestar
+
+pre-commit:
+  # Flutter tests and the install smoke share workspace build outputs.
+  piped: true
+  jobs:
+    - name: dart-format
+      glob: '**/*.dart'
+      run: dart format --output=none --set-exit-if-changed {staged_files}
+    - name: workspace-quality
+      # Keep workspace-wide checks: CLI, util, and example depend on one another.
+      # Without a file template, deleted paths also participate in selection.
+      glob:
+        - '**/*.{dart,yaml,yml,json,lock}'
+        - '.mise.toml'
+        - 'CHANGELOG.md'
+        - 'LICENSE'
+        - 'NOTICE'
+        - 'THIRD_PARTY_NOTICES.txt'
+        - 'skills/**'
+        - 'skill-data/**'
+        - 'tool/*.{sh,py}'
+      exclude:
+        - 'website/**'
+      run: bash tool/quality.sh

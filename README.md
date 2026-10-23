@@ -217,4 +217,6 @@ English is the primary public language; Japanese is maintained alongside it. Upd
 
 Read [AGENTS.md](AGENTS.md) before making changes. CLI changes require formatting, analysis, relevant tests, and the full test suite at handoff; behavior changes also require verification against the example in iOS Simulator. The [product contract](docs/SPEC.md) and [architecture](docs/ARCHITECTURE.md) are available in English, with [Japanese specification](docs/ja/SPEC.ja.md) and [Japanese architecture](docs/ja/ARCHITECTURE.ja.md) counterparts.
 
+Follow [Contributing](CONTRIBUTING.md) to install Lefthook and enable the extension-filtered pre-commit quality checks before your first commit.
+
 For website development and the GitHub Pages deployment pipeline, follow [website/README.md](website/README.md).

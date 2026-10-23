@@ -22,6 +22,8 @@ CLI package version、JSON `schemaVersion`、内部IPC `protocolVersion`、workf
 
 ## 対応環境と問い合わせ
 
+開発者はmacOSでルートの`.mise.toml`によるmise管理の[Lefthook](https://lefthook.dev/)を使い、拡張子に応じたpre-commit品質検証を実行します。cloneやworktree作成後に固定版とhookを導入してください。セットアップ・対象ファイル・全検証は[Contributing](https://github.com/r0227n/marionette_agent/blob/develop/CONTRIBUTING.md)と[リリース検証](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/releasing.ja.md#ローカルの検証)を参照してください。文書の検証はCIに残り、リリース準備・引き継ぎはworkspace品質をローカル検証済みであることを前提とします。
+
 CLIの対応ホストはmacOSで、検証の基準はmacOS arm64、Flutter 3.47.2、Dart 3.13.2です。SDK制約はDart >=3.13.2 <4.0.0ですが、全SDK組合せの保証ではありません。Linux/Windowsホストは対応しません。iOS SimulatorにはXcode、AndroidにはSDK/adb、macOSとChromeには各runtimeが必要です。testerはFlutter UI向けで、native pluginやOS動作の確認には使えません。端末録画の権限と範囲はbackendごとに異なり、iOS実機録画には対応しません。
 
 公開後は最新1.xへのbest-effort修正を対象とし、応答時間や有償サポートのSLAは約束しません。通常の不具合は秘匿済みの再現手順、版、ホスト、対象runtimeを添えて[GitHub Issues](https://github.com/r0227n/marionette_agent/issues)へ報告してください。脆弱性の報告もこの**公開**Issuesを窓口とし、秘匿済みの概要だけを投稿してください。秘密情報・個人情報・認証トークン・悪用可能な詳細は投稿しません。機微な再現詳細を共有する前に、メンテナーへ非公開での追加連絡の調整を依頼してください。非公開窓口は事前に約束せず、GitHubの非公開報告も現在無効です。報告方法と安全な利用条件は[SECURITY.md](https://github.com/r0227n/marionette_agent/blob/develop/SECURITY.md)にあります。復旧時は[出力](/marionette_agent/ja/reference/output/)と[トラブルシューティング](/marionette_agent/ja/reference/troubleshooting/)を参照してください。

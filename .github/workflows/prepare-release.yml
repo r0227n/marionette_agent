@@ -38,15 +38,9 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
         run: python3 .github/scripts/git_flow.py resolve --version "$RELEASE_VERSION"
 
-  quality:
-    needs: candidate
-    uses: ./.github/workflows/quality.yml
-    with:
-      ref: ${{ needs.candidate.outputs.sha }}
-
   prepare:
     if: ${{ !inputs.dry_run }}
-    needs: [candidate, quality]
+    needs: candidate
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
