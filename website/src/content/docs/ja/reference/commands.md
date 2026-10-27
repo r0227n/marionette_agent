@@ -56,8 +56,7 @@ directionは`left`・`right`・`up`・`down`で、**指の移動方向**です�
 | `native tap REF`                                             | native要素を再観測・検証して1回tap         |
 | `native tap --text TEXT`                                     | textの完全一致。identifier/typeも利用可能  |
 | `native tap --x X --y Y`                                     | 明示的な端末画面座標                       |
-| `native swipe --start-x X --start-y Y --end-x X2 --end-y Y2` | 300msの指移動を1回実行                     |
-| `native screenshot [PATH]`                                   | OSの重なった画面を含む端末全体の撮影       |
+| `native swipe --start-x X --start-y Y --end-x X2 --end-y Y2` | OSのAPIによる指移動を1回実行               |
 
 ## 追加の入力・操作
 

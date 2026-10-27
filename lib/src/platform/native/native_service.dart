@@ -52,16 +52,6 @@ class NativeService {
               ? 'screen_points'
               : 'screen_pixels',
         };
-        if (params['action'] == 'screenshot') {
-          final bytes = await backend.screenshot(device, deadline);
-          execution.check();
-          if (session.nativeTarget != target) session.nativeObservation = null;
-          session.nativeTarget = target;
-          return {
-            ...metadata,
-            'images': [base64Encode(bytes)],
-          };
-        }
         // Explicit coordinates are also usable when accessibility cannot dump
         // a system-hosted surface or the app never becomes idle.
         final elements =
@@ -96,7 +86,7 @@ class NativeService {
             'elements': rows,
             if (elements.isEmpty ||
                 elements.every((e) => e.type == 'Application'))
-              'limitation': 'Native accessibility exposed no child elements. Use native screenshot to inspect the screen; explicit coordinates are available. No automatic coordinate fallback is performed.',
+              'limitation': 'Native accessibility exposed no child elements. Inspect the device screen before using explicit coordinates. No automatic coordinate fallback is performed.',
           };
         }
         double? x, y;

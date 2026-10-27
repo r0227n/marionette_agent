@@ -275,10 +275,7 @@ Future<int> runCli(
           await compareObservation(params, baseline, result.data!, deadline),
         );
       }
-      if ((invocation.command == 'screenshot' ||
-              (invocation.command == 'native' &&
-                  params['action'] == 'screenshot')) &&
-          result.error == null) {
+      if (invocation.command == 'screenshot' && result.error == null) {
         result = Result.success(
           session,
           await saveScreenshots(

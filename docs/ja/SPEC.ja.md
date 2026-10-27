@@ -145,7 +145,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
 | `close [--all]` | 録画があれば確定し、選択session（--allは全session）を切断・破棄。対象不在も成功。Flutterアプリは終了しない |
 | `snapshot` | 観測を更新し、要素一覧とrefを返す |
-| `native snapshot\|tap\|swipe\|screenshot --platform ios\|android --device <id>` | 明示端末のnative前面画面を観測・操作・撮影する。Flutter接続は不要 |
+| `native snapshot\|tap\|swipe --platform ios\|android --device <id>` | 明示端末のnative前面画面を観測・操作する。Flutter接続は不要 |
 | `get text <ref\|selector>` | 単一要素の観測textを返す |
 | `get box <ref\|selector>` | 単一要素のboundsをFlutter論理座標で返す |
 | `get count <selector>` | 完全一致する観測候補の件数を返す（ref不可） |
@@ -488,14 +488,18 @@ testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS 
 
 ## ネイティブ端末UI
 
-`native snapshot|tap|swipe|screenshot`は、毎回`--platform ios|android`と明示的な`--device`を必須とする。iOSはSimulatorのUUID、Androidはadbのserialを受け付ける。正しい要求はconnectなしでもnative専用sessionを起動・保持できる。close/idle終了でsessionを解放するが、外部管理の端末やidb companionの起動・終了・resetは行わない。batch・workflow v1には含めない。MCPの`native` profileは通常のprefixと型付きplatform/device fieldでnative_snapshot/native_tap/native_swipe/native_screenshotを公開する。
+`native snapshot|tap|swipe`は、毎回`--platform ios|android`と明示的な`--device`を必須とする。iOSはSimulatorのUUID、Androidはエミュレータserialを受け付ける。正しい要求はconnectなしでもnative専用sessionを保持できる。closeやidle終了は外部管理の端末・runnerの起動・終了・resetを行わない。batch・workflow v1には含めない。MCPの`native` profileは通常のprefix付きnative_snapshot/native_tap/native_swipeを公開する。ネイティブスクリーンショットはこの契約の対象外とする。
 
-snapshotは`source:native`、`platform`、`device`、`coordinateSpace`、`generation`、`elements`を返す。要素はtype、text、identifier、value、package、enabled、boundsとref/reasonを持つ。iOSはidbのaccessibility label/unique IDを使用し、Androidのtextは空ならcontent-desc、identifierはresource IDとする。アクセシビリティは完全ではなく、iOSのOS側ピッカーではアプリrootしか取得できない場合がある。空/rootのみの観測ではlimitationを返す。screenshotはOS画面を含み、PNG/JPEG・期限・上書き防止・保存先は既存artifact writerが所有する。native screenshotの結果はpathsとともにsource/platform/device/coordinateSpaceを保持する。
+snapshotは`source:native`、`platform`、`device`、`coordinateSpace`、`generation`、`elements`を返す。正規化要素はtype、text、identifier、value、package、enabled、boundsとref/reasonを持つ。iOSはXCUIElementSnapshotのlabel・identifier・value・enabled・frame・childrenを読む。システムalertがある場合、または設定したアプリが前面にない場合はSpringBoard、それ以外は設定したアプリを観測する。AndroidはUiDeviceのdepth-zero rootからUiObject2の属性・childrenを読む。textが空ならcontent-description、identifierはresource nameとする。取得できないコントロールもあり、空/rootのみならlimitationを返す。
 
-tapは`@nN` ref、完全一致のtext/identifier/type selector、x/yのいずれか1つを受け付ける。native refとFlutterの`@eN`は相互利用できない。native snapshotはsession内の前回native refを置換し、Flutter refは保持する。操作直前の再観測ではboundsを含む正規化要素全体を比較し、refが0件ならSTALE_REF、selectorが0件ならTARGET_NOT_FOUND、複数ならAMBIGUOUS_TARGET、無効化/不正boundsならUNRESOLVABLE_TARGETとする。同一内容の重複要素とアプリrootにはrefを発行しない。観測した矩形の中心へ入力を1回送る。再観測と入力はatomicではなく、OS上の永続的な同一性を保証しない。座標への暗黙fallbackは行わない。
+tapは`@nN` ref、完全一致のtext/identifier/type selector、x/yのいずれか1つを受け付ける。native refとFlutterの`@eN`は相互利用できない。native snapshotはsession内の前回native refを置換し、Flutter refは保持する。再観測ではboundsを含む正規化要素全体を比較し、refが0件ならSTALE_REF、selectorが0件ならTARGET_NOT_FOUND、複数ならAMBIGUOUS_TARGET、無効化/不正boundsならUNRESOLVABLE_TARGETとする。同一内容の重複要素とアプリrootにはrefを発行しない。観測矩形の中心へ入力を1回送る。観測と入力はatomicではなく、OS上の永続的な同一性を保証しない。座標への暗黙fallbackは行わない。
 
-明示tap座標とswipeのstartX/startY/endX/endYは0〜10,000,000の有限数。swipeの始終点は異なること。iOSはscreen_points、Androidはscreen_pixelsで、platformツールの整数座標へ丸め、swipeは300msとする。明示座標操作ではアクセシビリティdumpを必須にしない。呼出側が現在のnative screenshotを確認し、scale/orientationを考慮する。撮影画像のpixelをiOSのpointと混同しない。
+明示tap座標とswipeのstartX/startY/endX/endYは0〜10,000,000の有限数で、swipeの始終点は異なること。iOSはscreen_pointsで、XCUICoordinateのtap・press-and-dragとOS既定の速度を使う。Androidはscreen_pixelsを整数へ丸め、UiDevice.click/swipeを60 step（約300ms）で実行する。明示座標操作ではアクセシビリティ取得を必須にしない。呼出側は現在の実画面または観測boundsを確認し、scale/orientationを考慮する。
 
-native要求はsession queue・期限・policy・エラー契約を共有し、同じdaemon内の同じ端末では観測から操作まで直列化する。tap/swipeのpolicy actionは`native`、読み取りには変更操作の承認を要しない。native操作は同じ端末のnative refをsession横断で失効させ、VM endpointから端末の同一性を証明できないためdaemon内の全Flutter refも失効させる。Flutter UI操作は自sessionのnative refを失効させる。native読み取りはFlutter refを保持する。別端末のnative screenshotを撮ると、同じsessionの旧native refは失効する。出力上限で未公開になったnative refを削除し、番号を再利用しない。content boundariesでnative行も未信頼と示す。送信前の失敗はnot_sent、送信後のツール失敗・timeoutはunknownとし、UI操作を自動再送しない。別runtimeや外部担当との端末利用は別途直列化が必要。
+native要求はsession queue・期限・policy・エラー契約を共有し、同じdaemon内の同じ端末では観測から操作まで直列化する。tap/swipeのpolicy actionは`native`で、読み取りには変更操作の承認を要しない。native入力は同じ端末のnative refをsession横断で失効させ、VM endpointから端末同一性を証明できないためdaemon内の全Flutter refも失効させる。Flutter変更操作は自sessionのnative refを失効させる。出力上限で未公開になったrefを削除し番号を再利用せず、content boundariesでnative行も未信頼と示す。送信前の失敗はnot_sent、送信後の失敗・timeoutはunknownとし、UI操作を自動再送しない。別runtimeや外部担当との端末利用は別途直列化が必要。
 
-hostツール出力には上限を設け、診断出力は画面文言をechoせず破棄する。idb/adb不足はUNSUPPORTED_CAPABILITY、ツール失敗はIO_ERROR、不正観測はBACKEND_ERROR。全プロセスに明示対象と元の期限を渡し、timeoutでは所有する子プロセスを終了する。iOSの観測・入力はidbとidb_companion、撮影はsimctlを使う。Androidはadb経由のuiautomator dump・input・screencapを使う。iOS実機・任意shell実行・一括権限付与・native文字入力・永続native IDは契約外。準備とFlutter/nativeの観測ループは[ネイティブUIガイド](https://r0227n.github.io/marionette_agent/ja/guides/native-ui/)を参照。
+daemonは`MARIONETTE_AGENT_NATIVE_RUNNERS`を最大64 KiBのJSONファイルのpathとして読む。形式は`{ "ios": { "UUID": { "port": 18741, "token": "..." } }, "android": { "SERIAL": { "port": 18742, "token": "..." } } }`とし、portは1〜65535の整数、tokenは`[A-Za-z0-9_-]`に一致する32〜128文字だけを許可する。接続先はIPv4 loopbackに固定し、remote hostは設定できない。端末設定の欠落はUNSUPPORTED_CAPABILITY、設定読取・接続失敗はIO_ERROR、不正wire dataはBACKEND_ERROR、期限超過はTIMEOUTとする。診断にtoken・画面文言・runnerの例外詳細を出力しない。
+
+wire protocolはTCP接続ごとに有界のJSON 1行と応答1件を使う。要求にはversion=1・platform・device・token・元のUnix-millisecond deadline・action・必要な座標を含める。両runnerはidentity/tokenを認証し、OS呼出前に期限を確認する。応答にはversion/platform/device/okとsnapshotのelementsまたは汎用error codeを含め、clientは応答のidentityを検証する。要求は16 KiB、観測は10,000要素、応答は8 MiBまでとする。timeoutはclient socketを閉じるが、開始済みOS操作は完了し得るため結果はunknownのままとする。runnerは外部所有で、要求を直列化する。iOSの端末identityはSIMULATOR_UDID、Androidはinstrumentation起動時に転送先の明示serialを渡す。
+
+native操作経路にはidb・adb・xcrun・subprocess・XML dumpの実装を持たない。iOS platform packageにXCUITest bundle、Androidに独立したUI Automator instrumentation APK projectを置く。インストール・テストrunner起動・Androidのport転送は明示的な準備手順とする。既存のdevice/application/recording機能はそれぞれの実装を維持する。iOS実機・任意shell実行・一括権限付与・native文字入力・永続native IDは契約外。準備と観測ループは[ネイティブUIガイド](https://r0227n.github.io/marionette_agent/ja/guides/native-ui/)を参照。

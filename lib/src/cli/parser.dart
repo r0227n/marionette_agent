@@ -78,9 +78,7 @@ class CliParser {
         'MCP does not accept --restore or --confirm-interactive; use connect and explicit confirmation tools',
       );
     }
-    if ((command.name == 'screenshot' ||
-            (command.name == 'native' && params['action'] == 'screenshot')) &&
-        params['path'] is String) {
+    if (command.name == 'screenshot' && params['path'] is String) {
       params['path'] = options.screenshotFormat.destinationPath(
         params['path'] as String,
       );

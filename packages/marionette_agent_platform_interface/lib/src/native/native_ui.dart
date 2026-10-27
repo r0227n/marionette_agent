@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 /// Device-screen coordinates: iOS points, Android physical pixels.
 class NativeBounds {
   const NativeBounds(this.x, this.y, this.width, this.height);
@@ -57,5 +55,4 @@ abstract interface class NativeUiBackend {
     double endY,
     DateTime deadline,
   );
-  Future<Uint8List> screenshot(String device, DateTime deadline);
 }

@@ -56,8 +56,7 @@ All commands below require `--platform ios|android --device ID`. No Flutter VM c
 | `native tap REF`                                             | Reobserve, validate, and tap one native element |
 | `native tap --text TEXT`                                     | Exact text; identifier/type are alternatives    |
 | `native tap --x X --y Y`                                     | Explicit device-screen coordinates              |
-| `native swipe --start-x X --start-y Y --end-x X2 --end-y Y2` | One 300ms finger gesture                        |
-| `native screenshot [PATH]`                                   | Capture the whole device, including OS overlays |
+| `native swipe --start-x X --start-y Y --end-x X2 --end-y Y2` | One platform-native finger gesture              |
 
 ## Additional interactions
 

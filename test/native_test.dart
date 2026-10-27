@@ -289,19 +289,6 @@ void main() {
     expect(manager.sessions, isEmpty);
     expect(ref, startsWith('@n'));
   });
-  test(
-    'screenshot on a different device expires the prior native observation',
-    () async {
-      final ref = await snapshot();
-      expect((await call('screenshot', device: 'emulator-5556')).error, isNull);
-      expect(manager.sessions['a']!.nativeObservation, isNull);
-      expect(
-        (await call('tap', params: {'ref': ref})).error!.code,
-        'STALE_REF',
-      );
-      expect(backend.taps, isEmpty);
-    },
-  );
   test('CLI validates targets, paths, duplicates and explicit device', () {
     final parser = CliParser(environment: {});
     final opts = ['--platform=android', '--device=emulator-5554'];
@@ -313,12 +300,9 @@ void main() {
       parser.parse(['native', 'tap', ...opts, '@n1']).params['ref'],
       '@n1',
     );
-    expect(
-      parser.parse(['native', 'screenshot', ...opts, 'screen']).params['path'],
-      'screen.png',
-    );
     for (final args in [
       ['native'],
+      ['native', 'screenshot', ...opts],
       ['native', 'snapshot'],
       ['native', 'snapshot', ...opts, 'unexpected'],
       ['native', 'tap', ...opts, '@e1'],

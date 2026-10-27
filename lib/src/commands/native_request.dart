@@ -5,7 +5,7 @@ void validateNative(Json params) {
   final action = params['action'];
   final platform = params['platform'];
   final device = params['device'];
-  if (!['snapshot', 'tap', 'swipe', 'screenshot'].contains(action) ||
+  if (!['snapshot', 'tap', 'swipe'].contains(action) ||
       !['ios', 'android'].contains(platform) ||
       device is! String ||
       !RegExp(r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$').hasMatch(device) ||
@@ -18,13 +18,6 @@ void validateNative(Json params) {
   }
   final allowed = <String>{'action', 'platform', 'device'};
   switch (action) {
-    case 'screenshot':
-      allowed.add('path');
-      if (params.containsKey('path') &&
-          (params['path'] is! String ||
-              (params['path'] as String).trim().isEmpty)) {
-        invalid('Screenshot path must be nonempty');
-      }
     case 'tap':
       allowed.addAll(['ref', 'text', 'identifier', 'type', 'x', 'y']);
       final selectors = [

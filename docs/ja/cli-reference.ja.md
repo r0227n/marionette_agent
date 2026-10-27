@@ -56,7 +56,7 @@ checkは`success`、`failure`、`unknown`、`skipped`です。診断を返せれ
 | `actions` | dblclick, focus, hover, check, uncheck, scrollintoview, type, select, press, keydown, keyup, keyboard_press, keyboard_type, keyboard_inserttext, clipboard_read, clipboard_write, clipboard_copy, clipboard_paste, drag |
 | `workflow` | workflow_run, workflow_validate, workflow_schema, batch, confirm, deny |
 | `record` | record_start, record_restart, record_stop, record_status |
-| `native` | native_snapshot, native_tap, native_swipe, native_screenshot |
+| `native` | native_snapshot, native_tap, native_swipe |
 | `all` | 上記すべて |
 
 `marionette_agent_tools_profiles`は常に利用できます。find/diff/state/skills/install/upgradeはMCPに公開していません。`tools/list`は20件ずつで、返却された`nextCursor`を次の`cursor`へ渡します。省略/nullは先頭、不正値・型はJSON-RPC `-32602`です。無効profileのtoolは呼べません。

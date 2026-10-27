@@ -11,7 +11,6 @@ CliCommand nativeCommand() {
   return CliCommand(
     ArgParser()
       ..addCommand('snapshot', device())
-      ..addCommand('screenshot', device())
       ..addCommand(
         'tap',
         device()
@@ -32,19 +31,18 @@ CliCommand nativeCommand() {
     (args) {
       final child = args.command;
       if (child == null || args.rest.isNotEmpty) {
-        invalid('Usage: native snapshot|tap|swipe|screenshot');
+        invalid('Usage: native snapshot|tap|swipe');
       }
       final params = <String, Object?>{
         'action': child.name,
         'platform': child.option('platform'),
         'device': child.option('device'),
       };
-      if (child.rest.length >
-          (['tap', 'screenshot'].contains(child.name) ? 1 : 0)) {
+      if (child.rest.length > (child.name == 'tap' ? 1 : 0)) {
         invalid();
       }
       if (child.rest.isNotEmpty) {
-        params[child.name == 'tap' ? 'ref' : 'path'] = child.rest.single;
+        params['ref'] = child.rest.single;
       }
       if (child.name == 'tap') {
         for (final key in ['text', 'identifier', 'type']) {

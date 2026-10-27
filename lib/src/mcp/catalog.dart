@@ -151,16 +151,16 @@ class McpToolDefinition {
 }
 
 List<McpToolDefinition> mcpToolCatalog() => [
-  for (final action in ['snapshot', 'tap', 'swipe', 'screenshot'])
+  for (final action in ['snapshot', 'tap', 'swipe'])
     McpToolDefinition(
       'native_$action',
       'Native device $action (permission dialogs and photo pickers). '
-          'No Flutter VM required. iOS requires idb; Android requires adb. '
+          'No Flutter VM required. Requires a configured XCUITest or UI Automator runner. '
           'Use native snapshot refs; after an action observe again, never automatically retry. '
           'Coordinates are iOS screen points or Android screen pixels.',
       ['native', action],
       profile: 'native',
-      readOnly: ['snapshot', 'screenshot'].contains(action),
+      readOnly: action == 'snapshot',
       target: action == 'tap',
       targetSchema: Schema.object(
         properties: {
@@ -181,11 +181,6 @@ List<McpToolDefinition> mcpToolCatalog() => [
         if (action == 'swipe')
           for (final key in ['startX', 'startY', 'endX', 'endY'])
             key: Schema.num(minimum: 0),
-        if (action == 'screenshot') ...{
-          'path': _string,
-          'format': _enum(['png', 'jpeg']),
-          'quality': Schema.int(minimum: 0, maximum: 100),
-        },
       },
       required: [
         'platform',
@@ -204,7 +199,6 @@ List<McpToolDefinition> mcpToolCatalog() => [
           'endY': 'end-y',
         },
       },
-      positionals: [if (action == 'screenshot') 'path'],
     ),
   McpToolDefinition(
     'connect',

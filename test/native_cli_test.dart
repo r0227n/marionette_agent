@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:image/image.dart' as image;
 import 'package:marionette_agent/src/commands/core_commands.dart';
 import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
@@ -14,14 +13,13 @@ import 'support/native_backend.dart';
 
 void main() {
   test(
-    'product CLI crosses IPC without VM, limits refs and saves native PNG/JPEG',
+    'product CLI crosses IPC without VM and invalidates refs after input',
     () async {
       final dir = await Directory('/tmp').createTemp('native-cli-');
       final runtime = await RuntimeDirectory.prepare(
         directory: '${dir.path}/runtime',
       );
-      final backend = FakeNativeBackend()
-        ..png = image.encodePng(image.Image(width: 12, height: 20));
+      final backend = FakeNativeBackend();
       final server = DaemonServer(
         runtime,
         SessionManager(
@@ -61,30 +59,10 @@ void main() {
         expect(tap.exitCode, 0);
         expect(backend.taps, [(60.0, 40.0)]);
         expect((await cli(['native', 'tap', ...device, ref])).exitCode, 4);
-        final path = '${dir.path}/native.png';
-        final shot = await cli(['native', 'screenshot', ...device, path]);
-        expect(shot.exitCode, 0);
         expect(
-          (jsonDecode(shot.stdout as String) as Map)['data']['source'],
-          'native',
+          (await cli(['native', 'screenshot', ...device])).exitCode,
+          isNot(0),
         );
-        expect(await File(path).readAsBytes(), backend.png);
-        expect(
-          (await cli(['native', 'screenshot', ...device, path])).exitCode,
-          1,
-        );
-        final jpeg = '${dir.path}/native.jpg';
-        expect(
-          (await cli([
-            'native',
-            'screenshot',
-            ...device,
-            jpeg,
-            '--screenshot-format=jpeg',
-          ])).exitCode,
-          0,
-        );
-        expect(image.decodeJpg(await File(jpeg).readAsBytes())!.height, 20);
         expect((await cli(['close'])).exitCode, 0);
         await serving;
       } finally {

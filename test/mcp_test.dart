@@ -111,13 +111,6 @@ void main() {
         'endX': 10,
         'endY': 200,
       },
-      'native_screenshot': {
-        'platform': 'android',
-        'device': 'emulator-5554',
-        'path': 'native.jpg',
-        'format': 'jpeg',
-        'quality': 80,
-      },
       'swipe': {'startX': 20, 'startY': 50, 'endX': 200, 'endY': 50},
       'wait': {
         'target': {'text': 'done'},
@@ -188,8 +181,7 @@ void main() {
     setUp(() async {
       temp = await Directory('/tmp').createTemp('mcp-test-');
       png = image.encodePng(image.Image(width: 3, height: 2));
-      native = FakeNativeBackend()
-        ..png = image.encodePng(image.Image(width: 3, height: 2));
+      native = FakeNativeBackend();
       backend = _InputBackend()
         ..elements = [
           ElementInfo(key: 'button', type: 'Button', visible: true),
@@ -374,35 +366,27 @@ void main() {
       timeout: const Timeout(Duration(minutes: 2)),
     );
 
-    test(
-      'native tools operate without VM and return inline screenshot content',
-      () async {
-        const targetDevice = {'platform': 'android', 'device': 'emulator-5554'};
-        final snapshot = await call('native_snapshot', targetDevice);
-        expect(snapshot.isError, false);
-        final ref = response(snapshot)['data']['elements'][0]['ref'];
-        final tapArgs = {
-          ...targetDevice,
-          'target': {'ref': ref},
-        };
-        expect((await call('native_tap', tapArgs)).isError, false);
-        expect(native.taps, [(60.0, 40.0)]);
-        final stale = await call('native_tap', tapArgs);
-        expect(response(stale)['error']['code'], 'STALE_REF');
-        expect(native.taps, hasLength(1));
-        final shot = await call('native_screenshot', {
-          ...targetDevice,
-          'path': '${temp.path}/native.png',
-        });
-        expect(shot.isError, false);
-        expect(response(shot)['data']['source'], 'native');
-        expect((shot.content.last as Map)['mimeType'], 'image/png');
-        expect(base64Decode((shot.content.last as Map)['data'] as String), png);
-        expect(backend.calls, isEmpty);
-        expect((await call('close')).isError, false);
-      },
-      timeout: const Timeout(Duration(minutes: 2)),
-    );
+    test('native tools operate without VM and reject stale refs', () async {
+      const targetDevice = {'platform': 'android', 'device': 'emulator-5554'};
+      final snapshot = await call('native_snapshot', targetDevice);
+      expect(snapshot.isError, false);
+      final ref = response(snapshot)['data']['elements'][0]['ref'];
+      final tapArgs = {
+        ...targetDevice,
+        'target': {'ref': ref},
+      };
+      expect((await call('native_tap', tapArgs)).isError, false);
+      expect(native.taps, [(60.0, 40.0)]);
+      final stale = await call('native_tap', tapArgs);
+      expect(response(stale)['error']['code'], 'STALE_REF');
+      expect(native.taps, hasLength(1));
+      expect(
+        mcpToolCatalog().any((tool) => tool.name == 'native_screenshot'),
+        isFalse,
+      );
+      expect(backend.calls, isEmpty);
+      expect((await call('close')).isError, false);
+    }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('schema errors do not execute or echo private input', () async {
       final result = await call('fill', {

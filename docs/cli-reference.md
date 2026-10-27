@@ -56,7 +56,7 @@ Start with the [agent integration guide](https://r0227n.github.io/marionette_age
 | `actions` | dblclick, focus, hover, check, uncheck, scrollintoview, type, select, press, keydown, keyup, keyboard_press, keyboard_type, keyboard_inserttext, clipboard_read, clipboard_write, clipboard_copy, clipboard_paste, drag |
 | `workflow` | workflow_run, workflow_validate, workflow_schema, batch, confirm, deny |
 | `record` | record_start, record_restart, record_stop, record_status |
-| `native` | native_snapshot, native_tap, native_swipe, native_screenshot |
+| `native` | native_snapshot, native_tap, native_swipe |
 | `all` | All of the above |
 
 `marionette_agent_tools_profiles` is always available. Find/diff/state/skills/install/upgrade are not exposed through MCP. `tools/list` returns up to 20 tools; pass its `nextCursor` as the next `cursor`. Omitted/null means the first page; invalid values or types return JSON-RPC `-32602`. Tools in disabled profiles cannot be called.

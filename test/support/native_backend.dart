@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
 
@@ -22,7 +21,6 @@ class FakeNativeBackend implements NativeUiBackend {
   final taps = <(double, double)>[];
   Completer<void>? inspecting, tapping;
   Object? failure;
-  Uint8List png = Uint8List(0);
   @override
   Future<List<NativeElement>> inspect(String device, DateTime deadline) async {
     calls.add('inspect:$device');
@@ -48,11 +46,5 @@ class FakeNativeBackend implements NativeUiBackend {
     DateTime deadline,
   ) async {
     calls.add('swipe:$device');
-  }
-
-  @override
-  Future<Uint8List> screenshot(String device, DateTime deadline) async {
-    calls.add('screenshot:$device');
-    return png;
   }
 }
