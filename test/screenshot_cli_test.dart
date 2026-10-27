@@ -35,7 +35,7 @@ void main() {
     final runtime = await RuntimeDirectory.prepare(directory: runtimePath);
     final server = DaemonServer(
       runtime,
-      SessionManager(() => backend, coreCommands()),
+      SessionManager(() => backend, coreCommands(capturer: backend)),
     );
     final serving = server.run();
     try {
@@ -44,11 +44,15 @@ void main() {
       }
       expect((await cli(['connect', 'http://localhost:1/'])).exitCode, 0);
       final pngPath = '${directory.path}/default.png';
-      final savedPng = await cli(['screenshot', pngPath]);
+      final savedPng = await cli([
+        'screenshot',
+        '--device=test-pairing',
+        pngPath,
+      ]);
       expect(savedPng.exitCode, 0);
-      expect(jsonDecode(savedPng.stdout as String), {
-        'paths': [pngPath],
-      });
+      expect((jsonDecode(savedPng.stdout as String) as Map)['paths'], [
+        pngPath,
+      ]);
       expect(savedPng.stderr, isEmpty);
       expect(await File(pngPath).readAsBytes(), png);
 
@@ -57,6 +61,7 @@ void main() {
         final result = await cli([
           '--screenshot-format=jpeg',
           'screenshot',
+          '--device=test-pairing',
           path,
           '--json',
           if (quality != null) '--screenshot-quality=$quality',
@@ -66,17 +71,12 @@ void main() {
         final response = jsonDecode(result.stdout as String) as Map;
         expect(response['ok'], isTrue);
         expect(response['session'], 'issue13');
-        expect(response['data'], {
-          'paths': [path],
-        });
+        expect((response['data'] as Map)['paths'], [path]);
         final bytes = await File(path).readAsBytes();
         expect(bytes, image.encodeJpg(fixture, quality: quality ?? 90));
         expect(image.decodeJpg(bytes)!.width, 9);
       }
-      expect(
-        backend.calls.where((c) => c == 'captureScreenshots'),
-        hasLength(4),
-      );
+      expect(backend.calls.where((c) => c == 'captureScreen'), hasLength(4));
       expect((await cli(['close'])).exitCode, 0);
       await serving;
       expect(File(runtime.metadata).existsSync(), isFalse);
@@ -90,10 +90,11 @@ void main() {
     'invalid screenshot options fail in text/JSON before runtime or connection',
     () async {
       for (final args in [
-        ['screenshot', 'image.jpg', '--json'],
-        ['screenshot', '--screenshot-quality=90'],
+        ['screenshot', '--device=test-pairing', 'image.jpg', '--json'],
+        ['screenshot', '--device=test-pairing', '--screenshot-quality=90'],
         [
           'screenshot',
+          '--device=test-pairing',
           '--screenshot-format=jpeg',
           '--screenshot-quality=101',
           '--json',

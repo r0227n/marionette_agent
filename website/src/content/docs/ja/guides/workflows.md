@@ -79,6 +79,6 @@ marionette-agent --session docs-demo workflow run observe-edit.yaml --json
 - id: system-screen
   action: screenshot
   platform: android
-  device: emulator-5660
+  device: capture-pairing.json
   path: artifacts/system.png
 ```

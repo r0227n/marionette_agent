@@ -84,7 +84,7 @@ listのdataはname/description、getはname/contentの配列です。fullは補�
 install/upgradeはローカルsourceをAOTコンパイルし、隣接する専用`.marionette-agent-*`bundleを配置します。新規配置失敗では新bundleを回収し、既存バイナリを維持します。upgrade後の旧bundleは旧プロセス用に残るため、不要になったことを確認して整理してください。`skills path`で使用中の場所を調べられます。
 
 <a id="capture"></a>
-## 画像保存と注釈の境界条件
+## 画像保存
 
 基本操作は[画像・動画ガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。明示pathがあれば`--screenshot-dir`を検査しません。directory指定時の自動名は`screen-<32桁hex>.png`または`.jpg`、両方省略時はprivate一時directoryの`screen.png`または`screen.jpg`です。複数画像は拡張子前に`-1`、`-2`を付けます。
 
@@ -92,28 +92,20 @@ install/upgradeはローカルsourceをAOTコンパイルし、隣接する専�
 
 親directoryは事前作成が必要です。指定directory自身のsymlinkは拒否し、祖先のsymlinkは利用できます。全画像を検証・変換し、全保存先を排他的に予約してから書き込みます。既存file/directory/symlinkは上書きしません。期限には取得・変換・保存を含み、途中失敗では作成した画像の削除を試みます。OSの削除拒否や進行中I/Oの即時取消しは保証できず、失敗時は成功pathsを返しません。
 
-注釈はmapped providerと有効snapshotが必要です。返却metadataは`annotated`、`generation`、`annotationCount`、`skippedAnnotations`です。省略理由は`missing_or_invalid_bounds`、`bounds_outside_view`、`label_space_exhausted`。capture前後の対象変更はSTALE_REF、複数画像・回転・不明な画像/view対応・PNG寸法不一致はUNSUPPORTED_CAPABILITYです。JPEGはPNGへ注釈後に変換します。refは更新しません。領域cropと注釈は併用できません。
-
 <a id="native-android-capture"></a>
 ## Androidネイティブスクリーンショット契約
 
-`screenshot [path] --platform android --device <serial> [--display 0]`は`adb exec-out screencap -p`を選択します。platform省略または`--platform flutter`は既存のMarionette経路と結果形式を維持します。Android指定はVM Serviceから独立し、必要ならdaemonを起動してsession queueを共有します。成功時にrefを発行・失効させません。未接続の一時sessionは撮影後に解放します。指定されたserialだけを撮影し、端末の自動選択は行いません。MCP `screenshot`も同じ`platform`・`device`・文字列`display`を受け付けます。
+`screenshot [path] --device <pairing-file> [--platform android] [--display 0]`は、別途起動したUI Automator Instrumentationを使います。CLI・MCP・workflowのFlutter撮影、注釈、要素cropは廃止しました。`--platform flutter`、ref・selector、`--annotate`は拒否し、fallbackしません。`diff screenshot`も同じpairingファイルと同寸法PNG baselineを必須とします。
 
-対応対象は、対応hostであるmacOS上のAndroid Emulator（`emulator-<port>`かつ`ro.kernel.qemu=1`）に限定します。実機はこの版の対象外です。`dumpsys display`でdisplay 0のみの構成を読めることを必須とし、追加displayや不明な構成はUNSUPPORTED_CAPABILITYで拒否します。displayに文字列`"0"`以外を指定した場合も拒否します。構成確認は事前確認であり、外部からのdisplay再構成を原子的にロックするものではありません。
+`--device`はADB serialではなく、私有の通常pairingファイル（mode 0600、symlink不可、4096 bytes以下）です。version 1のfieldは`device`（安全な識別文字1〜64文字）、`port`（1024〜65535）、`token`（小文字16進64文字）です。CLI・MCP・workflowの相対pairing pathはIPC前に呼出元cwdで解決します。tokenやpeerの生診断は公開しません。準備と停止は[agentプロジェクト](../../packages/marionette_agent_android/capture_agent/README.md)を参照してください。
 
-結果は`paths`に`capture:{source:"android-adb",platform:"android",device,display:0,scope:"entire-display",coordinateSpace:"physical-pixels",protectedContent:"not-detectable",width,height}`を追加します。width/heightは画像をデコードして得た寸法です。縦横回転や解像度・density変更後も合成済みdisplayのpixelを取得し、拡縮やFlutter論理座標への対応付けをしません。表示中のstatus/navigation bar・IME・OS overlayを含み、非表示のbarを補いません。PNG/JPEG変換、保存先優先順位、排他的作成、rollbackは共通画像writerを使います。`--timeout`はADBの端末一覧・構成確認・撮影・変換・保存を含み、timeout時は所有するADB clientだけを終了し、共有serverは再起動しません。画像出力は32 MiB、端末一覧・構成出力は各1 MiBまでです。
+ホストは明示したpairing portの127.0.0.1を撮影中だけlistenし、Emulatorは10.0.2.2から接続します。新しいnonceと相互HMAC-SHA256でagentとcapture/stop要求を認証し、秘密値を送信しません。指定した論理端末名だけを受理しますが、hardwareの証明ではありません。両撮影componentはADB process、shell撮影、port forwardingを利用しません。APK配備・Instrumentation起動は別のAndroidテスト環境で行います。
 
-| 条件 | エラー |
-| --- | --- |
-| serial省略・不正、一覧に存在しない・重複 | INVALID_ARGUMENT |
-| unauthorized | IO_ERROR、認証に関する説明 |
-| offline・切断 | CONNECTION_LOST |
-| ADB未導入・起動不能、未対応端末・display構成 | UNSUPPORTED_CAPABILITY |
-| 撮影期限超過 | TIMEOUT |
-| APIの権限・保護拒否、撮影の非0終了、出力上限超過 | IO_ERROR |
-| PNGデコード不能 | BACKEND_ERROR、保存済みpathなし |
+agentは`UiDevice.takeScreenshot(File)`を直接呼び、転送後に私有cacheファイルを削除します。ranchu/goldfishのEmulatorでdisplay 0のみの構成に対応し、他のhardwareや構成はUNSUPPORTED_CAPABILITYです。回転後の合成済みdisplayの物理pixelを取得し、表示中のbar・IME・OS overlayを含めます。論理座標への推測はしません。構成確認は事前確認であり、外部からのdisplay変更をロックするものではありません。
 
-複数接続はserialを明示した場合だけ利用できます。認証やUSBデバッグ設定は変更しません。取得失敗時にFlutterへ切り替えません。ネイティブの注釈・cropは撮影前に拒否し、baselineとのOS/Flutter座標対応を確定できないためdiffコマンドはネイティブ取得元の指定を受け付けません。Androidの`FLAG_SECURE`を尊重し、保護対象が空白になる場合や撮影が失敗する場合があります。明示的なAPI失敗だけを拒否として報告し、黒pixelからの推測はしません。[ADB撮影](https://developer.android.com/tools/adb#screencap)・[FLAG_SECURE](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#FLAG_SECURE)を参照してください。
+結果は`paths`に`capture:{source:"android-uiautomator",platform:"android",device,display:0,scope:"entire-display",coordinateSpace:"physical-pixels",protectedContent:"not-detectable",width,height}`を加えます。deviceはpairingした論理名、寸法はPNGデコード結果です。共通writerがPNG/JPEG変換、排他的作成、保存先優先順位、timeout、rollbackを維持します。画像は32 MiB、protocol JSONは8192 bytesが上限です。絶対deadlineはpairing読込、agent待ち、認証、撮影、転送、保存を含み、期限切れ・失敗時は所有socketを閉じ、受信済み撮影を再送しません。
+
+不正・非私有ファイルはINVALID_ARGUMENT、port競合はSESSION_CONFLICT、認証・不正frame・保護拒否はIO_ERROR、切断はCONNECTION_LOST、agent不在・応答停止はTIMEOUT、PNGデコード不能はBACKEND_ERRORで保存pathを返しません。AndroidはFLAG_SECURE対象を隠す場合や取得を拒否する場合があります。明示的なAPI失敗だけを報告し、黒pixelからの推測や保護の回避は行いません。
 
 <a id="recording"></a>
 ## 録画の寿命と復旧

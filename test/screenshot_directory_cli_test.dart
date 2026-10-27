@@ -22,7 +22,10 @@ void main() {
     );
     final bytes = image.encodePng(image.Image(width: 2, height: 2));
     final backend = FakeBackend()..screenshots = [base64Encode(bytes)];
-    final manager = SessionManager(() => backend, coreCommands());
+    final manager = SessionManager(
+      () => backend,
+      coreCommands(capturer: backend),
+    );
     final server = DaemonServer(runtime, manager);
     final serving = server.run();
     final cliPath = File('bin/marionette_agent.dart').absolute.path;
@@ -64,6 +67,7 @@ void main() {
           await cli([
             if (!json) ...['--screenshot-dir', 'images'],
             'screenshot',
+            '--device=test-pairing',
             if (json) ...['--screenshot-dir=images', '--json'],
           ]),
           json: json,
@@ -77,6 +81,7 @@ void main() {
       final explicit = data(
         await cli([
           'screenshot',
+          '--device=test-pairing',
           'explicit.png',
           '--screenshot-dir=missing',
           '--json',
@@ -88,7 +93,9 @@ void main() {
         bytes,
       );
       expect(Directory(p.join(root.path, 'missing')).existsSync(), isFalse);
-      final temporary = data(await cli(['screenshot', '--json']));
+      final temporary = data(
+        await cli(['screenshot', '--device=test-pairing', '--json']),
+      );
       final temporaryFile = File((temporary['paths'] as List).single as String);
       try {
         expect(p.isAbsolute(temporaryFile.path), isTrue);
@@ -100,6 +107,7 @@ void main() {
       }
       final failure = await cli([
         'screenshot',
+        '--device=test-pairing',
         '--screenshot-dir=missing',
         '--json',
       ]);

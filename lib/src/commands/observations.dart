@@ -50,67 +50,15 @@ Future<Json> handleScreenshot(
   Json params, {
   ScreenCapturer capturer = defaultScreenCapturer,
 }) async {
-  final target = screenshotTarget(params);
-  if ((params.containsKey('annotate') && params['annotate'] is! bool) ||
-      (params.containsKey('path') &&
-          (params['path'] is! String || (params['path'] as String).isEmpty))) {
-    invalid('Usage: screenshot [--annotate] [path]');
-  }
-  if (params['platform'] == 'android') {
-    context.check();
-    final result = await captureAndroidScreen(
-      params['device'] as String,
-      context.deadline,
-      capturer: capturer,
-    );
-    context.check();
-    return result;
-  }
-  if (target != null) {
-    final before = await context.observeTarget(target);
-    final capture = await context.read((backend) {
-      if (backend is! MappedScreenshotBackend) {
-        throw const AgentError(
-          'UNSUPPORTED_CAPABILITY',
-          'Crop requires screenshot geometry',
-        );
-      }
-      return (backend as MappedScreenshotBackend).captureMappedScreenshot();
-    });
-    final after = await context.observeTarget(target);
-    if (!before.sameAs(after)) {
-      throw const AgentError(
-        'STALE_REF',
-        'Target changed during screenshot capture',
-      );
-    }
-    return {
-      'images': [capture.image],
-      'geometry': capture.geometry.toJson(),
-      'crop': before.bounds,
-    };
-  }
-  if (params['annotate'] == true) {
-    final annotations = await context.annotationTargets();
-    final capture = await context.read((backend) {
-      if (backend is! MappedScreenshotBackend) {
-        throw const AgentError(
-          'UNSUPPORTED_CAPABILITY',
-          'Binding does not provide screenshot geometry',
-        );
-      }
-      return (backend as MappedScreenshotBackend).captureMappedScreenshot();
-    });
-    await context.annotationTargets();
-    return {
-      'images': [capture.image],
-      'geometry': capture.geometry.toJson(),
-      'annotations': annotations,
-    };
-  }
-  return context.read(
-    (backend) async => {'images': await backend.captureScreenshots()},
+  screenshotTarget(params);
+  context.check();
+  final result = await captureAndroidScreen(
+    params['device'] as String,
+    context.deadline,
+    capturer: capturer,
   );
+  context.check();
+  return result;
 }
 
 Future<Json> handleLogs(CommandContext context, Json params) {

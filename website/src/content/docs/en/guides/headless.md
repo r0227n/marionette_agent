@@ -38,7 +38,7 @@ marionette-agent --session fast tap --key tap_button
 marionette-agent --session fast get text --key tap_result
 marionette-agent --session fast fill --key text_input 'headless check'
 marionette-agent --session fast snapshot
-marionette-agent --session fast screenshot
+marionette-agent --session fast get text --key tap_result
 ```
 
 Compare observations and the saved image: `tap_result` should increase and the input should change. A successful command response alone does not guarantee the intended visual effect. When using refs, take a fresh snapshot after each action.
@@ -54,21 +54,7 @@ Check that `page_result` in `finalSnapshot` is `Current page: 2`. These distance
 
 ## Record Flutter rendering
 
-Use the session launched above. Choose a new output path for every recording.
-
-```sh
-mkdir -p artifacts
-marionette-agent --session fast record start artifacts/headless.mp4 --platform flutter --fps 10
-marionette-agent --session fast tap --key tap_button
-marionette-agent --session fast snapshot
-marionette-agent --session fast record status --json
-marionette-agent --session fast --timeout 60000 record stop --json
-marionette-agent --session fast --timeout 60000 close
-```
-
-The video is a silent H.264 MP4 of one Flutter view. Omit `--device`. OS keyboards/dialogs, browser UI, and platform views are not guaranteed to appear; macOS screen recording permission is unnecessary. For a full OS screen, choose a [device recording](/marionette_agent/en/guides/capture/) mode.
-
-Fps accepts 1–60 and defaults to 10. The recorder waits the requested interval after each PNG capture and uses actual timestamps for VFR output. A fixed frame rate or every fast-animation frame is not guaranteed. Stop waits for video conversion. On TIMEOUT, inspect `record status` for the final state; on failure, inspect `failure/recoveryPath`. Dimension changes, connection loss, and conversion failure are not replaced with a successful blank video.
+Marionette frame capture and Flutter recording are removed. Headless interaction still works. Android still screenshots require the separately started UI Automator agent; iOS/macOS use their native device recording modes. Tester and hidden Flutter Web have no image source. See the [capture guide](/marionette_agent/en/guides/capture/).
 
 ## Check iOS and Android
 
@@ -95,7 +81,7 @@ marionette-agent --session android snapshot
 marionette-agent --session android --timeout 60000 close
 ```
 
-iOS uses a dedicated device set isolated from the default set. Android ports must be unused even numbers from 5554–5682. The existing AVD runs read-only with no-snapshot and no-window, without persisting changes to its saved state. The AVD itself is not created or deleted. Both environments support `--platform flutter` recording.
+iOS uses a dedicated device set isolated from the default set. Android ports must be unused even numbers from 5554–5682. The existing AVD runs read-only with no-snapshot and no-window, without persisting changes to its saved state. The AVD itself is not created or deleted. Screenshots use the separate Android UI Automator agent; Marionette frame recording is removed.
 
 ## Check macOS and Web
 
@@ -111,7 +97,7 @@ marionette-agent --session web --timeout 60000 close
 
 On macOS, the native side must hide NSWindow and start FlutterEngine, while Dart’s `enableHeadlessRendering()` keeps hidden rendering active, as implemented in the example. Launch passes `MARIONETTE_HEADLESS=1` and the Dart define but does not modify arbitrary apps. Do not assume support on a host without WindowServer.
 
-Web starts Chrome headlessly. Use `record --platform flutter` for hidden Flutter Web rendering as well. `record --platform web` is a separate mode that records a visible macOS display.
+Web starts Chrome headlessly. Hidden Flutter Web frame capture is unavailable. `record --platform web` is a separate mode that records a visible macOS display.
 
 ## Launch options and ownership
 

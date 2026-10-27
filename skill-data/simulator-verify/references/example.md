@@ -40,7 +40,7 @@ unset MRA_VERIFY_URI
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" snapshot
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" tap --key tap_button
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" snapshot
-dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" screenshot "$MRA_VERIFY_DIR/evidence/after-tap.png"
+# Capture iOS display evidence with the Simulator’s native screenshot tool.
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" close
 ```
 

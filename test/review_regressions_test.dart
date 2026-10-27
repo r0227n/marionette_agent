@@ -114,7 +114,10 @@ void main() {
     () async {
       final elements = List.generate(2000, (i) => _CountedElement('k$i'));
       final backend = FakeBackend()..elements = elements;
-      final manager = SessionManager(() => backend, coreCommands());
+      final manager = SessionManager(
+        () => backend,
+        coreCommands(capturer: backend),
+      );
       addTearDown(manager.dispose);
       await manager.handle(_request('connect', {'uri': 'http://localhost:1/'}));
       var eventRan = false;
@@ -216,7 +219,7 @@ void main() {
       final backend = FakeBackend()..screenshots = ['x' * (8 * 1024 * 1024)];
       final server = DaemonServer(
         runtime,
-        SessionManager(() => backend, coreCommands()),
+        SessionManager(() => backend, coreCommands(capturer: backend)),
       );
       final running = server.run();
       Socket? stalled;
@@ -235,9 +238,16 @@ void main() {
           InternetAddress(runtime.socket, type: InternetAddressType.unix),
           0,
         );
-        stalled.add(encodeFrame(_request('screenshot').toJson()));
+        stalled.add(
+          encodeFrame(
+            _request('screenshot', {
+              'platform': 'android',
+              'device': 'test-pairing',
+            }).toJson(),
+          ),
+        );
         await stalled.flush();
-        while (!backend.calls.contains('captureScreenshots')) {
+        while (!backend.calls.contains('captureScreen')) {
           await Future<void>.delayed(const Duration(milliseconds: 5));
         }
         expect((await client.send(_request('close'))).exitCode, 0);

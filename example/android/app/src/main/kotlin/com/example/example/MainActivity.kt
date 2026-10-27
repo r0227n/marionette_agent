@@ -1,5 +1,8 @@
 package com.example.example
 
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.Manifest
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -18,6 +21,24 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "permission" -> requestPermissions(arrayOf(Manifest.permission.CAMERA), 57)
+                    "seedPhoto" -> {
+                        val values = ContentValues().apply {
+                            put(MediaStore.Images.Media.DISPLAY_NAME, "marionette-dummy-${System.currentTimeMillis()}.png")
+                            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Marionette")
+                        }
+                        if (Build.VERSION.SDK_INT < 29) {
+                            result.error("UNSUPPORTED", "Dummy image fixture requires API 29", null)
+                            return@setMethodCallHandler
+                        }
+                        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                            ?: throw IllegalStateException("Cannot create fixture image")
+                        val bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
+                        try {
+                            bitmap.eraseColor(Color.rgb(30, 120, 210))
+                            contentResolver.openOutputStream(uri)!!.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                        } finally { bitmap.recycle() }
+                    }
                     "photoPicker" -> {
                         if (Build.VERSION.SDK_INT < 33) {
                             result.error("UNSUPPORTED", "Photo Picker requires API 33", null)

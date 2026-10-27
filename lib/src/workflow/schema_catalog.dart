@@ -374,7 +374,6 @@ const _schema = r'''{
         },
         "platform": {
           "enum": [
-            "flutter",
             "android"
           ]
         },
@@ -386,17 +385,12 @@ const _schema = r'''{
           "enum": [
             "0"
           ]
-        },
-        "annotate": {
-          "type": "boolean"
-        },
-        "target": {
-          "$ref": "#/$defs/target"
         }
       },
       "required": [
         "id",
-        "action"
+        "action",
+        "device"
       ],
       "additionalProperties": false
     }

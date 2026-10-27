@@ -29,7 +29,7 @@ class Capturer implements ScreenCapturer {
     if (error != null) throw error!;
     return CapturedScreen(
       png,
-      source: 'android-adb',
+      source: 'android-uiautomator',
       device: device,
       display: 0,
     );
@@ -64,7 +64,11 @@ void main() {
       final invocation = parser.parse(
         tool.arguments({...params, 'display': '0'}, const CommonOptions()),
       );
-      expect(invocation.params, {...params, 'display': '0'});
+      expect(invocation.params, {
+        ...params,
+        'device': File(params['device'] as String).absolute.path,
+        'display': '0',
+      });
       for (final args in [
         ['--platform=android'],
         ['--platform=android', '--device=emulator-5660', '--annotate'],
@@ -116,7 +120,7 @@ void main() {
       );
       expect(result.error!.code, 'IO_ERROR');
       expect(capturer.calls, 1);
-      expect(backend.calls, isNot(contains('captureScreenshots')));
+      expect(backend.calls, isNot(contains('captureScreen')));
       expect(directory.listSync(), isEmpty);
     },
   );
@@ -176,7 +180,7 @@ void main() {
     expect(result.error, isNull);
     expect(result.data!['requiresSnapshot'], false);
     expect(capturer.calls, 1);
-    expect(backend.calls, isNot(contains('captureScreenshots')));
+    expect(backend.calls, isNot(contains('captureScreen')));
     final saved = await saveWorkflowScreenshots(
       result.data!,
       const CommonOptions(),
@@ -234,7 +238,7 @@ void main() {
         final decoded = jsonDecode(result.stdout as String) as Map;
         final data = json ? decoded['data'] as Map : decoded;
         expect(data['paths'], [path]);
-        expect(data['capture']['device'], 'emulator-5660');
+        expect(data['capture']['device'], File('emulator-5660').absolute.path);
         expect(data['capture']['width'], 7);
       }
     } finally {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:args/args.dart';
 // ignore: implementation_imports
 // ignore: implementation_imports
@@ -16,6 +18,7 @@ CliCommand diffCommand() => CliCommand(
       'screenshot',
       ArgParser()
         ..addOption('baseline', mandatory: true)
+        ..addOption('device')
         ..addOption('output')
         ..addOption('threshold', defaultsTo: '0'),
     ),
@@ -26,10 +29,15 @@ CliCommand diffCommand() => CliCommand(
     }
     final path = child.option('baseline')!;
     if (path.isEmpty) invalid('Baseline path must not be empty');
+    if (child.name == 'screenshot' &&
+        (child.option('device') == null || child.option('device')!.isEmpty)) {
+      invalid('diff screenshot requires --device <pairing-file>');
+    }
     return {
       'action': child.name,
       'baseline': path,
       if (child.name == 'screenshot') ...{
+        'device': File(child.option('device')!).absolute.path,
         'output': child.option('output'),
         'threshold': parseThreshold(child.option('threshold')!),
       },

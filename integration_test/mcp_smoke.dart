@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 /// SDK client -> product MCP stdio -> product CLI -> daemon -> real example app.
 /// URI/raw logs stay private. The evidence transcript redacts the connect input.
 Future<void> main() async {
+  final pairing = Platform.environment['MARIONETTE_CAPTURE_PAIRING'];
   final uriFile = Platform.environment['MARIONETTE_TEST_VM_URI_FILE'];
   final root = Platform.environment['MARIONETTE_TEST_OUTPUT'];
   if (uriFile == null || root == null) {
@@ -51,6 +52,16 @@ Future<void> main() async {
     Map<String, Object?> args = const {},
     String? error,
   ]) async {
+    if (name == 'screenshot') {
+      if (pairing == null) {
+        transcript.add({
+          'tool': name,
+          'skipped': 'Android UI Automator pairing is required',
+        });
+        return {};
+      }
+      args = {'device': pairing, ...args};
+    }
     final result = await server.callTool(
       CallToolRequest(name: 'marionette_agent_$name', arguments: args),
     );

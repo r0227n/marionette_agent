@@ -252,27 +252,20 @@ List<McpToolDefinition> mcpToolCatalog() => [
     ),
   McpToolDefinition(
     'screenshot',
-    'Save a screenshot and return image content. '
-        'Optional target crops; annotate requires a fresh snapshot and provider. '
+    'Capture the Android display through a paired UI Automator agent and return image content. '
         'Existing files are never overwritten.',
     ['screenshot'],
-    target: true,
     properties: {
       'path': _string,
-      'annotate': _boolean,
-      'platform': _enum(['flutter', 'android']),
+      'platform': _enum(['android']),
       'device': _string,
       'display': _enum(['0']),
       'format': _enum(['png', 'jpeg']),
       'quality': Schema.int(minimum: 0, maximum: 100),
     },
+    required: ['device'],
     positionals: ['path'],
-    options: {
-      'annotate': 'annotate',
-      'platform': 'platform',
-      'device': 'device',
-      'display': 'display',
-    },
+    options: {'platform': 'platform', 'device': 'device', 'display': 'display'},
   ),
   for (final observation in ['text', 'box', 'count', 'value'])
     McpToolDefinition(
@@ -487,17 +480,16 @@ List<McpToolDefinition> mcpToolCatalog() => [
   for (final action in ['start', 'restart'])
     McpToolDefinition(
       'record_$action',
-      '$action a recording. Non-Flutter '
-          'platforms require a device; Flutter uses the connected session.',
+      '$action a native device recording.',
       ['record', action],
       profile: 'record',
       properties: {
         'path': _string,
-        'platform': _enum(['ios', 'android', 'macos', 'web', 'flutter']),
+        'platform': _enum(['ios', 'android', 'macos', 'web']),
         'device': _string,
         'fps': Schema.int(minimum: 1, maximum: 60),
       },
-      required: ['path', 'platform'],
+      required: ['path', 'platform', 'device'],
       positionals: ['path'],
       options: {'platform': 'platform', 'device': 'device', 'fps': 'fps'},
     ),

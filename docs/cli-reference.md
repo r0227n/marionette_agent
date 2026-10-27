@@ -84,7 +84,7 @@ List data contains name/description objects; get contains name/content objects. 
 Install/upgrade AOT-compiles local source and installs an adjacent dedicated `.marionette-agent-*` bundle. Failed new installations clean up the new bundle and retain the existing executable. Upgrade keeps the old bundle for old running processes; remove it only after it is no longer needed. Use `skills path` to inspect the active location.
 
 <a id="capture"></a>
-## Image persistence and annotation edge cases
+## Image persistence
 
 Start with the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/). An explicit path bypasses `--screenshot-dir` inspection. Directory-based names use `screen-<32 hex digits>.png` or `.jpg`; omitting both uses `screen.png` or `screen.jpg` in a private temporary directory. Multiple images add `-1`, `-2`, etc. before the extension.
 
@@ -92,28 +92,20 @@ Accepted extensions are `.png` for PNG and `.jpg/.jpeg` for JPEG, case-insensiti
 
 Parent directories must exist. A symlink at the specified directory itself is rejected; ancestor symlinks are allowed. All images are validated/converted and all destinations reserved exclusively before writing. Existing files, directories, and symlinks are never overwritten. The deadline includes capture, conversion, and persistence. Failures attempt to remove created images; OS deletion refusal and immediate cancellation of active I/O cannot be guaranteed. Failures never return successful paths.
 
-Annotations require a mapped provider and a valid snapshot. Metadata includes `annotated`, `generation`, `annotationCount`, and `skippedAnnotations`. Omission reasons are `missing_or_invalid_bounds`, `bounds_outside_view`, and `label_space_exhausted`. Target changes across capture produce STALE_REF. Multiple images, relative rotation, unknown image/view mapping, and PNG dimension mismatches produce UNSUPPORTED_CAPABILITY. JPEG conversion follows annotation on PNG. Refs are preserved. Cropping and annotation cannot be combined.
-
 <a id="native-android-capture"></a>
 ## Native Android screenshot contract
 
-`screenshot [path] --platform android --device <serial> [--display 0]` selects `adb exec-out screencap -p`. Omitted platform or `--platform flutter` preserves the existing Marionette path and result shape. Explicit Android capture is independent of VM Service, starts a daemon when needed, shares the session queue, and does not publish/invalidate refs on success. An otherwise unconnected temporary session is released after capture. It captures only the serial supplied by the caller; no device discovery fallback is used. MCP `screenshot` accepts the same `platform`, `device`, and string `display` fields.
+`screenshot [path] --device <pairing-file> [--platform android] [--display 0]` uses the separately started UI Automator instrumentation. Flutter capture, annotations, and element crop are removed from CLI, MCP and workflow. `--platform flutter`, refs/selectors and `--annotate` are rejected. There is no fallback. `diff screenshot` requires the same pairing file and a same-size PNG baseline.
 
-Support is limited to Android Emulator (`emulator-<port>` and `ro.kernel.qemu=1`) on the supported macOS host. Physical devices are outside this release's scope. The backend requires a readable `dumpsys display` topology containing only display 0; additional or unidentifiable displays yield UNSUPPORTED_CAPABILITY. Supplying a display other than the string `"0"` is also rejected. The topology check is a preflight, not an atomic lock against external display reconfiguration.
+`--device` is a private regular pairing file (mode 0600, no symlink, at most 4096 bytes), not an ADB serial. Its version 1 fields are `device` (1–64 safe identifier characters), `port` (1024–65535), and `token` (64 lowercase hexadecimal characters). CLI, MCP and workflow resolve relative pairing paths against the caller's cwd before IPC. The token and raw peer diagnostics are never published. Setup and stop use [the agent project](../packages/marionette_agent_android/capture_agent/README.md).
 
-The output adds `capture:{source:"android-adb",platform:"android",device,display:0,scope:"entire-display",coordinateSpace:"physical-pixels",protectedContent:"not-detectable",width,height}` to `paths`. Width/height come from the decoded image. Portrait/landscape and resolution/density changes use the current composed display pixels without rescaling or mapping to Flutter logical coordinates. Visible status/navigation bars, IME and OS overlays are included; hidden bars are not synthesized. PNG/JPEG conversion, destination precedence, exclusive creation and rollback use the shared image writer. `--timeout` includes ADB inventory/topology/capture, conversion and saving; the owned ADB client is killed on timeout, without restarting the shared server. Binary output is limited to 32 MiB, and inventory/topology output to 1 MiB each.
+The host temporarily binds 127.0.0.1 on the explicit paired port. The Emulator connects through 10.0.2.2. Fresh nonce and mutual HMAC-SHA256 authenticate the agent and the capture/stop request without transmitting the secret. Only that logical device name is accepted; the pairing is not hardware attestation. No ADB process, shell capture, or forwarding is used by either capture component. Android test tools perform the separate APK provisioning and instrumentation startup.
 
-| Condition | Error |
-| --- | --- |
-| Missing/malformed serial, serial absent or duplicated in inventory | INVALID_ARGUMENT |
-| Unauthorized device | IO_ERROR, authorization explanation |
-| Offline/disconnected device | CONNECTION_LOST |
-| ADB missing/unstartable, unsupported hardware or display topology | UNSUPPORTED_CAPABILITY |
-| Capture deadline | TIMEOUT |
-| Reported permission/security denial, nonzero capture exit, oversized output | IO_ERROR |
-| Undecodable PNG | BACKEND_ERROR; no saved paths |
+The agent calls `UiDevice.takeScreenshot(File)` and removes its private cache file after transfer. Only ranchu/goldfish Emulator hardware and one display 0 are supported; other hardware/topology is UNSUPPORTED_CAPABILITY. Rotation uses the composed display's current physical pixels, including visible bars, IME and OS overlays, with no logical-coordinate inference. Topology is a preflight, not a lock against external display changes.
 
-Multiple connected devices are allowed only with an explicit serial. Neither authorization nor USB debugging settings are changed. Capture never switches to Flutter after a failure. Native annotation/crop are rejected before capture, and the diff command accepts no native source selection because a baseline's OS/Flutter coordinate correspondence cannot be established. `FLAG_SECURE` is honored by Android: content may be blank or capture may fail. Only explicit API failure is reported as denial; black-pixel heuristics are not used. See [ADB capture](https://developer.android.com/tools/adb#screencap) and [FLAG_SECURE](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#FLAG_SECURE).
+Result adds `capture:{source:"android-uiautomator",platform:"android",device,display:0,scope:"entire-display",coordinateSpace:"physical-pixels",protectedContent:"not-detectable",width,height}` to `paths`. The device is the paired logical name; dimensions come from decoding PNG. Shared saving retains PNG/JPEG conversion, exclusive creation, destination precedence, timeout and rollback. Images are bounded to 32 MiB, protocol JSON to 8192 bytes; the absolute deadline includes pairing read, waiting for the agent, authentication, capture, transfer and persistence. Deadline/failure closes owned sockets and never replays a received capture.
+
+Invalid/private-file violations yield INVALID_ARGUMENT; a busy paired port SESSION_CONFLICT; authentication/invalid frame/security denial IO_ERROR; disconnect CONNECTION_LOST; an absent/stalled agent TIMEOUT; undecodable PNG BACKEND_ERROR with no saved paths. Android may hide FLAG_SECURE content or reject capture. Only explicit API failure is reported; no black-pixel heuristic or protection bypass is used.
 
 <a id="recording"></a>
 ## Recording lifetime and recovery

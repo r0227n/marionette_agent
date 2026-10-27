@@ -64,12 +64,12 @@ marionette-agent get text --key tap_result
 marionette-agent snapshot
 marionette-agent fill --key text_input 'hello'
 marionette-agent snapshot
-marionette-agent screenshot
+marionette-agent get text --key tap_result
 marionette-agent close
 unset MARIONETTE_AGENT_SESSION
 ```
 
-Verify `Tap count: 1` and `5 characters`, then open the returned screenshot and
+Verify `Tap count: 1` and `5 characters`, then inspect native Simulator evidence and
 confirm the input displays `hello`. Flutter tester covers shared Flutter UI;
 native plugins and OS behavior need the corresponding target platform.
 
@@ -158,7 +158,7 @@ The MCP server uses stdio. Choose additional tool profiles when needed; the [age
 ```sh
 marionette-agent --session headless --timeout 600000 launch ./example --platform tester
 marionette-agent --session headless snapshot
-marionette-agent --session headless screenshot
+marionette-agent --session headless get text --key tap_result
 marionette-agent --session headless --timeout 60000 close
 ```
 
@@ -220,3 +220,5 @@ Read [AGENTS.md](AGENTS.md) before making changes. CLI changes require formattin
 Follow [Contributing](CONTRIBUTING.md) to install Lefthook and enable the extension-filtered pre-commit quality checks before your first commit.
 
 For website development and the GitHub Pages deployment pipeline, follow [website/README.md](website/README.md).
+
+Android screenshots use a separately started UI Automator agent and `--device <private pairing file>`. Flutter screenshot/annotation/crop and Marionette frame recording are removed. See the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/).

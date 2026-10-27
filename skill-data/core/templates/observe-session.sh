@@ -11,4 +11,6 @@ marionette-agent --session "$MRA_SESSION" connect "$MRA_TEMPLATE_URI"
 unset MRA_TEMPLATE_URI
 trap 'marionette-agent --session "$MRA_SESSION" close' EXIT
 marionette-agent --session "$MRA_SESSION" snapshot
-marionette-agent --session "$MRA_SESSION" screenshot "$MRA_EVIDENCE_DIR/observed.png"
+if [[ -n "${MRA_CAPTURE_PAIRING:-}" ]]; then
+  marionette-agent --session "$MRA_SESSION" screenshot "$MRA_EVIDENCE_DIR/observed.png" --device "$MRA_CAPTURE_PAIRING"
+fi

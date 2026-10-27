@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'command_scope.dart';
 
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
-const protocolVersion = 8;
+const protocolVersion = 9;
 
 /// Default daemon idle lifetime in milliseconds; explicit 0 disables it.
 const defaultIdleTimeoutMs = 3600000;

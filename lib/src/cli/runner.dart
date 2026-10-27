@@ -140,7 +140,16 @@ Future<int> runCli(
             'inputsValidated': bind,
           };
         }
-        params = {'workflow': document, 'inputs': inputs};
+        final normalized = asJson(document);
+        normalized['steps'] = [
+          for (final raw in normalized['steps'] as List)
+            {
+              ...asJson(raw),
+              if (asJson(raw)['action'] == 'screenshot')
+                'device': File(asJson(raw)['device'] as String).absolute.path,
+            },
+        ];
+        params = {'workflow': normalized, 'inputs': inputs};
       }
     }
     if (workflow && !deadline.isAfter(DateTime.now())) {
@@ -233,7 +242,11 @@ Future<int> runCli(
                     ? 'diff-snapshot'
                     : 'screenshot')
               : command,
-          params: command == 'diff' ? {} : requestParams,
+          params: command == 'diff'
+              ? (params['action'] == 'screenshot'
+                    ? {'platform': 'android', 'device': params['device']}
+                    : {})
+              : requestParams,
           maxOutput: command == 'diff' ? null : invocation.options.maxOutput,
           outputJson: invocation.json,
           deadline: deadline,

@@ -58,7 +58,7 @@ marionette-agent snapshot
 入力欄が`hello`になっていることを画面で確認します。`fill`は既存の入力全体を置き換えます。続けて画面を保存できます。
 
 ```sh
-marionette-agent screenshot
+marionette-agent get text --key tap_result
 ```
 
 返された保存先の画像を開き、入力後の画面であることを確認してください。

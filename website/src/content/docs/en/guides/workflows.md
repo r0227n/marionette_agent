@@ -79,6 +79,6 @@ Add this step to a connected workflow, replacing the serial with your Emulatorâ€
 - id: system-screen
   action: screenshot
   platform: android
-  device: emulator-5660
+  device: capture-pairing.json
   path: artifacts/system.png
 ```

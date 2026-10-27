@@ -1,3 +1,9 @@
+## Unreleased
+
+- Replace Android ADB screenshot capture with a separately started UI Automator instrumentation and authenticated TCP pairing. `--device` now names a private pairing file rather than an ADB serial.
+- Remove Marionette/Flutter screenshots, mapped screenshot providers, ref annotations, element crop, and Marionette frame recording. Native recordings remain available. These are breaking development changes; use the UI Automator setup and migration instructions in the capture guide before upgrading.
+- Require pairing for CLI/MCP/workflow screenshots and native image differences; internal IPC advances to 9. Close the old daemon using the old CLI first.
+
 ## 1.0.0
 
 Source release via the `v1.0.0` Git tag and GitHub Release; pub.dev remains disabled.

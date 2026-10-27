@@ -36,10 +36,10 @@ Use the CLI built from the task's checkout for CLI development. Installed CLI
 users can invoke `marionette-agent` directly. Keep URI loading out of shell traces.
 
 1. Connect the chosen session with the URI from the private file. Observe initial
-   state with `snapshot` and capture a baseline screenshot to a new path.
+   state with `snapshot` and capture a baseline using the Simulator’s native capture tool.
 2. Execute the operation once and record exit code plus text/JSON response. For
    refs, use the latest actual snapshot; selectors must identify a unique target.
-3. Take another snapshot and screenshot. Compare both with the expected state.
+3. Take another snapshot and a native Simulator screenshot. Compare both with the expected state.
    For error scenarios, check the error and absence of unintended app changes.
    An `unknown` operation outcome requires observation before any further action.
 4. For transitions or gestures, use the CLI's `record start <new-path.mp4>

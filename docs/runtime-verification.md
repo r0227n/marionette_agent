@@ -2,7 +2,7 @@
 
 [日本語](ja/runtime-verification.ja.md) · [Documentation index](README.md)
 
-[all-actions.yaml](../samples/workflows/all-actions.yaml) exercises all seven workflow v1 actions in 17 steps: navigation to About and back, tap, fill, PageView swipe, scroll, wait, snapshot, and screenshot. Its target is the repository's [example app](../example/README.md).
+[all-actions.yaml](../samples/workflows/all-actions.yaml) exercises all seven workflow v1 actions in 17 Android steps (16 steps on iOS, omitting screenshot): navigation to About and back, tap, fill, PageView swipe, scroll, wait, snapshot, and screenshot. Its target is the repository's [example app](../example/README.md).
 
 Workflow v1 does not include connection, get, logs, or recording actions. [all_commands_smoke.dart](../integration_test/all_commands_smoke.dart) executes those through separate product CLI processes and also validates and runs the YAML workflow. The iOS and Android scenarios are the same except for the device and recording platform.
 
@@ -71,7 +71,7 @@ Do not publish the URI or raw Flutter logs, and do not enable shell tracing. The
 | `swipe` | Page 1→2 through a left gesture, then 2→1 through coordinates spanning 80% of the view |
 | `scroll` | Two upward gestures of 400px and 150px reach Bottom reached |
 | `wait` | Page/screen existence and About disappearance after navigating to Controls |
-| `screenshot` | Decodable PNG, JPEG, and annotated PNG; visually inspect content and annotation positions |
+| `screenshot` | Android UI Automator PNG/JPEG via private pairing; native Simulator evidence for iOS |
 | `logs` | Add log entry produces `manual log entry added` |
 | `workflow schema` | Whole schema and each of the seven action schemas |
 | `workflow validate` | Validate the 17-step all-actions.yaml with input binding |
@@ -85,7 +85,7 @@ Error checks compare exit and normalized error codes: disconnected is 3/NOT_CONN
 
 Every run creates a dedicated runtime and an `<evidence>/<platform>-<unique>/` directory. `results.json` records commands, expected/actual exits, redacted responses and diagnostics, state assertions, and failure reasons. On failure, the script still attempts to close its runtime's sessions and save results, then exits 1. The runtime is retained for diagnosis.
 
-Screenshots cover initial, initial-annotated, initial-jpeg, filled-page-two, scrolled, workflow-bottom, and about states. `operations.mp4` covers UI operations and the workflow. Script PASS means CLI and state assertions passed. Open the images and play or decode the video into chronological frames to inspect input, Page 2, scrolling, tab transitions, and annotation positions. The report's `visualReview` records that this additional check is still required.
+Screenshots cover initial, initial-jpeg, filled-page-two, scrolled, workflow-bottom, and about states. `operations.mp4` covers UI operations and the workflow. Script PASS means CLI and state assertions passed. Open the images and play or decode the video into chronological frames to inspect input, Page 2, scrolling, tab transitions, and native display contents. The report's `visualReview` records that this additional check is still required.
 
 Quit the Flutter runner with `q` and stop only devices started for this run. Confirm that owned recording, session, daemon, runner, and app have stopped before removing the URI and releasing the device.
 
@@ -97,3 +97,5 @@ rm "$MRA_RUN/private/vm-uri"
 ```
 
 Include results and image/video evidence in the PR, together with the verified commit, environment, expected and actual outcomes, and reproducible human steps.
+
+Android image checks require `MARIONETTE_CAPTURE_PAIRING` and a running UI Automator capture agent. iOS image calls are omitted; inspect the native recording or Simulator capture.

@@ -30,6 +30,7 @@ class _NativeCaptureControlsState extends State<NativeCaptureControls> {
       const Text('Android system UI and protected-window verification'),
       for (final item in const {
         'permission': 'Request camera permission',
+        'seedPhoto': 'Create dummy picker image',
         'photoPicker': 'Open Photo Picker (API 33+)',
         'documentPicker': 'Open file picker',
         'secureOn': 'Enable FLAG_SECURE',

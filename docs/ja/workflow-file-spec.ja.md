@@ -40,7 +40,7 @@ JSONはescape後に同名となるduplicate key、trailing comma、非有限numb
 | Action | 追加field |
 | --- | --- |
 | snapshot | なし |
-| screenshot | 任意のpath・platform・device・display・annotate・target |
+| screenshot | device pairingファイル必須。任意path・platform=android・display="0" |
 | tap | target |
 | fill | target、text |
 | swipe / scroll | target、direction、任意distance |
@@ -136,6 +136,6 @@ workflow本文・inputs・解決済みparams・fill入力を診断や実行報�
 <a id="screenshots"></a>
 ## Screenshot step
 
-`screenshot`は単独撮影と引数検証を共有します。platformは既定flutterで、androidはdevice serial必須、displayは文字列`"0"`だけに対応します。Flutterはtargetまたはannotateを指定でき、両者の併用は不可です。ネイティブは両方を拒否します。pathは呼出元のcwd基準で、省略時は共通の撮影ディレクトリ・一時保存規則を使います。共通の画像形式・品質・ディレクトリ設定は全stepへ適用します。不正な拡張子はworkflowの操作前にCLIで拒否します。
+`screenshot`は単独撮影と引数検証を共有します。platformはandroidで、deviceは私有UI Automator pairingファイル、displayは文字列`"0"`だけです。target・annotateは廃止し、pairing pathはIPC前に呼出元cwdで解決します。pathは呼出元のcwd基準で、省略時は共通の撮影ディレクトリ・一時保存規則を使います。共通の画像形式・品質・ディレクトリ設定は全stepへ適用します。不正な拡張子はworkflowの操作前にCLIで拒否します。
 
-workflow runには引き続き接続済みsessionが必要です。ネイティブ撮影自体はMarionette backendを呼びません。画像をstep順に取得し、base64画像の蓄積は48 MiBまでとします。全stepの成功後、元のdeadline内でCLIが保存します。成功時は`screenshots:[{stepId,paths,capture?}]`を追加し、適用時は既存の注釈・crop metadataも含めます。公開結果に生の画像データを残さず、text出力にも保存結果を表示します。実行失敗時は画像を公開しません。保存失敗時はこの要求が作ったファイル・ディレクトリの削除を試み、`phase:"screenshot-save"`と既知のcompletedStepsを返し、成功pathを返しません。実行済みUI操作はrollbackしません。OSにcleanupを拒否された場合はartifactが残ることがあります。
+workflow runには引き続き接続済みsessionが必要です。ネイティブ撮影自体はMarionette backendを呼びません。画像をstep順に取得し、base64画像の蓄積は48 MiBまでとします。全stepの成功後、元のdeadline内でCLIが保存します。成功時は`screenshots:[{stepId,paths,capture?}]`を追加します。公開結果に生の画像データを残さず、text出力にも保存結果を表示します。実行失敗時は画像を公開しません。保存失敗時はこの要求が作ったファイル・ディレクトリの削除を試み、`phase:"screenshot-save"`と既知のcompletedStepsを返し、成功pathを返しません。実行済みUI操作はrollbackしません。OSにcleanupを拒否された場合はartifactが残ることがあります。

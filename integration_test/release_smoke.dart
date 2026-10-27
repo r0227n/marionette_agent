@@ -101,8 +101,6 @@ Future<void> main() async {
       );
     }
     await cli(['launch', p.join(root, 'example'), '--platform', 'tester']);
-    final recording = p.join(private.path, 'rendered.mp4');
-    await cli(['record', 'start', recording, '--platform', 'flutter']);
     final before = await cli(['snapshot']);
     check(text(before, 'tap_result') == 'Tap count: 0', 'Fixture is not fresh');
     await cli(['tap', '--key', 'tap_button']);
@@ -117,23 +115,6 @@ Future<void> main() async {
       text(afterFill, 'fill_result') == '5 characters',
       'Fill did not change app state',
     );
-    final screenshot = p.join(private.path, 'screen.png');
-    await cli(['screenshot', screenshot]);
-    check(File(screenshot).lengthSync() > 0, 'Screenshot empty');
-    final evidence = Platform.environment['MARIONETTE_RELEASE_SCREENSHOT'];
-    if (evidence != null) File(screenshot).copySync(evidence);
-    final stopped = await cli(['record', 'stop']);
-    check(
-      stopped['data']['recordingState'] == 'stopped',
-      'Recording did not finalize',
-    );
-    check(File(recording).lengthSync() > 0, 'Recording empty');
-    check(
-      !externalCall.existsSync(),
-      'Recording invoked a host ffmpeg executable',
-    );
-    final videoEvidence = Platform.environment['MARIONETTE_RELEASE_RECORDING'];
-    if (videoEvidence != null) File(recording).copySync(videoEvidence);
     await cli(['close']);
     for (
       var i = 0;
@@ -147,7 +128,7 @@ Future<void> main() async {
       'Owned daemon did not stop',
     );
     stdout.writeln(
-      'Release smoke passed: ${steps.join(' -> ')}; tap=1, input=5 characters, capture nonempty, daemon stopped.',
+      'Release smoke passed: ${steps.join(' -> ')}; tap=1, input=5 characters, daemon stopped.',
     );
   } finally {
     if (File(binary).existsSync() &&

@@ -2,7 +2,7 @@
 
 [English](../runtime-verification.md) · [日本語の目次](README.md)
 
-[all-actions.yaml](../../samples/workflows/all-actions.yaml) はworkflow v1の全7 actionを使う17ステップのシナリオです。Aboutへの移動・復帰、tap、fill、PageViewのswipe、scroll、wait、snapshot、screenshotを実行します。対象はリポジトリの [exampleアプリ](../../example/README.md) です。
+[all-actions.yaml](../../samples/workflows/all-actions.yaml) はworkflow v1のAndroidでは全7 actionを使う17ステップ（iOSはscreenshotを除く16ステップ）のシナリオです。Aboutへの移動・復帰、tap、fill、PageViewのswipe、scroll、wait、snapshot、screenshotを実行します。対象はリポジトリの [exampleアプリ](../../example/README.md) です。
 
 workflow v1には接続、get、ログ、録画などのactionがありません。それらは [all_commands_smoke.dart](../../integration_test/all_commands_smoke.dart) が製品CLIの別プロセスとして実行します。YAMLの検証と実行も同じスクリプトに含みます。iOSとAndroidで同じシナリオを使い、端末IDとrecordのplatformだけを切り替えます。
 
@@ -71,7 +71,7 @@ dart run integration_test/all_commands_smoke.dart
 | `swipe` | selectorでPage 1→2、取得boundsの幅80%を動かす座標swipeで2→1 |
 | `scroll` | 上向き400pxと150pxの2ジェスチャーでBottom reachedに到達 |
 | `wait` | ページ・画面要素のexists、About移動後のControlsのgone |
-| `screenshot` | PNG、JPEG、注釈PNGが復号可能。別途目視で画面と注釈位置を確認 |
+| `screenshot` | Androidは私有pairingによるUI Automator PNG/JPEG、iOSはSimulatorのネイティブ撮影で確認 |
 | `logs` | Add log entry操作による `manual log entry added` を取得 |
 | `workflow schema` | 全体schemaと7 actionそれぞれのschemaを取得 |
 | `workflow validate` | all-actions.yamlの17ステップをbinding込みで検証 |
@@ -85,7 +85,7 @@ dart run integration_test/all_commands_smoke.dart
 
 実行ごとに専用runtimeと `<evidence>/<platform>-<一意名>/` を作成します。`results.json` にコマンド、期待/実終了コード、秘匿した応答・診断、状態検査、失敗理由を保存します。途中失敗でも所有runtimeの `close --all` と記録保存を試み、失敗時は終了1になります。runtimeは診断用に保持します。
 
-画像はinitial、initial-annotated、initial-jpeg、filled-page-two、scrolled、workflow-bottom、aboutです。`operations.mp4` はUI操作からworkflow完了までを含みます。スクリプトのPASSはCLIと状態の自動照合が通ったことを示します。画像を開き、動画を再生または時系列フレームに復号して、入力・Page 2・スクロール・タブ遷移と注釈の位置を目視確認してください。結果JSONの `visualReview` は、その追加確認前であることを示します。
+画像はinitial、initial-jpeg、filled-page-two、scrolled、workflow-bottom、aboutです。`operations.mp4` はUI操作からworkflow完了までを含みます。スクリプトのPASSはCLIと状態の自動照合が通ったことを示します。画像を開き、動画を再生または時系列フレームに復号して、入力・Page 2・スクロール・タブ遷移とネイティブ画面の内容を目視確認してください。結果JSONの `visualReview` は、その追加確認前であることを示します。
 
 最後にrunnerのターミナルで `q` を入力してアプリを終了し、自分で起動した端末を停止します。record/session/daemon/runner/appが残っていないことを確認してから、URIファイルを削除し、端末を解放してください。
 
@@ -97,3 +97,5 @@ rm "$MRA_RUN/private/vm-uri"
 ```
 
 実施結果と画像・動画はPR本文と添付に残し、検証対象commit、環境、期待結果と実際の結果、人間が再現する手順を記載してください。
+
+Android画像の確認は`MARIONETTE_CAPTURE_PAIRING`と起動済みUI Automator agentが必要です。iOSの画像コマンドは省略し、ネイティブ録画またはSimulator撮影で確認します。

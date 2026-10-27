@@ -75,6 +75,7 @@ void main() {
       }
       final shot = CliParser(environment: {}).parse(
         tools['screenshot']!.arguments({
+          'device': 'test-pairing',
           'format': 'jpeg',
           'quality': 30,
           'path': '-image.jpg',
@@ -109,7 +110,12 @@ void main() {
       'drag': {'from': '@e1', 'to': '@e2'},
       'workflow_run': {'path': 'test.yaml', 'inputs': 'inputs.json'},
       'workflow_validate': {'path': 'test.yaml', 'checkInputs': true},
-      'record_start': {'path': 'movie.mp4', 'platform': 'flutter', 'fps': 10},
+      'record_start': {
+        'path': 'movie.mp4',
+        'platform': 'android',
+        'device': 'emulator-5586',
+        'fps': 10,
+      },
       'record_restart': {
         'path': 'movie.mp4',
         'platform': 'ios',
@@ -156,7 +162,12 @@ void main() {
       String name, [
       Map<String, Object?> arguments = const {},
     ]) => server.callTool(
-      CallToolRequest(name: 'marionette_agent_$name', arguments: arguments),
+      CallToolRequest(
+        name: 'marionette_agent_$name',
+        arguments: name == 'screenshot'
+            ? {'device': 'test-pairing', ...arguments}
+            : arguments,
+      ),
     );
     Map response(CallToolResult result) =>
         result.structuredContent!['response'] as Map;
@@ -177,7 +188,7 @@ void main() {
       );
       daemon = DaemonServer(
         runtime,
-        SessionManager(() => backend, coreCommands()),
+        SessionManager(() => backend, coreCommands(capturer: backend)),
       );
       serving = daemon.run();
       while (!File(runtime.metadata).existsSync()) {

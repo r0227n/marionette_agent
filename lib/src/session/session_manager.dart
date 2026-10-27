@@ -109,8 +109,7 @@ class SessionManager {
           request.command != 'connect' &&
           request.command != 'launch' &&
           request.command != 'record' &&
-          !(request.command == 'screenshot' &&
-              request.params['platform'] == 'android')) {
+          request.command != 'screenshot') {
         throw const AgentError(
           'NOT_CONNECTED',
           'Session is not connected',
@@ -193,11 +192,7 @@ class SessionManager {
     if (request.command == 'launch') return _launch(request, session);
     if (request.command == 'deny') return {'denied': true};
     if (request.command == 'record') {
-      return recordings.handle(
-        request,
-        backend: session.status == 'connected' ? session.backend : null,
-        uri: session.status == 'connected' ? session.uri : null,
-      );
+      return recordings.handle(request);
     }
     if (request.command == 'close') {
       if (request.params.isNotEmpty) invalid();
@@ -367,8 +362,7 @@ class SessionManager {
         }
         return show(session);
       default:
-        if (!(request.command == 'screenshot' &&
-            request.params['platform'] == 'android')) {
+        if (request.command != 'screenshot') {
           context.requireConnected();
         }
         return commands.dispatch(

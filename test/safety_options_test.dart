@@ -30,7 +30,7 @@ void main() {
         ['fill', '@e1', 'hello'],
         ['swipe', '@e1', 'left'],
         ['scroll', '@e1', 'up'],
-        ['screenshot'],
+        ['screenshot', '--device=test-pairing'],
         ['workflow', 'schema'],
         ['workflow', 'validate', '/tmp/a.json'],
         ['workflow', 'run', '/tmp/a.json'],
@@ -83,7 +83,13 @@ void main() {
       expect(CliParser().usage, contains('--max-output'));
       expect(CliParser().usage, contains('--idle-timeout'));
       expect(CliParser().usage, contains('--screenshot-dir'));
-      expect(CliParser().parse(['screenshot']).options.screenshotDir, isNull);
+      expect(
+        CliParser()
+            .parse(['screenshot', '--device=test-pairing'])
+            .options
+            .screenshotDir,
+        isNull,
+      );
     },
   );
 
@@ -151,10 +157,16 @@ void main() {
         ['snapshot', '--content-boundaries=true'],
         ['snapshot', '--no-content-boundaries'],
         ['snapshot', '--max-output=0'],
-        ['--screenshot-dir=a', 'screenshot', '--screenshot-dir', 'b'],
-        ['screenshot', '--screenshot-dir'],
-        ['screenshot', '--screenshot-dir='],
-        ['screenshot', '--screenshot-dir', 'a\u0000b'],
+        [
+          '--screenshot-dir=a',
+          'screenshot',
+          '--device=test-pairing',
+          '--screenshot-dir',
+          'b',
+        ],
+        ['screenshot', '--device=test-pairing', '--screenshot-dir'],
+        ['screenshot', '--device=test-pairing', '--screenshot-dir='],
+        ['screenshot', '--device=test-pairing', '--screenshot-dir', 'a\u0000b'],
       ]) {
         String? name;
         var json = false;
@@ -189,6 +201,7 @@ void main() {
       expect(
         () => CliParser().parse([
           'screenshot',
+          '--device=test-pairing',
           '--screenshot-dir',
           '--json',
           '--bad',
@@ -198,6 +211,7 @@ void main() {
       expect(recoveredJson, isFalse);
       final screenshot = CliParser().parse([
         'screenshot',
+        '--device=test-pairing',
         '--',
         '--screenshot-dir',
       ]);
@@ -343,7 +357,10 @@ void main() {
         ElementInfo(key: 'one', type: 'Button'),
         ElementInfo(key: 'two', type: 'Button'),
       ];
-    final manager = SessionManager(() => backend, coreCommands());
+    final manager = SessionManager(
+      () => backend,
+      coreCommands(capturer: backend),
+    );
     addTearDown(manager.dispose);
     await manager.handle(
       request('connect', params: {'uri': 'http://localhost:1/'}),
@@ -379,7 +396,10 @@ void main() {
   test('workflow final snapshot shares limits, boundary metadata and ref revocation', () async {
     final backend = FakeBackend()
       ..elements = [ElementInfo(key: 'button', type: 'Button')];
-    final manager = SessionManager(() => backend, coreCommands());
+    final manager = SessionManager(
+      () => backend,
+      coreCommands(capturer: backend),
+    );
     addTearDown(manager.dispose);
     await manager.handle(
       request('connect', params: {'uri': 'http://localhost:1/'}),

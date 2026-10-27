@@ -1,153 +1,250 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:marionette_agent_android/marionette_agent_android.dart';
 import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
 import 'package:test/test.dart';
 
+String proof(String text) =>
+    Hmac(sha256, List.filled(32, 0xab)).convert(utf8.encode(text)).toString();
+List<int> frame(Map<String, Object?> value) {
+  final body = utf8.encode(jsonEncode(value));
+  return [
+    ...(ByteData(4)..setUint32(0, body.length)).buffer.asUint8List(),
+    ...body,
+  ];
+}
+
+class Reader {
+  Reader(Socket socket) : iterator = StreamIterator(socket);
+  final StreamIterator<Uint8List> iterator;
+  final bytes = <int>[];
+  Future<List<int>> read(int n) async {
+    while (bytes.length < n) {
+      if (!await iterator.moveNext()) throw const SocketException('EOF');
+      bytes.addAll(iterator.current);
+    }
+    final result = bytes.sublist(0, n);
+    bytes.removeRange(0, n);
+    return result;
+  }
+
+  Future<Map<String, dynamic>> json() async {
+    final n = ByteData.sublistView(Uint8List.fromList(await read(4)))
+        .getUint32(0);
+    return jsonDecode(utf8.decode(await read(n))) as Map<String, dynamic>;
+  }
+}
+
 void main() {
   late Directory directory;
-  late File script, calls;
-  late AndroidScreenCapturer capturer;
-  DateTime deadline() => DateTime.now().add(const Duration(seconds: 5));
-  Matcher fails(String code, [String? message]) => throwsA(
+  late File file;
+  late int port;
+  var requests = 0;
+  const capturer = AndroidScreenCapturer();
+  DateTime deadline() => DateTime.now().add(const Duration(seconds: 3));
+  Future<void> agent({
+    String identity = 'fixture',
+    bool emulator = true,
+    List<int> displays = const [0],
+    bool badProof = false,
+    String? error,
+    int? length,
+    bool disconnect = false,
+    bool malformed = false,
+  }) async {
+    Socket socket;
+    final until = deadline();
+    while (true) {
+      try {
+        socket = await Socket.connect('127.0.0.1', port);
+        break;
+      } on SocketException {
+        if (DateTime.now().isAfter(until)) rethrow;
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+    }
+    final reader = Reader(socket);
+    try {
+      final challenge = await reader.json();
+      expect(challenge.containsKey('token'), false);
+      final nonce = challenge['nonce'] as String;
+      socket.add(
+        frame({
+          'version': 1,
+          'device': identity,
+          'proof': badProof ? 'bad' : proof('agent:$nonce'),
+          'emulator': emulator,
+          'displays': displays,
+        }),
+      );
+      await socket.flush();
+      if (badProof ||
+          identity != 'fixture' ||
+          !emulator ||
+          displays.length != 1 ||
+          displays.single != 0) {
+        try {
+          await reader.iterator.moveNext();
+        } on SocketException {
+          /* Rejected peer is disconnected before any capture. */
+        }
+        return;
+      }
+      final command = await reader.json();
+      expect(command['proof'], proof('host:$nonce:${command['command']}'));
+      requests++;
+      if (command['command'] == 'stop') {
+        socket.add(frame({'ok': true}));
+        return;
+      }
+      if (malformed) {
+        socket.add((ByteData(4)..setUint32(0, 9000)).buffer.asUint8List());
+        return;
+      }
+      if (error != null) {
+        socket.add(
+          frame({
+            'ok': false,
+            'code': error,
+            'message': 'private token must not leak',
+          }),
+        );
+        return;
+      }
+      socket.add(frame({'ok': true, 'length': length ?? 5}));
+      if (!disconnect) socket.add(utf8.encode('image'));
+    } finally {
+      await socket.flush();
+      socket.destroy();
+      await reader.iterator.cancel();
+    }
+  }
+
+  Matcher fails(String code) => throwsA(
     isA<PlatformException>()
         .having((e) => e.code, 'code', code)
-        .having(
-          (e) => e.message,
-          'message',
-          message == null ? anything : contains(message),
-        ),
+        .having((e) => e.message, 'redacted', isNot(contains('private token'))),
   );
-  Future<void> fixture({
-    String state = 'device',
-    String displays = 'mDisplayId=0',
-    bool physical = false,
-    String capture = 'printf PNG',
-    bool hang = false,
-    bool duplicate = false,
-  }) async {
-    await script.writeAsString('''#!/bin/sh
-printf '%s\\n' "\$*" >> '${calls.path}'
-case "\$*" in
-  'devices -l') printf 'List of devices attached\\nemulator-5660 $state\\nemulator-5662 device\\n${duplicate ? 'emulator-5660 device\\n' : ''}';;
-  '-s emulator-5660 shell getprop ro.kernel.qemu') printf '${physical ? '0' : '1'}';;
-  '-s emulator-5660 shell dumpsys display') printf '$displays';;
-  '-s emulator-5660 exec-out screencap -p') ${hang ? 'exec sleep 20' : capture};;
-  *) exit 91;;
-esac
-''');
-    await Process.run('chmod', ['700', script.path]);
-  }
-
   setUp(() async {
-    directory = await Directory.systemTemp.createTemp('adb-capture-');
-    script = File('${directory.path}/adb');
-    calls = File('${directory.path}/calls');
-    capturer = AndroidScreenCapturer(adb: script.path);
-    await fixture();
+    requests = 0;
+    directory = await Directory.systemTemp.createTemp('uia-capture-');
+    file = File('${directory.path}/pairing.json');
+    final reservation = await ServerSocket.bind(
+      InternetAddress.loopbackIPv4,
+      0,
+    );
+    port = reservation.port;
+    await reservation.close();
+    await file.writeAsString(
+      jsonEncode({
+        'version': 1,
+        'device': 'fixture',
+        'port': port,
+        'token': 'ab' * 32,
+      }),
+    );
+    await Process.run('chmod', ['600', file.path]);
   });
   tearDown(() => directory.delete(recursive: true));
-
   test(
-    'explicit serial remains fixed with multiple connected devices',
+    'paired native pixels use explicit device and mutual authentication',
     () async {
-      final result = await capturer.capture('emulator-5660', deadline());
-      expect(utf8.decode(result.png), 'PNG');
-      expect(result.source, 'android-adb');
-      expect(result.display, 0);
-      expect(await calls.readAsLines(), [
-        'devices -l',
-        '-s emulator-5660 shell getprop ro.kernel.qemu',
-        '-s emulator-5660 shell dumpsys display',
-        '-s emulator-5660 exec-out screencap -p',
-      ]);
+      final serving = agent();
+      final image = await capturer.capture(file.path, deadline());
+      await serving;
+      expect(utf8.decode(image.png), 'image');
+      expect(image.source, 'android-uiautomator');
+      expect(image.device, 'fixture');
+      expect(image.display, 0);
+      expect(requests, 1);
     },
   );
-  for (final row in [
-    ('unauthorized', 'IO_ERROR'),
-    ('offline', 'CONNECTION_LOST'),
-    ('recovery', 'UNSUPPORTED_CAPABILITY'),
+  for (final variant in [
+    'wrong-proof',
+    'wrong-device',
+    'physical',
+    'displays',
   ]) {
-    test('rejects ${row.$1} without capture', () async {
-      await fixture(state: row.$1);
-      await expectLater(
-        capturer.capture('emulator-5660', deadline()),
-        fails(row.$2),
+    test('$variant fails before capture is requested', () async {
+      final serving = agent(
+        badProof: variant == 'wrong-proof',
+        identity: variant == 'wrong-device' ? 'other' : 'fixture',
+        emulator: variant != 'physical',
+        displays: variant == 'displays' ? [0, 2] : [0],
       );
-      expect(await calls.readAsLines(), ['devices -l']);
+      await expectLater(
+        capturer.capture(file.path, deadline()),
+        fails(
+          variant.startsWith('wrong') ? 'IO_ERROR' : 'UNSUPPORTED_CAPABILITY',
+        ),
+      );
+      await serving;
+      expect(requests, 0);
     });
   }
-  test(
-    'unknown, malformed and duplicate serials cannot select another device',
-    () async {
-      await expectLater(
-        capturer.capture('missing', deadline()),
-        fails('INVALID_ARGUMENT'),
-      );
-      await expectLater(
-        capturer.capture('-s other', deadline()),
-        fails('INVALID_ARGUMENT'),
-      );
-      await fixture(duplicate: true);
-      await expectLater(
-        capturer.capture('emulator-5660', deadline()),
-        fails('INVALID_ARGUMENT'),
-      );
-      expect(await calls.readAsString(), isNot(contains('screencap')));
-    },
-  );
-  test('unsupported physical hardware is rejected', () async {
-    await fixture(physical: true);
-    await expectLater(
-      capturer.capture('emulator-5660', deadline()),
-      fails('UNSUPPORTED_CAPABILITY', 'Emulator'),
-    );
-  });
-  test(
-    'unknown topology and secondary displays are rejected before capture',
-    () async {
-      for (final topology in ['', 'mDisplayId=0\\nmDisplayId=2']) {
-        await fixture(displays: topology);
-        await expectLater(
-          capturer.capture('emulator-5660', deadline()),
-          fails('UNSUPPORTED_CAPABILITY', 'display'),
-        );
-      }
-      expect(await calls.readAsString(), isNot(contains('screencap')));
-    },
-  );
-  test('missing adb has a specific installation failure', () async {
-    await expectLater(
-      AndroidScreenCapturer(adb: '${directory.path}/missing')
-          .capture('emulator-5660', deadline()),
-      fails('UNSUPPORTED_CAPABILITY', 'adb'),
-    );
-  });
-  test('capture deadline kills owned client without replay', () async {
-    await fixture(hang: true);
-    final watch = Stopwatch()..start();
+  test('missing agent times out and releases listener', () async {
     await expectLater(
       capturer.capture(
-        'emulator-5660',
-        DateTime.now().add(const Duration(seconds: 2)),
+        file.path,
+        DateTime.now().add(const Duration(milliseconds: 100)),
       ),
       fails('TIMEOUT'),
     );
-    expect(watch.elapsed, lessThan(const Duration(seconds: 5)));
-    expect(
-      (await calls.readAsLines()).where((line) => line.contains('screencap')),
-      hasLength(1),
+    final reusable = await ServerSocket.bind(
+      InternetAddress.loopbackIPv4,
+      port,
     );
+    await reusable.close();
   });
-  test(
-    'known permission denial is reported without exposing raw stderr',
-    () async {
-      await fixture(capture: 'echo "Permission denied secret" >&2; exit 1');
+  test('busy port cannot silently select another agent', () async {
+    final other = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
+    try {
       await expectLater(
-        capturer.capture('emulator-5660', deadline()),
-        fails('IO_ERROR', 'denied'),
+        capturer.capture(file.path, deadline()),
+        fails('SESSION_CONFLICT'),
+      );
+    } finally {
+      await other.close();
+    }
+  });
+  for (final variant in ['denied', 'oversized', 'disconnected', 'malformed']) {
+    test('$variant does not publish or replay a capture', () async {
+      final serving = agent(
+        error: variant == 'denied' ? 'IO_ERROR' : null,
+        length: variant == 'oversized' ? 33 * 1024 * 1024 : null,
+        disconnect: variant == 'disconnected',
+        malformed: variant == 'malformed',
+      );
+      await expectLater(
+        capturer.capture(file.path, deadline()),
+        fails(variant == 'disconnected' ? 'CONNECTION_LOST' : 'IO_ERROR'),
+      );
+      await serving;
+      expect(requests, 1);
+    });
+  }
+  test(
+    'invalid or non-private pairing is rejected without networking',
+    () async {
+      await expectLater(
+        capturer.capture('${directory.path}/missing', deadline()),
+        fails('INVALID_ARGUMENT'),
+      );
+      await Process.run('chmod', ['644', file.path]);
+      await expectLater(
+        capturer.capture(file.path, deadline()),
+        fails('INVALID_ARGUMENT'),
       );
     },
   );
+  test('explicit stop terminates only the paired agent', () async {
+    final serving = agent();
+    await capturer.stopAgent(file.path, deadline());
+    await serving;
+    expect(requests, 1);
+  });
 }

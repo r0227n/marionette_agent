@@ -40,7 +40,7 @@ Every step requires a unique id (`^[A-Za-z][A-Za-z0-9_-]{0,63}$`) and an action.
 | Action | Additional fields |
 | --- | --- |
 | snapshot | None |
-| screenshot | Optional path, platform, device, display, annotate, target |
+| screenshot | Required device pairing file; optional path, platform=android, display="0" |
 | tap | target |
 | fill | target, text |
 | swipe / scroll | target, direction, optional distance |
@@ -136,6 +136,6 @@ Workflow content, inputs, resolved params, and fill values are not copied into d
 <a id="screenshots"></a>
 ## Screenshot steps
 
-`screenshot` shares standalone capture validation. Platform defaults to flutter; android requires an explicit device serial and supports only string display `"0"`. Flutter may use target or annotate, never both. Native mode rejects both. Path is relative to the caller’s cwd; omitted paths use the common screenshot directory/temporary rule. Common screenshot format/quality/directory options apply to all steps. Invalid path extensions are rejected locally before any workflow action.
+`screenshot` shares standalone capture validation. Platform is android; device is a private UI Automator pairing file and display is only string `"0"`. Target and annotate are removed. Pairing paths resolve against the caller’s cwd before IPC. Path is relative to the caller’s cwd; omitted paths use the common screenshot directory/temporary rule. Common screenshot format/quality/directory options apply to all steps. Invalid path extensions are rejected locally before any workflow action.
 
-Workflow run still requires a connected session. Native capture itself never calls the Marionette backend. Images are captured in step order, with at most 48 MiB of accumulated base64 image data. Persistence happens on the CLI only after every step succeeds, within the original deadline. Success adds `screenshots:[{stepId,paths,capture?}]` (and existing annotation/crop metadata where applicable). No raw images appear in the public result. Text output includes the saved screenshot results. Failed execution publishes no images; a saving failure attempts to remove this request’s already-created files/directories and reports `phase:"screenshot-save"`, known completedSteps and no successful paths. Already executed UI actions are not rolled back. If cleanup is refused by the OS, artifacts may remain.
+Workflow run still requires a connected session. Native capture itself never calls the Marionette backend. Images are captured in step order, with at most 48 MiB of accumulated base64 image data. Persistence happens on the CLI only after every step succeeds, within the original deadline. Success adds `screenshots:[{stepId,paths,capture?}]`. No raw images appear in the public result. Text output includes the saved screenshot results. Failed execution publishes no images; a saving failure attempts to remove this request’s already-created files/directories and reports `phase:"screenshot-save"`, known completedSteps and no successful paths. Already executed UI actions are not rolled back. If cleanup is refused by the OS, artifacts may remain.

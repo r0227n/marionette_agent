@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:args/args.dart';
 
 import '../../backend/backend.dart';
@@ -34,29 +36,23 @@ CliCommand snapshotCommand() {
 
 CliCommand screenshotCommand() {
   final parser = ArgParser()
-    ..addFlag('annotate', negatable: false)
-    ..addOption('platform', allowed: ['flutter', 'android'])
+    ..addOption('platform', allowed: ['android'], defaultsTo: 'android')
     ..addOption('device')
     ..addOption('display');
-  addSelectorOptions(parser);
   return CliCommand(parser, (args) {
-    final rest = args.rest.toList();
-    final params = <String, Object?>{};
-    for (final kind in SelectorKind.values) {
-      if (args.wasParsed(kind.name)) params[kind.name] = args.option(kind.name);
+    if (args.rest.length > 1 ||
+        (args.rest.isNotEmpty &&
+            (args.rest.single.isEmpty || args.rest.single.startsWith('@')))) {
+      invalid('Usage: screenshot [path] --device <pairing-file>');
     }
-    if (rest.isNotEmpty && rest.first.startsWith('@')) {
-      params['ref'] = rest.removeAt(0);
-    }
-    if (rest.length > 1 || (rest.isNotEmpty && rest.single.isEmpty)) {
-      invalid('Usage: screenshot [ref|selector] [--annotate] [path]');
-    }
-    if (rest.isNotEmpty) params['path'] = rest.single;
-    if (args.flag('annotate')) params['annotate'] = true;
-    for (final option in ['platform', 'device', 'display']) {
-      if (args.wasParsed(option)) params[option] = args.option(option);
-    }
+    final params = <String, Object?>{
+      'platform': 'android',
+      'device': args.option('device'),
+      if (args.wasParsed('display')) 'display': args.option('display'),
+      if (args.rest.isNotEmpty) 'path': args.rest.single,
+    };
     screenshotTarget(params);
+    params['device'] = File(params['device'] as String).absolute.path;
     return params;
   });
 }

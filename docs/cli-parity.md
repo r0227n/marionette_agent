@@ -54,11 +54,9 @@ Clipboard operations use the target app’s clipboard, not the CLI host clipboar
 <a id="diff"></a>
 ## Cropping and differences
 
-A target screenshot requires a mapped provider, one image, and bounds entirely inside the view. It reobserves before and after capture, does not infer scaling, and returns `cropped:true`. Combining it with annotate is rejected.
-
 Diff snapshot accepts a saved regular envelope or data as its baseline. It ignores ref/reason and ordering but compares duplicate counts, returning `added/removed/changed`. The current observation does not publish or refresh refs. Comparison uses all elements before max-output truncation.
 
-Diff screenshot accepts a single PNG with matching dimensions. A pixel changes when its largest RGBA channel difference exceeds threshold (0–255). Changed pixels are marked red in a PNG saved to a new path. The baseline must be a regular file no larger than 32 MiB. JPEG, multiple images, and baseline overwriting are rejected.
+Diff screenshot uses UI Automator and requires `--device <pairing-file>`. It accepts a single PNG with matching dimensions. A pixel changes when its largest RGBA channel difference exceeds threshold (0–255). Changed pixels are marked red in a PNG saved to a new path. The baseline must be a regular file no larger than 32 MiB. JPEG, multiple images, and baseline overwriting are rejected.
 
 <a id="configuration"></a>
 ## Config, namespace, and state

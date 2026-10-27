@@ -54,11 +54,9 @@ dart "$CLI" --session beta close
 
 自動widget確認は `flutter test`、CLIによる実環境確認は[全コマンドの動作確認手順](../docs/ja/runtime-verification.ja.md)を参照。結果と画像・動画はPR本文と添付に残す。
 
-## 注釈Screenshotのopt-in provider
+## UI Automatorスクリーンショット
 
-debug構成は`lib/mapped_screenshot.dart`の固定名providerを登録する。通常のbinding 0.6.0だけでは画像geometryが不足するため、このfixtureで明示的に補う。単一RenderViewの未resize画像と物理/論理寸法を一緒に返し、overlayは注入しない。一般のbinding対応を表すものではない。`flutter run --dart-define=DISABLE_MAPPED_SCREENSHOT=true ...`で登録を無効化し、CLIのUNSUPPORTED_CAPABILITYを検証できる。
-
-`snapshot`の後に`screenshot --annotate <新しいpath>`を実行する。原画像は別pathへ通常`screenshot`で取得し、ラベルと実要素位置を照合する。詳細契約は[SPEC](../docs/ja/SPEC.ja.md)、操作手順は[画像・動画ガイド](../website/src/content/docs/ja/guides/capture.md)を参照する。
+Androidの撮影は[別のUI Automator agent](../packages/marionette_agent_android/capture_agent/README.md)を起動し、`screenshot --device <pairing-file>`で実行します。Flutter撮影、mapped provider、注釈・cropは廃止しました。iOSの表示確認はSimulatorの撮影手段またはネイティブ録画を使います。
 
 ## Workflow検証
 
@@ -90,4 +88,4 @@ FFmpegKit native assetsに合わせ、AndroidはAPI 26以上、macOSは13以上�
 
 ## Androidネイティブ撮影fixture
 
-Android debug版のNativeタブ（`native_tab`）に`native_permission`、`native_photoPicker`（API 33以上）、`native_documentPicker`、`native_secureOn`、`native_secureOff`、`native_text_input`を配置する。権限要求・Photo Picker・ACTION_OPEN_DOCUMENT・FLAG_SECUREはAndroidのAPIを使う。カメラは権限ダイアログだけを要求し、撮影や読み取りは行わない。ダミー画像をEmulatorに用意し、OS UIを開いたまま製品CLIのAndroid screenshotで撮影する。secureOffはこのfixture自身のテスト用FLAG_SECUREを解除するためのボタンで、他アプリの保護を変更しない。縦横回転とIME・system barも保存画像で確認する。実機は本Issueの対応・検証範囲外。
+Android debug版のNativeタブ（`native_tab`）に`native_permission`、`native_seedPhoto`（ダミー画像をMediaStoreへ作成）、`native_photoPicker`（API 33以上）、`native_documentPicker`、`native_secureOn`、`native_secureOff`、`native_text_input`を配置する。権限要求・Photo Picker・ACTION_OPEN_DOCUMENT・FLAG_SECUREはAndroidのAPIを使う。カメラは権限ダイアログだけを要求し、撮影や読み取りは行わない。ダミー画像をEmulatorに用意し、OS UIを開いたまま製品CLIのAndroid screenshotで撮影する。secureOffはこのfixture自身のテスト用FLAG_SECUREを解除するためのボタンで、他アプリの保護を変更しない。縦横回転とIME・system barも保存画像で確認する。実機は本Issueの対応・検証範囲外。

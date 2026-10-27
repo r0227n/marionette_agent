@@ -58,7 +58,7 @@ marionette-agent snapshot
 Check that the field displays `hello`. `fill` replaces the entire existing value. You can now capture the screen.
 
 ```sh
-marionette-agent screenshot
+marionette-agent get text --key tap_result
 ```
 
 Open the image at the returned path and confirm it shows the screen after the text edit.

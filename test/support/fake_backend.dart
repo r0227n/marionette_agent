@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
 import 'package:marionette_agent/src/backend/backend.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 
 /// Controllable backend for downstream command and concurrency tests.
 /// Hooks run before completion, allowing barriers, failures and late responses.
-class FakeBackend implements Backend {
+class FakeBackend implements Backend, ScreenCapturer {
   List<ElementInfo> elements = [];
   List<String> screenshots = [];
   LogBatch logs = const LogBatch([], configured: true);
@@ -22,7 +26,10 @@ class FakeBackend implements Backend {
     active++;
     if (active > maxActive) maxActive = active;
     try {
-      if (name != 'connect' && name != 'disconnect' && !connected) {
+      if (name != 'connect' &&
+          name != 'disconnect' &&
+          name != 'captureScreen' &&
+          !connected) {
         throw const AgentError('CONNECTION_LOST', 'Fake connection lost');
       }
       await hooks[name]?.call();
@@ -58,9 +65,14 @@ class FakeBackend implements Backend {
   @override
   Future<void> swipe(SwipeGesture gesture) => _run('swipe');
   @override
-  Future<List<String>> captureScreenshots() async {
-    await _run('captureScreenshots');
-    return List.of(screenshots);
+  Future<CapturedScreen> capture(String device, DateTime deadline) async {
+    await _run('captureScreen');
+    return CapturedScreen(
+      screenshots.isEmpty ? Uint8List(0) : base64Decode(screenshots.first),
+      source: 'android-uiautomator',
+      device: 'test-device',
+      display: 0,
+    );
   }
 
   @override

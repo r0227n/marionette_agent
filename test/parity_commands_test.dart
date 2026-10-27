@@ -3,13 +3,11 @@ import 'dart:io';
 
 import 'package:image/image.dart' as img;
 import 'package:marionette_agent/marionette_agent.dart';
-import 'package:marionette_agent/src/cli/artifact_writer.dart';
 import 'package:marionette_agent/src/cli/observation_diff.dart';
 import 'package:marionette_agent/src/cli/renderer.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
-import 'screenshot_annotation_test.dart' show geometry;
 import 'support/interactive_backend.dart';
 import 'support/requests.dart';
 
@@ -42,7 +40,7 @@ void main() {
           visible: true,
         ),
       ];
-    manager = SessionManager(() => backend, coreCommands());
+    manager = SessionManager(() => backend, coreCommands(capturer: backend));
     expect(
       (await manager.handle(
         request('connect', params: {'uri': 'http://localhost:1/'}),
@@ -381,46 +379,18 @@ void main() {
     expect((result['removed'] as List).length, 1);
     expect(result['added'], isEmpty);
   });
-  test(
-    'PNG diff and crop verify pixels, geometry and no-overwrite behavior',
-    () async {
-      final before = img.Image(width: 4, height: 4, numChannels: 4);
-      final after = before.clone()..setPixelRgba(1, 1, 255, 0, 0, 255);
-      final deadline = DateTime.now().add(const Duration(seconds: 5));
-      final result = await compareObservation(
-        {'action': 'screenshot', 'threshold': 0},
-        img.encodePng(before),
-        {
-          'images': [base64Encode(img.encodePng(after))],
-        },
-        deadline,
-      );
-      expect(result['changedPixels'], 1);
-      final path = '${files.path}/crop.png';
-      final data = {
+  test('PNG diff compares display pixels', () async {
+    final before = img.Image(width: 4, height: 4, numChannels: 4);
+    final after = before.clone()..setPixelRgba(1, 1, 255, 0, 0, 255);
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    final result = await compareObservation(
+      {'action': 'screenshot', 'threshold': 0},
+      img.encodePng(before),
+      {
         'images': [base64Encode(img.encodePng(after))],
-        'geometry': geometry(width: 4, height: 4, scale: 1),
-        'crop': {'x': 1, 'y': 1, 'width': 2, 'height': 2},
-      };
-      expect((await saveScreenshots(data, path, deadline))['cropped'], true);
-      final crop = img.decodePng(await File(path).readAsBytes())!;
-      expect(crop.width, 2);
-      expect(crop.getPixel(0, 0).r, 255);
-      await expectLater(
-        saveScreenshots(data, path, deadline),
-        throwsA(isA<AgentError>().having((e) => e.code, 'code', 'IO_ERROR')),
-      );
-      await expectLater(
-        saveScreenshots(
-          {
-            ...data,
-            'crop': {'x': -1, 'y': 1, 'width': 2, 'height': 2},
-          },
-          '${files.path}/invalid.png',
-          deadline,
-        ),
-        throwsA(isA<AgentError>()),
-      );
-    },
-  );
+      },
+      deadline,
+    );
+    expect(result['changedPixels'], 1);
+  });
 }

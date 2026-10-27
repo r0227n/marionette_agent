@@ -3,70 +3,44 @@ title: 画像と動画を残す
 description: スクリーンショット・注釈・録画を使って、操作後の状態を記録する。
 ---
 
-画面を保存すると、CLIの応答と実際の表示を照合できます。保存先の親ディレクトリは先に作り、各実行で新しいファイル名を使います。
+スクリーンショットはAndroid Emulator上のUI Automator APIで取得します。単独撮影にMarionette接続は不要です。Flutter撮影、ref注釈、要素cropは廃止しました。
 
-## スクリーンショット
+## 撮影agentを起動する
+
+`tool/android_capture.dart`で私有pairingファイルを作成し、Android StudioまたはGradleから別のAndroid Instrumentationを起動します。SDK要件と手順は[agentのセットアップ](https://github.com/r0227n/marionette_agent/blob/develop/packages/marionette_agent_android/capture_agent/README.md)を参照してください。撮影中はagentを起動したままにし、私有ファイルのpathを`CAPTURE_PAIRING`へ設定します。
+
+撮影コマンドはADBコマンドを実行せず、認証付きローカルTCPでPNGを受け取ります。最初のAPK配備とInstrumentation起動はAndroidのテスト実行環境で行います。Emulatorごとにpairing名とportを分離してください。
+
+## 画面を保存する
 
 ```sh
-mkdir -p artifacts
-marionette-agent screenshot artifacts/after.png
-marionette-agent screenshot artifacts/after.jpg --screenshot-format jpeg
+marionette-agent screenshot artifacts/system.png --device "$CAPTURE_PAIRING" --json
+marionette-agent screenshot artifacts/system.jpg --device "$CAPTURE_PAIRING" --screenshot-format jpeg
 ```
 
-既定はPNGです。JPEGは`--screenshot-format jpeg`を明示し、品質を変える場合は`--screenshot-quality`を0〜100で指定します。拡張子だけで形式は切り替わりません。JPEGの透過部分は白背景へ合成されます。
+既定はPNGです。JPEGは`--screenshot-quality 0..100`に対応し、既定90です。親ディレクトリを先に作成してください。path省略時は`--screenshot-dir`または私有一時ディレクトリを使います。既存ファイルは上書きしません。
 
-pathを省略すると、専用の一時ディレクトリへ保存してパスを返します。`--screenshot-dir`で既存ディレクトリを指定することもできます。既存ファイルを上書きしません。
+結果は`capture.source: "android-uiautomator"`、pairingした`device`名、display `0`、`scope: "entire-display"`、`coordinateSpace: "physical-pixels"`、デコードした`width`/`height`を含みます。回転後のdisplay pixelをdensityで拡縮せず取得します。権限ダイアログ、Photo Picker・ファイル選択、IME、表示中のsystem barを含みます。確認対象のUIを開いたまま撮影してください。
 
-## AndroidのOS標準UIを撮影する
+display 0だけのEmulatorに対応します。`--device`は必ずpairingファイルを指定し、相対pathは呼出元CLIのcwd基準です。探索、別端末選択、fallbackはありません。認証失敗、agent切断、破損応答、期限超過はエラーになります。
 
-既定のスクリーンショットはtesterを含むFlutter描画のままです。Androidを明示すると、権限ダイアログ、Photo Picker・ファイル選択、ソフトウェアキーボード、表示中のsystem barを含めて撮影できます。Android Emulatorを起動し、オンラインかつ認証済みのADB serialを`ANDROID_SERIAL`に設定してください。単独のネイティブ撮影にはMarionette接続は不要です。
+Androidは`FLAG_SECURE`対象を隠したり撮影を拒否したりします。成功時は`protectedContent: "not-detectable"`を返し、黒pixelだけで保護を確定しません。ダミーデータを使い、共有前に画面全体の写り込みを確認してください。
+
+## Pixelを比較する
 
 ```sh
-marionette-agent screenshot artifacts/system.png --platform android --device "$ANDROID_SERIAL" --json
-marionette-agent screenshot artifacts/system.jpg --platform android --device "$ANDROID_SERIAL" --screenshot-format jpeg
+marionette-agent diff screenshot --baseline artifacts/system.png --device "$CAPTURE_PAIRING" --output artifacts/diff.png
 ```
 
-結果には`capture.source`、`device`、`display`、`scope`、`coordinateSpace`、`width`、`height`を含みます。寸法は撮影時の向きのpixel数で、densityによる拡縮はしません。OS標準UIを開いたまま撮影してください。撮影処理はダイアログを閉じず、UI操作を再送しません。
+同じ端末・display設定のPNGをbaselineに指定してください。画像のpixel寸法が一致する必要があります。ref・selectorのcropと`--annotate`は利用できません。制限は[撮影契約](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#native-android-capture)を参照してください。
 
-この版の対応対象はEmulatorの既定display `0`だけです。実機と複数displayは拒否します。接続端末が1台でも`--device`は必須です。ADB取得の失敗時にFlutterへ切り替えません。ネイティブ画像ではFlutterのref・selector・`--annotate`・crop・`diff screenshot`を利用できず、これらは従来のFlutter向けの動作を保ちます。
+## 遷移を録画する
 
-Androidは`FLAG_SECURE`対象を隠したり撮影を拒否したりします。黒い領域だけで保護の有無を確定できないため、取得成功時は`protectedContent: "not-detectable"`を返します。保護やデバッグ認証は回避しません。ダミーデータで検証し、画面全体の画像を共有する前に無関係な情報の写り込みを確認してください。エラーと制限は[ネイティブ撮影契約](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#native-android-capture)を参照してください。
-
-## refを画像へ重ねる
+端末のネイティブ録画は静止画撮影とは別機能です。iOS Simulatorの例:
 
 ```sh
-marionette-agent snapshot
-marionette-agent screenshot --annotate artifacts/targets.png
-```
-
-注釈には直近の有効snapshotとmapped screenshot providerが必要です。exampleは対応しています。途中でUI操作をした場合は、snapshotを取り直します。画像上の番号と操作対象を照合する用途に使います。
-
-## Flutterアプリの描画を録画する
-
-接続済みsessionと、ネイティブライブラリを同梱したCLI一式を用意します。Flutter描画の録画は、headlessの環境でも同じ構文です。
-
-```sh
-marionette-agent record start artifacts/interaction.mp4 --platform flutter
-marionette-agent tap --key tap_button
-marionette-agent snapshot
-marionette-agent record status
+marionette-agent record start artifacts/interaction.mp4 --platform ios --device "$IOS_UDID"
 marionette-agent record stop
 ```
 
-単一のFlutter viewを無音H.264動画として保存します。`--fps`は取得間隔を指定し、既定は10です。実際の取得時刻を使うため固定フレームレートの保証はありません。OSのキーボード・ダイアログ・ブラウザーUI・platform viewまで記録されるとは限りません。
-
-## 端末画面を録画する
-
-iOS Simulatorの画面全体を記録する場合は、対象のUDIDをこのシェルの`SIMULATOR_UDID`へ設定します。VM Service接続は不要です。
-
-```sh
-marionette-agent record start artifacts/device.mp4 \
-  --platform ios --device "$SIMULATOR_UDID"
-marionette-agent record stop
-```
-
-Androidは端末serial、macOSはディスプレイ番号を指定します。Webは`display:1@ws://127.0.0.1:9222/devtools/page/ACTUALID`のように、display番号と選んだChrome pageのloopback debugging WebSocket URLを組み合わせます。設定と制限は[Webの指定契約](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#web-recording)を参照してください。macOS・Webの画面収録にはOSの許可が必要です。Web方式は指定ディスプレイを記録するため、ブラウザーのページ領域だけに限定されません。
-
-`record restart`は現在の録画を確定してから別の保存先で再開します。新規開始が失敗しても、以前の録画へ戻るわけではありません。`stop`は動画の確定まで待つため、長い録画には十分なtimeoutを指定してください。
-
-[画像・録画の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#capture)に命名・排他保存・期限・確定・復旧の条件をまとめています。
+Marionette・Flutterフレーム録画も廃止しました。環境に対応するネイティブ録画platformを利用してください。

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:marionette_agent/marionette_agent.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
@@ -60,7 +62,14 @@ void main() {
         ),
       ),
     );
-    expect(parser.parse(['screenshot', 'a.png']).params, {'path': 'a.png'});
+    expect(
+      parser.parse(['screenshot', '--device=test-pairing', 'a.png']).params,
+      {
+        'platform': 'android',
+        'device': File('test-pairing').absolute.path,
+        'path': 'a.png',
+      },
+    );
     expect(parser.parse(['logs']).params, isEmpty);
   });
   test('bad arguments are rejected before IPC without exposing input', () {
@@ -92,7 +101,7 @@ void main() {
   setUp(() async {
     backend = RecordingBackend()
       ..elements = [ElementInfo(key: 'input', type: 'TextField')];
-    manager = SessionManager(() => backend, coreCommands());
+    manager = SessionManager(() => backend, coreCommands(capturer: backend));
     await manager.handle(
       request('connect', params: {'uri': 'http://localhost:1/'}),
     );
@@ -200,10 +209,14 @@ void main() {
   );
   test('read commands preserve refs, log configuration and failures', () async {
     final target = await ref();
-    backend.screenshots = ['encoded'];
-    expect((await call('screenshot', {})).data, {
-      'images': ['encoded'],
-    });
+    backend.screenshots = ['ZW5jb2RlZA=='];
+    expect(
+      (await call('screenshot', {
+        'platform': 'android',
+        'device': 'test-pairing',
+      })).data!['images'],
+      ['ZW5jb2RlZA=='],
+    );
     expect((await call('logs', {})).data, {'entries': [], 'configured': true});
     backend.logs = const LogBatch([], configured: false);
     expect((await call('logs', {})).data!['configured'], false);

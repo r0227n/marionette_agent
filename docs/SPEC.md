@@ -74,7 +74,7 @@ marionette-agent --session demo snapshot
 marionette-agent --session demo fill @e5 'hello'
 marionette-agent --session demo snapshot
 marionette-agent --session demo swipe @e9 left --distance 200
-marionette-agent --session demo screenshot ./screen.png
+marionette-agent --session demo screenshot ./screen.png --device capture-pairing.json
 marionette-agent --session demo close
 ```
 
@@ -147,7 +147,7 @@ Idle time starts only after all session queues and request deliveries are idle; 
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | Swipes from an explicit start to end |
 | `scroll <ref> <direction> [--distance <n>]` | Sends a directional gesture to a scroll region; selectors also supported |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | Waits for appearance/disappearance through observation only |
-| `screenshot [--annotate] [path]` | Exclusively saves PNG (default) or JPEG. Explicit path > `--screenshot-dir` > temporary file. Annotation requires a supported provider and the latest valid snapshot |
+| `screenshot [path] --device <pairing-file>` | Exclusively saves PNG (default) or JPEG. Explicit path > `--screenshot-dir` > temporary file. Android UI Automator instrumentation and a private pairing file are required |
 | `logs` | Retrieves binding-collected logs without subscription or indefinite waiting |
 | `record start <path> --platform <platform> --device <id>` | Starts device-screen recording without requiring VM Service |
 | `record status` / `record stop` | Queries recording state / stops and waits for video finalization |
@@ -312,11 +312,7 @@ Multiple images add `-1`, `-2`, etc. before the explicit/generated name's extens
 
 Logs normalize the returned range and explain when unavailable collection cannot be distinguished from zero entries. URI credentials and input strings never appear in diagnostic logs.
 
-`screenshot --annotate` composites only actionable refs actually published by the latest snapshot into a new PNG as `@eN` labels and boxes; JPEG output converts after composition. It neither accepts an existing PNG as input nor alters original image bytes. The destination is a new annotated-image path using normal screenshot exclusive storage and overall deadline rules. Successful data adds annotated=true, generation, annotationCount, and skippedAnnotations to paths. It neither numbers, updates, nor invalidates refs. Invalid snapshots or changes in target uniqueness/attributes during re-observation before/after capture produce STALE_REF without saving. Observation and capture are not atomic upstream, so animation that changes and returns to the original state may go undetected. Use a stationary screen.
-
-The normal screenshot response from pinned `marionette_flutter: 0.6.0` cannot establish image/view, scale, or orientation correspondence. Annotation requires the separate opt-in `marionette_agent.captureMappedScreenshot` provider. This limited contract returns image and geometry v1 together; it does not mean general annotation support in the pinned binding. The example's debug configuration implements it. Supported geometry is one view, origin (0,0), zero rotation relative to logical bounds, and explicit logical and PNG width/height. Portrait/landscape use current dimensions without inferred rotation. Missing registration, multiple views/images, rotation, or dimension mismatch yield UNSUPPORTED_CAPABILITY without saving annotations. Scale is never inferred from bounds or image appearance.
-
-Missing/nonfinite bounds skip a ref as missing_or_invalid_bounds. Nonpositive width/height or any portion outside the view skips it as bounds_outside_view. Reasons go into skippedAnnotations; bounds are never clamped into the view. Labels are positioned without overlapping each other, and displaced labels connect to targets with lines. Insufficient placement space skips a label as label_space_exhausted. A valid snapshot and geometry can save annotationCount=0 even with no actionable refs.
+Flutter screenshot/annotation/crop and Marionette frame recording have been removed. Android screenshots use UI Automator; see the native contract below.
 
 <a id="verification-criteria"></a>
 <a id="検証基準"></a>
@@ -385,11 +381,11 @@ MCP traffic, authenticated URIs, and input strings are never logged as diagnosti
 
 ## Flutter extensions
 
-The [additional command specification](cli-parity.md) forms part of this specification. It defines syntax, output, and scope for snapshot interactive/compact/depth, typed get/is, find, additional interactions, ref/duration waits, crop/diff, clipboard, config/namespace, connection state, batch/policy, record restart/fps, device list, extra doctor modes, and install/upgrade.
+The [additional command specification](cli-parity.md) forms part of this specification. It defines syntax, output, and scope for snapshot interactive/compact/depth, typed get/is, find, additional interactions, ref/duration waits, diff, clipboard, config/namespace, connection state, batch/policy, record restart/fps, device list, extra doctor modes, and install/upgrade.
 
 Typed mounted-Widget observation is enabled only when the optional `marionette_agent_flutter/flutter.dart` provider is present. Attributes with unknown provenance are never inferred. Ref matching, uniqueness, invalidation immediately before send, and no automatic resend retain existing contracts. UI actions and role/label searches are limited to the provider's declared scope; atomic re-observation/send and complete clipping/occlusion detection are not guaranteed.
 
-IPC protocolVersion is 8, adding native screenshots and workflow image results (7 added managed-app launch and shutdown). Requests include optional session action policy. Public schemaVersion stays 1, with expanded data for launch and session information displaying owned apps. Close an old daemon using the old CLI before switching to the new CLI.
+IPC protocolVersion is 9, adding native screenshots and workflow image results (7 added managed-app launch and shutdown). Requests include optional session action policy. Public schemaVersion stays 1, with expanded data for launch and session information displaying owned apps. Close an old daemon using the old CLI before switching to the new CLI.
 
 <a id="device-screen-recording"></a>
 <a id="端末画面録画"></a>
@@ -404,10 +400,9 @@ IPC protocolVersion is 8, adding native screenshots and workflow image results (
 | android | Online, authorized adb serial | `.mp4`, Android platform-tools; standard screenrecord on Emulator/physical device |
 | macos | Display number starting at 1 | `.mov`, standard macOS screencapture and Screen Recording permission for the invoking app |
 | web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`, macOS, visible Chrome, a dedicated debug profile, and Screen Recording permission; captures the entire explicit display |
-| flutter | Omitted in CLI; result uses session name | `.mp4`, a connected Marionette debug app and bundled FFmpegKit; saves in-app rendering, including hidden execution environments |
 | linux / windows | Any | Unsupported; internal API throws UNSUPPORTED_CAPABILITY and CLI exits 6 |
 
-- Platform/path are required. Flutter forbids device; other platforms require it. Unknown platforms, malformed devices, and extension mismatches are INVALID_ARGUMENT. Unsupported platforms are also validated by the CLI and rejected before daemon startup.
+- Platform/path/device are required. Unknown platforms, malformed devices, and extension mismatches are INVALID_ARGUMENT. Unsupported platforms are also validated by the CLI and rejected before daemon startup.
 - Relative paths become absolute against the caller CLI's cwd. The parent directory must exist and be writable. Existing files/directories/symlinks yield IO_ERROR and are never automatically overwritten.
 - One recording per session and one per device within the same daemon. Reservations apply during startup and stopping too; conflicts yield SESSION_CONFLICT. After stopping, the same session can start another recording at a new destination.
 - Start launches the daemon if needed and retains a session as recording owner. An unconnected recording session is disconnected with URI:null. Once recording starts successfully, the session remains until close.
@@ -430,20 +425,14 @@ Verification status: product CLI checks have covered iOS Simulator, Android Emul
 
 ### Headless Flutter app recording (Issue #20)
 
-`record start <new.mp4> --platform flutter [--fps 1..60]` requires a prior connection to the selected session's VM Service. No connection yields NOT_CONNECTED; unsupported backends or multiple views yield UNSUPPORTED_CAPABILITY. Supplying CLI `--device` is INVALID_ARGUMENT. Result platform is flutter and device is the session name. Recording is exclusive per session without preventing explicit recording of the same app through another session. Restart, status, stop, close, save protection, and request deadlines use shared contracts.
-
-A dedicated read connection continuously captures PNGs from the actual app. Start returns only after the first PNG is confirmed. Default fps is 10; 1–60 specifies the waiting interval after each completed capture. Capture/save time is additional, so the requested capture frequency is not guaranteed. Actual capture timestamps produce silent H.264 MP4 with VFR (variable frame rate). Fast animations may be missed. Images are saved sequentially to private staging; bundled FFmpegKit conversion on stop is bounded to 30 seconds. Temporary disk space grows with recording duration. Missing bundled native libraries yield UNSUPPORTED_CAPABILITY; invalid PNG or conversion failure yields IO_ERROR; capture failure marks recording failed instead of substituting white frames and claiming success. Image-size changes stop recording with UNSUPPORTED_CAPABILITY.
-
-The target is a single Flutter-rendered view. OS keyboards/dialogs, browser UI, and platform-view capture are not guaranteed. Screen Recording permission is unnecessary, but the app needs the Marionette debug binding. Stopping recording does not affect the action connection, refs, or held keys. Loss of the recording connection fails without reconnection/resend. Losing only the action connection does not close the recording connection. Continuation through hot restart is not guaranteed.
-
-Headless means starting each platform's execution environment without showing it. iOS boots/installs/launches a Simulator in a private device set, separate from Simulator.app, without opening a display window. Android uses Emulator `-no-window`; Web uses Flutter `--web-run-headless`. macOS keeps a real FlutterEngine in a hidden NSWindow and explicitly enables debug-only `enableHeadlessRendering()` for hidden-frame production. macOS requires a logged-in GUI session; hosts without WindowServer are outside the verified scope. Connect to a manually started app owns neither app nor device. Launch starts through the target implementation, and close stops the owned environment. See the [headless guide](headless.md).
+Marionette frame capture and `record --platform flutter` are removed. Native device recording remains available. Hidden launch and headless interaction remain supported; tester has no screenshot or recording source.
 
 <a id="web-recording-scope-and-connection"></a>
 <a id="web録画の範囲と接続"></a>
 
 ### Web recording scope and connection
 
-`--platform web` targets visible Google Chrome on macOS. Use `--platform flutter` above for hidden Flutter Web rendering. Device combines a display number from 1 to 999 and a page WebSocket endpoint chosen from Chrome's `/json/list`, as `display:1@ws://127.0.0.1:9222/devtools/page/<ID>`. Ports are 1–65535 and IDs uppercase alphanumeric. Localhost, remote hosts, credentials, query, fragment, browser/worker endpoints, and leading zeroes are rejected. The user starts Chrome with a dedicated `--user-data-dir` and loopback `--remote-debugging-port`. Other browsers, headless Chrome, and non-macOS hosts are unsupported. Missing protocol capabilities yield UNSUPPORTED_CAPABILITY; disabled debugging/connection refusal yield CONNECTION_LOST; protocol rejection yields IO_ERROR. Raw server messages are not printed.
+`--platform web` targets visible Google Chrome on macOS. Device combines a display number from 1 to 999 and a page WebSocket endpoint chosen from Chrome's `/json/list`, as `display:1@ws://127.0.0.1:9222/devtools/page/<ID>`. Ports are 1–65535 and IDs uppercase alphanumeric. Localhost, remote hosts, credentials, query, fragment, browser/worker endpoints, and leading zeroes are rejected. The user starts Chrome with a dedicated `--user-data-dir` and loopback `--remote-debugging-port`. Other browsers, headless Chrome, and non-macOS hosts are unsupported. Missing protocol capabilities yield UNSUPPORTED_CAPABILITY; disabled debugging/connection refusal yield CONNECTION_LOST; protocol rejection yields IO_ERROR. Raw server messages are not printed.
 
 Standard screencapture records the entire selected display to MOV, including Chrome's address bar, tabs, settings, OS dialogs, and other apps on that display. This is neither tab-only video nor Flutter-rendering capture, and it has no audio. The user places Chrome on the selected display; the CLI neither moves nor follows windows. Moving Chrome to another display does not change the recorded display. Hidden/minimized windows and dialogs on other displays are absent; occluding content is captured. Protected content is not guaranteed.
 
@@ -470,10 +459,10 @@ Startup uses marionette_agent_platform_interface contracts and the ios/android/m
 
 Close finalizes recording, stops the launched environment, and discards the connection. Connect to an external app closes only the connection. Close --all and daemon shutdown also reclaim owned resources. App exit invalidates the connection generation and refs. Startup/readiness failure or timeout cleans up owned processes, devices, and URIs; cleanup may continue past the request deadline. Per-process shutdown allows eight seconds for normal exit, three for TERM, and three for KILL; iOS device cleanup is bounded to 30 seconds. Unconfirmed shutdown is not success, and temporary storage remains. Shared devices and the adb server are untouched. Automatic recovery after SIGKILL or host shutdown is out of scope.
 
-Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares existing session operations and record --platform flutter. See the [headless guide](headless.md) for procedures and limitations.
+Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares session operations; image and recording sources have their own platform scope. See the [headless guide](headless.md) for procedures and limitations.
 
 <a id="native-android-screenshots"></a>
 
 ## Native Android screenshots (Issue #57)
 
-The [native screenshot contract](cli-reference.md#native-android-capture) defines explicit Android Emulator selection, default-display scope, pixel metadata, errors, and protection limits. Flutter remains the default, preserving tester and existing annotation/crop behavior. Native capture uses ADB independently of Marionette with no fallback. Physical Android devices are outside the scope agreed for this issue. Workflow v1 adds a screenshot step using the same handler and caller-side writer; its [file contract](workflow-file-spec.md#screenshots) defines deferred persistence and progress. Public schemaVersion remains 1.
+The [native capture contract](cli-reference.md#native-android-capture) defines UI Automator instrumentation, private pairing, explicit device identity, physical-pixel metadata, limits and failures. CLI/MCP/workflow share the same service and caller-side writer. Screenshots execute no ADB commands or Marionette capture. Flutter capture/annotations/crop and Flutter frame recording are removed. Only Android Emulator display 0 is supported. Public schemaVersion remains 1; internal IPC is 9.
