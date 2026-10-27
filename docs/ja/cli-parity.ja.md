@@ -52,9 +52,9 @@ scrollintoviewは観測済みmounted targetへensureVisibleを1回行います�
 clipboardはホストCLIではなく接続先アプリのclipboardです。readは`{text,scope:"target_app"}`でtextがnullの場合もあります。copyはfocus中の選択文字列でpasswordを拒否し、pasteはfocus入力へ挿入します。read/write/copyはrefを保持し、pasteはmutationとして失効させます。
 
 <a id="diff"></a>
-## cropと差分
+## 差分
 
-領域screenshotはmapped provider、単一画像、view内に完全に収まるboundsが必要です。capture前後に再観測し、倍率を推測せず、結果に`cropped:true`を返します。annotateとの併用は拒否します。
+対象cropとref注釈は削除しました。画像diffは指定したiOS SimulatorをXCUIScreenで取得し、`--device <UDID>`を必要とします。
 
 diff snapshotは保存済みの通常包絡またはdataをbaselineとして受理します。ref/reasonと順序は比較せず、重複要素の個数は比較し、`added/removed/changed`を返します。現在の観測ではrefを発行・更新せず、max-outputによる省略前の全体を比較します。
 

@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -56,7 +58,7 @@ Future<void> main() async {
         if (!global) ...['--session', 'all-$platform'],
         '--timeout',
         args.first == 'wait' ? '5000' : '60000',
-        ...args,
+        ...nativeScreenshotArguments(args),
       ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );
@@ -98,11 +100,8 @@ Future<void> main() async {
     check(data['text'] == expected, '$key = $expected');
   }
 
-  Future<void> capture(
-    String name, {
-    bool jpeg = false,
-    bool annotate = false,
-  }) async {
+  Future<void> capture(String name, {bool jpeg = false}) async {
+    if (platform != 'ios') return;
     final data = await cli([
       if (jpeg) ...[
         '--screenshot-format',
@@ -111,7 +110,6 @@ Future<void> main() async {
         '75',
       ],
       'screenshot',
-      if (annotate) '--annotate',
       p.join(evidence.path, '$name.${jpeg ? 'jpg' : 'png'}'),
     ]);
     for (final path in data['paths'] as List) {
@@ -144,6 +142,7 @@ Future<void> main() async {
       'swipe',
       'scroll',
       'wait',
+      'screenshot',
     ]) {
       final schema = await cli(['workflow', 'schema', action], global: true);
       check(schema['action'] == action, '$action schema');
@@ -155,7 +154,7 @@ Future<void> main() async {
       '--check-inputs',
     ], global: true);
     check(
-      validated['stepCount'] == 17 && validated['inputsValidated'] == true,
+      validated['stepCount'] == 16 && validated['inputsValidated'] == true,
       'All-actions YAML validates with inputs',
     );
     check(
@@ -178,7 +177,6 @@ Future<void> main() async {
       'Fresh example app',
     );
     await capture('initial');
-    await capture('initial-annotated', annotate: true);
     await capture('initial-jpeg', jpeg: true);
     final visible = await cli(['is', 'visible', '--key', 'tap_button']);
     check(
@@ -292,7 +290,7 @@ Future<void> main() async {
     stdout.writeln('Standalone commands passed; running all-actions workflow.');
     final flow = await cli(['workflow', 'run', workflow]);
     check(
-      flow['completedSteps'] == 17 && flow['requiresSnapshot'] == false,
+      flow['completedSteps'] == 16 && flow['requiresSnapshot'] == false,
       'All 16 workflow steps complete',
     );
     final finalSnapshot = flow['finalSnapshot'] as Map<String, dynamic>;

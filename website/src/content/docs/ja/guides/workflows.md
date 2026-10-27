@@ -58,7 +58,7 @@ marionette-agent --session docs-demo workflow run observe-edit.yaml --json
 
 ## screenshot stepで保存する
 
-`action: screenshot`に任意の`source`、`device`、`path`を指定します。取得元の既定はFlutterです。OS UIを含める場合は`source: ios-simulator`と`device`にSimulatorのUDID文字列を指定します。[native撮影](/marionette_agent/ja/guides/capture/)を参照してください。native撮影だけのworkflowには接続が不要です。pathはCLIを呼んだディレクトリから解決し、共通の画像形式・品質・保存先ディレクトリが適用されます。crop・注釈はworkflowのfieldではありません。
+`action: screenshot`には`device`としてSimulatorのUDID文字列が必須です。任意の`source`の既定は`ios-simulator`、`path`は任意です。取得はXCUIScreenで行います。[native撮影](/marionette_agent/ja/guides/capture/)を参照してください。native撮影だけのworkflowには接続が不要です。pathはCLIを呼んだディレクトリから解決し、共通の画像形式・品質・保存先ディレクトリが適用されます。crop・注釈はworkflowのfieldではありません。
 
 画像はworkflow実行成功後に保存され、`screenshots`に`stepId`と対応付けて返ります。step失敗では保存せず、保存失敗では新規画像を削除して、完了した実行進捗と`phase: screenshot-save`を返します。保存失敗の復旧でUI操作を繰り返さないでください。screenshotは最後の有効snapshotを保持します。画像合計にはIPCサイズ上限が適用されます。
 

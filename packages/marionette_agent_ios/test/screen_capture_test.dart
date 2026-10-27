@@ -45,52 +45,81 @@ void main() {
     final xcrun = File('${root.path}/xcrun');
     await xcrun.writeAsString(
       r'''#!/usr/bin/python3
-import base64, json, os, pathlib, sys, time
-root = pathlib.Path(__file__).parent
-args = sys.argv[1:]
-with (root / 'calls').open('a') as f: f.write(json.dumps(args) + '\n')
-mode = (root / 'mode').read_text() if (root / 'mode').exists() else ''
-if args[0] == '--find':
-    if mode == 'sdk': sys.exit(1)
-    print('/fixture/simctl')
-elif args[1] == 'list':
-    if mode == 'inventory': print('not json')
-    else: print((root / 'inventory').read_text())
-else:
-    if mode == 'fail':
-        print('PRIVATE OS ERROR', file=sys.stderr)
-        sys.exit(1)
-    if mode == 'stall':
-        (root / 'pid').write_text(str(os.getpid()))
-        time.sleep(60)
-    sys.stdout.buffer.write(base64.b64decode('PNG'))
+import base64,json,os,pathlib,sys,time
+root=pathlib.Path(__file__).parent
+args=sys.argv[1:]
+with (root/'calls').open('a') as f:f.write(json.dumps(args)+'\n')
+mode=(root/'mode').read_text() if (root/'mode').exists() else ''
+if args[0]=='--find':
+    if mode=='sdk':sys.exit(1)
+    print('/fixture/xcodebuild')
+elif args[:2]==['simctl','list']:
+    print('invalid' if mode=='inventory' else (root/'inventory').read_text())
+elif args[0]=='simctl':pass
+elif args[:2]==['xcodebuild','build-for-testing']:
+    if mode=='build-fail':print('PRIVATE BUILD',file=sys.stderr);sys.exit(1)
+    products=pathlib.Path(args[args.index('-derivedDataPath')+1])/'Build/Products'
+    products.mkdir(parents=True);(products/'ScreenCapture.xctestrun').write_text('fixture')
+elif args[:2]==['xcodebuild','test-without-building']:
+    if mode=='fail':print('PRIVATE TEST',file=sys.stderr);sys.exit(1)
+    if mode=='stall':(root/'pid').write_text(str(os.getpid()));time.sleep(60)
+    pathlib.Path(args[args.index('-resultBundlePath')+1]).mkdir()
+elif args[:3]==['xcresulttool','export','attachments']:
+    if mode=='export-fail':sys.exit(1)
+    output=pathlib.Path(args[args.index('--output-path')+1]);output.mkdir()
+    name='../outside.png' if mode=='bad-name' else 'screen.png'
+    attachment={'deviceId':'OTHER' if mode=='wrong-device' else '11111111-2222-3333-4444-555555555555','isAssociatedWithFailure':False,'suggestedHumanReadableName':'marionette-screen_0.png','exportedFileName':name}
+    record={'testIdentifier':'Capture/testCapture()','attachments':[attachment,attachment] if mode=='duplicate' else [attachment]}
+    (output/'manifest.json').write_text('invalid' if mode=='manifest' else json.dumps([record]))
+    if mode=='symlink':(output/'screen.png').symlink_to(root/'inventory')
+    else:(output/'screen.png').write_bytes(base64.b64decode('PNG'))
+else:sys.exit(2)
 '''
           .replaceAll('PNG', png),
     );
     await Process.run('chmod', ['700', xcrun.path]);
-    capture = IosScreenCapturer(xcrun: xcrun.path, isMacOS: true);
+    await Directory('${root.path}/owned').create();
+    capture = IosScreenCapturer(
+      xcrun: xcrun.path,
+      isMacOS: true,
+      temporaryRoot: Directory('${root.path}/owned'),
+    );
     await inventory([device(other), device(selected)]);
   });
-  tearDown(() => root.delete(recursive: true));
+  tearDown(() async {
+    await capture.dispose();
+    await root.delete(recursive: true);
+  });
 
   test('pins UDID among multiple booted devices and returns untouched PNG/provenance', () async {
     final result = await capture.capture(selected.toLowerCase(), deadline());
     expect(result.png, base64Decode(png));
     expect(result.metadata, containsPair('device', selected));
     expect(result.metadata, containsPair('runtime', runtime));
-    expect(operations().last, [
-      'simctl',
-      'io',
-      selected,
-      'screenshot',
-      '--type=png',
-      '--display=internal',
-      '--mask=ignored',
-      '-',
-    ]);
+    final calls = operations();
     expect(
-      root.listSync().whereType<File>().map((f) => f.uri.pathSegments.last),
-      unorderedEquals(['xcrun', 'calls', 'inventory']),
+      calls.where((args) => args.contains('test-without-building')).single,
+      contains('platform=iOS Simulator,id=$selected'),
+    );
+    expect(
+      calls.any((args) => args.contains('screenshot') || args.contains('io')),
+      isFalse,
+    );
+    expect(result.metadata, containsPair('method', 'xcuiscreen'));
+    await capture.capture(selected, deadline());
+    expect(
+      operations().where((args) => args.contains('build-for-testing')),
+      hasLength(1),
+    );
+    expect(
+      operations().where((args) => args.contains('test-without-building')),
+      hasLength(2),
+    );
+    expect(
+      Directory('${root.path}/owned')
+          .listSync(recursive: true)
+          .any((e) => e.path.endsWith('.png') || e.path.endsWith('.xcresult')),
+      isFalse,
     );
   });
   test(
@@ -128,7 +157,10 @@ else:
         capture.capture(selected, deadline()),
         errorCode('UNRESOLVABLE_TARGET'),
       );
-      expect(operations().any((args) => args.contains('screenshot')), isFalse);
+      expect(
+        operations().any((args) => args.contains('test-without-building')),
+        isFalse,
+      );
     },
   );
   test('duplicate target inventory fails rather than choosing one', () async {
@@ -137,7 +169,10 @@ else:
       capture.capture(selected, deadline()),
       errorCode('AMBIGUOUS_TARGET'),
     );
-    expect(operations().any((args) => args.contains('screenshot')), isFalse);
+    expect(
+      operations().any((args) => args.contains('test-without-building')),
+      isFalse,
+    );
   });
   test(
     'missing SDK, malformed inventory, and capture failure are structured',
@@ -165,11 +200,33 @@ else:
         errorCode('UNSUPPORTED_CAPABILITY'),
       );
       expect(
-        operations().where((args) => args.contains('screenshot')),
+        operations().where((args) => args.contains('test-without-building')),
         hasLength(1),
       );
     },
   );
+  test('foreign, duplicate and malformed attachments never succeed and staging is removed', () async {
+    for (final state in [
+      'export-fail',
+      'manifest',
+      'wrong-device',
+      'duplicate',
+      'bad-name',
+      'symlink',
+    ]) {
+      await mode(state);
+      await expectLater(
+        capture.capture(selected, deadline()),
+        errorCode('IO_ERROR'),
+      );
+      expect(
+        Directory('${root.path}/owned')
+            .listSync(recursive: true)
+            .any((e) => e.path.endsWith('.xcresult')),
+        isFalse,
+      );
+    }
+  });
   test('timeout kills the owned capture process without retry', () async {
     await mode('stall');
     await expectLater(
@@ -183,8 +240,32 @@ else:
     }
     expect(Process.killPid(child, ProcessSignal.sigcont), isFalse);
     expect(
-      operations().where((args) => args.contains('screenshot')),
+      operations().where((args) => args.contains('test-without-building')),
       hasLength(1),
     );
+  });
+  test('expired queued capture starts no process', () async {
+    await mode('stall');
+    await Future.wait([
+      expectLater(
+        capture.capture(
+          selected,
+          DateTime.now().add(const Duration(seconds: 1)),
+        ),
+        errorCode('TIMEOUT'),
+      ),
+      expectLater(
+        capture.capture(
+          selected,
+          DateTime.now().add(const Duration(milliseconds: 100)),
+        ),
+        errorCode('TIMEOUT'),
+      ),
+    ]);
+    expect(
+      operations().where((args) => args.contains('test-without-building')),
+      hasLength(1),
+    );
+    expect(operations().where((args) => args.contains('--find')), hasLength(1));
   });
 }

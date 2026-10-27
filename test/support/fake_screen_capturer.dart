@@ -11,6 +11,9 @@ class FakeScreenCapturer implements ScreenCapturer {
   PlatformException? failure;
 
   @override
+  Future<void> dispose() async {}
+
+  @override
   Future<DeviceScreenshot> capture(String device, DateTime deadline) async {
     devices.add(device);
     if (failure != null) throw failure!;
@@ -19,8 +22,8 @@ class FakeScreenCapturer implements ScreenCapturer {
       source: 'ios-simulator',
       device: device,
       runtime: 'com.apple.CoreSimulator.SimRuntime.iOS-26-2',
-      display: 'internal',
-      mask: 'ignored',
+      display: 'main',
+      mask: 'system-default',
     );
   }
 }

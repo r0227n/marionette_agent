@@ -1,49 +1,39 @@
 ---
 title: Capture images and video
-description: Record the post-action state with screenshots, annotations, and video.
+description: Capture iOS system UI with XCUIScreen and record app or device video.
 ---
 
-Save the screen to compare the CLI response with what the app actually displayed. Create parent directories first and choose a new filename for each run.
+Save the screen to compare the CLI response with the actual display. Screenshots use Apple's `XCUIScreen.main.screenshot()` in a bundled XCTest UI-test runner. Set `SIMULATOR_UDID` to the exact UDID of a booted iOS Simulator; names and `booted` are rejected. Use macOS with full Xcode selected. No app connection, Marionette binding, or app-side screenshot provider is needed.
 
 ## Take a screenshot
 
 ```sh
 mkdir -p artifacts
-marionette-agent screenshot artifacts/after.png
-marionette-agent screenshot artifacts/after.jpg --screenshot-format jpeg
+marionette-agent --timeout 120000 screenshot artifacts/after.png --device "$SIMULATOR_UDID"
+marionette-agent --timeout 120000 screenshot artifacts/after.jpg --device "$SIMULATOR_UDID" --screenshot-format jpeg
 ```
 
-PNG is the default. Select JPEG explicitly with `--screenshot-format jpeg`; set `--screenshot-quality` from 0 to 100 to change quality. The extension alone does not select the format. Transparent pixels are composited onto white for JPEG.
+The default source is `ios-simulator`. The CLI builds its own runner on the first capture and reuses that build for the daemon's lifetime. Allow time for compilation and XCTest startup with `--timeout`; its deadline also includes image recovery, conversion and saving. No changes to your app's Xcode project are needed. Compiled CLI installations contain the same runner sources.
 
-Omitting the path saves into a private temporary directory and returns the path. You can also select an existing directory with `--screenshot-dir`. Existing files are not overwritten.
+The PNG includes visible OS permission dialogs, photo pickers, software keyboard, status bar and safe-area content. The runner observes the main screen without launching/activating the observed app or tapping UI. The explicit UDID controls capture even if your session is connected to another app. Use a dedicated Simulator with dummy data and inspect shared evidence.
 
-## Include iOS dialogs and the keyboard
+Results include `capture.method: xcuiscreen`, source, device UDID, runtime, `display: main`, `scope: device-screen`, `mask: system-default`, physical-pixel dimensions and raster orientation. XCUIScreen supplies its system image without a configurable notch/corner mask; Mac window decorations and zoom are irrelevant. Wait for rotation to settle, then compare the returned dimensions with the saved PNG. `orientation` describes the image aspect, not sensor position. The CLI does not rotate or resize pixels. Landscape XCUIScreen PNGs can retain portrait raster dimensions with EXIF orientation; JPEG preserves that orientation tag.
 
-The default `--source flutter` captures Flutter rendering and keeps existing tester workflows working. For OS UI, select `ios-simulator` and set `SIMULATOR_UDID` to the exact UDID of a booted iOS Simulator in the default device set. Names and `booted` are rejected even if only one device is running. Use a macOS host with full Xcode selected; no app connection or Marionette binding is needed for this capture.
+PNG is the default. Select JPEG explicitly with `--screenshot-format jpeg`; quality is 0–100 using `--screenshot-quality`. Extensions do not select the format. JPEG composites transparency onto white. Omit the path for a private temporary output, or use `--screenshot-dir` with an existing directory. Parent directories must exist and existing files are never overwritten.
+
+## Migrate existing capture commands
+
+The Marionette/Flutter screenshot route, ref/selector crop, `--annotate`, and the example mapped provider have been removed. Every screenshot now requires a device. Screenshot capture is available for iOS Simulator; Flutter tester and other app runtimes can use [Flutter rendering video](#record-the-flutter-rendering).
+
+MCP screenshot requires `device`; optional `source` defaults to `ios-simulator`. Workflow screenshot steps use the same route and require a literal `device` UDID. A screenshot-only workflow needs no connection. See [workflow steps](/marionette_agent/en/guides/workflows/).
 
 ```sh
-marionette-agent screenshot artifacts/os-ui.png \
-  --source ios-simulator --device "$SIMULATOR_UDID" --json
-marionette-agent screenshot artifacts/os-ui.jpg \
-  --source ios-simulator --device "$SIMULATOR_UDID" --screenshot-format jpeg
+marionette-agent --timeout 120000 diff screenshot --device "$SIMULATOR_UDID" --baseline artifacts/after.png --output artifacts/difference.png
 ```
 
-The saved image includes the selected device's visible permission dialog, photo picker, software keyboard, status bar and safe-area regions. It captures the full internal framebuffer at native resolution, without a notch/corner mask, device bezel or Mac window decoration. Mac window zoom does not affect the image. Wait for rotation to settle: `capture.pixelWidth/pixelHeight` report saved dimensions, and `capture.orientation` reports their aspect (portrait/landscape/square), not a sensor angle. On the tested iPhone 17 Pro / iOS 26.2 runtime, landscape UI remains in a 1206×2622 portrait framebuffer; the image is deliberately not auto-rotated. The result also identifies the source, UDID, runtime, display, scope, mask and physical-pixel coordinate space.
+Image diff takes a fresh XCUIScreen capture. Use a PNG baseline from the same device, capture method and settled orientation; dimensions must match. The threshold compares physical pixels without mapping Flutter refs.
 
-The explicit UDID controls capture even if your session is connected to another app. Use a dedicated Simulator with dummy photos and inspect evidence before sharing. Protected or restricted content is not guaranteed; the CLI never changes permissions, dismisses dialogs or bypasses restrictions. Acquisition failure never falls back to Flutter rendering. Formats, quality, destination selection, exclusive creation and the original timeout work as above.
-
-Native screenshots cannot use Flutter ref annotation, target crop, or `diff screenshot`. Those features rely on a different coordinate contract; native annotation/crop fail explicitly. Use the same `source` and `device` fields in the MCP screenshot tool. A workflow screenshot step uses this route too; see [workflow steps](/marionette_agent/en/guides/workflows/).
-
-Physical iOS devices are **unsupported**: `--source ios-device --device <id>` returns `UNSUPPORTED_CAPABILITY`. They need a separately signed XCTest runner, pairing/trust, Developer Mode and compatible OS/Xcode tooling; simctl is Simulator-only. See [the capture contract and feasibility notes](https://github.com/r0227n/marionette_agent/blob/develop/docs/SPEC.md#native-ios-screenshots).
-
-## Overlay refs on the image
-
-```sh
-marionette-agent snapshot
-marionette-agent screenshot --annotate artifacts/targets.png
-```
-
-Annotations require a current valid snapshot and a mapped screenshot provider. The example supports this. Retake the snapshot if you performed a UI action in between. Use the image to relate ref numbers to their targets.
+Physical iOS devices remain unsupported in this implementation: `--source ios-device --device <id>` returns `UNSUPPORTED_CAPABILITY`. Signing/provisioning and a verified physical-device runner lifecycle are not implemented. Protected or restricted content is not guaranteed. Capture failures never select another source, close dialogs or repeat app actions. See the [capture contract](https://github.com/r0227n/marionette_agent/blob/develop/docs/SPEC.md#native-ios-screenshots).
 
 ## Record the Flutter rendering
 

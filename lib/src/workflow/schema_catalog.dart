@@ -370,7 +370,6 @@ const _schema = r'''{
         },
         "source": {
           "enum": [
-            "flutter",
             "ios-simulator",
             "ios-device"
           ]
@@ -386,7 +385,8 @@ const _schema = r'''{
       },
       "required": [
         "id",
-        "action"
+        "action",
+        "device"
       ],
       "additionalProperties": false
     }

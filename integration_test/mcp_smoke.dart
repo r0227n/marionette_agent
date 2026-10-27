@@ -112,7 +112,12 @@ Future<void> main() async {
       row(before, 'tap_result')['text'] == 'Tap count: 0',
       'Restart example to reset fixture',
     );
-    await call('screenshot', {'path': '${evidence.path}/01-before.png'});
+    await call('screenshot', {
+      'device':
+          Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+          Platform.environment['SIMULATOR_UDID'],
+      'path': '${evidence.path}/01-before.png',
+    });
     final ref = row(before, 'tap_button')['ref'];
     await call('tap', {
       'target': {'ref': ref},
@@ -135,7 +140,12 @@ Future<void> main() async {
       '${row(filled, 'fill_result')['text']}'.contains('12'),
       'Input length did not become 12',
     );
-    await call('screenshot', {'path': '${evidence.path}/02-filled.png'});
+    await call('screenshot', {
+      'device':
+          Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+          Platform.environment['SIMULATOR_UDID'],
+      'path': '${evidence.path}/02-filled.png',
+    });
     await call('swipe', {
       'target': {'key': 'page_view'},
       'direction': 'left',
@@ -147,8 +157,16 @@ Future<void> main() async {
       '${row(swiped, 'page_result')['text']}'.contains('2'),
       'Page did not advance to 2',
     );
-    await call('screenshot', {'path': '${evidence.path}/03-swiped.png'});
     await call('screenshot', {
+      'device':
+          Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+          Platform.environment['SIMULATOR_UDID'],
+      'path': '${evidence.path}/03-swiped.png',
+    });
+    await call('screenshot', {
+      'device':
+          Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+          Platform.environment['SIMULATOR_UDID'],
       'path': '${evidence.path}/04-swiped.jpg',
       'format': 'jpeg',
       'quality': 85,

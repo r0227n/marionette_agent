@@ -39,7 +39,7 @@ Every step requires a unique id (`^[A-Za-z][A-Za-z0-9_-]{0,63}$`) and an action.
 
 | Action | Additional fields |
 | --- | --- |
-| screenshot | Optional source/device/path; see screenshot steps below |
+| screenshot | Required device, optional source/path; see screenshot steps below |
 | snapshot | None |
 | tap | target |
 | fill | target, text |
@@ -53,9 +53,9 @@ Swipe/scroll direction is left/right/up/down and describes finger movement. Dist
 <a id="screenshots"></a>
 ## Screenshot steps
 
-`screenshot` accepts optional `source` (default `flutter`), `device`, and `path`, with the standalone capture validation. `ios-simulator` requires a UUID-shaped device; no implicit selection or fallback occurs. Ref/selector targets, annotation and crop are not fields of this step. Paths are literal strings relative to the caller's cwd, with no environment/input expansion. The common screenshot format, quality and directory options apply to every step. Explicit extensions must match that format and are checked before execution.
+`screenshot` requires `device`; optional `source` defaults to `ios-simulator`, and `path` is optional. It captures XCUIScreen with the standalone validation. `ios-simulator` requires a UUID-shaped device; no implicit selection or fallback occurs. Ref/selector targets, annotation and crop are not fields of this step. Paths are literal strings relative to the caller's cwd, with no environment/input expansion. The common screenshot format, quality and directory options apply to every step. Explicit extensions must match that format and are checked before execution.
 
-A workflow containing only native screenshot steps may run without a Flutter connection. Any Flutter capture or other action requires a connected session before the first step. Screenshot preserves the finalSnapshot candidate. All captures are held until the workflow succeeds, then saved by the caller with the common artifact writer. Success adds `screenshots:[{stepId,paths,capture?}]`; native capture metadata matches standalone results. A step failure saves no workflow images. A local save failure attempts to remove all images/directories created by this workflow, preserves preexisting destinations, and reports `phase:screenshot-save` with actual completedSteps. UI actions are not rolled back or retried. The original deadline covers capture, IPC, conversion and saving; combined image payloads must fit the 64 MiB IPC frame. Use smaller workflows when needed.
+A workflow containing only native screenshot steps may run without a Flutter connection. Any other action requires a connected session before the first step. Screenshot preserves the finalSnapshot candidate. All captures are held until the workflow succeeds, then saved by the caller with the common artifact writer. Success adds `screenshots:[{stepId,paths,capture?}]`; native capture metadata matches standalone results. A step failure saves no workflow images. A local save failure attempts to remove all images/directories created by this workflow, preserves preexisting destinations, and reports `phase:screenshot-save` with actual completedSteps. UI actions are not rolled back or retried. The original deadline covers capture, IPC, conversion and saving; combined image payloads must fit the 64 MiB IPC frame. Use smaller workflows when needed.
 
 
 <a id="inputs"></a>

@@ -252,23 +252,21 @@ List<McpToolDefinition> mcpToolCatalog() => [
     ),
   McpToolDefinition(
     'screenshot',
-    'Save a screenshot and return image content. Default source is flutter. '
-        'ios-simulator requires an explicit device UDID, captures OS UI without a connection, '
-        'and forbids target/annotate. ios-device is unsupported. '
-        'Optional target crops; annotate requires a fresh snapshot and provider. '
-        'Existing files are never overwritten.',
+    'Capture the iOS Simulator main screen with XCUIScreen and return image content. '
+        'Requires an explicit device UDID; no Flutter connection is needed. '
+        'The first call builds an XCTest runner; allow a longer timeout. '
+        'Flutter screenshot, crop and ref annotation are removed. ios-device is unsupported.',
     ['screenshot'],
-    target: true,
+    required: ['device'],
     properties: {
       'path': _string,
-      'annotate': _boolean,
-      'source': _enum(['flutter', 'ios-simulator', 'ios-device']),
+      'source': _enum(['ios-simulator', 'ios-device']),
       'device': _string,
       'format': _enum(['png', 'jpeg']),
       'quality': Schema.int(minimum: 0, maximum: 100),
     },
     positionals: ['path'],
-    options: {'annotate': 'annotate', 'source': 'source', 'device': 'device'},
+    options: {'source': 'source', 'device': 'device'},
   ),
   for (final observation in ['text', 'box', 'count', 'value'])
     McpToolDefinition(

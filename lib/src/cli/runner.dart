@@ -231,7 +231,15 @@ Future<int> runCli(
                     ? 'diff-snapshot'
                     : 'screenshot')
               : command,
-          params: command == 'diff' ? {} : requestParams,
+          params: command == 'diff'
+              ? (params['action'] == 'snapshot'
+                    ? {}
+                    : {
+                        'device': params['device'],
+                        if (params.containsKey('source'))
+                          'source': params['source'],
+                      })
+              : requestParams,
           maxOutput: command == 'diff' ? null : invocation.options.maxOutput,
           outputJson: invocation.json,
           deadline: deadline,

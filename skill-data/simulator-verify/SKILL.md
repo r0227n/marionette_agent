@@ -36,7 +36,9 @@ Use the CLI built from the task's checkout for CLI development. Installed CLI
 users can invoke `marionette-agent` directly. Keep URI loading out of shell traces.
 
 1. Connect the chosen session with the URI from the private file. Observe initial
-   state with `snapshot` and capture a baseline screenshot to a new path.
+   state with `snapshot` and capture a baseline screenshot to a new path using
+   `--device <UDID> --timeout 120000`. XCUIScreen uses its bundled XCTest
+   runner; the first call includes its build/start time.
 2. Execute the operation once and record exit code plus text/JSON response. For
    refs, use the latest actual snapshot; selectors must identify a unique target.
 3. Take another snapshot and screenshot. Compare both with the expected state.

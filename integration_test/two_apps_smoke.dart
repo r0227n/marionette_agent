@@ -60,7 +60,13 @@ Future<void> main() async {
   }) async {
     final result = await Process.run(
       Platform.resolvedExecutable,
-      [cliPath, '--json', '--session', session, ...args],
+      [
+        cliPath,
+        '--json',
+        '--session',
+        session,
+        ...nativeScreenshotArguments(args),
+      ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );
     final diagnostics = result.stderr as String;
@@ -226,8 +232,11 @@ Future<void> main() async {
       count(finalBeta) == beforeB + 5,
       'Concurrent requests lost/repeated an action',
     );
-    await cli('alpha', ['screenshot', p.join(artifacts.path, 'alpha.png')]);
-    await cli('beta', ['screenshot', p.join(artifacts.path, 'beta.png')]);
+    // OS capture observes the current display, independently of either session.
+    await cli('beta', [
+      'screenshot',
+      p.join(artifacts.path, 'visible-device.png'),
+    ]);
     stdout.writeln(
       'PASS: two real apps, refs/state isolation, close/reconnect, transport loss/recovery, parallel calls and both swipe modes',
     );

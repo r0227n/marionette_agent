@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:marionette_agent_flutter/flutter.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
-import 'mapped_screenshot.dart';
 import 'advanced_controls.dart';
 import 'native_capture_fixture.dart';
 
@@ -19,9 +18,6 @@ void main() {
     }
     if (!const bool.fromEnvironment('DISABLE_AGENT_EXTENSIONS')) {
       registerAgentExtensions();
-    }
-    if (!const bool.fromEnvironment('DISABLE_MAPPED_SCREENSHOT')) {
-      registerMappedScreenshot();
     }
   } else {
     WidgetsFlutterBinding.ensureInitialized();

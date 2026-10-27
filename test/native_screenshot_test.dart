@@ -49,7 +49,7 @@ void main() {
     expect(capturer.devices, [screenshotDevice]);
   });
   test(
-    'native failure never falls back; legacy default is preserved',
+    'native failure never falls back and implicit Flutter capture is removed',
     () async {
       await manager.handle(
         request('connect', params: {'uri': 'ws://localhost:1/ws'}),
@@ -62,9 +62,7 @@ void main() {
       expect(result.error!.outcome, Outcome.notSent);
       expect(backend.calls, isNot(contains('captureScreenshots')));
       final legacy = await manager.handle(request('screenshot'));
-      expect(legacy.data, {
-        'images': ['legacy'],
-      });
+      expect(legacy.error!.code, 'INVALID_ARGUMENT');
     },
   );
   test(
@@ -89,9 +87,11 @@ void main() {
       expect(backend.calls, isEmpty);
     },
   );
-  test('CLI validates source/device and keeps default params compatible', () {
+  test('CLI requires a device, defaults to native and rejects removed Flutter capture', () {
     final parser = CliParser(environment: {});
-    expect(parser.parse(['screenshot']).params, isEmpty);
+    expect(parser.parse(['screenshot', '--device=$screenshotDevice']).params, {
+      'device': screenshotDevice,
+    });
     expect(
       parser.parse([
         'screenshot',
@@ -220,6 +220,33 @@ void main() {
           throwsA(isA<AgentError>().having((e) => e.code, 'code', 'IO_ERROR')),
         );
         expect(await File(path).readAsBytes(), capturer.png);
+      },
+    );
+    test(
+      'JPEG retains XCUIScreen landscape EXIF without rotating raster pixels',
+      () async {
+        final png = base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAGmVYSWZNTQAqAAAACAABARIAAwAAAAEABgAAAAAAANZnS2kAAAARSURBVHicY/jPwABEDGAShgA+1gX72hMcmAAAAABJRU5ErkJggg==',
+        );
+        final data = {
+          'images': [base64Encode(png)],
+        };
+        final pngPath = '${root.path}/original.png';
+        await saveScreenshots(data, pngPath, deadline());
+        expect(await File(pngPath).readAsBytes(), png);
+        final path = '${root.path}/landscape.jpg';
+        await saveScreenshots(
+          data,
+          path,
+          deadline(),
+          format: ScreenshotFormat.jpeg,
+        );
+        final bytes = await File(path).readAsBytes();
+        final raster = image.JpegDecoder().startDecode(bytes)!;
+        expect([raster.width, raster.height], [2, 3]);
+        // The JPEG decoder applies EXIF orientation, just like an image viewer.
+        final displayed = image.decodeJpg(bytes)!;
+        expect([displayed.width, displayed.height], [3, 2]);
       },
     );
     test('invalid native PNG and timeout leave no artifacts', () async {

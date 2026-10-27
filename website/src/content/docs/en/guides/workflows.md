@@ -58,7 +58,7 @@ A workflow contains 1–100 steps. Workflow v1 does not include branching, loops
 
 ## Save a screenshot step
 
-Add `action: screenshot` with optional `source`, `device`, and `path`. The default source is Flutter. To capture OS UI, use `source: ios-simulator` and a literal Simulator UDID in `device`. See [native capture](/marionette_agent/en/guides/capture/). A workflow with only native captures needs no connection. Paths resolve against the CLI caller's directory, and common screenshot format/quality/directory options apply. Crop and annotations are not workflow fields.
+Add `action: screenshot` with a required literal Simulator UDID in `device`. Optional `source` defaults to `ios-simulator`; `path` is optional. Capture uses XCUIScreen. See [native capture](/marionette_agent/en/guides/capture/). A workflow with only native captures needs no connection. Paths resolve against the CLI caller's directory, and common screenshot format/quality/directory options apply. Crop and annotations are not workflow fields.
 
 Images are saved after successful workflow execution and returned under `screenshots`, paired with `stepId`. A failed step saves no images; a save failure removes new images and reports completed execution with `phase: screenshot-save`. Do not repeat UI actions to recover a save failure. Screenshots preserve the last valid snapshot. Large combined images remain subject to the IPC size limit.
 

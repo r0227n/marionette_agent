@@ -10,13 +10,15 @@ class DeviceScreenshot {
     required this.runtime,
     required this.display,
     required this.mask,
+    this.method = 'xcuiscreen',
   });
 
   final Uint8List png;
-  final String source, device, runtime, display, mask;
+  final String source, device, runtime, display, mask, method;
 
   Map<String, Object?> get metadata => {
     'source': source,
+    'method': method,
     'device': device,
     'runtime': runtime,
     'display': display,
@@ -28,4 +30,5 @@ class DeviceScreenshot {
 
 abstract interface class ScreenCapturer {
   Future<DeviceScreenshot> capture(String device, DateTime deadline);
+  Future<void> dispose();
 }

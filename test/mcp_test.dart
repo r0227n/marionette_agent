@@ -76,6 +76,7 @@ void main() {
       }
       final shot = CliParser(environment: {}).parse(
         tools['screenshot']!.arguments({
+          'device': screenshotDevice,
           'format': 'jpeg',
           'quality': 30,
           'path': '-image.jpg',
@@ -327,6 +328,7 @@ void main() {
         expect(response(ambiguous)['error']['code'], 'AMBIGUOUS_TARGET');
         expect((await call('snapshot', {'session': 'other'})).isError, true);
         final shot = await call('screenshot', {
+          'device': screenshotDevice,
           'path': '${temp.path}/shot.png',
         });
         expect(shot.isError, false);
@@ -346,6 +348,7 @@ void main() {
           png,
         );
         final jpeg = await call('screenshot', {
+          'device': screenshotDevice,
           'path': '${temp.path}/shot.jpg',
           'format': 'jpeg',
           'quality': 50,
@@ -353,7 +356,10 @@ void main() {
         expect(jpeg.isError, false);
         expect((jpeg.content.last as Map)['mimeType'], 'image/jpeg');
         expect(
-          (await call('screenshot', {'path': '${temp.path}/shot.png'})).isError,
+          (await call('screenshot', {
+            'device': screenshotDevice,
+            'path': '${temp.path}/shot.png',
+          })).isError,
           true,
         );
         expect((await call('close')).isError, false);

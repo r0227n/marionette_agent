@@ -39,7 +39,7 @@ JSONはescape後に同名となるduplicate key、trailing comma、非有限numb
 
 | Action | 追加field |
 | --- | --- |
-| screenshot | 任意のsource/device/path。下記screenshot stepを参照 |
+| screenshot | 必須deviceと任意source/path。下記screenshot stepを参照 |
 | snapshot | なし |
 | tap | target |
 | fill | target、text |
@@ -53,9 +53,9 @@ swipe/scrollのdirectionはleft/right/up/downで指の移動方向です。dista
 <a id="screenshots"></a>
 ## screenshot step
 
-`screenshot`は任意の`source`（既定`flutter`）、`device`、`path`を受け取り、単独撮影と同じ検証を行います。`ios-simulator`にはUUID形式deviceが必須で、自動選択やfallbackはありません。ref/selector target、注釈、cropはこのstepのfieldに含めません。pathはcallerのcwdからの文字列で、環境変数・input展開はしません。共通の画像形式、品質、保存先ディレクトリを全stepへ適用し、明示拡張子の形式一致も実行前に検証します。
+`screenshot`は`device`が必須で、任意の`source`は既定`ios-simulator`、`path`は任意です。単独撮影と同じ検証でXCUIScreenを取得します。`ios-simulator`にはUUID形式deviceが必須で、自動選択やfallbackはありません。ref/selector target、注釈、cropはこのstepのfieldに含めません。pathはcallerのcwdからの文字列で、環境変数・input展開はしません。共通の画像形式、品質、保存先ディレクトリを全stepへ適用し、明示拡張子の形式一致も実行前に検証します。
 
-native screenshot stepだけのworkflowはFlutter未接続でも実行できます。Flutter撮影や他actionを含む場合は最初のstepより前に接続が必要です。screenshotはfinalSnapshot候補を保持します。画像はworkflow成功まで保持し、その後callerが共通artifact writerで保存します。成功結果に`screenshots:[{stepId,paths,capture?}]`を追加し、nativeのcapture metadataは単独取得と同じです。step失敗ではworkflow画像を保存しません。ローカル保存失敗はworkflowが作成した画像・一時ディレクトリの削除を試み、既存保存先を維持して、実際のcompletedStepsと`phase:screenshot-save`を返します。UI操作はrollback・retryしません。元の期限は撮影、IPC、変換、保存を含み、画像payload合計には64 MiBのIPC frame上限を適用します。必要に応じworkflowを分割してください。
+native screenshot stepだけのworkflowはFlutter未接続でも実行できます。他actionを含む場合は最初のstepより前に接続が必要です。screenshotはfinalSnapshot候補を保持します。画像はworkflow成功まで保持し、その後callerが共通artifact writerで保存します。成功結果に`screenshots:[{stepId,paths,capture?}]`を追加し、nativeのcapture metadataは単独取得と同じです。step失敗ではworkflow画像を保存しません。ローカル保存失敗はworkflowが作成した画像・一時ディレクトリの削除を試み、既存保存先を維持して、実際のcompletedStepsと`phase:screenshot-save`を返します。UI操作はrollback・retryしません。元の期限は撮影、IPC、変換、保存を含み、画像payload合計には64 MiBのIPC frame上限を適用します。必要に応じworkflowを分割してください。
 
 
 <a id="inputs"></a>

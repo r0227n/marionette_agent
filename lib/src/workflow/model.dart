@@ -208,7 +208,7 @@ class WorkflowPlan {
         for (final key in ['source', 'device', 'path']) {
           if (step.containsKey(key)) params[key] = step[key];
         }
-        screenshotTarget(params);
+        validateScreenshotRequest(params);
       }
       if (action == 'fill') {
         final text = asJson(step['text']);

@@ -58,12 +58,6 @@ class FakeBackend implements Backend {
   @override
   Future<void> swipe(SwipeGesture gesture) => _run('swipe');
   @override
-  Future<List<String>> captureScreenshots() async {
-    await _run('captureScreenshots');
-    return List.of(screenshots);
-  }
-
-  @override
   Future<LogBatch> readLogs() async {
     await _run('readLogs');
     return logs;

@@ -522,6 +522,7 @@ class SessionManager {
     } finally {
       try {
         await launcher.dispose();
+        await screenCapturer.dispose();
       } finally {
         for (final session in sessions.values) {
           session.discard();

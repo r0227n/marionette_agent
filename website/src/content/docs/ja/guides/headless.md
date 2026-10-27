@@ -38,10 +38,11 @@ marionette-agent --session fast tap --key tap_button
 marionette-agent --session fast get text --key tap_result
 marionette-agent --session fast fill --key text_input 'headless check'
 marionette-agent --session fast snapshot
-marionette-agent --session fast screenshot
+marionette-agent --session fast record start rendered.mp4 --platform flutter
+marionette-agent --session fast record stop
 ```
 
-`tap_result`のカウントが増え、入力欄の値が変わったことを観測と保存画像で照合します。成功応答だけでは意図した画面変化を保証しません。refを使う場合は操作後にsnapshotを取り直します。
+`tap_result`のカウントが増え、入力欄の値が変わったことを観測と保存動画で照合します。成功応答だけでは意図した画面変化を保証しません。refを使う場合は操作後にsnapshotを取り直します。
 
 検証済みSDKのtesterはdebug専用で、viewportは論理800×600、DPR 3です。画面外要素を先にscrollして表示し、swipe距離をviewportに合わせてください。example用の次のworkflowでは、Controls画面を表示し、200px上へscrollした後に500px左へswipeします。
 

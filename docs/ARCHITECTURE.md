@@ -129,31 +129,22 @@ The neighboring `../marionette_mcp` is reference source and may differ from the 
 | tap | tap |
 | fill | enterText |
 | swipe / initial scroll | swipe |
-| screenshot (source=flutter) | takeScreenshots |
-| screenshot --annotate | callCustomExtension with the fixed name marionette_agent.captureMappedScreenshot (requires an opt-in provider) |
 | logs | getLogs |
 
 The adapter handles URI normalization, wire conversion, response validation, and exception classification. HTTP→WS and HTTPS→WSS conversion preserves authentication paths/queries and does not append `/ws` twice. Missing capabilities produce UNSUPPORTED_CAPABILITY. Success is never inferred solely from a message string.
 
-The Backend interface exposes connect, disconnect, inspect, tap, fill, swipe, captureScreenshots, and readLogs with typed arguments and results. Upstream maps stay inside the boundary. Scroll uses the same swipe primitive but retains scroll in help and output.
-
-Annotated capture is a separate MappedScreenshotBackend capability, not a required method on every Backend. MarionetteBackend validates the fixed provider's supported/status, single image, and ScreenshotGeometry v1, then converts the response into a MappedScreenshot DTO. Geometry requires version=1, viewCount=1, a nonempty viewId, originX=originY=rotation=0, positive integer pixelWidth/pixelHeight, and finite positive logicalWidth/logicalHeight. After IPC, the CLI also checks geometry against actual PNG dimensions and applies pixelWidth/logicalWidth on x and pixelHeight/logicalHeight on y. Orientation and scale are not inferred from the image or bounds.
-
-Pinned binding 0.6.0 renders a RenderView layer at FlutterView.physicalSize and, when maxScreenshotSize is set, resizes it to floored dimensions. Failed views are omitted from the image array, so an array index cannot serve as a view ID. ElementInfo.bounds comes from RenderBox.localToGlobal(Offset.zero) and size; normal responses contain no matching metadata. Normal takeScreenshots results are therefore not reused for annotations. In debug mode, example/lib/mapped_screenshot.dart registers an opt-in provider that returns an unresized single-RenderView layer image together with explicit geometry for that view. Changes to view count, identity, physicalSize, or devicePixelRatio during capture are reported as unsupported. No upstream package modification, neighboring-repository path dependency, or overlay injection is required. General binding support would require an equivalent upstream capture-metadata contract; only the example-provider configuration is currently covered by real-environment verification.
-
-SnapshotService.annotationTargets is a read-only path that re-observes and matches published refs. It checks before and after capture without issuing or invalidating refs. CLI screenshot_annotation is a pure PNG-composition boundary that explicitly skips invalid bounds and labels that cannot fit. artifact_writer saves a separate PNG rather than changing the original bytes and checks the same deadline through decoding, composition, encoding, and saving. An arbitrary custom-extension CLI remains out of scope; the fixed provider is the limited exception defined in SPEC.
+The Backend interface exposes connect, disconnect, inspect, tap, fill, swipe and readLogs with typed arguments and results. Upstream maps stay inside the boundary. Scroll uses the same swipe primitive but retains scroll in help and output.
 
 <a id="native-screen-capture"></a>
 ## Native screen capture
 
-`platform_interface/ScreenCapturer` and `DeviceScreenshot` describe PNG bytes and device provenance without CLI dependencies. `marionette_agent_ios/IosScreenCapturer` owns SDK discovery, exact UDID resolution, iOS inventory filtering, simctl arguments, bounded binary stdout, stderr disposal, process deadlines and termination. `lib/src/platform/screen_capture.dart` selects it; no OS commands enter individual handlers or the Marionette adapter. Physical-device source fails explicitly before capture.
+`ScreenCapturer` returns PNG bytes/provenance and disposes its owned resources. The iOS adapter materializes a bundled standalone XCTest target privately, runs build-for-testing once per daemon, and selects an exact UDID with test-without-building. Swift only calls `XCUIScreen.main.screenshot()` on the current main screen. xcresulttool exports one regular PNG whose manifest matches the test, device and attachment name. Symlinks, invalid names, foreign/duplicate attachments and output above 32 MiB fail. Acquisition calls neither simctl screenshot nor Marionette.
 
-`commands/screenshot_request.dart` validates CLI/IPC/workflow arguments independently of execution. `CommandContext.captureDeviceScreen` adapts platform errors and checks the shared Execution before/after capture. SessionManager allows native captures and native-only workflows to reserve disconnected sessions; mixed workflows still preflight connection and selectors. Captures reuse the queue and deadline without calling a Flutter backend or invalidating refs on success.
+The runner never launches/activates/interacts with the observed app. Its unique bundle identity scopes termination and uninstall; failed/expired captures remove result staging and disposal removes the build. The adapter serializes captures and checks expired queued work before OS operations. SDK/build/test/export/save share the caller's absolute deadline. First build/start may need a longer timeout.
 
-The common `artifact_writer` validates PNG, computes physical dimensions/raster orientation, retains provenance, converts JPEG and reserves/cleans output. No duplicate native save path exists. WorkflowExecution accumulates screenshot payloads while preserving finalSnapshot, and the caller's `workflow_artifacts` invokes that same writer only after successful execution. Save failure rolls back newly saved workflow images and reports completed execution plus `phase:screenshot-save`; completed UI actions are never replayed. Existing frame limits still bound the combined IPC response. MCP passes typed source/device options to the CLI.
+CLI, MCP, workflow and image diff share captureDeviceScreen and require device. Native-only requests may start a daemon and reserve a disconnected session; workflows with Flutter interactions preflight the connection. The common artifact writer owns decoding, dimensions/aspect, provenance, JPEG conversion, exclusive saving and cleanup. Workflows save after every step succeeds; save failure preserves completed progress with phase:screenshot-save. Successful capture preserves refs.
 
-The debug-only iOS example channel presents actual Photos authorization and PHPicker UI, without loading or logging selected photos. Tests use owned process fixtures for target selection/timeouts and a replaceable ScreenCapturer for session, workflow, persistence and MCP contracts.
-
+Backend no longer exposes still/mapped capture, and the example mapped provider and annotation compositor are removed. The dedicated read-only frame connection for continuous Flutter video is independent of still-image commands. Signed physical-device runner management remains unimplemented and explicitly unsupported. The example provides real OS permission and PHPicker fixtures.
 
 <a id="ipc-and-daemon-startup"></a>
 <a id="ipcとdaemon起動"></a>
