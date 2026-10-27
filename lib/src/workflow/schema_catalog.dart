@@ -22,7 +22,15 @@ Json workflowSchema([String? action]) {
   };
 }
 
-const workflowActions = ['snapshot', 'tap', 'fill', 'swipe', 'scroll', 'wait'];
+const workflowActions = [
+  'snapshot',
+  'tap',
+  'fill',
+  'swipe',
+  'scroll',
+  'wait',
+  'screenshot',
+];
 const _schema = r'''{
   "type": "object",
   "properties": {
@@ -90,6 +98,9 @@ const _schema = r'''{
           },
           {
             "$ref": "#/$defs/wait"
+          },
+          {
+            "$ref": "#/$defs/screenshot"
           }
         ]
       }
@@ -344,6 +355,38 @@ const _schema = r'''{
         "action",
         "target",
         "state"
+      ],
+      "additionalProperties": false
+    },
+    "screenshot": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+        },
+        "action": {
+          "const": "screenshot"
+        },
+        "source": {
+          "enum": [
+            "ios-simulator",
+            "ios-device"
+          ]
+        },
+        "device": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "action",
+        "device"
       ],
       "additionalProperties": false
     }

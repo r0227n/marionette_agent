@@ -74,7 +74,7 @@ marionette-agent --session demo snapshot
 marionette-agent --session demo fill @e5 'hello'
 marionette-agent --session demo snapshot
 marionette-agent --session demo swipe @e9 left --distance 200
-marionette-agent --session demo screenshot ./screen.png
+marionette-agent --session demo screenshot ./screen.png --device "$SIMULATOR_UDID" --timeout 120000
 marionette-agent --session demo close
 ```
 
@@ -147,7 +147,7 @@ Idle time starts only after all session queues and request deliveries are idle; 
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | Swipes from an explicit start to end |
 | `scroll <ref> <direction> [--distance <n>]` | Sends a directional gesture to a scroll region; selectors also supported |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | Waits for appearance/disappearance through observation only |
-| `screenshot [--annotate] [path]` | Exclusively saves PNG (default) or JPEG. Explicit path > `--screenshot-dir` > temporary file. Annotation requires a supported provider and the latest valid snapshot |
+| `screenshot --device <UDID> [--source <source>] [path]` | Capture XCUIScreen PNG/JPEG without an app connection; exclusive saving. |
 | `logs` | Retrieves binding-collected logs without subscription or indefinite waiting |
 | `record start <path> --platform <platform> --device <id>` | Starts device-screen recording without requiring VM Service |
 | `record status` / `record stop` | Queries recording state / stops and waits for video finalization |
@@ -168,18 +168,35 @@ Standalone `wait` defaults `state` to `exists` and also accepts `gone`. State an
 
 ### Screenshot format and persistence
 
-- Default unannotated PNG saves the backend's original bytes after decode validation, preserving dimensions and transparency. JPEG decodes PNG in the CLI, alpha-composites each pixel's RGB over white, then applies lossy compression without changing dimensions. PNG background-color metadata is not used.
+- Default PNG saves the backend's original bytes after decode validation, preserving dimensions and transparency. JPEG decodes PNG in the CLI, alpha-composites each pixel's RGB over white, then applies lossy compression without changing dimensions. PNG background-color metadata is not used.
 - `--screenshot-format` accepts lowercase `png` or `jpeg`. `--screenshot-quality` accepts integers 0–100 only with JPEG, default 90. The pinned encoder compresses quality 0 like its minimum quality 1. Quality 100 is also lossy.
 - PNG paths use `.png`; JPEG paths use `.jpg` or `.jpeg`. Matching is case-insensitive and preserves the supplied spelling. Format is not inferred from the extension. Mismatched or unknown extensions yield INVALID_ARGUMENT before connection. Missing extensions become `.png` for PNG or `.jpg` for JPEG.
 - Omitting both path and `--screenshot-dir` saves `screen.png` or `screen.jpg` in a dedicated private temporary directory. Multiple images preserve backend order and add `-1`, `-2`, etc. before the extension: `screen.jpeg`→`screen-1.jpeg`, `screen-2.jpeg`. Automatic names follow the same numbering.
 - Common `--timeout` is the original absolute deadline covering capture, transfer, decoding, white-background composition, JPEG conversion, and saving. It is checked before/after codecs, during composition, and during persistence; late success is forbidden. Immediate interruption of synchronous codecs or in-flight OS I/O is not guaranteed.
 - Only after every image decodes/converts successfully are all destinations exclusively reserved and written. Existing files/directories/symlinks yield IO_ERROR. Conversion failure creates no output. Reservation/write failure or TIMEOUT attempts to remove every file and automatic directory created by this request, never preexisting files. OS cleanup refusal may leave partial artifacts, but no successful paths are returned. Deliberate replacement after reservation remains outside the guarantee.
 
+<a id="native-ios-screenshots"></a>
+### Native iOS screenshots (Issue #56)
+
+`screenshot --device <UDID> [--source ios-simulator|ios-device] [path]` captures the device main screen with `XCUIScreen.main.screenshot()` in the CLI's bundled XCTest runner. The default source is `ios-simulator`. The Marionette/Flutter screenshot route, ref/selector crop, annotation and mapped-provider capability are removed. Missing device or source `flutter` is INVALID_ARGUMENT; unsupported target/annotation fields in IPC are UNSUPPORTED_CAPABILITY.
+
+The Simulator source requires macOS, selected full Xcode and one available, booted iOS Simulator identified by a UUID-shaped UDID in the default device set. Aliases/names/`booted` are INVALID_ARGUMENT, missing/stopped targets UNRESOLVABLE_TARGET, duplicate identity AMBIGUOUS_TARGET, missing SDK UNSUPPORTED_CAPABILITY, build/test/export/recovery failures IO_ERROR, and deadline expiry TIMEOUT. Invalid PNG uses BACKEND_ERROR. Inventory and owned-runner lifecycle use the existing Simulator management service; image acquisition never invokes simctl screenshot.
+
+The embedded standalone UI-test target has no application-under-test target and only attaches the current main screen. It does not launch/activate the observed app, tap controls, clear permissions or retry UI actions. No Flutter connection or app-side provider is required. The first request builds a private runner, reused for that daemon's lifetime. Requests serialize through the adapter as well as their session; expired queued work starts no process. Each test uses an explicit destination UDID. A request-private xcresult bundle exports exactly one named attachment with matching device identity; malformed, foreign, duplicate, symlink or oversized attachments fail. Result staging is removed on completion/failure. Timeout interrupts the owned driver and terminates only the unique owned runner bundle. Disposal removes its build and installed runner.
+
+The existing absolute `--timeout` includes queueing, SDK discovery, build/start, test execution, attachment export, decoding/conversion and saving. Initial build/start can exceed the usual default; allow `--timeout 120000`. No deadline is renewed and no Flutter fallback exists. Active OS I/O may finish during cleanup after a timed-out response.
+
+Success preserves `paths` and adds `capture:{source,method,device,runtime,display,scope,mask,coordinateSpace,pixelWidth,pixelHeight,orientation}`. Method is `xcuiscreen`, display `main`, scope `device-screen`, mask `system-default`, and coordinates `physical-pixels`. XCUIScreen supplies visible system UI and device pixels independently of Mac window zoom. There is no configurable notch/corner mask, rotation, resize or Flutter-coordinate mapping. Dimensions are decoded from the returned PNG and orientation is its aspect. Landscape XCUIScreen PNGs can retain portrait raster dimensions with EXIF orientation; JPEG preserves that orientation tag. Protected content is not guaranteed.
+
+PNG/JPEG, quality, explicit path > screenshot-dir > private temporary storage, exclusive writes, deadline and failure cleanup share the artifact writer. Successful captures preserve refs. CLI `diff screenshot --device <UDID> --baseline <PNG>` acquires through this same route; callers supply a baseline from the same device/method/orientation with matching dimensions. MCP requires device and uses the same CLI route; workflow screenshot steps require device and share capture/save/progress rules.
+
+`ios-device` returns UNSUPPORTED_CAPABILITY. A physical-device runner needs development signing/provisioning, pairing/trust, Developer Mode where required and compatible Xcode/OS. These lifecycle steps are not implemented or verified and no physical-device OS is certified. See Apple's [XCUIScreen API](https://developer.apple.com/documentation/xcuiautomation/xcuiscreen), [device setup](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices) and [Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device).
+
 <a id="workflow-v1"></a>
 
 ### Workflow v1
 
-Workflow v1 executes `snapshot`, `tap`, `fill`, `swipe`, `scroll`, and `wait` in declared order from JSON or restricted YAML. `run` occupies one queue entry in one session for all steps and stops at the first failure. There is no rollback of completed steps, automatic retry, or mid-workflow resume.
+Workflow v1 executes `snapshot`, `tap`, `fill`, `swipe`, `scroll`, `wait`, and `screenshot` in declared order from JSON or restricted YAML. `run` occupies one queue entry in one session for all steps and stops at the first failure. There is no rollback of completed steps, automatic retry, or mid-workflow resume.
 
 Workflow targets accept selectors only, not refs or coordinates. Inputs bind through typed references, without string expansion, environment expansion, or shell execution. `--timeout` is an absolute deadline covering workflow/input reading, validation, daemon delivery, queue waiting, and every step.
 
@@ -312,11 +329,7 @@ Multiple images add `-1`, `-2`, etc. before the explicit/generated name's extens
 
 Logs normalize the returned range and explain when unavailable collection cannot be distinguished from zero entries. URI credentials and input strings never appear in diagnostic logs.
 
-`screenshot --annotate` composites only actionable refs actually published by the latest snapshot into a new PNG as `@eN` labels and boxes; JPEG output converts after composition. It neither accepts an existing PNG as input nor alters original image bytes. The destination is a new annotated-image path using normal screenshot exclusive storage and overall deadline rules. Successful data adds annotated=true, generation, annotationCount, and skippedAnnotations to paths. It neither numbers, updates, nor invalidates refs. Invalid snapshots or changes in target uniqueness/attributes during re-observation before/after capture produce STALE_REF without saving. Observation and capture are not atomic upstream, so animation that changes and returns to the original state may go undetected. Use a stationary screen.
-
-The normal screenshot response from pinned `marionette_flutter: 0.6.0` cannot establish image/view, scale, or orientation correspondence. Annotation requires the separate opt-in `marionette_agent.captureMappedScreenshot` provider. This limited contract returns image and geometry v1 together; it does not mean general annotation support in the pinned binding. The example's debug configuration implements it. Supported geometry is one view, origin (0,0), zero rotation relative to logical bounds, and explicit logical and PNG width/height. Portrait/landscape use current dimensions without inferred rotation. Missing registration, multiple views/images, rotation, or dimension mismatch yield UNSUPPORTED_CAPABILITY without saving annotations. Scale is never inferred from bounds or image appearance.
-
-Missing/nonfinite bounds skip a ref as missing_or_invalid_bounds. Nonpositive width/height or any portion outside the view skips it as bounds_outside_view. Reasons go into skippedAnnotations; bounds are never clamped into the view. Labels are positioned without overlapping each other, and displaced labels connect to targets with lines. Insufficient placement space skips a label as label_space_exhausted. A valid snapshot and geometry can save annotationCount=0 even with no actionable refs.
+Screenshot ref annotation and logical target crop are removed; OS screen capture follows the native contract above.
 
 <a id="verification-criteria"></a>
 <a id="検証基準"></a>

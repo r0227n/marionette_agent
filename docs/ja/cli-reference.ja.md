@@ -84,15 +84,15 @@ listのdataはname/description、getはname/contentの配列です。fullは補�
 install/upgradeはローカルsourceをAOTコンパイルし、隣接する専用`.marionette-agent-*`bundleを配置します。新規配置失敗では新bundleを回収し、既存バイナリを維持します。upgrade後の旧bundleは旧プロセス用に残るため、不要になったことを確認して整理してください。`skills path`で使用中の場所を調べられます。
 
 <a id="capture"></a>
-## 画像保存と注釈の境界条件
+## 画像の取得と保存
+
+スクリーンショットの既定は`ios-simulator`で、`--device <UDID>`が必須です。同梱XCTest runnerの`XCUIScreen.main.screenshot()`からPNGを回収し、`capture.method:xcuiscreen`、`display:main`、`mask:system-default`と端末・寸法を返します。初回build/startには`--timeout 120000`などで時間を確保してください。接続不要です。Marionette静止画・crop・ref注釈は削除済みで、実機sourceは非対応です。[取得契約](SPEC.ja.md#native-ios-screenshots)を参照してください。MCPとworkflowもdeviceを必須とし、画像diffも同じXCUIScreen経路です。
 
 基本操作は[画像・動画ガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。明示pathがあれば`--screenshot-dir`を検査しません。directory指定時の自動名は`screen-<32桁hex>.png`または`.jpg`、両方省略時はprivate一時directoryの`screen.png`または`screen.jpg`です。複数画像は拡張子前に`-1`、`-2`を付けます。
 
 拡張子はPNGなら`.png`、JPEGなら`.jpg/.jpeg`で、大文字小文字を区別せず綴りを保持します。拡張子なしなら形式に応じて補います。形式の自動推定はしません。JPEG品質の既定は90、0はencoderの1と同じで、100もlosslessではありません。PNGは元のbytes・寸法・透過を保ちます。JPEGは同じ寸法で透過を白へ合成します。
 
 親directoryは事前作成が必要です。指定directory自身のsymlinkは拒否し、祖先のsymlinkは利用できます。全画像を検証・変換し、全保存先を排他的に予約してから書き込みます。既存file/directory/symlinkは上書きしません。期限には取得・変換・保存を含み、途中失敗では作成した画像の削除を試みます。OSの削除拒否や進行中I/Oの即時取消しは保証できず、失敗時は成功pathsを返しません。
-
-注釈はmapped providerと有効snapshotが必要です。返却metadataは`annotated`、`generation`、`annotationCount`、`skippedAnnotations`です。省略理由は`missing_or_invalid_bounds`、`bounds_outside_view`、`label_space_exhausted`。capture前後の対象変更はSTALE_REF、複数画像・回転・不明な画像/view対応・PNG寸法不一致はUNSUPPORTED_CAPABILITYです。JPEGはPNGへ注釈後に変換します。refは更新しません。領域cropと注釈は併用できません。
 
 <a id="recording"></a>
 ## 録画の寿命と復旧

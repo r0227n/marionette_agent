@@ -19,6 +19,7 @@ import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
 
 void main() {
   final cli = File('bin/marionette_agent.dart').absolute.path;
@@ -75,6 +76,7 @@ void main() {
       }
       final shot = CliParser(environment: {}).parse(
         tools['screenshot']!.arguments({
+          'device': screenshotDevice,
           'format': 'jpeg',
           'quality': 30,
           'path': '-image.jpg',
@@ -177,7 +179,11 @@ void main() {
       );
       daemon = DaemonServer(
         runtime,
-        SessionManager(() => backend, coreCommands()),
+        SessionManager(
+          () => backend,
+          coreCommands(),
+          screenCapturer: FakeScreenCapturer(png),
+        ),
       );
       serving = daemon.run();
       while (!File(runtime.metadata).existsSync()) {
@@ -322,13 +328,27 @@ void main() {
         expect(response(ambiguous)['error']['code'], 'AMBIGUOUS_TARGET');
         expect((await call('snapshot', {'session': 'other'})).isError, true);
         final shot = await call('screenshot', {
+          'device': screenshotDevice,
           'path': '${temp.path}/shot.png',
         });
         expect(shot.isError, false);
         expect(shot.content.whereType<Map>().last['type'], 'image');
         expect(base64Decode((shot.content.last as Map)['data'] as String), png);
         expect(await File('${temp.path}/shot.png').readAsBytes(), png);
+        final native = await call('screenshot', {
+          'source': 'ios-simulator',
+          'device': screenshotDevice,
+          'path': '${temp.path}/native.png',
+        });
+        expect(native.isError, false);
+        expect(response(native)['data']['capture']['device'], screenshotDevice);
+        expect(response(native)['data']['capture']['pixelWidth'], 3);
+        expect(
+          base64Decode((native.content.last as Map)['data'] as String),
+          png,
+        );
         final jpeg = await call('screenshot', {
+          'device': screenshotDevice,
           'path': '${temp.path}/shot.jpg',
           'format': 'jpeg',
           'quality': 50,
@@ -336,7 +356,10 @@ void main() {
         expect(jpeg.isError, false);
         expect((jpeg.content.last as Map)['mimeType'], 'image/jpeg');
         expect(
-          (await call('screenshot', {'path': '${temp.path}/shot.png'})).isError,
+          (await call('screenshot', {
+            'device': screenshotDevice,
+            'path': '${temp.path}/shot.png',
+          })).isError,
           true,
         );
         expect((await call('close')).isError, false);

@@ -2,9 +2,9 @@
 
 [English](../runtime-verification.md) · [日本語の目次](README.md)
 
-[all-actions.yaml](../../samples/workflows/all-actions.yaml) はworkflow v1の全6 actionを使う16ステップのシナリオです。Aboutへの移動・復帰、tap、fill、PageViewのswipe、scroll、wait、snapshotを実行します。対象はリポジトリの [exampleアプリ](../../example/README.md) です。
+[all-actions.yaml](../../samples/workflows/all-actions.yaml) はworkflow v1のFlutter側6 actionを使う16ステップのシナリオです。Aboutへの移動・復帰、tap、fill、PageViewのswipe、scroll、wait、snapshotを実行します。対象はリポジトリの [exampleアプリ](../../example/README.md) です。
 
-workflow v1には接続、get、画像、ログ、録画などのactionがありません。それらは [all_commands_smoke.dart](../../integration_test/all_commands_smoke.dart) が製品CLIの別プロセスとして実行します。YAMLの検証と実行も同じスクリプトに含みます。iOSとAndroidで同じシナリオを使い、端末IDとrecordのplatformだけを切り替えます。
+7つ目のnative screenshot actionはiOS SimulatorのUDIDが必要なため別途確認します。workflow v1には接続、get、ログ、録画などのactionがありません。それらは [all_commands_smoke.dart](../../integration_test/all_commands_smoke.dart) が製品CLIの別プロセスとして実行します。YAMLの検証と実行も同じスクリプトに含みます。Flutter操作はiOSとAndroidで共通ですが、静止画の撮影はiOSのみで実行します。
 
 ## 準備
 
@@ -71,9 +71,9 @@ dart run integration_test/all_commands_smoke.dart
 | `swipe` | selectorでPage 1→2、取得boundsの幅80%を動かす座標swipeで2→1 |
 | `scroll` | 上向き400pxと150pxの2ジェスチャーでBottom reachedに到達 |
 | `wait` | ページ・画面要素のexists、About移動後のControlsのgone |
-| `screenshot` | PNG、JPEG、注釈PNGが復号可能。別途目視で画面と注釈位置を確認 |
+| `screenshot` | iOS SimulatorのXCUIScreen PNG/JPEGが復号可能で、UDID・物理寸法とOS UIを目視確認 |
 | `logs` | Add log entry操作による `manual log entry added` を取得 |
-| `workflow schema` | 全体schemaと6 actionそれぞれのschemaを取得 |
+| `workflow schema` | 全体schemaと7 actionそれぞれのschemaを取得 |
 | `workflow validate` | all-actions.yamlの16ステップをbinding込みで検証 |
 | `workflow run` | 16ステップ完了、Bottom reached、finalSnapshotのrefを別CLIで使用、カウンタ合計3 |
 | `record start` / `record status` / `record stop` | 対象platformで録画継続、MP4確定、stop再実行で同じ成果物。別途動画内容を確認 |
@@ -85,7 +85,7 @@ dart run integration_test/all_commands_smoke.dart
 
 実行ごとに専用runtimeと `<evidence>/<platform>-<一意名>/` を作成します。`results.json` にコマンド、期待/実終了コード、秘匿した応答・診断、状態検査、失敗理由を保存します。途中失敗でも所有runtimeの `close --all` と記録保存を試み、失敗時は終了1になります。runtimeは診断用に保持します。
 
-画像はinitial、initial-annotated、initial-jpeg、filled-page-two、scrolled、workflow-bottom、aboutです。`operations.mp4` はUI操作からworkflow完了までを含みます。スクリプトのPASSはCLIと状態の自動照合が通ったことを示します。画像を開き、動画を再生または時系列フレームに復号して、入力・Page 2・スクロール・タブ遷移と注釈の位置を目視確認してください。結果JSONの `visualReview` は、その追加確認前であることを示します。
+画像はinitial、initial-jpeg、filled-page-two、scrolled、workflow-bottom、aboutです。`operations.mp4` はUI操作からworkflow完了までを含みます。スクリプトのPASSはCLIと状態の自動照合が通ったことを示します。画像を開き、動画を再生または時系列フレームに復号して、入力・Page 2・スクロール・タブ遷移とOS UIを目視確認してください。結果JSONの `visualReview` は、その追加確認前であることを示します。
 
 最後にrunnerのターミナルで `q` を入力してアプリを終了し、自分で起動した端末を停止します。record/session/daemon/runner/appが残っていないことを確認してから、URIファイルを削除し、端末を解放してください。
 

@@ -38,10 +38,11 @@ marionette-agent --session fast tap --key tap_button
 marionette-agent --session fast get text --key tap_result
 marionette-agent --session fast fill --key text_input 'headless check'
 marionette-agent --session fast snapshot
-marionette-agent --session fast screenshot
+marionette-agent --session fast record start rendered.mp4 --platform flutter
+marionette-agent --session fast record stop
 ```
 
-Compare observations and the saved image: `tap_result` should increase and the input should change. A successful command response alone does not guarantee the intended visual effect. When using refs, take a fresh snapshot after each action.
+Compare observations and the saved video: `tap_result` should increase and the input should change. A successful command response alone does not guarantee the intended visual effect. When using refs, take a fresh snapshot after each action.
 
 In the verified SDK, tester is debug-only with an 800×600 logical viewport and DPR 3. Scroll off-screen elements into view and choose swipe distances for that viewport. This example workflow opens Controls, scrolls up by 200px, then swipes left by 500px.
 

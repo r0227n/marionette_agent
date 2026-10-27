@@ -84,15 +84,15 @@ List data contains name/description objects; get contains name/content objects. 
 Install/upgrade AOT-compiles local source and installs an adjacent dedicated `.marionette-agent-*` bundle. Failed new installations clean up the new bundle and retain the existing executable. Upgrade keeps the old bundle for old running processes; remove it only after it is no longer needed. Use `skills path` to inspect the active location.
 
 <a id="capture"></a>
-## Image persistence and annotation edge cases
+## Image acquisition and persistence
+
+Screenshots default to ios-simulator and require `--device <UDID>`. The bundled XCTest runner recovers PNG from XCUIScreen.main.screenshot(); capture metadata includes method:xcuiscreen, display:main, mask:system-default, identity and dimensions. Allow time for first build/start with e.g. `--timeout 120000`. No connection is needed. Marionette still capture, crop and ref annotation are removed; physical-device source is unsupported. See the [acquisition contract](SPEC.md#native-ios-screenshots). MCP/workflow require device too, and image diff shares this XCUIScreen route.
 
 Start with the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/). An explicit path bypasses `--screenshot-dir` inspection. Directory-based names use `screen-<32 hex digits>.png` or `.jpg`; omitting both uses `screen.png` or `screen.jpg` in a private temporary directory. Multiple images add `-1`, `-2`, etc. before the extension.
 
 Accepted extensions are `.png` for PNG and `.jpg/.jpeg` for JPEG, case-insensitive while preserving spelling. Missing extensions are appended for the selected format. The extension does not infer the format. JPEG quality defaults to 90; 0 maps to encoder quality 1, and 100 is still lossy. PNG retains original bytes, dimensions, and transparency. JPEG retains dimensions and composites transparency onto white.
 
 Parent directories must exist. A symlink at the specified directory itself is rejected; ancestor symlinks are allowed. All images are validated/converted and all destinations reserved exclusively before writing. Existing files, directories, and symlinks are never overwritten. The deadline includes capture, conversion, and persistence. Failures attempt to remove created images; OS deletion refusal and immediate cancellation of active I/O cannot be guaranteed. Failures never return successful paths.
-
-Annotations require a mapped provider and a valid snapshot. Metadata includes `annotated`, `generation`, `annotationCount`, and `skippedAnnotations`. Omission reasons are `missing_or_invalid_bounds`, `bounds_outside_view`, and `label_space_exhausted`. Target changes across capture produce STALE_REF. Multiple images, relative rotation, unknown image/view mapping, and PNG dimension mismatches produce UNSUPPORTED_CAPABILITY. JPEG conversion follows annotation on PNG. Refs are preserved. Cropping and annotation cannot be combined.
 
 <a id="recording"></a>
 ## Recording lifetime and recovery

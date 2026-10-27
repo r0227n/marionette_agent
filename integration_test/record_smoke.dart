@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -38,7 +40,7 @@ Future<void> main() async {
         'record-smoke',
         '--timeout',
         args.first == 'launch' ? '600000' : '60000',
-        ...args,
+        ...nativeScreenshotArguments(args),
       ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );

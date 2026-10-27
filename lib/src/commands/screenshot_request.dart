@@ -1,0 +1,36 @@
+import '../protocol/protocol.dart';
+
+const screenshotSources = ['ios-simulator', 'ios-device'];
+
+/// Validate the one OS-screen acquisition route before any process is started.
+void validateScreenshotRequest(Json params) {
+  final source = params['source'] ?? 'ios-simulator';
+  if (!screenshotSources.contains(source) ||
+      (params.containsKey('source') && params['source'] is! String)) {
+    invalid('Screenshot source must be ios-simulator or ios-device');
+  }
+  if (params.keys.any((key) => !['source', 'device', 'path'].contains(key))) {
+    throw const AgentError(
+      'UNSUPPORTED_CAPABILITY',
+      'OS screenshots do not support Flutter targets, crop or ref annotation',
+    );
+  }
+  if (params.containsKey('path') &&
+      (params['path'] is! String ||
+          (params['path'] as String).isEmpty ||
+          (params['path'] as String).contains('\u0000'))) {
+    invalid('Invalid screenshot destination');
+  }
+  final device = params['device'];
+  if (device is! String || device.isEmpty || device.contains('\u0000')) {
+    invalid('Screenshot requires --device <UDID>');
+  }
+  if (source == 'ios-simulator' &&
+      !RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(device)) {
+    invalid('Specify a Simulator UDID, never a name or booted');
+  }
+}
+
+bool isNativeScreenshot(String command, Json params) => command == 'screenshot';

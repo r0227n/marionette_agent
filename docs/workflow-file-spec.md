@@ -11,7 +11,7 @@ Schema/validate runs without a connection, daemon, or runtime directory. Schema 
 
 Validate defaults to template validation. `--inputs` or `--check-inputs` also validates binding; check-inputs alone uses an empty object. Results contain `workflow/format/stepCount/mode/requiredInputs/inputsValidated`. Mode is template or bound; requiredInputs is the sorted list of required external names. Target existence, uniqueness, visibility, and capability are checked at execution time.
 
-Run always validates binding, so check-inputs is rejected. A previously connected session is required. The CLI validates everything before sending normalized workflow and inputs in one request; the daemon repeats schema and semantic validation.
+Run always validates binding, so check-inputs is rejected. A previously connected session is required except for native-only screenshot workflows. The CLI validates everything before sending normalized workflow and inputs in one request; the daemon repeats schema and semantic validation.
 
 <a id="files"></a>
 ## Files, formats, and parsers
@@ -39,15 +39,24 @@ Every step requires a unique id (`^[A-Za-z][A-Za-z0-9_-]{0,63}$`) and an action.
 
 | Action | Additional fields |
 | --- | --- |
+| screenshot | Required device, optional source/path; see screenshot steps below |
 | snapshot | None |
 | tap | target |
 | fill | target, text |
 | swipe / scroll | target, direction, optional distance |
 | wait | target, state, optional timeoutMs/pollIntervalMs |
 
-Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Binding 0.6.0 does not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, screenshots, and logs.
+Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Binding 0.6.0 does not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, and logs.
 
 Swipe/scroll direction is left/right/up/down and describes finger movement. Distance is finite and positive, defaulting to 200 logical pixels. Scroll uses the same swipe primitive. Success means gesture completion, not arrival at a particular content position.
+
+<a id="screenshots"></a>
+## Screenshot steps
+
+`screenshot` requires `device`; optional `source` defaults to `ios-simulator`, and `path` is optional. It captures XCUIScreen with the standalone validation. `ios-simulator` requires a UUID-shaped device; no implicit selection or fallback occurs. Ref/selector targets, annotation and crop are not fields of this step. Paths are literal strings relative to the caller's cwd, with no environment/input expansion. The common screenshot format, quality and directory options apply to every step. Explicit extensions must match that format and are checked before execution.
+
+A workflow containing only native screenshot steps may run without a Flutter connection. Any other action requires a connected session before the first step. Screenshot preserves the finalSnapshot candidate. All captures are held until the workflow succeeds, then saved by the caller with the common artifact writer. Success adds `screenshots:[{stepId,paths,capture?}]`; native capture metadata matches standalone results. A step failure saves no workflow images. A local save failure attempts to remove all images/directories created by this workflow, preserves preexisting destinations, and reports `phase:screenshot-save` with actual completedSteps. UI actions are not rolled back or retried. The original deadline covers capture, IPC, conversion and saving; combined image payloads must fit the 64 MiB IPC frame. Use smaller workflows when needed.
+
 
 <a id="inputs"></a>
 ## Input definitions
@@ -101,12 +110,12 @@ The workflow occupies its session queue until completion; other requests cannot 
 
 Schema errors in later steps, binding, and selector capabilities are checked before any UI access. Each step gets a fresh Execution with the same one-mutation limit as regular commands. Old Futures completing after timeout/disconnection cannot update progress, run subsequent steps, or affect reconnected refs. Execution stops at the first failure without rollback, retry, resume, or automatic replay of the workflow.
 
-Snapshot publishes refs. The last snapshot inside the workflow becomes a candidate; later tap/fill/swipe/scroll discards it, while wait preserves it. Preexisting snapshots and snapshots from failed workflows are not returned. Returned refs remain the latest public snapshot after queue release but expire on another snapshot/mutation/close/reconnect. Reobserve on STALE_REF instead of rerunning the workflow.
+Snapshot publishes refs. The last snapshot inside the workflow becomes a candidate; later tap/fill/swipe/scroll discards it, while wait and screenshot preserve it. Preexisting snapshots and snapshots from failed workflows are not returned. Returned refs remain the latest public snapshot after queue release but expire on another snapshot/mutation/close/reconnect. Reobserve on STALE_REF instead of rerunning the workflow.
 
 <a id="results"></a>
 ## Success and failure results
 
-Success data contains `workflow/completedSteps/requiresSnapshot`, plus `finalSnapshot` only when still valid. RequiresSnapshot is false with a finalSnapshot and true otherwise. Intermediate results, workflow content, inputs, and resolved fill values are omitted. The [CLI output contract](cli-reference.md#output), including budgets and boundaries, also applies to finalSnapshot.
+Success data contains `workflow/completedSteps/requiresSnapshot`, plus `finalSnapshot` only when still valid. RequiresSnapshot is false with a finalSnapshot and true otherwise. Other intermediate results, workflow content, inputs, and resolved fill values are omitted; screenshot artifacts follow the rules above. The [CLI output contract](cli-reference.md#output), including budgets and boundaries, also applies to finalSnapshot.
 
 Failure `error.details` contains `workflow/progressKnown/stepIndex/stepId/action/completedSteps`. StepIndex is one-based; completedSteps counts the confirmed successful prefix. Outcome describes mutation dispatch for the failed step, not whether earlier steps executed.
 

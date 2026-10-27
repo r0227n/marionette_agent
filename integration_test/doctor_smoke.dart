@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -31,7 +33,13 @@ Future<void> main() async {
   }) async {
     final result = await Process.run(
       Platform.resolvedExecutable,
-      [cliPath, '--session', 'p1-issue-9', if (json) '--json', ...args],
+      [
+        cliPath,
+        '--session',
+        'p1-issue-9',
+        if (json) '--json',
+        ...nativeScreenshotArguments(args),
+      ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': directory ?? runtime},
     );
     final output = '${result.stdout}';
@@ -44,7 +52,7 @@ Future<void> main() async {
         'Secret leaked; raw response withheld',
       );
     }
-    final safeArgs = [...args];
+    final safeArgs = [...nativeScreenshotArguments(args)];
     if (safeArgs.first == 'connect') safeArgs[1] = '<VM_URI>';
     final index = safeArgs.indexOf('--probe-uri');
     if (index >= 0) safeArgs[index + 1] = '<EXPLICIT_PROBE_URI>';
@@ -82,7 +90,7 @@ Future<void> main() async {
   }) async {
     for (final json in [false, true]) {
       final output = await call(
-        ['doctor', ...args],
+        ['doctor', ...nativeScreenshotArguments(args)],
         json: json,
         expected: exit,
         directory: directory,

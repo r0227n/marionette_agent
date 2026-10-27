@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:image/image.dart' as image;
+
 import 'package:args/args.dart';
 import 'package:logging/logging.dart';
 import 'package:marionette_agent/src/backend/backend.dart';
@@ -13,6 +15,7 @@ import 'package:marionette_agent/src/diagnostics/diagnostic_logging.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 
 import 'fake_backend.dart';
+import 'fake_screen_capturer.dart';
 
 Future<void> main(List<String> args) async {
   configureDiagnosticLogging();
@@ -49,6 +52,9 @@ Future<void> main(List<String> args) async {
             ),
           ],
         registry,
+        screenCapturer: FakeScreenCapturer(
+          image.encodePng(image.Image(width: 1, height: 1)),
+        ),
       ),
       idleTimeoutMs: CommonOptions.daemonIdle(args),
     ).run();

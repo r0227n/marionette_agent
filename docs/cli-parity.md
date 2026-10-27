@@ -52,9 +52,9 @@ A duration wait accepts nonnegative milliseconds, stays within the session queue
 Clipboard operations use the target app’s clipboard, not the CLI host clipboard. Read returns `{text,scope:"target_app"}`, with text possibly null. Copy reads the focused selection and rejects passwords; paste inserts into the focused input. Read/write/copy preserve refs; paste expires them as a mutation.
 
 <a id="diff"></a>
-## Cropping and differences
+## Differences
 
-A target screenshot requires a mapped provider, one image, and bounds entirely inside the view. It reobserves before and after capture, does not infer scaling, and returns `cropped:true`. Combining it with annotate is rejected.
+Target crop and ref annotation are removed. Image diff captures the selected iOS Simulator through XCUIScreen and requires `--device <UDID>`.
 
 Diff snapshot accepts a saved regular envelope or data as its baseline. It ignores ref/reason and ordering but compares duplicate counts, returning `added/removed/changed`. The current observation does not publish or refresh refs. Comparison uses all elements before max-output truncation.
 

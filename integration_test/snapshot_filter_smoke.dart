@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -28,7 +30,7 @@ Future<void> main() async {
       '--session',
       'p1-issue-10',
       if (json) '--json',
-      ...args,
+      ...nativeScreenshotArguments(args),
     ]);
     final text = result.stdout as String;
     final diagnostics = result.stderr as String;
