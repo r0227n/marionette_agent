@@ -6,6 +6,8 @@ import '../backend/backend.dart';
 import '../backend/connection_uri.dart';
 import '../commands/batch.dart';
 import '../commands/native_request.dart';
+import '../commands/screenshot_request.dart';
+import '../platform/screen_capture.dart';
 import '../commands/command_context.dart';
 import '../commands/registry.dart';
 import '../diagnostics/diagnostic_logging.dart';
@@ -26,10 +28,13 @@ class SessionManager {
     RecordService? recordings,
     ApplicationLauncher? launcher,
     NativeService? native,
+    ScreenCapturer? screenCapturer,
   }) : recordings = recordings ?? RecordService(),
        native = native ?? NativeService(),
-       launcher = launcher ?? PlatformApplicationLauncher();
+       launcher = launcher ?? PlatformApplicationLauncher(),
+       screenCapturer = screenCapturer ?? platformScreenCapturer();
   final NativeService native;
+  final ScreenCapturer screenCapturer;
   final RecordService recordings;
   final ApplicationLauncher launcher;
   final BackendFactory factory;
@@ -119,7 +124,13 @@ class SessionManager {
           request.command != 'connect' &&
           request.command != 'launch' &&
           request.command != 'native' &&
-          request.command != 'record') {
+          request.command != 'record' &&
+          !isNativeScreenshot(request.command, request.params) &&
+          !(request.command == 'workflow' &&
+              WorkflowPlan.decode(
+                request.params['workflow'],
+                inputs: request.params['inputs'],
+              ).nativeOnly)) {
         throw const AgentError(
           'NOT_CONNECTED',
           'Session is not connected',
@@ -228,6 +239,7 @@ class SessionManager {
         session,
         snapshots,
         commands,
+        screenCapturer: screenCapturer,
       ).run();
     } else {
       final execution = Execution(request, session);
@@ -384,9 +396,11 @@ class SessionManager {
         }
         return show(session);
       default:
-        context.requireConnected();
+        if (!isNativeScreenshot(request.command, request.params)) {
+          context.requireConnected();
+        }
         return commands.dispatch(
-          CommandContext(context, snapshots),
+          CommandContext(context, snapshots, screenCapturer: screenCapturer),
           request.command,
           request.params,
         );
@@ -527,6 +541,7 @@ class SessionManager {
     } finally {
       try {
         await launcher.dispose();
+        await screenCapturer.dispose();
       } finally {
         for (final session in sessions.values) {
           session.discard();

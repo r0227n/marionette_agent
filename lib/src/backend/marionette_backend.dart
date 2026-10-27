@@ -15,7 +15,6 @@ import 'backend.dart';
 class MarionetteBackend
     implements
         Backend,
-        MappedScreenshotBackend,
         InteractionBackend,
         ClipboardBackend,
         ScreenshotConnectionBackend {
@@ -369,8 +368,8 @@ class MarionetteBackend
     return _action(() => _connector.swipe(args));
   }
 
-  @override
-  Future<List<String>> captureScreenshots() => _call(() async {
+  // Private frame acquisition for continuous Flutter recording only.
+  Future<List<String>> _captureRecordingFrames() => _call(() async {
     final images = validateResponse(
       await _connector.takeScreenshots(),
     )['screenshots'];
@@ -432,33 +431,6 @@ class MarionetteBackend
     }
     return {...response}..remove('status');
   });
-
-  @override
-  Future<MappedScreenshot> captureMappedScreenshot() => _call(() async {
-    final response = await _connector.callCustomExtension(
-      'marionette_agent.captureMappedScreenshot',
-    );
-    if (response['status'] != 'Success' || response['supported'] != true) {
-      throw const AgentError(
-        'UNSUPPORTED_CAPABILITY',
-        'Binding cannot verify screenshot view geometry',
-      );
-    }
-    final images = response['screenshots'];
-    if (images is! List ||
-        images.length != 1 ||
-        images.single is! String ||
-        response['geometry'] is! Map) {
-      throw const AgentError(
-        'UNSUPPORTED_CAPABILITY',
-        'A single mapped screenshot is required',
-      );
-    }
-    return MappedScreenshot(
-      images.single as String,
-      ScreenshotGeometry.decode(response['geometry']),
-    );
-  });
 }
 
 /// This connection never discovers interaction providers or releases UI keys.
@@ -466,7 +438,7 @@ class _MarionetteScreenshots implements ScreenshotConnection {
   _MarionetteScreenshots(this.backend);
   final MarionetteBackend backend;
   @override
-  Future<List<String>> capture() => backend.captureScreenshots();
+  Future<List<String>> capture() => backend._captureRecordingFrames();
   @override
   Future<void> close() => backend._call(backend._connector.disconnect);
 }

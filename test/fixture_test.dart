@@ -41,8 +41,6 @@ void main() {
         Direction.left,
       ),
     );
-    connector.response = asJson(fixtures['screenshots']);
-    expect((await backend.captureScreenshots()).length, 1);
     connector.response = asJson(fixtures['logs']);
     expect((await backend.readLogs()).configured, true);
     connector.response = asJson(fixtures['malformed']);

@@ -98,14 +98,12 @@ The default `wait` state is `exists`: a unique match with `visible != false` suc
 
 | Syntax                                                  | Purpose                                                          |
 | ------------------------------------------------------- | ---------------------------------------------------------------- |
-| `screenshot [PATH]`                                     | Save a new image                                                 |
-| `screenshot TARGET [PATH]`                              | Capture the target region                                        |
-| `screenshot --annotate [PATH]`                          | Overlay refs; requires a provider and valid snapshot             |
+| `screenshot --device UDID [PATH]`                       | Save a new image                                                 |
 | `record start PATH --platform PLATFORM [--device ID]`   | Start recording; Flutter rendering needs no device argument      |
 | `record restart PATH --platform PLATFORM [--device ID]` | Finalize the current recording and start a new one               |
 | `record status` / `record stop`                         | Inspect recording state or finalize and stop                     |
 | `diff snapshot --baseline PATH`                         | Compare with a saved snapshot                                    |
-| `diff screenshot --baseline PATH`                       | Compare with a saved image; accepts `--threshold` and `--output` |
+| `diff screenshot --device UDID --baseline PATH`         | Compare with a saved image; accepts `--threshold` and `--output` |
 
 See [capture](/marionette_agent/en/guides/capture/) for file requirements and platform differences.
 

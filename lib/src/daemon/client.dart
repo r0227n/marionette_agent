@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 
+import '../commands/screenshot_request.dart';
 import '../diagnostics/diagnostic_logging.dart';
 import '../protocol/protocol.dart';
 import '../workflow/model.dart';
 import 'runtime.dart';
 
-/// Send one request per handshake. Auto-start is allowed for connect, launch and record start.
+/// Send one request per handshake. Auto-start is allowed for connect, launch, record start and native captures.
 class DaemonClient {
   DaemonClient(this.runtime, {List<String>? launchCommand, this.idleTimeoutMs})
     : launchCommand = launchCommand ?? defaultLaunchCommand();
@@ -103,7 +104,13 @@ class DaemonClient {
         if (request.command != 'connect' &&
             request.command != 'native' &&
             request.command != 'launch' &&
-            !startsRecording) {
+            !startsRecording &&
+            !isNativeScreenshot(request.command, request.params) &&
+            !(request.command == 'workflow' &&
+                WorkflowPlan.decode(
+                  request.params['workflow'],
+                  inputs: request.params['inputs'],
+                ).nativeOnly)) {
           if (request.command == 'record' &&
               request.params.length == 1 &&
               ['status', 'stop'].contains(request.params['action'])) {

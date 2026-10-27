@@ -13,15 +13,8 @@ import 'package:image/src/formats/png_decoder.dart' show PngDecoder;
 import 'package:image/src/image/image.dart' show Image;
 import 'package:path/path.dart' as p;
 
-// ignore: implementation_imports
-import 'package:image/src/formats/png_encoder.dart' show PngEncoder;
-// ignore: implementation_imports
-import 'package:image/src/transform/copy_crop.dart' show copyCrop;
-
-import '../backend/screenshot_geometry.dart';
 import '../protocol/protocol.dart';
 import 'common_options.dart';
-import 'screenshot_annotation.dart';
 
 /// Decode before writing, reserve each destination exclusively, and roll back
 /// this request's files on failure. Existing files are not normally overwritten.
@@ -42,13 +35,19 @@ Future<Json> saveScreenshots(
   }
 
   checkDeadline();
+  if (data.containsKey('crop') || data.containsKey('annotations')) {
+    throw const AgentError(
+      'UNSUPPORTED_CAPABILITY',
+      'Screenshot crop and ref annotation were removed',
+    );
+  }
   if (destination != null) destination = format.destinationPath(destination);
   final payloads = data['images'];
   if (payloads is! List || payloads.isEmpty) {
     throw const AgentError('BACKEND_ERROR', 'No screenshots returned');
   }
   final images = <Uint8List>[];
-  AnnotatedScreenshot? annotated;
+  Json? capture;
   try {
     for (final value in payloads) {
       checkDeadline();
@@ -58,6 +57,26 @@ Future<Json> saveScreenshots(
       if (decoded == null) throw const FormatException();
       checkDeadline();
       images.add(bytes);
+      if (data['capture'] case final Map metadata) {
+        if (payloads.length != 1 ||
+            data.containsKey('crop') ||
+            data.containsKey('annotations')) {
+          throw const AgentError(
+            'UNSUPPORTED_CAPABILITY',
+            'Native capture requires one unmodified device image',
+          );
+        }
+        capture = {
+          ...asJson(metadata),
+          'pixelWidth': decoded.width,
+          'pixelHeight': decoded.height,
+          'orientation': decoded.width == decoded.height
+              ? 'square'
+              : decoded.width > decoded.height
+              ? 'landscape'
+              : 'portrait',
+        };
+      }
       // Synchronous codecs cannot be interrupted; never publish late output.
       checkDeadline();
     }
@@ -69,66 +88,7 @@ Future<Json> saveScreenshots(
       'Cannot decode or convert PNG screenshot',
     );
   }
-  if (data.containsKey('crop')) {
-    final geometry = ScreenshotGeometry.decode(data['geometry']);
-    final bounds = data['crop'];
-    if (images.length != 1 ||
-        bounds is! Map ||
-        [
-          'x',
-          'y',
-          'width',
-          'height',
-        ].any((key) => bounds[key] is! num || !(bounds[key] as num).isFinite)) {
-      throw const AgentError(
-        'UNSUPPORTED_CAPABILITY',
-        'Crop requires one mapped image and finite target bounds',
-      );
-    }
-    final x = (bounds['x'] as num).toDouble(),
-        y = (bounds['y'] as num).toDouble();
-    final w = (bounds['width'] as num).toDouble(),
-        h = (bounds['height'] as num).toDouble();
-    final image = PngDecoder().decode(images.single)!;
-    if (image.width != geometry.width ||
-        image.height != geometry.height ||
-        x < 0 ||
-        y < 0 ||
-        w <= 0 ||
-        h <= 0 ||
-        x + w > geometry.logicalWidth ||
-        y + h > geometry.logicalHeight) {
-      throw const AgentError(
-        'UNSUPPORTED_CAPABILITY',
-        'Target bounds must be wholly inside the mapped view',
-      );
-    }
-    final left = (x * image.width / geometry.logicalWidth).floor();
-    final top = (y * image.height / geometry.logicalHeight).floor();
-    final right = ((x + w) * image.width / geometry.logicalWidth).ceil();
-    final bottom = ((y + h) * image.height / geometry.logicalHeight).ceil();
-    images[0] = PngEncoder().encode(
-      copyCrop(
-        image,
-        x: left,
-        y: top,
-        width: right - left,
-        height: bottom - top,
-      ),
-    );
-    checkDeadline();
-  }
-  if (data.containsKey('annotations')) {
-    if (images.length != 1) {
-      throw const AgentError(
-        'UNSUPPORTED_CAPABILITY',
-        'Multiple screenshot view correspondence is not supported',
-      );
-    }
-    annotated = annotateScreenshot(images.single, data, checkDeadline);
-    images[0] = annotated.bytes;
-  }
-  // Annotation consumes mapped PNG pixels; encode the final pixels as JPEG.
+  // Encode the acquired pixels as JPEG.
   if (format == ScreenshotFormat.jpeg) {
     try {
       for (var i = 0; i < images.length; i++) {
@@ -138,6 +98,10 @@ Future<Json> saveScreenshots(
         // Flatten into opaque RGB before encoding. This also handles grayscale
         // alpha, palette/16-bit PNGs and padded JPEG edge blocks consistently.
         final rgb = Image(width: decoded.width, height: decoded.height);
+        // The pinned PNG decoder does not read eXIf. XCUIScreen uses that
+        // chunk for landscape display; retain its orientation without rotating pixels.
+        final orientation = _pngExifOrientation(images[i]);
+        if (orientation != null) rgb.exif.imageIfd.orientation = orientation;
         for (final pixel in decoded) {
           if (pixel.x == 0 && pixel.y % 256 == 0) checkDeadline();
           final alpha = pixel.aNormalized;
@@ -214,16 +178,7 @@ Future<Json> saveScreenshots(
       await created[i].writeAsBytes(images[i], flush: true);
     }
     checkDeadline();
-    return {
-      'paths': paths,
-      if (data.containsKey('crop')) 'cropped': true,
-      if (annotated != null) ...{
-        'annotated': true,
-        'generation': (data['annotations'] as Map)['generation'],
-        'annotationCount': annotated.count,
-        'skippedAnnotations': annotated.skipped,
-      },
-    };
+    return {'paths': paths, 'capture': ?capture};
   } catch (error) {
     for (final file in created) {
       try {
@@ -245,4 +200,39 @@ Future<Json> saveScreenshots(
       'Cannot save screenshots; check destination, permissions and existing files',
     );
   }
+}
+
+// Read only the standard TIFF IFD0 orientation from a PNG eXIf chunk. Bounds
+// checks keep malformed ancillary metadata from changing image persistence.
+int? _pngExifOrientation(Uint8List png) {
+  final bytes = ByteData.sublistView(png);
+  for (var offset = 8; offset + 12 <= png.length;) {
+    final length = bytes.getUint32(offset);
+    if (length > png.length - offset - 12) return null;
+    if (bytes.getUint32(offset + 4) == 0x65584966) {
+      // eXIf
+      final tiff = ByteData.sublistView(png, offset + 8, offset + 8 + length);
+      if (tiff.lengthInBytes < 8) return null;
+      final order = tiff.getUint16(0);
+      if (order != 0x4949 && order != 0x4d4d) return null;
+      final endian = order == 0x4949 ? Endian.little : Endian.big;
+      if (tiff.getUint16(2, endian) != 42) return null;
+      final ifd = tiff.getUint32(4, endian);
+      if (ifd > tiff.lengthInBytes - 2) return null;
+      final count = tiff.getUint16(ifd, endian);
+      for (var i = 0; i < count; i++) {
+        final entry = ifd + 2 + 12 * i;
+        if (entry > tiff.lengthInBytes - 12) return null;
+        if (tiff.getUint16(entry, endian) == 0x0112 &&
+            tiff.getUint16(entry + 2, endian) == 3 &&
+            tiff.getUint32(entry + 4, endian) == 1) {
+          final value = tiff.getUint16(entry + 8, endian);
+          return value >= 1 && value <= 8 ? value : null;
+        }
+      }
+      return null;
+    }
+    offset += length + 12;
+  }
+  return null;
 }

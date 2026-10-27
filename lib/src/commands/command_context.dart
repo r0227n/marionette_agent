@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
+
+import '../platform/screen_capture.dart';
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
 import '../session/session.dart';
@@ -9,7 +14,12 @@ import '../snapshot/target.dart';
 /// Handler validates args and calls one of [performTarget], [performCoordinates], or [read].
 /// Do not reimplement session queueing, deadline handling, ref invalidation, or indeterminate-result classification.
 class CommandContext {
-  CommandContext(this._execution, this._snapshots);
+  CommandContext(
+    this._execution,
+    this._snapshots, {
+    ScreenCapturer? screenCapturer,
+  }) : _screenCapturer = screenCapturer ?? platformScreenCapturer();
+  final ScreenCapturer _screenCapturer;
   final Execution _execution;
   final SnapshotService _snapshots;
 
@@ -57,7 +67,26 @@ class CommandContext {
   Future<ElementInfo> observeTarget(TargetQuery query) =>
       _snapshots.observeTarget(_execution, query);
 
-  Future<Json> annotationTargets() => _snapshots.annotationTargets(_execution);
+  /// OS observation shares the queue/deadline but never requires a Flutter backend.
+  Future<Json> captureDeviceScreen(String source, String device) async {
+    check();
+    if (source == 'ios-device') {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Physical iOS screenshots require a signed XCTest runner; not implemented or verified',
+      );
+    }
+    try {
+      final image = await _screenCapturer.capture(device, deadline);
+      check();
+      return {
+        'images': [base64Encode(image.png)],
+        'capture': image.metadata,
+      };
+    } on PlatformException catch (error) {
+      throw AgentError(error.code, error.message, hint: error.hint);
+    }
+  }
 
   /// Read flow. Validate connection generation and deadline before and after await; do not invalidate refs.
   Future<T> read<T>(Future<T> Function(Backend) operation) =>

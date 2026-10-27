@@ -29,6 +29,7 @@ Future<void> main() async {
   Future<Map<String, dynamic>> cli(
     List<String> args, {
     bool source = false,
+    int expectedExit = 0,
   }) async {
     final result = await Process.run(
       source ? Platform.resolvedExecutable : binary,
@@ -43,13 +44,13 @@ Future<void> main() async {
       ],
       environment: environment,
     ).timeout(const Duration(minutes: 4));
-    if (result.exitCode != 0) {
+    if (result.exitCode != expectedExit) {
       throw StateError(
         'Release smoke ${args.first} failed (exit ${result.exitCode}); raw output withheld',
       );
     }
     final body = jsonDecode(result.stdout as String) as Map<String, dynamic>;
-    if (body['ok'] != true) {
+    if (body['ok'] != (expectedExit == 0)) {
       throw StateError('Release smoke ${args.first} returned failure');
     }
     steps.add(args.first);
@@ -117,11 +118,20 @@ Future<void> main() async {
       text(afterFill, 'fill_result') == '5 characters',
       'Fill did not change app state',
     );
+    // The installed tester must reject the removed Flutter screenshot route.
+    // Native XCUIScreen capture is verified separately on iOS Simulator.
     final screenshot = p.join(private.path, 'screen.png');
-    await cli(['screenshot', screenshot]);
-    check(File(screenshot).lengthSync() > 0, 'Screenshot empty');
-    final evidence = Platform.environment['MARIONETTE_RELEASE_SCREENSHOT'];
-    if (evidence != null) File(screenshot).copySync(evidence);
+    final removed = await cli([
+      'screenshot',
+      screenshot,
+      '--source',
+      'flutter',
+    ], expectedExit: 2);
+    check(
+      removed['error']['code'] == 'INVALID_ARGUMENT',
+      'Removed source accepted',
+    );
+    check(!File(screenshot).existsSync(), 'Removed source created an image');
     final stopped = await cli(['record', 'stop']);
     check(
       stopped['data']['recordingState'] == 'stopped',
@@ -147,7 +157,7 @@ Future<void> main() async {
       'Owned daemon did not stop',
     );
     stdout.writeln(
-      'Release smoke passed: ${steps.join(' -> ')}; tap=1, input=5 characters, capture nonempty, daemon stopped.',
+      'Release smoke passed: ${steps.join(' -> ')}; tap=1, input=5 characters, removed screenshot rejected, video nonempty, daemon stopped.',
     );
   } finally {
     if (File(binary).existsSync() &&

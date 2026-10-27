@@ -83,7 +83,7 @@ marionette-agent --session demo snapshot
 marionette-agent --session demo fill @e5 'hello'
 marionette-agent --session demo snapshot
 marionette-agent --session demo swipe @e9 left --distance 200
-marionette-agent --session demo screenshot ./screen.png
+marionette-agent --session demo screenshot ./screen.png --device "$SIMULATOR_UDID" --timeout 120000
 marionette-agent --session demo close
 ```
 
@@ -157,7 +157,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | 明示した始点から終点へスワイプ |
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | 要素の出現または消失を観測だけで待つ |
-| `screenshot [--annotate] [path]` | PNG（既定）またはJPEGを排他的に保存。明示path > `--screenshot-dir` > 一時ファイル。注釈は対応providerと直近の有効snapshotが必要 |
+| `screenshot --device <UDID> [--source <source>] [path]` | アプリ接続不要でXCUIScreenのPNG/JPEGを排他的に保存。 |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
 | `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
 | `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
@@ -185,11 +185,28 @@ scrollは初版では指定領域を既存swipe機構で操作する。direction
 - 共通`--timeout`は取得・転送・復号・白背景合成・JPEG変換・保存を含む元の絶対期限。codec処理前後・合成中・保存中に期限を確認し、期限後に成功を返さない。同期codecや進行中のOS I/Oの即時中断は保証しない。
 - 全画像の復号・変換が成功してから全保存先を排他的に予約し、書き込む。既存file/directory/symlinkはIO_ERRORで拒否する。途中の変換失敗は出力を作らず、予約・書込みの失敗やTIMEOUTではこの要求が作成した全fileと自動作成directoryの削除を試みる。既存fileを削除・上書きしない。OSがcleanupを拒否した場合は部分artifactが残る場合があり、成功pathsは返さない。意図的な予約後の差し替えは従来どおり保証外。
 
+<a id="native-ios-screenshots"></a>
+### iOSのネイティブ撮影（Issue #56）
+
+`screenshot --device <UDID> [--source ios-simulator|ios-device] [path]`は、CLI同梱のXCTest runnerから`XCUIScreen.main.screenshot()`で端末main screenを撮影します。取得元の既定は`ios-simulator`です。Marionette/Flutter経由の静止画、ref/selector crop、注釈、mapped provider能力は削除しました。device未指定とsource `flutter`はINVALID_ARGUMENT、IPCのtarget/annotation fieldはUNSUPPORTED_CAPABILITYです。
+
+Simulator撮影はmacOS、選択済みの完全なXcode、既定device set内で利用可能かつ起動済みのiOS SimulatorのUUID形式UDIDを必要とします。alias・名前・`booted`はINVALID_ARGUMENT、対象不在・停止はUNRESOLVABLE_TARGET、重複IDはAMBIGUOUS_TARGET、SDK不足はUNSUPPORTED_CAPABILITY、build/test/export/画像回収失敗はIO_ERROR、期限超過はTIMEOUTです。不正PNGはBACKEND_ERRORです。端末一覧と所有runnerの寿命管理には既存のSimulator管理機能を使い、画像取得にsimctl screenshotは使いません。
+
+同梱の独立UI-test targetには対象アプリのtargetを設定せず、現在のmain screenだけをattachmentにします。対象アプリの起動・前面化、UIのtap、権限初期化、UI操作の再送は行いません。Flutter接続とアプリ側providerは不要です。最初の要求で非公開runnerをビルドし、daemonの存続中はそのbuildを再利用します。adapterとsessionのqueueで直列化し、待機中に期限切れになった要求はプロセスを開始しません。実行先UDIDを明示し、要求専用xcresultから名称と端末IDが一致するattachmentを正確に1枚回収します。不正・別端末・重複・symlink・サイズ超過を拒否し、成功・失敗時に結果の一時領域を削除します。timeoutでは所有driverを中断し、一意な所有runner bundleだけを終了します。disposeでbuildとインストールしたrunnerを片付けます。
+
+共通`--timeout`はqueue、SDK検出、build/起動、test実行、attachment export、復号・変換・保存を含む単一の絶対期限です。初回build/起動には通常の既定値以上を要する場合があり、`--timeout 120000`で時間を確保できます。期限の更新とFlutter fallbackはありません。timeout応答後のcleanup中に進行中のOS I/Oが終了することがあります。
+
+成功dataは`paths`と`capture:{source,method,device,runtime,display,scope,mask,coordinateSpace,pixelWidth,pixelHeight,orientation}`です。methodは`xcuiscreen`、displayは`main`、scopeは`device-screen`、maskは`system-default`、座標は`physical-pixels`です。Macウィンドウ倍率と独立した端末画素と表示中のOS UIを取得します。ノッチ・角丸maskの指定、回転・resize、Flutter座標への対応付けは行いません。寸法は返されたPNGから復号し、orientationはその縦横比です。横向きのXCUIScreen PNGが縦長の画素配列とEXIFの向き情報を持つ場合があり、JPEGでもその向き情報を保持します。保護された内容の取得は保証しません。
+
+PNG/JPEG、品質、明示path > screenshot-dir > 非公開一時保存、排他的作成、期限、失敗cleanupは共通artifact writerを使います。成功時はrefを保持します。CLIの`diff screenshot --device <UDID> --baseline <PNG>`も同じ取得経路です。同じ端末・方式・向きで寸法の一致するbaselineを利用者が指定します。MCPではdeviceが必須で同じCLIを呼び、workflow screenshot stepもdeviceを必須として取得・保存・進捗契約を共用します。
+
+`ios-device`はUNSUPPORTED_CAPABILITYです。実機runnerには開発署名・provisioning、pairing・信頼、必要なOSでのDeveloper Mode、互換Xcode/OSが必要ですが、これらの寿命管理は未実装・未検証で、対応する実機OSは宣言しません。Appleの[XCUIScreen API](https://developer.apple.com/documentation/xcuiautomation/xcuiscreen)、[実機設定](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices)、[Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device)を参照してください。
+
 <a id="workflow-v1"></a>
 
 ### workflow v1
 
-workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
+workflow v1はJSONまたは制限付きYAMLで`snapshot`、`tap`、`fill`、`swipe`、`scroll`、`wait`、`screenshot`を記述順に実行する。`run`は全stepを同一sessionの1つのqueue entryで実行し、最初の失敗で停止する。完了済みstepのrollback、自動retry、途中再開は行わない。
 
 workflow内の操作対象はselectorだけを受理し、refと座標操作は受理しない。入力値は型付き参照でbindingし、文字列展開、環境変数展開、shell実行は行わない。`--timeout`はworkflow／inputsの読込、検証、daemonへの配送、queue待ち、全stepを含む絶対期限である。
 
@@ -323,11 +340,7 @@ directory指定時はその直下に`screen-<128bit乱数の32桁hex>.png`（JPE
 
 logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
 
-`screenshot --annotate`は、直近snapshotで実際に公開された操作可能refだけを`@eN`ラベルと枠として新しいPNGへ合成し、JPEG指定時は合成後にJPEGへ変換する。既存PNGを入力に取らず、元画像のbytesも変更しない。保存先は注釈画像の新規pathであり、通常のscreenshotと同じ排他的保存・全体deadlineを使う。成功dataはpathsに加えてannotated=true、generation、annotationCount、skippedAnnotationsを返す。refの採番・更新・失効は行わない。snapshotが無効、またはcapture前後の再観測で対象の一意性・属性が変わった場合はSTALE_REFとし、画像を保存しない。観測とcaptureは上流APIでは原子的でないため、途中で変化して元へ戻るアニメーションまで検出する保証はない。静止した画面で使用する。
-
-固定`marionette_flutter: 0.6.0`の通常screenshot応答だけでは、画像とview、倍率、向きの対応を検証できない。注釈には別途opt-inの`marionette_agent.captureMappedScreenshot` providerが必要である。これは画像とgeometry v1を同時に返す限定契約であり、固定binding一般の注釈対応を意味しない。exampleのdebug構成はこのproviderを実装する。単一view、原点(0,0)、論理boundsに対する回転0、明示した論理幅・高さとPNG幅・高さだけを対応対象とする。portrait/landscapeは各時点の寸法を使い、画像を回転推測しない。未登録、複数view/画像、回転、寸法不一致などはUNSUPPORTED_CAPABILITYとし、注釈を保存しない。倍率をboundsや画像の外観から推測しない。
-
-boundsが欠損・非有限ならmissing_or_invalid_bounds、幅/高さが非正または一部でもview外ならbounds_outside_viewとしてそのrefを省略し、skippedAnnotationsへ記録する。boundsを画面内へclampしない。ラベルは互いに重ならない位置へ配置し、移動したラベルは線で対象に結ぶ。配置領域不足はlabel_space_exhaustedとして省略する。操作可能refが0件でも有効snapshotとgeometryがあればannotationCount=0で保存できる。
+ref注釈と論理座標の対象cropは削除しました。OS画面撮影は上記native契約に従います。
 
 <a id="verification-criteria"></a>
 <a id="検証基準"></a>
