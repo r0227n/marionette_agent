@@ -99,19 +99,9 @@ void main() {
         'deviceType': 'com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro',
         'runtime': 'com.apple.CoreSimulator.SimRuntime.iOS-26-2',
       },
-      'native_snapshot': {'platform': 'android', 'device': 'emulator-5554'},
-      'native_tap': {
-        'platform': 'android',
-        'device': 'emulator-5554',
+      'session_bind': {'platform': 'android', 'device': 'emulator-5554'},
+      'tap': {
         'target': {'ref': '@n1'},
-      },
-      'native_swipe': {
-        'platform': 'android',
-        'device': 'emulator-5554',
-        'startX': 10,
-        'startY': 100,
-        'endX': 10,
-        'endY': 200,
       },
       'swipe': {'startX': 20, 'startY': 50, 'endX': 200, 'endY': 50},
       'wait': {
@@ -388,16 +378,16 @@ void main() {
 
     test('native tools operate without VM and reject stale refs', () async {
       const targetDevice = {'platform': 'android', 'device': 'emulator-5554'};
-      final snapshot = await call('native_snapshot', targetDevice);
+      expect((await call('session_bind', targetDevice)).isError, false);
+      final snapshot = await call('snapshot');
       expect(snapshot.isError, false);
       final ref = response(snapshot)['data']['elements'][0]['ref'];
       final tapArgs = {
-        ...targetDevice,
         'target': {'ref': ref},
       };
-      expect((await call('native_tap', tapArgs)).isError, false);
+      expect((await call('tap', tapArgs)).isError, false);
       expect(native.taps, [(60.0, 40.0)]);
-      final stale = await call('native_tap', tapArgs);
+      final stale = await call('tap', tapArgs);
       expect(response(stale)['error']['code'], 'STALE_REF');
       expect(native.taps, hasLength(1));
       expect(

@@ -6,7 +6,11 @@ export 'screenshot_request.dart';
 import 'command_context.dart';
 
 Selector? snapshotFilter(Json params) {
-  final options = {'interactive', 'compact', 'depth'};
+  final options = {'interactive', 'compact', 'depth', 'source'};
+  if (params.containsKey('source') &&
+      !['flutter', 'native', 'all'].contains(params['source'])) {
+    invalid('Invalid snapshot source');
+  }
   for (final flag in ['interactive', 'compact']) {
     if (params.containsKey(flag) && params[flag] is! bool) {
       invalid('Invalid snapshot flag');

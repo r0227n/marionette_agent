@@ -44,7 +44,6 @@ marionette-agent skills path core
 | `actions`      | 追加の入力、focus、check、drag、keyboard、clipboard        |
 | `workflow`     | workflow、batch、confirm、deny                             |
 | `record`       | 動画の開始・再開始・状態・停止                             |
-| `native`       | ネイティブの権限ダイアログ・写真ピッカーの観測と操作       |
 | `all`          | 公開済みの全MCP tool                                       |
 
 profileはcommaで組み合わせます。`all`でも全CLIコマンドが公開されるわけではなく、find・diff・state・skillsなどはMCP公開範囲外です。`marionette_agent_tools_profiles`で有効なprofileを確認できます。`tools/list`に`nextCursor`があれば続きも取得します。

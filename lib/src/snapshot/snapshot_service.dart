@@ -25,6 +25,7 @@ class _Observation {
 class SnapshotService {
   int _nextRef = 1;
   int _generation = 0;
+  int nextGeneration() => ++_generation;
 
   /// Invalidate stale refs and expose only data and uniquely actionable refs.
   Future<Json> publish(
@@ -35,7 +36,7 @@ class SnapshotService {
     int? depth,
   }) async {
     context.requireConnected();
-    context.session.invalidate();
+    context.session.observation = null;
     final elements = await context.read((backend) => backend.inspect());
     if (depth != null && elements.any((element) => element.depth == null)) {
       throw const AgentError(
@@ -104,7 +105,7 @@ class SnapshotService {
       }
     }
     context.check();
-    final observation = _Observation(++_generation, Map.unmodifiable(refs));
+    final observation = _Observation(nextGeneration(), Map.unmodifiable(refs));
     context.session.observation = observation;
     final result = <String, dynamic>{
       'generation': observation.generation,
@@ -206,6 +207,12 @@ class SnapshotService {
     final Selector selector;
     switch (target) {
       case RefQuery(:final ref):
+        if (ref.startsWith('@n')) {
+          throw const AgentError(
+            'UNSUPPORTED_CAPABILITY',
+            'This operation does not support native refs',
+          );
+        }
         final observation = context.session.observation;
         reference = observation is _Observation ? observation.refs[ref] : null;
         if (reference == null) {

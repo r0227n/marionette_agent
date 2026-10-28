@@ -19,6 +19,7 @@ class FakeNativeBackend implements NativeUiBackend {
   List<NativeElement> elements = [nativeButton()];
   final calls = <String>[];
   final taps = <(double, double)>[];
+  final swipes = <(double, double, double, double)>[];
   Completer<void>? inspecting, tapping;
   Object? failure;
   @override
@@ -46,5 +47,6 @@ class FakeNativeBackend implements NativeUiBackend {
     DateTime deadline,
   ) async {
     calls.add('swipe:$device');
+    swipes.add((startX, startY, endX, endY));
   }
 }

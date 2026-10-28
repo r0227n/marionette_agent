@@ -23,22 +23,51 @@ void main() {
     int ms = 2000,
     int? limit,
     Json? policy,
-  }) => manager.handle(
-    Request(
-      requestId: 'native',
-      session: session,
-      command: 'native',
-      params: {
-        'action': action,
-        'platform': 'android',
-        'device': device,
-        ...params,
-      },
-      deadline: DateTime.now().add(Duration(milliseconds: ms)),
-      maxOutput: limit,
-      policy: policy,
-    ),
-  );
+  }) async {
+    final platform = params['platform'] ?? 'android';
+    final requestedDevice = params['device'] ?? device;
+    if (manager.sessions[session]?.nativeTarget !=
+        '$platform:$requestedDevice') {
+      final bound = await manager.handle(
+        request(
+          'session',
+          session: session,
+          params: {
+            'action': 'bind',
+            'platform': platform,
+            'device': requestedDevice,
+          },
+        ),
+      );
+      if (bound.error != null) return bound;
+    }
+    final clean = {...params}
+      ..remove('platform')
+      ..remove('device');
+    final mapped = <String, dynamic>{
+      for (final e in clean.entries)
+        (const {
+                  'startX': 'start-x',
+                  'startY': 'start-y',
+                  'endX': 'end-x',
+                  'endY': 'end-y',
+                }[e.key] ??
+                e.key):
+            e.value,
+    };
+    return manager.handle(
+      Request(
+        requestId: 'native',
+        session: session,
+        command: action,
+        params: {'source': 'native', ...mapped},
+        deadline: DateTime.now().add(Duration(milliseconds: ms)),
+        maxOutput: limit,
+        policy: policy,
+      ),
+    );
+  }
+
   Future<String> snapshot({String session = 'a'}) async =>
       (((await call('snapshot', session: session)).data!['elements'] as List)
                   .first
@@ -293,13 +322,10 @@ void main() {
     final parser = CliParser(environment: {});
     final opts = ['--platform=android', '--device=emulator-5554'];
     expect(
-      parser.parse(['native', 'tap', ...opts, '--text=Allow']).params['text'],
+      parser.parse(['tap', '--source=native', '--text=Allow']).params['text'],
       'Allow',
     );
-    expect(
-      parser.parse(['native', 'tap', ...opts, '@n1']).params['ref'],
-      '@n1',
-    );
+    expect(parser.parse(['tap', '@n1']).params['ref'], '@n1');
     for (final args in [
       ['native'],
       ['native', 'screenshot', ...opts],

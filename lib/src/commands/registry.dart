@@ -18,9 +18,14 @@ class CommandRegistry {
     _handlers[name] = handler;
   }
 
-  Future<Json> dispatch(CommandContext context, String command, Json params) {
+  Future<Json> dispatch(
+    CommandContext context,
+    String command,
+    Json params,
+  ) async {
     final handler = _handlers[command];
     if (handler == null) invalid('Unknown command');
-    return handler(context, params);
+    final routed = await context.route(command, params);
+    return routed ?? await handler(context, params);
   }
 }

@@ -3,7 +3,7 @@ title: Native dialogs and photo pickers
 description: Inspect, tap, and swipe iOS Simulator and Android system UI with XCUITest and UI Automator runners.
 ---
 
-Use `native` when a permission dialog or system photo picker covers the Flutter view. These commands operate the explicit device without a Flutter VM connection. iOS uses XCUITest / XCUIAutomation; Android calls UI Automator APIs directly. The CLI sends authenticated requests to a local test runner. Native screenshots are outside this feature's scope.
+Bind a native device to your session, then use the same `snapshot`, `tap`, and `swipe` commands for Flutter controls, permission dialogs, and system photo pickers. A bound session can operate without a Flutter VM connection. Connecting the VM adds Flutter observations to the same session. iOS uses XCUITest / XCUIAutomation and Android uses UI Automator through authenticated local runners. Screen capture remains a separate feature.
 
 ## Prepare a runner
 
@@ -98,45 +98,53 @@ with open(path, "w") as file:
 os.chmod(path, 0o600)
 PYCODE
 export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_NATIVE_DIR/runtime"
-marionette-agent --session app native snapshot \
+marionette-agent --session app session bind \
   --platform "$MRA_NATIVE_PLATFORM" --device "$MRA_NATIVE_DEVICE"
+marionette-agent --session app snapshot
 ```
 
 The initial snapshot may report a connection error while the test runner starts. Retry observation once it is ready. Keep one operator per device: separate runtimes and external tools are independent of the daemon's per-device queue.
 
-## Respond to a permission dialog
+## Observe and respond to a permission dialog
 
-Read the actual label and ref before choosing a response; labels vary with language and OS. Replace `@n1` with the ref from your snapshot. After input, observe again. The final Flutter `snapshot` requires the usual `connect` and confirms that control returned to the app.
+`snapshot` observes Flutter when connected, native when bound, and both when the session has both. Use `--source flutter|native|all` to choose explicitly. Every snapshot replaces previous refs from both sources. Mixed output identifies each element's source and coordinate space; it does not merge duplicate controls. Native rows appear first. A failed requested source fails the observation and retires refs; an empty/root-only native result carries a limitation.
+
+Read the actual label and ref before choosing a response; labels vary with language and OS. Replace these refs with the current snapshot's values. `@e` routes to Flutter and `@n` to native, using the same command. Source cannot override a ref. `connect` can run before or after `session bind`; the device association is your declaration, not verification that both connections target the same app.
 
 ```sh
-marionette-agent --session app native snapshot --platform ios --device IOS_UDID
-marionette-agent --session app native tap @n1 --platform ios --device IOS_UDID
-marionette-agent --session app native snapshot --platform ios --device IOS_UDID
+marionette-agent --session app snapshot
+marionette-agent --session app tap @e1
+marionette-agent --session app snapshot
+marionette-agent --session app tap @n1
 marionette-agent --session app snapshot
 ```
 
-Exact `--text`, `--identifier`, or `--type` selectors are alternatives to a ref. Zero or multiple matches fail without input. Native `@n` refs cannot be used as Flutter `@e` refs.
+Native exact `--text`, `--identifier`, or `--type` selectors require `--source native`. Unqualified selectors and coordinates keep their Flutter meaning. Zero or multiple matches fail without input. Known native alerts block Flutter input and suppress Flutter refs in mixed snapshots. Other occlusion remains unknown: inspect the device and choose a native control when a picker covers Flutter.
 
 ## Select a photo or swipe
 
-Open the picker from your app, inspect it with `native snapshot`, and tap the current photo or confirmation ref. For a swipe, choose coordinates from the current device screen or observed bounds, then inspect the result and use a fresh ref. The following coordinates and ref are examples, not universal picker locations.
+Open the picker with `tap`, observe it with `snapshot`, and tap a current photo or confirmation ref. The same `swipe` accepts either source's ref and a finger direction. Native distance uses its screen coordinate space. The following refs and coordinates are examples; inspect your device's current bounds first.
 
 ```sh
-marionette-agent --session app native swipe --platform android --device emulator-5554 \
+marionette-agent --session app swipe @e2 left --distance 200
+marionette-agent --session app snapshot
+marionette-agent --session app swipe @n8 up --distance 200
+marionette-agent --session app snapshot
+marionette-agent --session app swipe --source native \
   --start-x 360 --start-y 1000 --end-x 360 --end-y 400
-marionette-agent --session app native snapshot --platform android --device emulator-5554
-marionette-agent --session app native tap @n8 --platform android --device emulator-5554
+marionette-agent --session app snapshot
+marionette-agent --session app tap --source native --text Allow
 ```
 
-Coordinate `tap --x X --y Y` is also available. iOS coordinates are screen points, with the platform's default drag velocity; Android coordinates are physical pixels, rounded to integers, with 60 swipe steps (about 300ms). Orientation and scale matter. Accessibility can omit controls; an empty/root-only snapshot reports a limitation. There is no automatic fallback to coordinates. View the Simulator/emulator directly if the target is missing; screen capture is a separate feature.
+Native coordinate tap uses `tap --source native --x X --y Y`. iOS uses screen points and platform-default drag velocity; Android uses physical pixels rounded to integers and 60 swipe steps (about 300ms). Account for orientation and scale. No coordinate fallback or cross-source retry occurs. Native supports compact and exact text/identifier/type snapshot filters; use `--source flutter` for interactive, depth, or key filters. Native fill and other unsupported actions fail before input.
 
 ## References, policies, and errors
 
-Native snapshots return `source: native`, platform, device, coordinate space, generation, and normalized elements with bounds. `--json`, `--content-boundaries`, `--max-output`, deadlines, and the normal error envelope apply. Ref taps reobserve the full element, including bounds, before sending one input. A moved, missing, or duplicate target fails; observation and input are not atomic OS operations.
+`--json`, `--content-boundaries`, `--max-output`, deadlines, and normal errors apply. Undisclosed refs are unusable. Ref operations reobserve their source before sending one input; moved, missing, or duplicate targets fail. Observation and input are not atomic OS operations.
 
-Native tap/swipe expire native refs for that device across sessions and all Flutter refs in the daemon. A Flutter mutation expires its session's native refs. Reads preserve Flutter refs. Policies control tap/swipe under `native`. After a post-dispatch failure or timeout with `outcome: unknown`, observe the actual screen before deciding what to do next; never automatically resend.
+Native input expires same-device native refs across sessions and all Flutter refs in the daemon. Flutter input expires both observations in its session and other sessions bound to the same device. Rebinding expires both observations and pending approvals. Reads other than snapshot preserve refs. Native tap/swipe retain the `native` policy action. After `outcome: unknown`, observe the actual screen before deciding the next action; never automatically resend.
 
-MCP `--tools core,native` exposes `marionette_agent_native_snapshot`, `marionette_agent_native_tap`, and `marionette_agent_native_swipe`. Every call requires platform and device. Native commands are excluded from batch and workflow v1.
+MCP's `core` profile exposes `marionette_agent_session_bind`, `marionette_agent_snapshot`, `marionette_agent_tap`, and `marionette_agent_swipe`. The former native command, native MCP tools, and native profile are removed. Batch routes tap/swipe and snapshot through the same service on a bound session. Workflow snapshot can observe both sources on a bound session, while workflow v1's mutation selectors remain Flutter-only.
 
 ## Stop your runner
 

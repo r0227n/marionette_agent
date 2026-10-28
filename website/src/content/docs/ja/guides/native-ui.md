@@ -3,7 +3,7 @@ title: ネイティブダイアログと写真ピッカー
 description: XCUITestとUI Automatorのrunnerを使い、iOS SimulatorとAndroidのOS画面の要素取得・タップ・スワイプを行います。
 ---
 
-権限ダイアログやOSの写真ピッカーがFlutter画面に重なった場合は`native`を使います。Flutter VM接続なしで明示した端末を操作できます。iOSはXCUITest / XCUIAutomation、AndroidはUI AutomatorのAPIを直接呼び出します。CLIはローカルのテストrunnerへ認証付き要求を送信します。ネイティブスクリーンショットは今回の機能の対象外です。
+sessionにnative端末を紐付けると、FlutterのUI・権限ダイアログ・OSの写真ピッカーを同じ`snapshot`・`tap`・`swipe`で扱えます。Flutter VM接続なしでも端末を操作でき、VMを接続すると同じsessionでFlutterも観測します。iOSはXCUITest / XCUIAutomation、AndroidはUI Automatorを認証付きローカルrunner経由で利用します。画面撮影は別機能です。
 
 ## runnerの準備
 
@@ -98,45 +98,53 @@ with open(path, "w") as file:
 os.chmod(path, 0o600)
 PYCODE
 export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_NATIVE_DIR/runtime"
-marionette-agent --session app native snapshot \
+marionette-agent --session app session bind \
   --platform "$MRA_NATIVE_PLATFORM" --device "$MRA_NATIVE_DEVICE"
+marionette-agent --session app snapshot
 ```
 
 テストrunnerの起動中は最初のsnapshotが接続エラーになる場合があります。準備後に観測をやり直してください。端末ごとに操作者は1つにします。別runtimeや外部ツールはdaemonの端末別queueとは独立しています。
 
-## 権限ダイアログに応答
+## 権限ダイアログの観測と応答
 
-応答を選ぶ前に、実際のlabelとrefを確認します。文言は言語・OSにより異なります。`@n1`は取得したrefへ置き換え、入力後に再観測してください。最後のFlutterの`snapshot`には通常の`connect`が必要で、アプリへ戻ったことを確認できます。
+`snapshot`は接続済みならFlutter、端末登録済みならnative、両方あれば両方を観測します。`--source flutter|native|all`で明示選択できます。snapshotのたびに両取得元の古いrefを置換します。混在結果は各行に取得元と座標系を持ち、重複したUIを統合せず、native行を先に表示します。要求した取得元の失敗時は観測全体が失敗しrefを失効します。nativeが空/rootのみの場合は制限を返します。
+
+応答を選ぶ前に実際のラベルとrefを読みます。言語・OSでラベルが変わるため、以下のrefは現在のsnapshotの値に置き換えてください。同じコマンドが`@e`をFlutter、`@n`をnativeへ送ります。sourceでrefの取得元を上書きできません。`connect`は`session bind`の前後で利用できます。端末紐付けは利用者による宣言であり、両接続が同じアプリを対象とすることの検証ではありません。
 
 ```sh
-marionette-agent --session app native snapshot --platform ios --device IOS_UDID
-marionette-agent --session app native tap @n1 --platform ios --device IOS_UDID
-marionette-agent --session app native snapshot --platform ios --device IOS_UDID
+marionette-agent --session app snapshot
+marionette-agent --session app tap @e1
+marionette-agent --session app snapshot
+marionette-agent --session app tap @n1
 marionette-agent --session app snapshot
 ```
 
-refの代わりに`--text`・`--identifier`・`--type`の完全一致を指定できます。0件または複数件の一致では入力せず失敗します。nativeの`@n` refとFlutterの`@e` refは相互利用できません。
+nativeの完全一致`--text`・`--identifier`・`--type`には`--source native`を付けます。指定なしのselectorと座標は従来のFlutterの意味です。0件・複数件の一致では入力しません。既知のnative alertではFlutter入力を拒否し、混在snapshotのFlutter refを抑止します。それ以外の遮蔽は不明なため、ピッカーがFlutterを覆う場合は端末を確認してnative側を選びます。
 
-## 写真の選択とスワイプ
+## 写真の選択とswipe
 
-アプリからピッカーを開き、`native snapshot`で観測して、現在の写真や確定ボタンのrefをtapします。swipeの座標は現在の端末画面や観測したboundsから決め、結果を再観測して新しいrefを使ってください。次の座標とrefは例であり、全端末に共通のピッカー位置ではありません。
+`tap`でピッカーを開き、`snapshot`で観測し、現在の写真・確定ボタンのrefをtapします。同じ`swipe`が両取得元のrefと指の方向を受け付けます。nativeの距離はその画面座標系の単位です。以下のref・座標は例なので、現在の端末のboundsを先に確認してください。
 
 ```sh
-marionette-agent --session app native swipe --platform android --device emulator-5554 \
+marionette-agent --session app swipe @e2 left --distance 200
+marionette-agent --session app snapshot
+marionette-agent --session app swipe @n8 up --distance 200
+marionette-agent --session app snapshot
+marionette-agent --session app swipe --source native \
   --start-x 360 --start-y 1000 --end-x 360 --end-y 400
-marionette-agent --session app native snapshot --platform android --device emulator-5554
-marionette-agent --session app native tap @n8 --platform android --device emulator-5554
+marionette-agent --session app snapshot
+marionette-agent --session app tap --source native --text Allow
 ```
 
-座標指定の`tap --x X --y Y`も使えます。iOSの座標はscreen pointで、dragにはOS既定の速度を使います。Androidは物理pixelを整数へ丸め、swipeは60 step（約300ms）で実行します。画面の向きとscaleに注意してください。アクセシビリティで取得できないコントロールがあり、空またはrootのみのsnapshotでは制限を返します。座標への自動fallbackは行いません。対象がなければSimulator・エミュレータの画面を直接確認してください。画面撮影は別機能です。
+native座標tapは`tap --source native --x X --y Y`です。iOSはscreen pointsと標準drag速度、Androidは整数へ丸めた画面pixelと60 swipe steps（約300ms）を使います。向き・倍率を考慮してください。座標への代替や取得元を切り替えた再送は行いません。native snapshotはcompactと完全一致text/identifier/type filterに対応し、interactive・depth・key filterには`--source flutter`を使います。nativeのfill等の未対応操作は入力前に拒否します。
 
 ## ref・policy・エラー
 
-native snapshotは`source: native`、platform、device、座標単位、generation、bounds付きの正規化要素を返します。`--json`・`--content-boundaries`・`--max-output`・期限・通常のエラー包絡を適用します。refのtapではboundsを含む全要素情報を再観測してから1回だけ入力します。移動・消失・重複した対象では失敗します。観測と入力はOS上の不可分な操作ではありません。
+`--json`・`--content-boundaries`・`--max-output`・期限・通常のエラーを適用します。未公開refは使えません。ref操作では取得元を再観測してから1回入力し、移動・消失・重複した対象では失敗します。観測と入力はOS上の不可分な操作ではありません。
 
-native tap/swipeは同じ端末のnative refをsession横断で失効させ、daemon内の全Flutter refも失効させます。Flutterの変更操作はそのsessionのnative refを失効させます。読み取りはFlutter refを保持します。policyではtap/swipeを`native`として制御します。送信後の失敗・timeoutで`outcome: unknown`となった場合は、実画面を観測してから次を判断し、自動再送しないでください。
+native入力は同じ端末のnative refをsession横断で失効させ、daemon内の全Flutter refも失効させます。Flutter入力は自sessionと同じ端末に紐付いた他sessionの両観測を失効させます。再bindは両観測と承認待ちを失効します。snapshot以外の読み取りはrefを保持します。nativeのtap/swipeはpolicy actionの`native`を維持します。`outcome: unknown`では実画面を観測してから次を判断し、自動再送しません。
 
-MCPの`--tools core,native`は`marionette_agent_native_snapshot`・`marionette_agent_native_tap`・`marionette_agent_native_swipe`を公開します。毎回platformとdeviceが必要です。nativeはbatch・workflow v1には含めません。
+MCPの`core` profileは`marionette_agent_session_bind`・`marionette_agent_snapshot`・`marionette_agent_tap`・`marionette_agent_swipe`を公開します。旧nativeコマンド・native MCP tools・native profileは廃止しました。batchのtap/swipeとsnapshotは端末登録済みsessionで同じserviceへ送ります。workflowのsnapshotも両取得元を観測できますが、workflow v1の変更操作selectorはFlutterのみです。
 
 ## runnerを停止
 

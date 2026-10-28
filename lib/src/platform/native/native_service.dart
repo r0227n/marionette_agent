@@ -22,17 +22,19 @@ class NativeService {
           backends ??
           {'ios': const IosNativeUi(), 'android': const AndroidNativeUi()};
   final Map<String, NativeUiBackend> backends;
-  final _queues = <String, SerialQueue>{};
-  int _nextRef = 0, _generation = 0;
+  int _nextRef = 0;
 
-  Future<Json> handle(Execution execution, Iterable<Session> sessions) async {
-    final params = execution.request.params;
+  Future<Json> handle(
+    Execution execution,
+    Iterable<Session> sessions,
+    Json params,
+  ) async {
     validateNative(params);
     final platform = params['platform'] as String,
         device = params['device'] as String;
     final target = '$platform:$device';
-    // Multiple sessions may name one device. Serialize observation+dispatch.
-    return (_queues[target] ??= SerialQueue()).run(() async {
+    // Caller holds the device queue across observation and dispatch.
+    return await (() async {
       execution.check();
       try {
         final backend = backends[platform];
@@ -56,7 +58,8 @@ class NativeService {
         // a system-hosted surface or the app never becomes idle.
         final elements =
             params['action'] == 'snapshot' ||
-                (params['action'] == 'tap' && !params.containsKey('x'))
+                (params['action'] == 'tap' && !params.containsKey('x')) ||
+                (params['action'] == 'swipe' && params.containsKey('direction'))
             ? await backend.inspect(device, deadline)
             : <NativeElement>[];
         execution.check();
@@ -82,7 +85,6 @@ class NativeService {
           session.nativeObservation = _Observation(target, refs);
           return {
             ...metadata,
-            'generation': ++_generation,
             'elements': rows,
             if (elements.isEmpty ||
                 elements.every((e) => e.type == 'Application'))
@@ -90,7 +92,7 @@ class NativeService {
           };
         }
         double? x, y;
-        if (params['action'] == 'tap') {
+        if (params['action'] == 'tap' || params.containsKey('direction')) {
           if (params.containsKey('x')) {
             x = nativeCoordinate(params['x']);
             y = nativeCoordinate(params['y']);
@@ -105,7 +107,7 @@ class NativeService {
                 throw const AgentError(
                   'STALE_REF',
                   'Native ref is stale',
-                  hint: 'Run native snapshot for this device',
+                  hint: 'Run snapshot again',
                 );
               }
               final fingerprint = jsonEncode(observed.refs[ref]!.toJson());
@@ -145,6 +147,32 @@ class NativeService {
             y = element.bounds.y + element.bounds.height / 2;
           }
         }
+        if (params['action'] == 'swipe' && params.containsKey('direction')) {
+          final distance = nativeCoordinate(params['distance'] ?? 200);
+          final direction = params['direction'];
+          params = {
+            ...params,
+            'startX': x,
+            'startY': y,
+            'endX':
+                x! +
+                (direction == 'left'
+                    ? -distance
+                    : direction == 'right'
+                    ? distance
+                    : 0),
+            'endY':
+                y! +
+                (direction == 'up'
+                    ? -distance
+                    : direction == 'down'
+                    ? distance
+                    : 0),
+          };
+          for (final key in ['startX', 'startY', 'endX', 'endY']) {
+            nativeCoordinate(params[key]);
+          }
+        }
         execution.check();
         session.nativeTarget = target;
         // VM connections do not prove which native device they belong to.
@@ -178,10 +206,11 @@ class NativeService {
           outcome: execution.sent ? Outcome.unknown : Outcome.notSent,
         );
       }
-    });
+    })();
   }
 
   void retainPublished(Session session, Json data) {
+    if (data['finalSnapshot'] is Map) data = asJson(data['finalSnapshot']);
     final observed = session.nativeObservation;
     if (observed is! _Observation || data['elements'] is! List) return;
     final refs = (data['elements'] as List)

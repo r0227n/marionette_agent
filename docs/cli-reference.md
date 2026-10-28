@@ -51,19 +51,18 @@ Start with the [agent integration guide](https://r0227n.github.io/marionette_age
 
 | Profile | Tool suffixes |
 | --- | --- |
-| `core` (default) | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show |
+| `core` (default) | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show, session_bind |
 | `inspect` | get_value, is_enabled, is_checked, logs, doctor, device_list |
 | `actions` | dblclick, focus, hover, check, uncheck, scrollintoview, type, select, press, keydown, keyup, keyboard_press, keyboard_type, keyboard_inserttext, clipboard_read, clipboard_write, clipboard_copy, clipboard_paste, drag |
 | `workflow` | workflow_run, workflow_validate, workflow_schema, batch, confirm, deny |
 | `record` | record_start, record_restart, record_stop, record_status |
-| `native` | native_snapshot, native_tap, native_swipe |
 | `all` | All of the above |
 
 `marionette_agent_tools_profiles` is always available. Find/diff/state/skills/install/upgrade are not exposed through MCP. `tools/list` returns up to 20 tools; pass its `nextCursor` as the next `cursor`. Omitted/null means the first page; invalid values or types return JSON-RPC `-32602`. Tools in disabled profiles cannot be called.
 
 Use each tool’s `inputSchema` as the input definition. A `target` contains exactly one of ref/key/identifier/text/type. Per-request `session`, `timeoutMs`, `maxOutput`, and `contentBoundaries` override startup settings. Connection, target resolution, policies, and ref expiration follow the CLI contract.
 
-Native tap targets instead accept exactly one native `@n` ref, text, identifier, or type; key and Flutter refs are invalid. Native calls require platform/device. The `native` action policy covers tap/swipe; read-only native tools are not mutation actions.
+`session_bind` associates platform/device with the session. Normal snapshot/tap/swipe accept the configured sources: `@e` refs route to Flutter and `@n` to native. Native selectors/coordinates use `source: native`; unqualified selectors remain Flutter. Native key targets are unsupported. Native tap/swipe retain the `native` action policy in addition to tap/swipe. The old native tools/profile are removed.
 
 CLI tools return `{exitCode,response}` in text and `structuredContent`, where response is the normal CLI envelope. Failures set `isError:true` and preserve code/outcome. Tools_profiles returns profile information directly. Inline screenshot images are limited to 16 MiB total; oversized or unreadable images yield saved paths and an omission reason.
 

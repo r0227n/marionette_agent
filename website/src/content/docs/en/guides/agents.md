@@ -44,7 +44,6 @@ The server runs as a child of the client and uses stdin/stdout for MCP messages.
 | `actions`        | Additional input, focus, check, drag, keyboard, clipboard                       |
 | `workflow`       | Workflows, batch, confirm, deny                                                 |
 | `record`         | Start, restart, inspect, and stop recordings                                    |
-| `native`         | Observe and operate native dialogs and photo pickers                            |
 | `all`            | All published MCP tools                                                         |
 
 Combine profiles with commas. Even `all` does not expose every CLI command: find, diff, state, and skills are among the CLI-only capabilities. Use `marionette_agent_tools_profiles` to inspect active profiles. Follow `nextCursor` when returned by `tools/list`.

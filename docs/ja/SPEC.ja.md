@@ -145,7 +145,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
 | `close [--all]` | 録画があれば確定し、選択session（--allは全session）を切断・破棄。対象不在も成功。Flutterアプリは終了しない |
 | `snapshot` | 観測を更新し、要素一覧とrefを返す |
-| `native snapshot\|tap\|swipe --platform ios\|android --device <id>` | 明示端末のnative前面画面を観測・操作する。Flutter接続は不要 |
+| `session bind --platform ios\|android --device <id>` | 明示端末のnative前面画面を観測・操作する。Flutter接続は不要 |
 | `get text <ref\|selector>` | 単一要素の観測textを返す |
 | `get box <ref\|selector>` | 単一要素のboundsをFlutter論理座標で返す |
 | `get count <selector>` | 完全一致する観測候補の件数を返す（ref不可） |
@@ -508,15 +508,15 @@ ranchu/goldfishのEmulatorで、単一display 0だけを対象とする。pairin
 
 ## ネイティブ端末UI
 
-`native snapshot|tap|swipe`は、毎回`--platform ios|android`と明示的な`--device`を必須とする。iOSはSimulatorのUUID、Androidはエミュレータserialを受け付ける。正しい要求はconnectなしでもnative専用sessionを保持できる。closeやidle終了は外部管理の端末・runnerの起動・終了・resetを行わない。batch・workflow v1には含めない。MCPの`native` profileは通常のprefix付きnative_snapshot/native_tap/native_swipeを公開する。ネイティブスクリーンショットはこの契約の対象外とする。
+`session bind --platform ios|android --device <id>`で選択sessionにnative端末を明示的に紐付ける。iOSはSimulator UUID、Androidはエミュレータserialを受け付ける。`connect <uri>`の前後どちらでもbindできるが、利用者が宣言した対応であり、VMとrunnerが同じアプリを対象とする証明ではない。再bindで両観測と承認待ち要求を失効する。VMなしでも利用でき、close/idle終了で外部管理の端末・runnerを停止しない。`native`コマンドとMCP native profile/toolsは廃止し、core MCPのsession_bind、snapshot、tap、swipeに統合する。
 
-snapshotは`source:native`、`platform`、`device`、`coordinateSpace`、`generation`、`elements`を返す。正規化要素はtype、text、identifier、value、package、enabled、boundsとref/reasonを持つ。iOSはXCUIElementSnapshotのlabel・identifier・value・enabled・frame・childrenを読む。システムalertがある場合、または設定したアプリが前面にない場合はSpringBoard、それ以外は設定したアプリを観測する。AndroidはUiDeviceのdepth-zero rootからUiObject2の属性・childrenを読む。textが空ならcontent-description、identifierはresource nameとする。取得できないコントロールもあり、空/rootのみならlimitationを返す。
+`snapshot`は端末未登録ならFlutterのみ、VMなしならnativeのみ、bindとconnectの両方があれば両方を観測する。`--source flutter|native|all`で明示選択できる。公開snapshotは毎回両方の前回観測を置換する。混在結果はelements、公開generation、各行のsource/coordinateSpace、取得元別status/limitationを持つ。短い出力でもmodalを確認しやすいようnative行を先に出し、両取得元とも未公開refは使えない。要求した取得が両方成功してから公開し、失敗時は両方の観測を失効する。nativeの空/rootのみはlimitedであり、画面が空だという保証ではない。取得元をまたぐ同時性は保証せず、重複要素は統合しない。nativeのinteractive/depth/key filterは非対応で、compactと完全一致text/identifier/type filterに対応する。
 
-tapは`@nN` ref、完全一致のtext/identifier/type selector、x/yのいずれか1つを受け付ける。native refとFlutterの`@eN`は相互利用できない。native snapshotはsession内の前回native refを置換し、Flutter refは保持する。再観測ではboundsを含む正規化要素全体を比較し、refが0件ならSTALE_REF、selectorが0件ならTARGET_NOT_FOUND、複数ならAMBIGUOUS_TARGET、無効化/不正boundsならUNRESOLVABLE_TARGETとする。同一内容の重複要素とアプリrootにはrefを発行しない。観測矩形の中心へ入力を1回送る。観測と入力はatomicではなく、OS上の永続的な同一性を保証しない。座標への暗黙fallbackは行わない。
+通常の`tap`と`swipe`がFlutterの`@eN`とnativeの`@nN`を受け付ける。取得元はsessionのref登録情報で決まり、上書きできない。nativeのselector・座標には`--source native`を指定し、指定なしのselector・座標は従来のFlutterの意味を維持する。native tapはref、完全一致text/identifier/type selector、x/yのいずれか1つを受け付ける。native ref/selector操作はboundsを含む正規化要素全体を再観測・照合する。refが0件ならSTALE_REF、selectorが0件ならTARGET_NOT_FOUND、複数ならAMBIGUOUS_TARGET、無効bounds/disabledならUNRESOLVABLE_TARGET。同一内容の重複要素とアプリrootにはrefを出さない。自動再送・別取得元への切替は行わず、fill等の未対応native操作は入力前に拒否する。
 
-明示tap座標とswipeのstartX/startY/endX/endYは0〜10,000,000の有限数で、swipeの始終点は異なること。iOSはscreen_pointsで、XCUICoordinateのtap・press-and-dragとOS既定の速度を使う。Androidはscreen_pixelsを整数へ丸め、UiDevice.click/swipeを60 step（約300ms）で実行する。明示座標操作ではアクセシビリティ取得を必須にしない。呼出側は現在の実画面または観測boundsを確認し、scale/orientationを考慮する。
+native座標はiOSがscreen_points、Androidがscreen_pixels。明示座標swipeは--start-x/--start-y/--end-x/--end-yを使う。ref/selector swipeは観測矩形の中心を始点に指定方向へ--distance（既定200、取得元の座標単位）だけ動かす。端点は有限・非負・相互に異なり10,000,000以下で、暗黙のclampや座標fallbackは行わない。明示座標入力はアクセシビリティ取得を要求しない。iOSはplatform既定のdrag速度、Androidは整数丸めと60 swipe stepsを使う。scale・回転は呼出側が考慮する。
 
-native要求はsession queue・期限・policy・エラー契約を共有し、同じdaemon内の同じ端末では観測から操作まで直列化する。tap/swipeのpolicy actionは`native`で、読み取りには変更操作の承認を要しない。native入力は同じ端末のnative refをsession横断で失効させ、VM endpointから端末同一性を証明できないためdaemon内の全Flutter refも失効させる。Flutter変更操作は自sessionのnative refを失効させる。出力上限で未公開になったrefを削除し番号を再利用せず、content boundariesでnative行も未信頼と示す。送信前の失敗はnot_sent、送信後の失敗・timeoutはunknownとし、UI操作を自動再送しない。別runtimeや外部担当との端末利用は別途直列化が必要。
+session queueと共通device queueで、同daemon内の紐付け済みFlutter/nativeコマンドを直列化する。native入力は同端末のnative refsとdaemon全体のFlutter refsを失効する。宣言されたVM/device対応を証明とみなさないためである。Flutter入力は自sessionの両refと同端末に紐付く別sessionのrefsを失効する。既知のiOS Alert/Android permission-controller観測があればFlutter refを抑止し、入力前にも拒否する。それ以外の遮蔽はunknown。native入力にはtap（clickはtapの別名）またはswipeに加えnative policyを適用し、通常コマンド経由でもnative deny/confirmを迂回できない。snapshotは読み取り扱い。bind変更で承認待ちを失効する。batchも共通router/policyを使う。workflow v1の操作selectorはFlutter限定のままだがfinalSnapshotには両方を含められる。get/is/find/wait/diffは従来のFlutter限定の意味を維持する。出力制限・未信頼content boundariesは両取得元へ適用する。送信後の失敗/timeoutはunknownで、自動再送しない。
 
 daemonは`MARIONETTE_AGENT_NATIVE_RUNNERS`を最大64 KiBのJSONファイルのpathとして読む。形式は`{ "ios": { "UUID": { "port": 18741, "token": "..." } }, "android": { "SERIAL": { "port": 18742, "token": "..." } } }`とし、portは1〜65535の整数、tokenは`[A-Za-z0-9_-]`に一致する32〜128文字だけを許可する。接続先はIPv4 loopbackに固定し、remote hostは設定できない。端末設定の欠落はUNSUPPORTED_CAPABILITY、設定読取・接続失敗はIO_ERROR、不正wire dataはBACKEND_ERROR、期限超過はTIMEOUTとする。診断にtoken・画面文言・runnerの例外詳細を出力しない。
 

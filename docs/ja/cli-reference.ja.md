@@ -51,19 +51,18 @@ checkは`success`、`failure`、`unknown`、`skipped`です。診断を返せれ
 
 | Profile | Tool名の末尾 |
 | --- | --- |
-| `core`（既定） | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show |
+| `core`（既定） | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show, session_bind |
 | `inspect` | get_value, is_enabled, is_checked, logs, doctor, device_list |
 | `actions` | dblclick, focus, hover, check, uncheck, scrollintoview, type, select, press, keydown, keyup, keyboard_press, keyboard_type, keyboard_inserttext, clipboard_read, clipboard_write, clipboard_copy, clipboard_paste, drag |
 | `workflow` | workflow_run, workflow_validate, workflow_schema, batch, confirm, deny |
 | `record` | record_start, record_restart, record_stop, record_status |
-| `native` | native_snapshot, native_tap, native_swipe |
 | `all` | 上記すべて |
 
 `marionette_agent_tools_profiles`は常に利用できます。find/diff/state/skills/install/upgradeはMCPに公開していません。`tools/list`は20件ずつで、返却された`nextCursor`を次の`cursor`へ渡します。省略/nullは先頭、不正値・型はJSON-RPC `-32602`です。無効profileのtoolは呼べません。
 
 各toolの`inputSchema`を入力の正本として使用してください。`target`はref/key/identifier/text/typeのいずれか1つです。要求の`session`、`timeoutMs`、`maxOutput`、`contentBoundaries`は起動時指定より優先します。接続・対象解決・policy・ref失効はCLIと同じです。
 
-native tapのtargetはnativeの`@n` ref・text・identifier・typeのいずれか1つで、keyとFlutter refは不可です。native呼出しにはplatform/deviceが必須です。action policyの`native`はtap/swipeを対象とし、native読み取りは変更操作に含めません。
+`session_bind`でplatform/deviceをsessionに紐付けます。通常のsnapshot/tap/swipeが設定済みの取得元を扱い、`@e` refをFlutter、`@n` refをnativeへ送ります。nativeのselector/座標には`source: native`を指定し、指定なしのselectorはFlutterです。nativeのkey対象は未対応です。native tap/swipeはtap/swipeに加えてaction policyの`native`を維持します。旧native tools/profileは廃止しました。
 
 CLI toolのtextと`structuredContent`には`{exitCode,response}`を返し、responseは通常のCLI包絡です。失敗は`isError:true`でcode/outcomeを保持します。tools_profilesはprofile情報を直接返します。screenshotのinline画像は合計16 MiBまでで、超過・読込失敗は保存pathと省略理由を返します。
 

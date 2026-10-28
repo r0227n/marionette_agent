@@ -74,9 +74,11 @@ String _decision(Json policy, String action) {
 }
 
 Set<String> _actions(String command, Json params) {
-  if (command == 'native' &&
-      ['snapshot', 'screenshot'].contains(params['action'])) {
-    return {};
+  if (['tap', 'click', 'swipe'].contains(command) &&
+      (params['source'] == 'native' ||
+          (params['ref'] is String &&
+              (params['ref'] as String).startsWith('@n')))) {
+    return {command == 'click' ? 'tap' : command, 'native'};
   }
   if (command == 'find') {
     validateFind(params);

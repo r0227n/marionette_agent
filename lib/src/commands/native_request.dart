@@ -13,7 +13,7 @@ void validateNative(Json params) {
           !RegExp(r'^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$')
               .hasMatch(device))) {
     invalid(
-      'native requires an action, --platform ios|android and an explicit --device id',
+      'Device binding requires --platform ios|android and an explicit --device id',
     );
   }
   final allowed = <String>{'action', 'platform', 'device'};
@@ -46,6 +46,18 @@ void validateNative(Json params) {
         nativeCoordinate(params['y']);
       }
     case 'swipe':
+      if (params.containsKey('direction')) {
+        final target = {...params}
+          ..remove('direction')
+          ..remove('distance');
+        validateNative({...target, 'action': 'tap'});
+        if (params.containsKey('x') ||
+            !['left', 'right', 'up', 'down'].contains(params['direction']) ||
+            nativeCoordinate(params['distance'] ?? 200) <= 0) {
+          invalid('Invalid native swipe');
+        }
+        return;
+      }
       allowed.addAll(['startX', 'startY', 'endX', 'endY']);
       for (final key in ['startX', 'startY', 'endX', 'endY']) {
         nativeCoordinate(params[key]);
@@ -65,4 +77,20 @@ double nativeCoordinate(Object? value) {
     invalid('Native coordinates must be finite numbers from 0 to 10000000');
   }
   return value.toDouble();
+}
+
+/// Source selection never changes the interpretation of an existing ref.
+Json validateUiSource(Json params) {
+  final source = params['source'];
+  if (params.containsKey('source') && !['flutter', 'native'].contains(source)) {
+    invalid('Expected source flutter or native');
+  }
+  final ref = params['ref'];
+  if (source != null &&
+      ref is String &&
+      ((ref.startsWith('@n') && source != 'native') ||
+          (ref.startsWith('@e') && source != 'flutter'))) {
+    invalid('Source conflicts with ref');
+  }
+  return {...params}..remove('source');
 }

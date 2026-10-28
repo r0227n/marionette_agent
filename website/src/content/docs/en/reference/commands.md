@@ -48,15 +48,16 @@ Directions are `left`, `right`, `up`, and `down`, describing **finger movement**
 
 ## Native device UI
 
-All commands below require `--platform ios|android --device ID`. No Flutter VM connection is required. See the [native UI guide](/marionette_agent/en/guides/native-ui/) for setup, coordinate units, and the photo-picker workflow.
+Bind once with `session bind --platform ios|android --device ID`, then use the ordinary commands. No VM is required for native-only use. See the [native UI guide](/marionette_agent/en/guides/native-ui/) for runner setup, mixed observations and limitations.
 
-| Syntax                                                       | Behavior                                        |
-| ------------------------------------------------------------ | ----------------------------------------------- |
-| `native snapshot`                                            | Observe OS accessibility and issue `@n` refs    |
-| `native tap REF`                                             | Reobserve, validate, and tap one native element |
-| `native tap --text TEXT`                                     | Exact text; identifier/type are alternatives    |
-| `native tap --x X --y Y`                                     | Explicit device-screen coordinates              |
-| `native swipe --start-x X --start-y Y --end-x X2 --end-y Y2` | One platform-native finger gesture              |
+| Syntax                                                                | Behavior                                              |
+| --------------------------------------------------------------------- | ----------------------------------------------------- |
+| `snapshot [--source flutter\|native\|all]`                            | Observe configured sources and publish refs           |
+| `tap REF`                                                             | Reobserve and route `@e` to Flutter or `@n` to native |
+| `tap --source native --text TEXT`                                     | Native exact text; identifier/type are alternatives   |
+| `tap --source native --x X --y Y`                                     | Native screen coordinates                             |
+| `swipe REF DIRECTION --distance N`                                    | Gesture in the ref's source coordinate space          |
+| `swipe --source native --start-x X --start-y Y --end-x X2 --end-y Y2` | Native screen-coordinate gesture                      |
 
 ## Additional interactions
 

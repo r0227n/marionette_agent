@@ -143,13 +143,17 @@ String render(
         'Configured: ${data['configured']}',
       if (field == 'entries' && data['limitation'] != null)
         '${data['limitation']}',
-      if (data['source'] == 'native' && data['limitation'] != null)
+      if (data['sources'] != null) 'Sources: ${jsonEncode(data['sources'])}',
+      if (data['occlusion'] != null) 'Occlusion: ${data['occlusion']}',
+      if (data['limitation'] != null && data['elements'] is List)
         '${data['limitation']}',
       if (boundary != null)
         '--- BEGIN UNTRUSTED $source ${boundary['nonce']} ---',
       ...items.map((item) => contentItem(item, field, false)),
       if (boundary != null)
         '--- END UNTRUSTED $source ${boundary['nonce']} ---',
+      if (data['sourceCounts'] != null)
+        'Source counts: ${jsonEncode(data['sourceCounts'])}',
       if (data.containsKey('truncated'))
         'Truncated: ${data['truncated']}; originalCount: ${data['originalCount']}; omittedCount: ${data['omittedCount']}',
     ].join('\n');

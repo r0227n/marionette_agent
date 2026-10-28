@@ -7,6 +7,7 @@ import '../commands/registry.dart';
 import '../protocol/protocol.dart';
 import '../session/session.dart';
 import '../snapshot/snapshot_service.dart';
+import '../snapshot/ui_service.dart';
 import 'model.dart';
 
 /// Parent lifetime is pinned to the connection generation acquired by this queue entry.
@@ -18,8 +19,10 @@ class WorkflowExecution {
     this.snapshots,
     this.commands, {
     this.screenCapturer,
+    this.ui,
   }) : epoch = session.epoch;
   final ScreenCapturer? screenCapturer;
+  final UiService? ui;
   final screenshots = <Json>[];
   final Request request;
   final Session session;
@@ -104,6 +107,7 @@ class WorkflowExecution {
           child,
           snapshots,
           screenCapturer: screenCapturer,
+          ui: ui,
         );
         final result = await child.bound(
           () => commands.dispatch(context, step.action, step.params),
