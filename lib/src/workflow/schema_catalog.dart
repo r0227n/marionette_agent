@@ -371,7 +371,8 @@ const _schema = r'''{
         "source": {
           "enum": [
             "ios-simulator",
-            "ios-device"
+            "ios-device",
+            "android-emulator"
           ]
         },
         "device": {

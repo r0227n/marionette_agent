@@ -115,3 +115,5 @@ See [capture](/marionette_agent/en/guides/capture/) for file requirements and pl
 Batch stops at the first failure and cannot contain connection-lifetime operations, recording, or file-saving commands. See [configuration](/marionette_agent/en/reference/configuration/) for action policies and state files.
 
 For provider behavior, matching rules, and action limits, see the [advanced operation details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-parity.md).
+
+Android screenshots: use `--source android-emulator --device <private-pairing-file>`. The iOS default and other commands are unchanged.

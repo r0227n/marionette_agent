@@ -122,3 +122,7 @@ marionette-agent --session web-demo record start ./web.mov --platform web \
 Displays range from 1–999. Screen recording permission is required. The entire display, including other visible apps and OS dialogs, is captured. Chrome placement is neither checked nor followed when it moves. Device strings cannot contain localhost, remote hosts, credentials, queries, or fragments. Headless Chrome is unsupported in this mode.
 
 Web/macOS recordings on the same display are mutually exclusive. Tab closure, crashes, or debug disconnection produce CONNECTION_LOST, failed status, and an error from stop. Inspect the recovery path. See the [Web recording design](web-recording.md) for the implementation rationale and startup examples.
+
+### Android acquisition
+
+Select `--source android-emulator` explicitly for screenshot or diff screenshot. `--device` is a private pairing file, not a serial; relative paths resolve in the caller's cwd. MCP and workflow use the same source/device fields and save path. Result method is uiautomator; dimensions and orientation use the existing physical-pixel fields. The paired agent must already be running. See [Android capture constraints](SPEC.md#android-emulator-screenshots).

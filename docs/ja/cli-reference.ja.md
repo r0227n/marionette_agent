@@ -122,3 +122,7 @@ marionette-agent --session web-demo record start ./web.mov --platform web \
 displayは1〜999です。画面収録許可が必要で、指定display全体に映る他アプリやOSダイアログも含みます。Chromeの配置確認・移動追従はしません。localhost、remote host、認証情報、query、fragmentはdeviceに使えません。headless Chromeはこの方式では非対応です。
 
 同一displayのWeb/macOS録画は排他です。対象tabの終了・crash・debug接続断はCONNECTION_LOSTとなり、statusはfailed、stopはエラーを返します。復旧pathを確認してください。方式と起動例の詳細は[Web録画設計](../web-recording.md)を参照してください。
+
+### Androidの取得元
+
+screenshotとdiff screenshotでは`--source android-emulator`を明示する。`--device`はserialではなく私有pairingファイルで、相対pathは呼出元cwdで解決する。MCPとworkflowは同じsource/deviceと保存経路を使う。methodはuiautomatorとなり、寸法と向きは既存の物理pixel fieldを使う。pairing先のagentは事前起動する。[Android撮影の制限](SPEC.ja.md#android-emulator-screenshots)を参照。

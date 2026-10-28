@@ -1,3 +1,7 @@
+## Unreleased
+
+- Add Android Emulator screenshots through a paired UI Automator agent using the existing screenshot, MCP and workflow routes.
+
 ## 1.0.0
 
 Source release via the `v1.0.0` Git tag and GitHub Release; pub.dev remains disabled.

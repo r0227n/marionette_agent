@@ -34,7 +34,11 @@ class IosScreenCapturer implements ScreenCapturer {
   // XCTest owns one host process at a time; serialize native observations even
   // across sessions. Expired queued work checks its deadline before any I/O.
   @override
-  Future<DeviceScreenshot> capture(String device, DateTime deadline) {
+  Future<DeviceScreenshot> capture(
+    String device,
+    DateTime deadline, {
+    String? source,
+  }) {
     final pending = _queue.then((_) async {
       try {
         return await _capture(device, deadline);

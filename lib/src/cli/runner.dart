@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:marionette_agent/src/platform/platform_services.dart';
 
+import '../commands/screenshot_request.dart';
 import '../daemon/client.dart';
 import '../daemon/runtime.dart';
 import '../diagnostics/diagnostic_logging.dart';
@@ -138,7 +139,16 @@ Future<int> runCli(
             'inputsValidated': bind,
           };
         }
-        params = {'workflow': document, 'inputs': inputs};
+        final normalized = asJson(document);
+        normalized['steps'] = [
+          for (final raw in normalized['steps'] as List)
+            {
+              ...asJson(raw),
+              if (asJson(raw)['action'] == 'screenshot')
+                'device': resolveScreenshotDevice(asJson(raw)),
+            },
+        ];
+        params = {'workflow': normalized, 'inputs': inputs};
       }
     }
     if (workflow && !deadline.isAfter(DateTime.now())) {
