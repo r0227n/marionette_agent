@@ -35,6 +35,12 @@ Future<Json> saveScreenshots(
   }
 
   checkDeadline();
+  if (data.containsKey('crop') || data.containsKey('annotations')) {
+    throw const AgentError(
+      'UNSUPPORTED_CAPABILITY',
+      'Screenshot crop and ref annotation were removed',
+    );
+  }
   if (destination != null) destination = format.destinationPath(destination);
   final payloads = data['images'];
   if (payloads is! List || payloads.isEmpty) {
@@ -49,20 +55,28 @@ Future<Json> saveScreenshots(
       final bytes = base64Decode(value);
       final decoded = PngDecoder().decode(bytes);
       if (decoded == null) throw const FormatException();
-      if (data['capture'] != null) {
+      checkDeadline();
+      images.add(bytes);
+      if (data['capture'] case final Map metadata) {
         if (payloads.length != 1 ||
             data.containsKey('crop') ||
             data.containsKey('annotations')) {
-          throw const FormatException();
+          throw const AgentError(
+            'UNSUPPORTED_CAPABILITY',
+            'Native capture requires one unmodified device image',
+          );
         }
         capture = {
-          ...asJson(data['capture']),
-          'width': decoded.width,
-          'height': decoded.height,
+          ...asJson(metadata),
+          'pixelWidth': decoded.width,
+          'pixelHeight': decoded.height,
+          'orientation': decoded.width == decoded.height
+              ? 'square'
+              : decoded.width > decoded.height
+              ? 'landscape'
+              : 'portrait',
         };
       }
-      checkDeadline();
-      images.add(bytes);
       // Synchronous codecs cannot be interrupted; never publish late output.
       checkDeadline();
     }
@@ -74,6 +88,7 @@ Future<Json> saveScreenshots(
       'Cannot decode or convert PNG screenshot',
     );
   }
+  // Encode the acquired pixels as JPEG.
   if (format == ScreenshotFormat.jpeg) {
     try {
       for (var i = 0; i < images.length; i++) {
@@ -83,6 +98,10 @@ Future<Json> saveScreenshots(
         // Flatten into opaque RGB before encoding. This also handles grayscale
         // alpha, palette/16-bit PNGs and padded JPEG edge blocks consistently.
         final rgb = Image(width: decoded.width, height: decoded.height);
+        // The pinned PNG decoder does not read eXIf. XCUIScreen uses that
+        // chunk for landscape display; retain its orientation without rotating pixels.
+        final orientation = _pngExifOrientation(images[i]);
+        if (orientation != null) rgb.exif.imageIfd.orientation = orientation;
         for (final pixel in decoded) {
           if (pixel.x == 0 && pixel.y % 256 == 0) checkDeadline();
           final alpha = pixel.aNormalized;
@@ -181,4 +200,39 @@ Future<Json> saveScreenshots(
       'Cannot save screenshots; check destination, permissions and existing files',
     );
   }
+}
+
+// Read only the standard TIFF IFD0 orientation from a PNG eXIf chunk. Bounds
+// checks keep malformed ancillary metadata from changing image persistence.
+int? _pngExifOrientation(Uint8List png) {
+  final bytes = ByteData.sublistView(png);
+  for (var offset = 8; offset + 12 <= png.length;) {
+    final length = bytes.getUint32(offset);
+    if (length > png.length - offset - 12) return null;
+    if (bytes.getUint32(offset + 4) == 0x65584966) {
+      // eXIf
+      final tiff = ByteData.sublistView(png, offset + 8, offset + 8 + length);
+      if (tiff.lengthInBytes < 8) return null;
+      final order = tiff.getUint16(0);
+      if (order != 0x4949 && order != 0x4d4d) return null;
+      final endian = order == 0x4949 ? Endian.little : Endian.big;
+      if (tiff.getUint16(2, endian) != 42) return null;
+      final ifd = tiff.getUint32(4, endian);
+      if (ifd > tiff.lengthInBytes - 2) return null;
+      final count = tiff.getUint16(ifd, endian);
+      for (var i = 0; i < count; i++) {
+        final entry = ifd + 2 + 12 * i;
+        if (entry > tiff.lengthInBytes - 12) return null;
+        if (tiff.getUint16(entry, endian) == 0x0112 &&
+            tiff.getUint16(entry + 2, endian) == 3 &&
+            tiff.getUint32(entry + 4, endian) == 1) {
+          final value = tiff.getUint16(entry + 8, endian);
+          return value >= 1 && value <= 8 ? value : null;
+        }
+      }
+      return null;
+    }
+    offset += length + 12;
+  }
+  return null;
 }

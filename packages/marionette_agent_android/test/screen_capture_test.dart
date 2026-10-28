@@ -157,9 +157,10 @@ void main() {
       final image = await capturer.capture(file.path, deadline());
       await serving;
       expect(utf8.decode(image.png), 'image');
-      expect(image.source, 'android-uiautomator');
+      expect(image.source, 'android-emulator');
+      expect(image.method, 'uiautomator');
       expect(image.device, 'fixture');
-      expect(image.display, 0);
+      expect(image.display, '0');
       expect(requests, 1);
     },
   );

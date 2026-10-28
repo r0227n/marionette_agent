@@ -38,6 +38,8 @@ class ConnectorFixture extends VmServiceConnector {
   @override
   Future<Map<String, dynamic>> getInteractiveElements() => call({});
   @override
+  Future<Map<String, dynamic>> takeScreenshots() => call({});
+  @override
   Future<Map<String, dynamic>> getLogs() => call({});
   @override
   Future<Map<String, dynamic>> callCustomExtension(
@@ -216,6 +218,7 @@ void main() {
       await expectLater(backend.inspect(), backendError);
     });
   });
+
   test('URI preserves authentication and normalizes websocket suffix', () {
     expect(
       normalizeUri('https://localhost:123/token/?auth=secret').toString(),
@@ -267,7 +270,7 @@ void main() {
       );
     },
   );
-  test('response status, error sanitization and log shapes', () async {
+  test('response status, error sanitization, image/log shapes', () async {
     final c = ConnectorFixture();
     final b = MarionetteBackend(connector: c);
     c.response = {'message': 'Success'};

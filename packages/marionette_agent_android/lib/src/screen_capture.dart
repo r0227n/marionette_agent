@@ -13,15 +13,25 @@ class AndroidScreenCapturer implements ScreenCapturer {
   const AndroidScreenCapturer();
 
   @override
-  Future<CapturedScreen> capture(String device, DateTime deadline) async {
+  Future<DeviceScreenshot> capture(
+    String device,
+    DateTime deadline, {
+    String? source,
+  }) async {
     final result = await _request(device, deadline, 'capture');
-    return CapturedScreen(
-      result.png,
-      source: 'android-uiautomator',
+    return DeviceScreenshot(
+      png: result.png,
+      source: 'android-emulator',
+      method: 'uiautomator',
       device: result.device,
-      display: 0,
+      runtime: 'android-emulator',
+      display: '0',
+      mask: 'system-default',
     );
   }
+
+  @override
+  Future<void> dispose() async {}
 
   Future<void> stopAgent(String pairingFile, DateTime deadline) async {
     await _request(pairingFile, deadline, 'stop');

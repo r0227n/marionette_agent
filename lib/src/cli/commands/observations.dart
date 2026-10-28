@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:args/args.dart';
 
 import '../../backend/backend.dart';
@@ -34,25 +32,27 @@ CliCommand snapshotCommand() {
   });
 }
 
-CliCommand screenshotCommand() {
-  final parser = ArgParser()
-    ..addOption('platform', allowed: ['android'], defaultsTo: 'android')
-    ..addOption('device')
-    ..addOption('display');
-  return CliCommand(parser, (args) {
-    if (args.rest.length > 1 ||
-        (args.rest.isNotEmpty &&
-            (args.rest.single.isEmpty || args.rest.single.startsWith('@')))) {
-      invalid('Usage: screenshot [path] --device <pairing-file>');
+CliCommand screenshotCommand() => CliCommand(
+  ArgParser()
+    ..addOption('source', allowed: screenshotSources)
+    ..addOption('device'),
+  (args) {
+    if (args.rest.length > 1) {
+      invalid('Usage: screenshot --device <UDID> [path]');
+    }
+    if (args.rest.isNotEmpty &&
+        RegExp(r'^@e[0-9]+$').hasMatch(args.rest.single)) {
+      invalid(
+        'Screenshot ref/crop targets have been removed; specify an output path',
+      );
     }
     final params = <String, Object?>{
-      'platform': 'android',
       'device': args.option('device'),
-      if (args.wasParsed('display')) 'display': args.option('display'),
+      if (args.wasParsed('source')) 'source': args.option('source'),
       if (args.rest.isNotEmpty) 'path': args.rest.single,
     };
-    screenshotTarget(params);
-    params['device'] = File(params['device'] as String).absolute.path;
+    validateScreenshotRequest(params);
+    params['device'] = resolveScreenshotDevice(params);
     return params;
-  });
-}
+  },
+);

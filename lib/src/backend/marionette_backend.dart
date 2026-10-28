@@ -13,7 +13,11 @@ import 'backend.dart';
 
 /// The only production module allowed to import upstream internal APIs.
 class MarionetteBackend
-    implements Backend, InteractionBackend, ClipboardBackend {
+    implements
+        Backend,
+        InteractionBackend,
+        ClipboardBackend,
+        ScreenshotConnectionBackend {
   MarionetteBackend({VmServiceConnector? connector})
     : _connector = connector ?? VmServiceConnector();
   final VmServiceConnector _connector;
@@ -77,6 +81,18 @@ class MarionetteBackend
       'Binding rejected the operation',
       outcome: Outcome.failed,
     );
+  }
+
+  @override
+  Future<ScreenshotConnection> openScreenshotConnection(Uri uri) async {
+    final isolated = MarionetteBackend();
+    try {
+      await isolated._call(() => isolated._connector.connect(uri.toString()));
+      return _MarionetteScreenshots(isolated);
+    } catch (_) {
+      await isolated._connector.disconnect().catchError((Object _) {});
+      rethrow;
+    }
   }
 
   @override
@@ -352,6 +368,18 @@ class MarionetteBackend
     return _action(() => _connector.swipe(args));
   }
 
+  // Private frame acquisition for continuous Flutter recording only.
+  Future<List<String>> _captureRecordingFrames() => _call(() async {
+    final images = validateResponse(
+      await _connector.takeScreenshots(),
+    )['screenshots'];
+    if (images is! List ||
+        images.isEmpty ||
+        images.any((e) => e is! String || e.isEmpty)) {
+      throw const AgentError('BACKEND_ERROR', 'No valid screenshots returned');
+    }
+    return images.cast<String>();
+  });
   @override
   Future<LogBatch> readLogs() => _call(() async {
     Map<String, dynamic> response;
@@ -403,4 +431,14 @@ class MarionetteBackend
     }
     return {...response}..remove('status');
   });
+}
+
+/// This connection never discovers interaction providers or releases UI keys.
+class _MarionetteScreenshots implements ScreenshotConnection {
+  _MarionetteScreenshots(this.backend);
+  final MarionetteBackend backend;
+  @override
+  Future<List<String>> capture() => backend._captureRecordingFrames();
+  @override
+  Future<void> close() => backend._call(backend._connector.disconnect);
 }

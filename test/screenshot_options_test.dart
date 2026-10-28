@@ -12,13 +12,13 @@ void main() {
   test('screenshot defaults and common inheritance include help/version and nested commands', () {
     final defaults = parser.parse([
       'screenshot',
-      '--device=test-pairing',
+      '--device=11111111-2222-3333-4444-555555555555',
     ]).options;
     expect(defaults.screenshotFormat, ScreenshotFormat.png);
     expect(defaults.screenshotQuality, 90);
     final flags = ['--screenshot-format', 'jpeg', '--screenshot-quality', '0'];
     for (final command in [
-      ['screenshot', '--device=test-pairing'],
+      ['screenshot', '--device=11111111-2222-3333-4444-555555555555'],
       ['snapshot'],
       ['logs'],
       ['connect', 'http://localhost:1/'],
@@ -76,7 +76,7 @@ void main() {
     ]) {
       final value = parser.parse([
         'screenshot',
-        '--device=test-pairing',
+        '--device=11111111-2222-3333-4444-555555555555',
         path,
         '--screenshot-format=jpeg',
         '--screenshot-quality=100',
@@ -84,7 +84,6 @@ void main() {
       expect(value.params['path'], path == 'image' ? 'image.jpg' : path);
       expect(value.options.screenshotQuality, 100);
       expect(value.params.keys, [
-        'platform',
         'device',
         'path',
       ]); // Conversion policy stays in the CLI.
@@ -92,7 +91,7 @@ void main() {
     expect(
       parser.parse([
         'screenshot',
-        '--device=test-pairing',
+        '--device=11111111-2222-3333-4444-555555555555',
         'image',
       ]).params['path'],
       'image.png',
@@ -100,27 +99,17 @@ void main() {
     expect(
       parser.parse([
         'screenshot',
-        '--device=test-pairing',
+        '--device=11111111-2222-3333-4444-555555555555',
         'image.PNG',
       ]).params['path'],
       'image.PNG',
     );
     for (final args in [
-      ['screenshot', '--device=test-pairing', 'image.jpg'],
-      ['screenshot', '--device=test-pairing', 'image.jpeg'],
-      ['screenshot', '--device=test-pairing', 'image.gif'],
-      [
-        'screenshot',
-        '--device=test-pairing',
-        'image.png',
-        '--screenshot-format=jpeg',
-      ],
-      [
-        'screenshot',
-        '--device=test-pairing',
-        'image.webp',
-        '--screenshot-format=jpeg',
-      ],
+      ['screenshot', 'image.jpg'],
+      ['screenshot', 'image.jpeg'],
+      ['screenshot', 'image.gif'],
+      ['screenshot', 'image.png', '--screenshot-format=jpeg'],
+      ['screenshot', 'image.webp', '--screenshot-format=jpeg'],
     ]) {
       expect(() => parser.parse(args), invalidArgument, reason: '$args');
     }
@@ -128,28 +117,17 @@ void main() {
 
   test('format and quality validation, duplicate/missing values recover JSON and session', () {
     final invalid = <List<String>>[
-      ['screenshot', '--device=test-pairing', '--screenshot-format'],
-      ['screenshot', '--device=test-pairing', '--screenshot-quality'],
-      ['screenshot', '--device=test-pairing', '--screenshot-format=jpg'],
-      ['screenshot', '--device=test-pairing', '--screenshot-format=JPEG'],
-      ['screenshot', '--device=test-pairing', '--screenshot-format='],
-      ['screenshot', '--device=test-pairing', '--screenshot-quality=90'],
-      [
-        'screenshot',
-        '--device=test-pairing',
-        '--screenshot-format=png',
-        '--screenshot-quality=90',
-      ],
-      [
-        '--screenshot-format=jpeg',
-        'screenshot',
-        '--device=test-pairing',
-        '--screenshot-format=jpeg',
-      ],
+      ['screenshot', '--screenshot-format'],
+      ['screenshot', '--screenshot-quality'],
+      ['screenshot', '--screenshot-format=jpg'],
+      ['screenshot', '--screenshot-format=JPEG'],
+      ['screenshot', '--screenshot-format='],
+      ['screenshot', '--screenshot-quality=90'],
+      ['screenshot', '--screenshot-format=png', '--screenshot-quality=90'],
+      ['--screenshot-format=jpeg', 'screenshot', '--screenshot-format=jpeg'],
       [
         '--screenshot-quality=90',
         'screenshot',
-        '--device=test-pairing',
         '--screenshot-quality=90',
         '--screenshot-format=jpeg',
       ],
@@ -167,7 +145,6 @@ void main() {
       ])
         [
           'screenshot',
-          '--device=test-pairing',
           '--screenshot-format=jpeg',
           '--screenshot-quality=$quality',
         ],
@@ -196,7 +173,6 @@ void main() {
     expect(
       () => parser.parse([
         'screenshot',
-        '--device=test-pairing',
         '--screenshot-format',
         '--json',
         '--unknown',

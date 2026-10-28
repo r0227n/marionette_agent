@@ -46,16 +46,21 @@ The final step takes a snapshot, so the successful result’s `finalSnapshot` le
 
 ## Available steps
 
-| Action             | Purpose                                         |
-| ------------------ | ----------------------------------------------- |
-| `screenshot`       | Capture Flutter or an explicit Android Emulator |
-| `snapshot`         | Refresh the observation                         |
-| `tap`              | Tap a selector-based target                     |
-| `fill`             | Replace a field’s text                          |
-| `swipe` / `scroll` | Send a directional gesture                      |
-| `wait`             | Wait for an element to appear or disappear      |
+| Action             | Purpose                                    |
+| ------------------ | ------------------------------------------ |
+| `snapshot`         | Refresh the observation                    |
+| `tap`              | Tap a selector-based target                |
+| `fill`             | Replace a field’s text                     |
+| `swipe` / `scroll` | Send a directional gesture                 |
+| `wait`             | Wait for an element to appear or disappear |
 
-A workflow contains 1–100 steps. Workflow v1 does not include branching, loops, shell execution, or workflow includes.
+A workflow contains 1–100 steps. Workflow v1 does not include branching, loops, shell execution, workflow includes, or parallel steps.
+
+## Save a screenshot step
+
+Add `action: screenshot` with a required literal Simulator UDID in `device`. Optional `source` defaults to `ios-simulator`; `path` is optional. Capture uses XCUIScreen. See [native capture](/marionette_agent/en/guides/capture/). A workflow with only native captures needs no connection. Paths resolve against the CLI caller's directory, and common screenshot format/quality/directory options apply. Crop and annotations are not workflow fields.
+
+Images are saved after successful workflow execution and returned under `screenshots`, paired with `stepId`. A failed step saves no images; a save failure removes new images and reports completed execution with `phase: screenshot-save`. Do not repeat UI actions to recover a save failure. Screenshots preserve the last valid snapshot. Large combined images remain subject to the IPC size limit.
 
 ## Separate input values
 
@@ -70,15 +75,3 @@ Execution stops at the first failure. Completed operations are not rolled back, 
 `--timeout` covers file reading, validation, queueing, and all steps. It is not reset for each step.
 
 The [workflow file reference](https://github.com/r0227n/marionette_agent/blob/develop/docs/workflow-file-spec.md) defines all fields, parser restrictions, limits, binding, and failure progress.
-
-## Save a screenshot in a workflow
-
-Add this step to a connected workflow, replacing the serial with your Emulator’s serial. The image uses the same native path as standalone CLI and MCP screenshots. Paths and capture metadata are returned after all steps succeed; a later step failure saves no images. See the [capture guide](/marionette_agent/en/guides/capture/) for source and protection limits.
-
-```yaml
-- id: system-screen
-  action: screenshot
-  platform: android
-  device: capture-pairing.json
-  path: artifacts/system.png
-```

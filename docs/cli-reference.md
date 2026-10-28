@@ -84,28 +84,15 @@ List data contains name/description objects; get contains name/content objects. 
 Install/upgrade AOT-compiles local source and installs an adjacent dedicated `.marionette-agent-*` bundle. Failed new installations clean up the new bundle and retain the existing executable. Upgrade keeps the old bundle for old running processes; remove it only after it is no longer needed. Use `skills path` to inspect the active location.
 
 <a id="capture"></a>
-## Image persistence
+## Image acquisition and persistence
+
+Screenshots default to ios-simulator and require `--device <UDID>`. The bundled XCTest runner recovers PNG from XCUIScreen.main.screenshot(); capture metadata includes method:xcuiscreen, display:main, mask:system-default, identity and dimensions. Allow time for first build/start with e.g. `--timeout 120000`. No connection is needed. Marionette still capture, crop and ref annotation are removed; physical-device source is unsupported. See the [acquisition contract](SPEC.md#native-ios-screenshots). MCP/workflow require device too, and image diff shares this XCUIScreen route.
 
 Start with the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/). An explicit path bypasses `--screenshot-dir` inspection. Directory-based names use `screen-<32 hex digits>.png` or `.jpg`; omitting both uses `screen.png` or `screen.jpg` in a private temporary directory. Multiple images add `-1`, `-2`, etc. before the extension.
 
 Accepted extensions are `.png` for PNG and `.jpg/.jpeg` for JPEG, case-insensitive while preserving spelling. Missing extensions are appended for the selected format. The extension does not infer the format. JPEG quality defaults to 90; 0 maps to encoder quality 1, and 100 is still lossy. PNG retains original bytes, dimensions, and transparency. JPEG retains dimensions and composites transparency onto white.
 
 Parent directories must exist. A symlink at the specified directory itself is rejected; ancestor symlinks are allowed. All images are validated/converted and all destinations reserved exclusively before writing. Existing files, directories, and symlinks are never overwritten. The deadline includes capture, conversion, and persistence. Failures attempt to remove created images; OS deletion refusal and immediate cancellation of active I/O cannot be guaranteed. Failures never return successful paths.
-
-<a id="native-android-capture"></a>
-## Native Android screenshot contract
-
-`screenshot [path] --device <pairing-file> [--platform android] [--display 0]` uses the separately started UI Automator instrumentation. Flutter capture, annotations, and element crop are removed from CLI, MCP and workflow. `--platform flutter`, refs/selectors and `--annotate` are rejected. There is no fallback. `diff screenshot` requires the same pairing file and a same-size PNG baseline.
-
-`--device` is a private regular pairing file (mode 0600, no symlink, at most 4096 bytes), not an ADB serial. Its version 1 fields are `device` (1–64 safe identifier characters), `port` (1024–65535), and `token` (64 lowercase hexadecimal characters). CLI, MCP and workflow resolve relative pairing paths against the caller's cwd before IPC. The token and raw peer diagnostics are never published. Setup and stop use [the agent project](../packages/marionette_agent_android/capture_agent/README.md).
-
-The host temporarily binds 127.0.0.1 on the explicit paired port. The Emulator connects through 10.0.2.2. Fresh nonce and mutual HMAC-SHA256 authenticate the agent and the capture/stop request without transmitting the secret. Only that logical device name is accepted; the pairing is not hardware attestation. No ADB process, shell capture, or forwarding is used by either capture component. Android test tools perform the separate APK provisioning and instrumentation startup.
-
-The agent calls `UiDevice.takeScreenshot(File)` and removes its private cache file after transfer. Only ranchu/goldfish Emulator hardware and one display 0 are supported; other hardware/topology is UNSUPPORTED_CAPABILITY. Rotation uses the composed display's current physical pixels, including visible bars, IME and OS overlays, with no logical-coordinate inference. Topology is a preflight, not a lock against external display changes.
-
-Result adds `capture:{source:"android-uiautomator",platform:"android",device,display:0,scope:"entire-display",coordinateSpace:"physical-pixels",protectedContent:"not-detectable",width,height}` to `paths`. The device is the paired logical name; dimensions come from decoding PNG. Shared saving retains PNG/JPEG conversion, exclusive creation, destination precedence, timeout and rollback. Images are bounded to 32 MiB, protocol JSON to 8192 bytes; the absolute deadline includes pairing read, waiting for the agent, authentication, capture, transfer and persistence. Deadline/failure closes owned sockets and never replays a received capture.
-
-Invalid/private-file violations yield INVALID_ARGUMENT; a busy paired port SESSION_CONFLICT; authentication/invalid frame/security denial IO_ERROR; disconnect CONNECTION_LOST; an absent/stalled agent TIMEOUT; undecodable PNG BACKEND_ERROR with no saved paths. Android may hide FLAG_SECURE content or reject capture. Only explicit API failure is reported; no black-pixel heuristic or protection bypass is used.
 
 <a id="recording"></a>
 ## Recording lifetime and recovery
@@ -135,3 +122,7 @@ marionette-agent --session web-demo record start ./web.mov --platform web \
 Displays range from 1–999. Screen recording permission is required. The entire display, including other visible apps and OS dialogs, is captured. Chrome placement is neither checked nor followed when it moves. Device strings cannot contain localhost, remote hosts, credentials, queries, or fragments. Headless Chrome is unsupported in this mode.
 
 Web/macOS recordings on the same display are mutually exclusive. Tab closure, crashes, or debug disconnection produce CONNECTION_LOST, failed status, and an error from stop. Inspect the recovery path. See the [Web recording design](web-recording.md) for the implementation rationale and startup examples.
+
+### Android acquisition
+
+Select `--source android-emulator` explicitly for screenshot or diff screenshot. `--device` is a private pairing file, not a serial; relative paths resolve in the caller's cwd. MCP and workflow use the same source/device fields and save path. Result method is uiautomator; dimensions and orientation use the existing physical-pixel fields. The paired agent must already be running. See [Android capture constraints](SPEC.md#android-emulator-screenshots).

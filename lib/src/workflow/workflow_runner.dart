@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
+
 import '../commands/command_context.dart';
 import '../commands/registry.dart';
 import '../protocol/protocol.dart';
@@ -10,8 +12,15 @@ import 'model.dart';
 /// Parent lifetime is pinned to the connection generation acquired by this queue entry.
 /// Each child retains its own one-mutation guard and error classification.
 class WorkflowExecution {
-  WorkflowExecution(this.request, this.session, this.snapshots, this.commands)
-    : epoch = session.epoch;
+  WorkflowExecution(
+    this.request,
+    this.session,
+    this.snapshots,
+    this.commands, {
+    this.screenCapturer,
+  }) : epoch = session.epoch;
+  final ScreenCapturer? screenCapturer;
+  final screenshots = <Json>[];
   final Request request;
   final Session session;
   final SnapshotService snapshots;
@@ -22,8 +31,6 @@ class WorkflowExecution {
   WorkflowStep? activeStep;
   int? activeIndex;
   Json? finalSnapshot;
-  final captures = <Json>[];
-  int captureBytes = 0;
   void check() {
     if (stopped || session.epoch != epoch) {
       throw const AgentError('CONNECTION_LOST', 'Workflow generation retired');
@@ -50,12 +57,14 @@ class WorkflowExecution {
       );
       name = plan.name;
       check();
-      Execution(
-        request,
-        session,
-        initialEpoch: epoch,
-        parentCheck: check,
-      ).requireConnected();
+      if (!plan.nativeOnly) {
+        Execution(
+          request,
+          session,
+          initialEpoch: epoch,
+          parentCheck: check,
+        ).requireConnected();
+      }
       // All capability checks precede the first UI read or mutation.
       for (final step in plan.steps) {
         if (step.selector != null &&
@@ -91,33 +100,25 @@ class WorkflowExecution {
           parentCheck: check,
           onRetire: retire,
         );
-        final context = CommandContext(child, snapshots);
+        final context = CommandContext(
+          child,
+          snapshots,
+          screenCapturer: screenCapturer,
+        );
         final result = await child.bound(
           () => commands.dispatch(context, step.action, step.params),
         );
         check();
-        if (step.action == 'screenshot') {
-          captureBytes += (result['images'] as List).cast<String>().fold<int>(
-            0,
-            (sum, image) => sum + image.length,
-          );
-          // Leave headroom for snapshots and the result envelope in 64 MiB IPC.
-          if (captureBytes > 48 * 1024 * 1024) {
-            throw const AgentError(
-              'IO_ERROR',
-              'Workflow screenshot payload exceeds 48 MiB',
-            );
-          }
-          captures.add({
-            'stepId': step.id,
-            'path': step.params['path'],
-            'data': result,
-          });
-        }
         completed++;
         if (step.action == 'snapshot') {
           finalSnapshot = result;
-        } else if (step.action != 'wait' && step.action != 'screenshot') {
+        } else if (step.action == 'screenshot') {
+          screenshots.add({
+            'stepId': step.id,
+            'path': step.params['path'],
+            ...result,
+          });
+        } else if (step.action != 'wait') {
           finalSnapshot = null;
         }
       }
@@ -125,8 +126,8 @@ class WorkflowExecution {
       return {
         'workflow': name,
         'completedSteps': completed,
+        if (screenshots.isNotEmpty) 'screenshots': screenshots,
         'requiresSnapshot': finalSnapshot == null,
-        if (captures.isNotEmpty) 'screenshots': captures,
         if (finalSnapshot != null) 'finalSnapshot': finalSnapshot,
       };
     } on AgentError catch (error) {

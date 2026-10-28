@@ -11,7 +11,7 @@ Schema/validate runs without a connection, daemon, or runtime directory. Schema 
 
 Validate defaults to template validation. `--inputs` or `--check-inputs` also validates binding; check-inputs alone uses an empty object. Results contain `workflow/format/stepCount/mode/requiredInputs/inputsValidated`. Mode is template or bound; requiredInputs is the sorted list of required external names. Target existence, uniqueness, visibility, and capability are checked at execution time.
 
-Run always validates binding, so check-inputs is rejected. A previously connected session is required. The CLI validates everything before sending normalized workflow and inputs in one request; the daemon repeats schema and semantic validation.
+Run always validates binding, so check-inputs is rejected. A previously connected session is required except for native-only screenshot workflows. The CLI validates everything before sending normalized workflow and inputs in one request; the daemon repeats schema and semantic validation.
 
 <a id="files"></a>
 ## Files, formats, and parsers
@@ -39,8 +39,8 @@ Every step requires a unique id (`^[A-Za-z][A-Za-z0-9_-]{0,63}$`) and an action.
 
 | Action | Additional fields |
 | --- | --- |
+| screenshot | Required device, optional source/path; see screenshot steps below |
 | snapshot | None |
-| screenshot | Required device pairing file; optional path, platform=android, display="0" |
 | tap | target |
 | fill | target, text |
 | swipe / scroll | target, direction, optional distance |
@@ -49,6 +49,14 @@ Every step requires a unique id (`^[A-Za-z][A-Za-z0-9_-]{0,63}$`) and an action.
 Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Binding 0.6.0 does not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, and logs.
 
 Swipe/scroll direction is left/right/up/down and describes finger movement. Distance is finite and positive, defaulting to 200 logical pixels. Scroll uses the same swipe primitive. Success means gesture completion, not arrival at a particular content position.
+
+<a id="screenshots"></a>
+## Screenshot steps
+
+`screenshot` requires `device`; optional `source` defaults to `ios-simulator`, and `path` is optional. It captures XCUIScreen with the standalone validation. `ios-simulator` requires a UUID-shaped device; no implicit selection or fallback occurs. Ref/selector targets, annotation and crop are not fields of this step. Paths are literal strings relative to the caller's cwd, with no environment/input expansion. The common screenshot format, quality and directory options apply to every step. Explicit extensions must match that format and are checked before execution.
+
+A workflow containing only native screenshot steps may run without a Flutter connection. Any other action requires a connected session before the first step. Screenshot preserves the finalSnapshot candidate. All captures are held until the workflow succeeds, then saved by the caller with the common artifact writer. Success adds `screenshots:[{stepId,paths,capture?}]`; native capture metadata matches standalone results. A step failure saves no workflow images. A local save failure attempts to remove all images/directories created by this workflow, preserves preexisting destinations, and reports `phase:screenshot-save` with actual completedSteps. UI actions are not rolled back or retried. The original deadline covers capture, IPC, conversion and saving; combined image payloads must fit the 64 MiB IPC frame. Use smaller workflows when needed.
+
 
 <a id="inputs"></a>
 ## Input definitions
@@ -107,7 +115,7 @@ Snapshot publishes refs. The last snapshot inside the workflow becomes a candida
 <a id="results"></a>
 ## Success and failure results
 
-Success data contains `workflow/completedSteps/requiresSnapshot`, plus `finalSnapshot` only when still valid. RequiresSnapshot is false with a finalSnapshot and true otherwise. Intermediate results, workflow content, inputs, and resolved fill values are omitted. The [CLI output contract](cli-reference.md#output), including budgets and boundaries, also applies to finalSnapshot.
+Success data contains `workflow/completedSteps/requiresSnapshot`, plus `finalSnapshot` only when still valid. RequiresSnapshot is false with a finalSnapshot and true otherwise. Other intermediate results, workflow content, inputs, and resolved fill values are omitted; screenshot artifacts follow the rules above. The [CLI output contract](cli-reference.md#output), including budgets and boundaries, also applies to finalSnapshot.
 
 Failure `error.details` contains `workflow/progressKnown/stepIndex/stepId/action/completedSteps`. StepIndex is one-based; completedSteps counts the confirmed successful prefix. Outcome describes mutation dispatch for the failed step, not whether earlier steps executed.
 
@@ -133,9 +141,4 @@ Workflow content, inputs, resolved params, and fill values are not copied into d
 - [wait.dart](../lib/src/commands/wait.dart): conditions.
 - [workflow_model_test.dart](../test/workflow_model_test.dart), [workflow_cli_test.dart](../test/workflow_cli_test.dart), [workflow_execution_test.dart](../test/workflow_execution_test.dart): boundary verification.
 
-<a id="screenshots"></a>
-## Screenshot steps
-
-`screenshot` shares standalone capture validation. Platform is android; device is a private UI Automator pairing file and display is only string `"0"`. Target and annotate are removed. Pairing paths resolve against the caller’s cwd before IPC. Path is relative to the caller’s cwd; omitted paths use the common screenshot directory/temporary rule. Common screenshot format/quality/directory options apply to all steps. Invalid path extensions are rejected locally before any workflow action.
-
-Workflow run still requires a connected session. Native capture itself never calls the Marionette backend. Images are captured in step order, with at most 48 MiB of accumulated base64 image data. Persistence happens on the CLI only after every step succeeds, within the original deadline. Success adds `screenshots:[{stepId,paths,capture?}]`. No raw images appear in the public result. Text output includes the saved screenshot results. Failed execution publishes no images; a saving failure attempts to remove this request’s already-created files/directories and reports `phase:"screenshot-save"`, known completedSteps and no successful paths. Already executed UI actions are not rolled back. If cleanup is refused by the OS, artifacts may remain.
+For Android screenshot steps, select `source: android-emulator` and set `device` to a private UI Automator pairing file. Relative pairing paths resolve against the invoking CLI's cwd before IPC. The agent must already be running; screenshot-only workflows still need no Flutter connection. Existing result, image limits and all-or-nothing saving apply.

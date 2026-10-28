@@ -45,7 +45,7 @@ When reconnecting to an external app, specify its current URI and the intended s
 
 ## Missing capabilities
 
-For `UNSUPPORTED_CAPABILITY`, check binding and auxiliary-provider registration. Identifier-based actions are unsupported by the pinned binding 0.6.0. Typed state and additional input need their corresponding Flutter extensions. For screenshots, check the private pairing and running UI Automator agent.
+For `UNSUPPORTED_CAPABILITY`, check binding and auxiliary-provider registration. Identifier-based actions are unsupported by the pinned binding 0.6.0. Typed state and additional input need their corresponding Flutter extensions.
 
 ## Capture failures
 

@@ -1,9 +1,7 @@
-import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
-
-import '../platform/screen_capture.dart';
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
 import 'screenshot_request.dart';
+
 export 'screenshot_request.dart';
 import 'command_context.dart';
 
@@ -45,20 +43,12 @@ Future<Json> handleSnapshot(CommandContext context, Json params) =>
     );
 
 /// Images cross IPC; the CLI owns local path resolution and writing.
-Future<Json> handleScreenshot(
-  CommandContext context,
-  Json params, {
-  ScreenCapturer capturer = defaultScreenCapturer,
-}) async {
-  screenshotTarget(params);
-  context.check();
-  final result = await captureAndroidScreen(
+Future<Json> handleScreenshot(CommandContext context, Json params) async {
+  validateScreenshotRequest(params);
+  return context.captureDeviceScreen(
+    params['source'] as String? ?? 'ios-simulator',
     params['device'] as String,
-    context.deadline,
-    capturer: capturer,
   );
-  context.check();
-  return result;
 }
 
 Future<Json> handleLogs(CommandContext context, Json params) {

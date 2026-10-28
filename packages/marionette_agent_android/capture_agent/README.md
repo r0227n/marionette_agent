@@ -12,8 +12,8 @@ This Android instrumentation calls `UiDevice.takeScreenshot(File)` directly. The
 3. Leave the instrumentation running and take images from the repository root:
 
    ```sh
-   dart run bin/marionette_agent.dart screenshot system.png --device capture-pairing.json
-   dart run bin/marionette_agent.dart screenshot system.jpg --device capture-pairing.json --screenshot-format jpeg
+   dart run bin/marionette_agent.dart screenshot system.png --source android-emulator --device capture-pairing.json
+   dart run bin/marionette_agent.dart screenshot system.jpg --source android-emulator --device capture-pairing.json --screenshot-format jpeg
    ```
 
 4. Stop only this agent with `dart run tool/android_capture.dart stop capture-pairing.json`, or stop its test in Android Studio. The agent also ends after 30 minutes. Delete the pairing file when finished.

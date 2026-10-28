@@ -86,12 +86,12 @@ The default `wait` state is `exists`: a unique match with `visible != false` suc
 
 | Syntax                                                  | Purpose                                                          |
 | ------------------------------------------------------- | ---------------------------------------------------------------- |
-| `screenshot [PATH] --device PAIRING_FILE`               | Save a new image                                                 |
-| `record start PATH --platform PLATFORM --device ID`     | Start recording; native recording requires a device              |
-| `record restart PATH --platform PLATFORM --device ID`   | Finalize the current recording and start a new one               |
+| `screenshot --device UDID [PATH]`                       | Save a new image                                                 |
+| `record start PATH --platform PLATFORM [--device ID]`   | Start recording; Flutter rendering needs no device argument      |
+| `record restart PATH --platform PLATFORM [--device ID]` | Finalize the current recording and start a new one               |
 | `record status` / `record stop`                         | Inspect recording state or finalize and stop                     |
 | `diff snapshot --baseline PATH`                         | Compare with a saved snapshot                                    |
-| `diff screenshot --baseline PATH --device PAIRING_FILE` | Compare with a saved image; accepts `--threshold` and `--output` |
+| `diff screenshot --device UDID --baseline PATH`         | Compare with a saved image; accepts `--threshold` and `--output` |
 
 See [capture](/marionette_agent/en/guides/capture/) for file requirements and platform differences.
 
@@ -115,3 +115,5 @@ See [capture](/marionette_agent/en/guides/capture/) for file requirements and pl
 Batch stops at the first failure and cannot contain connection-lifetime operations, recording, or file-saving commands. See [configuration](/marionette_agent/en/reference/configuration/) for action policies and state files.
 
 For provider behavior, matching rules, and action limits, see the [advanced operation details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-parity.md).
+
+Android screenshots: use `--source android-emulator --device <private-pairing-file>`. The iOS default and other commands are unchanged.

@@ -1,9 +1,8 @@
 import 'dart:convert';
 
-import '../commands/screenshot_request.dart';
-
 import '../backend/backend.dart';
 import '../commands/wait_request.dart';
+import '../commands/screenshot_request.dart';
 import '../protocol/protocol.dart';
 import 'schema_catalog.dart';
 
@@ -154,6 +153,8 @@ class WorkflowPlan {
   final String name;
   final List<WorkflowStep> steps;
   final List<String> requiredInputs;
+  bool get nativeOnly =>
+      steps.every((step) => isNativeScreenshot(step.action, step.params));
   static WorkflowPlan decode(
     Object? document, {
     Object? inputs = const <String, Object?>{},
@@ -204,10 +205,10 @@ class WorkflowPlan {
             );
       final params = <String, Object?>{...target};
       if (action == 'screenshot') {
-        for (final key in ['path', 'platform', 'device', 'display']) {
+        for (final key in ['source', 'device', 'path']) {
           if (step.containsKey(key)) params[key] = step[key];
         }
-        screenshotTarget(params);
+        validateScreenshotRequest(params);
       }
       if (action == 'fill') {
         final text = asJson(step['text']);

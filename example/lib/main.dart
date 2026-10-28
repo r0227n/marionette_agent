@@ -4,7 +4,7 @@ import 'package:marionette_agent_flutter/flutter.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'advanced_controls.dart';
-import 'native_capture_controls.dart';
+import 'native_capture_fixture.dart';
 
 final PrintLogCollector operationLogCollector = PrintLogCollector();
 
@@ -71,14 +71,6 @@ class _MarionetteAgentExampleScreenState
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            if (kDebugMode &&
-                !kIsWeb &&
-                defaultTargetPlatform == TargetPlatform.android)
-              TextButton(
-                key: const ValueKey('native_tab'),
-                onPressed: () => setState(() => _tab = 3),
-                child: const Text('Native'),
-              ),
             TextButton(
               key: const ValueKey('advanced_tab'),
               onPressed: () => setState(() => _tab = 2),
@@ -102,14 +94,10 @@ class _MarionetteAgentExampleScreenState
           ],
         ),
       ),
-      body: _tab == 3
-          ? const NativeCaptureControls()
-          : _tab == 2
+      body: _tab == 2
           ? const AdvancedControls()
           : _tab == 1
-          ? const Center(
-              child: Text('Workflow fixture', key: ValueKey('about_content')),
-            )
+          ? const NativeCaptureFixture()
           : ListView(
               key: const ValueKey('operation_scroll_area'),
               padding: const EdgeInsets.all(16),

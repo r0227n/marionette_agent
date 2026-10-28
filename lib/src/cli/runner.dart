@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:marionette_agent/src/platform/platform_services.dart';
 
+import '../commands/screenshot_request.dart';
 import '../daemon/client.dart';
 import '../daemon/runtime.dart';
 import '../diagnostics/diagnostic_logging.dart';
@@ -12,7 +13,7 @@ import '../protocol/protocol.dart';
 import '../workflow/model.dart';
 import '../workflow/schema_catalog.dart';
 import 'artifact_writer.dart';
-import 'workflow_screenshots.dart';
+import 'workflow_artifacts.dart';
 import 'batch_loader.dart';
 import 'common_options.dart';
 import 'connection_state.dart';
@@ -121,10 +122,8 @@ Future<int> runCli(
               );
         final bind = params['bind'] == true;
         final plan = WorkflowPlan.decode(document, inputs: inputs, bind: bind);
-        for (final step in plan.steps.where(
-          (step) => step.action == 'screenshot',
-        )) {
-          if (step.params['path'] != null) {
+        for (final step in plan.steps) {
+          if (step.action == 'screenshot' && step.params['path'] != null) {
             invocation.options.screenshotFormat.destinationPath(
               step.params['path'] as String,
             );
@@ -146,7 +145,7 @@ Future<int> runCli(
             {
               ...asJson(raw),
               if (asJson(raw)['action'] == 'screenshot')
-                'device': File(asJson(raw)['device'] as String).absolute.path,
+                'device': resolveScreenshotDevice(asJson(raw)),
             },
         ];
         params = {'workflow': normalized, 'inputs': inputs};
@@ -243,9 +242,13 @@ Future<int> runCli(
                     : 'screenshot')
               : command,
           params: command == 'diff'
-              ? (params['action'] == 'screenshot'
-                    ? {'platform': 'android', 'device': params['device']}
-                    : {})
+              ? (params['action'] == 'snapshot'
+                    ? {}
+                    : {
+                        'device': params['device'],
+                        if (params.containsKey('source'))
+                          'source': params['source'],
+                      })
               : requestParams,
           maxOutput: command == 'diff' ? null : invocation.options.maxOutput,
           outputJson: invocation.json,
@@ -298,7 +301,7 @@ Future<int> runCli(
           await compareObservation(params, baseline, result.data!, deadline),
         );
       }
-      if (workflow && result.error == null) {
+      if (invocation.command == 'workflow' && result.error == null) {
         result = Result.success(
           session,
           await saveWorkflowScreenshots(

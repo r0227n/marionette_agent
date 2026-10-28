@@ -8,7 +8,6 @@ import 'package:path/path.dart' as p;
 /// SDK client -> product MCP stdio -> product CLI -> daemon -> real example app.
 /// URI/raw logs stay private. The evidence transcript redacts the connect input.
 Future<void> main() async {
-  final pairing = Platform.environment['MARIONETTE_CAPTURE_PAIRING'];
   final uriFile = Platform.environment['MARIONETTE_TEST_VM_URI_FILE'];
   final root = Platform.environment['MARIONETTE_TEST_OUTPUT'];
   if (uriFile == null || root == null) {
@@ -52,16 +51,6 @@ Future<void> main() async {
     Map<String, Object?> args = const {},
     String? error,
   ]) async {
-    if (name == 'screenshot') {
-      if (pairing == null) {
-        transcript.add({
-          'tool': name,
-          'skipped': 'Android UI Automator pairing is required',
-        });
-        return {};
-      }
-      args = {'device': pairing, ...args};
-    }
     final result = await server.callTool(
       CallToolRequest(name: 'marionette_agent_$name', arguments: args),
     );
@@ -123,7 +112,12 @@ Future<void> main() async {
       row(before, 'tap_result')['text'] == 'Tap count: 0',
       'Restart example to reset fixture',
     );
-    await call('screenshot', {'path': '${evidence.path}/01-before.png'});
+    await call('screenshot', {
+      'device':
+          Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+          Platform.environment['SIMULATOR_UDID'],
+      'path': '${evidence.path}/01-before.png',
+    });
     final ref = row(before, 'tap_button')['ref'];
     await call('tap', {
       'target': {'ref': ref},
@@ -146,7 +140,12 @@ Future<void> main() async {
       '${row(filled, 'fill_result')['text']}'.contains('12'),
       'Input length did not become 12',
     );
-    await call('screenshot', {'path': '${evidence.path}/02-filled.png'});
+    await call('screenshot', {
+      'device':
+          Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+          Platform.environment['SIMULATOR_UDID'],
+      'path': '${evidence.path}/02-filled.png',
+    });
     await call('swipe', {
       'target': {'key': 'page_view'},
       'direction': 'left',
@@ -158,8 +157,16 @@ Future<void> main() async {
       '${row(swiped, 'page_result')['text']}'.contains('2'),
       'Page did not advance to 2',
     );
-    await call('screenshot', {'path': '${evidence.path}/03-swiped.png'});
     await call('screenshot', {
+      'device':
+          Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+          Platform.environment['SIMULATOR_UDID'],
+      'path': '${evidence.path}/03-swiped.png',
+    });
+    await call('screenshot', {
+      'device':
+          Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+          Platform.environment['SIMULATOR_UDID'],
       'path': '${evidence.path}/04-swiped.jpg',
       'format': 'jpeg',
       'quality': 85,

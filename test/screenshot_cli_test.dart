@@ -9,6 +9,7 @@ import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
 
 void main() {
   late Directory directory;
@@ -16,7 +17,14 @@ void main() {
   final cliPath = File('bin/marionette_agent.dart').absolute.path;
   Future<ProcessResult> cli(List<String> args) => Process.run(
     Platform.resolvedExecutable,
-    [cliPath, '--session', 'issue13', ...args],
+    [
+      cliPath,
+      '--session',
+      'issue13',
+      ...args,
+      if (args.contains('screenshot'))
+        '--device=11111111-2222-3333-4444-555555555555',
+    ],
     environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtimePath},
   );
   setUp(() async {
@@ -35,7 +43,11 @@ void main() {
     final runtime = await RuntimeDirectory.prepare(directory: runtimePath);
     final server = DaemonServer(
       runtime,
-      SessionManager(() => backend, coreCommands(capturer: backend)),
+      SessionManager(
+        () => backend,
+        coreCommands(),
+        screenCapturer: FakeScreenCapturer(png),
+      ),
     );
     final serving = server.run();
     try {
@@ -44,11 +56,7 @@ void main() {
       }
       expect((await cli(['connect', 'http://localhost:1/'])).exitCode, 0);
       final pngPath = '${directory.path}/default.png';
-      final savedPng = await cli([
-        'screenshot',
-        '--device=test-pairing',
-        pngPath,
-      ]);
+      final savedPng = await cli(['screenshot', pngPath]);
       expect(savedPng.exitCode, 0);
       expect((jsonDecode(savedPng.stdout as String) as Map)['paths'], [
         pngPath,
@@ -61,7 +69,6 @@ void main() {
         final result = await cli([
           '--screenshot-format=jpeg',
           'screenshot',
-          '--device=test-pairing',
           path,
           '--json',
           if (quality != null) '--screenshot-quality=$quality',
@@ -71,12 +78,13 @@ void main() {
         final response = jsonDecode(result.stdout as String) as Map;
         expect(response['ok'], isTrue);
         expect(response['session'], 'issue13');
-        expect((response['data'] as Map)['paths'], [path]);
+        expect(response['data']['paths'], [path]);
+        expect(response['data']['capture']['method'], 'xcuiscreen');
         final bytes = await File(path).readAsBytes();
         expect(bytes, image.encodeJpg(fixture, quality: quality ?? 90));
         expect(image.decodeJpg(bytes)!.width, 9);
       }
-      expect(backend.calls.where((c) => c == 'captureScreen'), hasLength(4));
+      expect(backend.calls, isNot(contains('captureScreenshots')));
       expect((await cli(['close'])).exitCode, 0);
       await serving;
       expect(File(runtime.metadata).existsSync(), isFalse);
@@ -90,11 +98,10 @@ void main() {
     'invalid screenshot options fail in text/JSON before runtime or connection',
     () async {
       for (final args in [
-        ['screenshot', '--device=test-pairing', 'image.jpg', '--json'],
-        ['screenshot', '--device=test-pairing', '--screenshot-quality=90'],
+        ['screenshot', 'image.jpg', '--json'],
+        ['screenshot', '--screenshot-quality=90'],
         [
           'screenshot',
-          '--device=test-pairing',
           '--screenshot-format=jpeg',
           '--screenshot-quality=101',
           '--json',

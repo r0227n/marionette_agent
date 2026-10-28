@@ -105,17 +105,18 @@ mkdir -m 700 "$MRA_HEADLESS_ROOT/runtime-ios"
 export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_HEADLESS_ROOT/runtime-ios"
 marionette-agent --session manual-ios connect "$(cat "$MRA_HEADLESS_ROOT/ios-uri")"
 marionette-agent --session manual-ios snapshot
+marionette-agent --session manual-ios record start "$MRA_HEADLESS_ROOT/ios.mp4" --platform flutter
 marionette-agent --session manual-ios tap --key tap_button
 marionette-agent --session manual-ios fill --key text_input 'headless demo'
 marionette-agent --session manual-ios snapshot
-marionette-agent --session manual-ios get text --key tap_result
-xcrun simctl --set "$MRA_HEADLESS_ROOT/ios-devices" io "$MRA_IOS_UDID" screenshot "$MRA_HEADLESS_ROOT/ios-after.png"
+marionette-agent --session manual-ios screenshot "$MRA_HEADLESS_ROOT/ios-after.png"
+marionette-agent --session manual-ios --timeout 60000 record stop
 marionette-agent --session manual-ios close
 ```
 
-Compare counter and input changes in the native Simulator screenshot and CLI observations. CLI still screenshots are available only through the separate Android UI Automator agent. See [recording details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#recording) for fps, VFR, deadlines, and recovery.
+Compare counter and input changes in the video and screenshot. Recording covers one Flutter view, excluding OS keyboards/dialogs. See [recording details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#recording) for fps, VFR, deadlines, and recovery.
 
-For an automated smoke check, use [integration_test/record_smoke.dart](https://github.com/r0227n/marionette_agent/blob/develop/integration_test/record_smoke.dart) from the CLI package. Set `MARIONETTE_RECORD_PLATFORM=ios`, `MARIONETTE_RECORD_DEVICE` to the Simulator UDID, `MARIONETTE_TEST_VM_URI_FILE`, and a new `MARIONETTE_RECORD_EVIDENCE` output path each time. Existing Android verification used `MARIONETTE_RECORD_FPS=2`. These instructions are not evidence that a new run has been performed.
+For an automated smoke check, use [integration_test/record_smoke.dart](https://github.com/r0227n/marionette_agent/blob/develop/integration_test/record_smoke.dart) from the CLI package. Set `MARIONETTE_RECORD_PLATFORM=flutter`, `MARIONETTE_TEST_VM_URI_FILE`, and a new `MARIONETTE_RECORD_EVIDENCE` output path each time. Existing Android verification used `MARIONETTE_RECORD_FPS=2`. These instructions are not evidence that a new run has been performed.
 
 <a id="cleanup"></a>
 

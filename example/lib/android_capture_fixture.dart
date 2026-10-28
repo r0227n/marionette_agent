@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Android-only debug fixture for native capture; all content is synthetic.
-class NativeCaptureControls extends StatefulWidget {
-  const NativeCaptureControls({super.key});
+class AndroidCaptureFixture extends StatefulWidget {
+  const AndroidCaptureFixture({super.key});
   @override
-  State<NativeCaptureControls> createState() => _NativeCaptureControlsState();
+  State<AndroidCaptureFixture> createState() => _AndroidCaptureFixtureState();
 }
 
-class _NativeCaptureControlsState extends State<NativeCaptureControls> {
+class _AndroidCaptureFixtureState extends State<AndroidCaptureFixture> {
   static const channel = MethodChannel('marionette.example/nativeCapture');
   String status = 'Dummy data only';
   Future<void> run(String action) async {
@@ -26,6 +26,7 @@ class _NativeCaptureControlsState extends State<NativeCaptureControls> {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
+      const Text('Workflow fixture', key: ValueKey('about_content')),
       const Text('Native capture fixture', style: TextStyle(fontSize: 22)),
       const Text('Android system UI and protected-window verification'),
       for (final item in const {

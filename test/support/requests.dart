@@ -9,8 +9,6 @@ Request request(
   requestId: 'test',
   session: session,
   command: command,
-  params: command == 'screenshot'
-      ? {'platform': 'android', 'device': 'test-pairing', ...params}
-      : params,
+  params: params,
   deadline: DateTime.now().add(Duration(milliseconds: ms)),
 );

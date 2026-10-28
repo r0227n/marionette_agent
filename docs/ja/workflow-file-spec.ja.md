@@ -11,7 +11,7 @@ schema/validateは接続・daemon・runtime directoryなしで実行します。
 
 validateの既定はtemplate検証です。`--inputs`または`--check-inputs`を付けるとbindingも検証し、check-inputsだけなら空objectを使います。結果は`workflow/format/stepCount/mode/requiredInputs/inputsValidated`です。modeはtemplateまたはbound、requiredInputsは必要な外部input名の辞書順です。対象の存在・一意性・可視性・capabilityは実行時に検証します。
 
-runは常にbindingを検証するためcheck-inputsは指定できません。事前にconnectしたsessionが必要です。CLIで全件検証してから正規化したworkflowとinputsを1要求で送り、daemonでも同じschemaと意味制約を再検証します。
+runは常にbindingを検証するためcheck-inputsは指定できません。native screenshotのみのworkflowを除き、事前にconnectしたsessionが必要です。CLIで全件検証してから正規化したworkflowとinputsを1要求で送り、daemonでも同じschemaと意味制約を再検証します。
 
 <a id="files"></a>
 ## file、format、parser
@@ -39,8 +39,8 @@ JSONはescape後に同名となるduplicate key、trailing comma、非有限numb
 
 | Action | 追加field |
 | --- | --- |
+| screenshot | 必須deviceと任意source/path。下記screenshot stepを参照 |
 | snapshot | なし |
-| screenshot | device pairingファイル必須。任意path・platform=android・display="0" |
 | tap | target |
 | fill | target、text |
 | swipe / scroll | target、direction、任意distance |
@@ -49,6 +49,14 @@ JSONはescape後に同名となるduplicate key、trailing comma、非有限numb
 targetはkey/identifier/text/typeのどれか1つを持つobjectで、値は空でないstring、照合は完全一致です。binding 0.6.0のidentifierは非対応で、含まれていれば最初のUIアクセス前にUNSUPPORTED_CAPABILITYです。ref、座標操作、snapshot filterはv1にありません。条件分岐、loop、並列、shell、include、接続寿命操作、logsもありません。
 
 swipe/scrollのdirectionはleft/right/up/downで指の移動方向です。distanceは有限の正数、既定200 logical pixelsです。scrollは同じswipe primitiveを使います。成功はgesture処理完了で、到達位置を保証しません。
+
+<a id="screenshots"></a>
+## screenshot step
+
+`screenshot`は`device`が必須で、任意の`source`は既定`ios-simulator`、`path`は任意です。単独撮影と同じ検証でXCUIScreenを取得します。`ios-simulator`にはUUID形式deviceが必須で、自動選択やfallbackはありません。ref/selector target、注釈、cropはこのstepのfieldに含めません。pathはcallerのcwdからの文字列で、環境変数・input展開はしません。共通の画像形式、品質、保存先ディレクトリを全stepへ適用し、明示拡張子の形式一致も実行前に検証します。
+
+native screenshot stepだけのworkflowはFlutter未接続でも実行できます。他actionを含む場合は最初のstepより前に接続が必要です。screenshotはfinalSnapshot候補を保持します。画像はworkflow成功まで保持し、その後callerが共通artifact writerで保存します。成功結果に`screenshots:[{stepId,paths,capture?}]`を追加し、nativeのcapture metadataは単独取得と同じです。step失敗ではworkflow画像を保存しません。ローカル保存失敗はworkflowが作成した画像・一時ディレクトリの削除を試み、既存保存先を維持して、実際のcompletedStepsと`phase:screenshot-save`を返します。UI操作はrollback・retryしません。元の期限は撮影、IPC、変換、保存を含み、画像payload合計には64 MiBのIPC frame上限を適用します。必要に応じworkflowを分割してください。
+
 
 <a id="inputs"></a>
 ## input定義
@@ -102,12 +110,12 @@ workflowは同じsessionのqueueを完了まで占有し、step間に別要求�
 
 後半stepのschema error、binding、selector capabilityも最初のUIアクセス前に確認します。各stepは新しいExecutionで通常コマンドと同じ1 mutation制約を使います。timeout・切断後の古いFutureは進捗・後続step・再接続後のrefを変更できません。最初の失敗で停止し、rollback・retry・途中再開・全体の自動再実行はしません。
 
-snapshotは公開refを発行します。workflow内の最後のsnapshotが候補となり、後続tap/fill/swipe/scrollで破棄、wait・screenshotでは保持します。開始前のsnapshotや失敗時のsnapshotは返しません。返したrefはqueue解放後も最新snapshotとして残りますが、別要求のsnapshot/mutation/close/reconnectで失効します。STALE_REFならworkflowを再実行せず観測し直します。
+snapshotは公開refを発行します。workflow内の最後のsnapshotが候補となり、後続tap/fill/swipe/scrollで破棄、waitとscreenshotでは保持します。開始前のsnapshotや失敗時のsnapshotは返しません。返したrefはqueue解放後も最新snapshotとして残りますが、別要求のsnapshot/mutation/close/reconnectで失効します。STALE_REFならworkflowを再実行せず観測し直します。
 
 <a id="results"></a>
 ## 成功・失敗の結果
 
-成功dataは`workflow/completedSteps/requiresSnapshot`と、まだ有効な場合だけ`finalSnapshot`です。finalSnapshotがあればrequiresSnapshot:false、なければtrueです。中間結果・workflow本文・inputs・展開済みfillは返しません。出力予算・境界は[CLIの契約](cli-reference.ja.md#output)に従い、finalSnapshotにも適用します。
+成功dataは`workflow/completedSteps/requiresSnapshot`と、まだ有効な場合だけ`finalSnapshot`です。finalSnapshotがあればrequiresSnapshot:false、なければtrueです。画像保存結果を除く中間結果・workflow本文・inputs・展開済みfillは返しません。出力予算・境界は[CLIの契約](cli-reference.ja.md#output)に従い、finalSnapshotにも適用します。
 
 失敗の`error.details`は`workflow/progressKnown/stepIndex/stepId/action/completedSteps`です。stepIndexは1始まり、completedStepsは成功確定した先頭step数です。outcomeは失敗stepのmutation送信状態で、先行stepが未実行という意味ではありません。
 
@@ -133,9 +141,4 @@ workflow本文・inputs・解決済みparams・fill入力を診断や実行報�
 - [wait.dart](../../lib/src/commands/wait.dart): 条件判定。
 - [workflow_model_test.dart](../../test/workflow_model_test.dart)、[workflow_cli_test.dart](../../test/workflow_cli_test.dart)、[workflow_execution_test.dart](../../test/workflow_execution_test.dart): 境界検証。
 
-<a id="screenshots"></a>
-## Screenshot step
-
-`screenshot`は単独撮影と引数検証を共有します。platformはandroidで、deviceは私有UI Automator pairingファイル、displayは文字列`"0"`だけです。target・annotateは廃止し、pairing pathはIPC前に呼出元cwdで解決します。pathは呼出元のcwd基準で、省略時は共通の撮影ディレクトリ・一時保存規則を使います。共通の画像形式・品質・ディレクトリ設定は全stepへ適用します。不正な拡張子はworkflowの操作前にCLIで拒否します。
-
-workflow runには引き続き接続済みsessionが必要です。ネイティブ撮影自体はMarionette backendを呼びません。画像をstep順に取得し、base64画像の蓄積は48 MiBまでとします。全stepの成功後、元のdeadline内でCLIが保存します。成功時は`screenshots:[{stepId,paths,capture?}]`を追加します。公開結果に生の画像データを残さず、text出力にも保存結果を表示します。実行失敗時は画像を公開しません。保存失敗時はこの要求が作ったファイル・ディレクトリの削除を試み、`phase:"screenshot-save"`と既知のcompletedStepsを返し、成功pathを返しません。実行済みUI操作はrollbackしません。OSにcleanupを拒否された場合はartifactが残ることがあります。
+Androidのscreenshot stepは`source: android-emulator`を選び、`device`へ私有UI Automator pairingファイルを指定する。相対pairing pathはIPC前に呼出元CLIのcwdで解決する。agentを事前起動し、撮影だけのworkflowではFlutter接続を不要とする。結果・画像上限・全step成功後の一括保存は既存契約を使う。

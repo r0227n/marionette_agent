@@ -81,7 +81,7 @@ marionette-agent --session demo snapshot
 marionette-agent --session demo fill @e5 'hello'
 marionette-agent --session demo snapshot
 marionette-agent --session demo swipe @e9 left --distance 200
-marionette-agent --session demo screenshot ./screen.png --device capture-pairing.json
+marionette-agent --session demo screenshot ./screen.png --device "$SIMULATOR_UDID" --timeout 120000
 marionette-agent --session demo close
 ```
 
@@ -154,7 +154,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | 明示した始点から終点へスワイプ |
 | `scroll <ref> <direction> [--distance <n>]` | スクロール領域への方向付きジェスチャー。selectorも使用可能 |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | 要素の出現または消失を観測だけで待つ |
-| `screenshot [path] --device <pairing-file>` | PNG（既定）またはJPEGを排他的に保存。明示path > `--screenshot-dir` > 一時ファイル。注釈は対応providerと直近の有効snapshotが必要 |
+| `screenshot --device <UDID> [--source <source>] [path]` | アプリ接続不要でXCUIScreenのPNG/JPEGを排他的に保存。 |
 | `logs` | bindingで収集されたログを取得。購読や無期限の待機はしない |
 | `record start <path> --platform <platform> --device <id>` | 端末画面録画を開始。VM Service接続は不要 |
 | `record status` / `record stop` | 録画状態を照会／動画確定まで待って停止 |
@@ -181,6 +181,23 @@ scrollは初版では指定領域を既存swipe機構で操作する。direction
 - pathと`--screenshot-dir`を両方省略時は専用の非公開一時directoryに`screen.png`または`screen.jpg`を保存する。複数画像はbackendの順で、指定名の拡張子直前へ`-1`、`-2`…を付ける。例: `screen.jpeg`→`screen-1.jpeg`、`screen-2.jpeg`。自動名も同じ連番規則。
 - 共通`--timeout`は取得・転送・復号・白背景合成・JPEG変換・保存を含む元の絶対期限。codec処理前後・合成中・保存中に期限を確認し、期限後に成功を返さない。同期codecや進行中のOS I/Oの即時中断は保証しない。
 - 全画像の復号・変換が成功してから全保存先を排他的に予約し、書き込む。既存file/directory/symlinkはIO_ERRORで拒否する。途中の変換失敗は出力を作らず、予約・書込みの失敗やTIMEOUTではこの要求が作成した全fileと自動作成directoryの削除を試みる。既存fileを削除・上書きしない。OSがcleanupを拒否した場合は部分artifactが残る場合があり、成功pathsは返さない。意図的な予約後の差し替えは従来どおり保証外。
+
+<a id="native-ios-screenshots"></a>
+### iOSのネイティブ撮影（Issue #56）
+
+`screenshot --device <UDID> [--source ios-simulator|ios-device] [path]`は、CLI同梱のXCTest runnerから`XCUIScreen.main.screenshot()`で端末main screenを撮影します。取得元の既定は`ios-simulator`です。Marionette/Flutter経由の静止画、ref/selector crop、注釈、mapped provider能力は削除しました。device未指定とsource `flutter`はINVALID_ARGUMENT、IPCのtarget/annotation fieldはUNSUPPORTED_CAPABILITYです。
+
+Simulator撮影はmacOS、選択済みの完全なXcode、既定device set内で利用可能かつ起動済みのiOS SimulatorのUUID形式UDIDを必要とします。alias・名前・`booted`はINVALID_ARGUMENT、対象不在・停止はUNRESOLVABLE_TARGET、重複IDはAMBIGUOUS_TARGET、SDK不足はUNSUPPORTED_CAPABILITY、build/test/export/画像回収失敗はIO_ERROR、期限超過はTIMEOUTです。不正PNGはBACKEND_ERRORです。端末一覧と所有runnerの寿命管理には既存のSimulator管理機能を使い、画像取得にsimctl screenshotは使いません。
+
+同梱の独立UI-test targetには対象アプリのtargetを設定せず、現在のmain screenだけをattachmentにします。対象アプリの起動・前面化、UIのtap、権限初期化、UI操作の再送は行いません。Flutter接続とアプリ側providerは不要です。最初の要求で非公開runnerをビルドし、daemonの存続中はそのbuildを再利用します。adapterとsessionのqueueで直列化し、待機中に期限切れになった要求はプロセスを開始しません。実行先UDIDを明示し、要求専用xcresultから名称と端末IDが一致するattachmentを正確に1枚回収します。不正・別端末・重複・symlink・サイズ超過を拒否し、成功・失敗時に結果の一時領域を削除します。timeoutでは所有driverを中断し、一意な所有runner bundleだけを終了します。disposeでbuildとインストールしたrunnerを片付けます。
+
+共通`--timeout`はqueue、SDK検出、build/起動、test実行、attachment export、復号・変換・保存を含む単一の絶対期限です。初回build/起動には通常の既定値以上を要する場合があり、`--timeout 120000`で時間を確保できます。期限の更新とFlutter fallbackはありません。timeout応答後のcleanup中に進行中のOS I/Oが終了することがあります。
+
+成功dataは`paths`と`capture:{source,method,device,runtime,display,scope,mask,coordinateSpace,pixelWidth,pixelHeight,orientation}`です。methodは`xcuiscreen`、displayは`main`、scopeは`device-screen`、maskは`system-default`、座標は`physical-pixels`です。Macウィンドウ倍率と独立した端末画素と表示中のOS UIを取得します。ノッチ・角丸maskの指定、回転・resize、Flutter座標への対応付けは行いません。寸法は返されたPNGから復号し、orientationはその縦横比です。横向きのXCUIScreen PNGが縦長の画素配列とEXIFの向き情報を持つ場合があり、JPEGでもその向き情報を保持します。保護された内容の取得は保証しません。
+
+PNG/JPEG、品質、明示path > screenshot-dir > 非公開一時保存、排他的作成、期限、失敗cleanupは共通artifact writerを使います。成功時はrefを保持します。CLIの`diff screenshot --device <UDID> --baseline <PNG>`も同じ取得経路です。同じ端末・方式・向きで寸法の一致するbaselineを利用者が指定します。MCPではdeviceが必須で同じCLIを呼び、workflow screenshot stepもdeviceを必須として取得・保存・進捗契約を共用します。
+
+`ios-device`はUNSUPPORTED_CAPABILITYです。実機runnerには開発署名・provisioning、pairing・信頼、必要なOSでのDeveloper Mode、互換Xcode/OSが必要ですが、これらの寿命管理は未実装・未検証で、対応する実機OSは宣言しません。Appleの[XCUIScreen API](https://developer.apple.com/documentation/xcuiautomation/xcuiscreen)、[実機設定](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices)、[Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device)を参照してください。
 
 <a id="workflow-v1"></a>
 
@@ -320,7 +337,7 @@ directory指定時はその直下に`screen-<128bit乱数の32桁hex>.png`（JPE
 
 logsは返された範囲を正規化し、収集未設定と0件を識別できない場合、その制約を伝える。URIの認証部分や入力文字列を診断ログへ出力しない。
 
-Flutter撮影・注釈・cropとMarionetteフレーム録画は廃止し、Android撮影はUI Automatorを使います。後述のネイティブ契約を参照してください。
+ref注釈と論理座標の対象cropは削除しました。OS画面撮影は上記native契約に従います。
 
 <a id="verification-criteria"></a>
 <a id="検証基準"></a>
@@ -365,7 +382,7 @@ install/upgradeは専用`.marionette-agent-*`版別ディレクトリ内にnativ
 
 role/label/placeholderはfindに対応し、get value/is enabled/is checkedを追加した。通常selectorはkey/identifier/text/typeのまま維持する。hint/tooltip、完全なSemanticsツリー、永続的target IDは未対応。[Issue #14設計案](../semantics-selector-state-design.md)は元のstock binding調査と将来設計として保持する。
 
-iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1は後方互換を維持し、screenshot actionを追加する。
+iOS／Android実機・他ホストOSの正式対応、iOS実機録画、Linux／Windows録画、任意拡張CLI、hot reload/restart、long-press／pinch、任意のアプリ状態復元は対象外。workflow v1のschemaは維持する。
 
 <a id="stdio-mcp-server"></a>
 <a id="stdio-mcpサーバー"></a>
@@ -389,11 +406,11 @@ MCP通信内容や認証URI・入力文字列を診断ログへ記録しない�
 
 ## Flutter向け拡張
 
-[追加コマンド仕様](cli-parity.ja.md)を本仕様の一部とする。snapshotのinteractive/compact/depth、型付きget/is、find、追加interaction、ref/時間wait、diff、clipboard、config/namespace、接続state、batch/policy、record restart/fps、device list、doctor追加モード、install/upgradeの構文・出力・対応範囲を定義する。
+[追加コマンド仕様](cli-parity.ja.md)を本仕様の一部とする。snapshotのinteractive/compact/depth、型付きget/is、find、追加interaction、ref/時間wait、crop/diff、clipboard、config/namespace、接続state、batch/policy、record restart/fps、device list、doctor追加モード、install/upgradeの構文・出力・対応範囲を定義する。
 
 任意の `marionette_agent_flutter/flutter.dart` providerがある場合だけmounted Widgetの型付き観測へ切り替える。source不明の属性を推測しない。refの照合・一意性・送信直前の失効・自動再送禁止は既存契約を共用する。UI操作とrole/label等の検索はproviderが示す適用範囲に限定し、再観測と送信の原子性や全clip／被覆検出は保証しない。
 
-IPC protocolVersionは9（ネイティブ撮影とworkflow画像結果を追加。7で管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
+IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追加）。要求に任意のsession action policyを追加した。public schemaVersionは1を維持し、launchと所有アプリを表示するsession情報のdataを拡張する。旧daemonは旧CLIでcloseしてから新CLIへ切り替える。
 
 
 <a id="device-screen-recording"></a>
@@ -409,9 +426,10 @@ IPC protocolVersionは9（ネイティブ撮影とworkflow画像結果を追加�
 | android | オンライン・認証済みadb serial | `.mp4`、Android platform-tools。Emulator／実機の標準screenrecord |
 | macos | 1から始まるディスプレイ番号 | `.mov`、macOS標準screencaptureと実行元アプリの画面収録許可 |
 | web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`、macOSと可視Chrome、専用debug profileと画面収録許可。明示したディスプレイ全体 |
+| flutter | CLIでは省略、結果はsession名 | `.mp4`、接続済みMarionette debugアプリと同梱FFmpegKit。アプリ内の描画を保存。非表示の実行環境でも利用可能 |
 | linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
 
-- platform/path/deviceは必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
+- platform/pathは必須。flutterではdeviceを指定できず、その他はdeviceも必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
 - 相対pathは呼出元CLIのcwdで絶対pathへ変換する。親directoryは既存かつ書込可能であること。既存file/directory/symlinkはIO_ERRORとして拒否し、自動上書きしない。
 - sessionごとに同時に1録画、同一daemon内の端末ごとに1録画。開始中・停止処理中も予約し、競合はSESSION_CONFLICT。同じsessionで停止後に新しい保存先へ録画を開始できる。
 - startはdaemonを必要に応じて起動し、録画所有者としてsessionを保持する。未接続の録画sessionの接続状態はdisconnected、URIはnull。録画開始が成功したsessionはcloseまで保持する。
@@ -434,14 +452,20 @@ IPC protocolVersionは9（ネイティブ撮影とworkflow画像結果を追加�
 
 ### Flutterアプリのヘッドレス録画（Issue #20）
 
-Marionetteフレーム取得と`record --platform flutter`は廃止しました。端末のネイティブ録画、非表示起動とヘッドレス操作は利用できます。testerの撮影・録画元は提供しません。
+`record start <new.mp4> --platform flutter [--fps 1..60]`は、選択sessionのVM Serviceへ先にconnectして使う。未接続はNOT_CONNECTED、対応していないbackend・複数viewはUNSUPPORTED_CAPABILITY。CLIに`--device`を渡すとINVALID_ARGUMENT。結果のplatformはflutter、deviceはsession名。同一sessionの録画を排他にし、同じアプリを別sessionで明示的に録画することは妨げない。restart、status、stop、close、保存保護、要求期限は共通契約を使う。
+
+録画専用の読み取り接続から実アプリのPNGを連続取得する。最初のPNGを確認してからstartを返す。既定fpsは10で、1〜60は各取得完了後の待機間隔を指定する。取得・保存にかかる時間は別に加わるため、指定fpsの取得は保証しない。実際の取得時刻でVFR（可変フレームレート）の無音H.264 MP4へ確定する。高速アニメーションを取りこぼす場合がある。画像はprivate stagingへ逐次保存し、停止時の同梱FFmpegKit変換は最大30秒。録画時間に応じた一時ディスク容量が必要。同梱nativeライブラリの欠落はUNSUPPORTED_CAPABILITY、不正PNGや変換失敗はIO_ERROR、取得失敗は失敗状態とし、白画像へ置換して成功にしない。画像サイズ変更はUNSUPPORTED_CAPABILITYで停止する。
+
+対象はFlutterが描画した単一viewで、OSのキーボード・ダイアログ・ブラウザーUIやplatform viewの収録を保証しない。画面収録許可は不要だが、アプリ側のMarionette debug bindingが必要。録画停止は操作用接続・ref・押下中キーに作用しない。録画用接続が失われると失敗して再接続・再送しない。操作用接続だけの切断は録画用接続を閉じない。hot restart中の継続は保証しない。
+
+ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。手動起動へのconnectではアプリ・端末を所有しない。launchではutilを通して起動し、closeで所有環境を終了する。手順は[ヘッドレスガイド](headless.ja.md)を参照する。
 
 <a id="web-recording-scope-and-connection"></a>
 <a id="web録画の範囲と接続"></a>
 
 ### Web録画の範囲と接続
 
-`--platform web`はmacOS上の可視Google Chromeを対象とする。Flutter Webの非表示録画は提供しない。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
+`--platform web`はmacOS上の可視Google Chromeを対象とする。Flutter Webの非表示録画には上記の`--platform flutter`を使う。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
 
 利用者が選んだディスプレイ全体を標準screencaptureでMOVへ録画する。Chromeのアドレスバー・タブ・設定画面、同じdisplayのOSダイアログや他アプリを含む。タブだけの映像、Flutter描画の録画、音声ではない。Chromeを指定displayへ配置するのは利用者の責任であり、CLIはウインドウ位置を変更・追従しない。別displayへ移動しても録画先は変わらない。隠れた／最小化したウインドウや別displayのdialogは写らず、覆っている画面が写る。保護コンテンツの録画は保証しない。
 
@@ -468,10 +492,11 @@ launchはdaemon自動起動対象で、session queueとaction policyを共有す
 
 closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
 
-testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境でsession操作を共有し、撮影・録画の取得元は対応するplatform範囲に限定する。手順と制約は[日本語ガイド](headless.ja.md)を参照。
+testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作と録画は既存session/record --platform flutterを共用する。手順と制約は[日本語ガイド](headless.ja.md)を参照。
 
-<a id="native-android-screenshots"></a>
+<a id="android-emulator-screenshots"></a>
+## Android Emulatorのスクリーンショット
 
-## Androidネイティブ撮影（Issue #57）
+`--source android-emulator --device <私有pairingファイル>`でUI Automatorの`UiDevice.takeScreenshot(File)`を選択する。既定はios-simulatorのままとする。CLI・MCP・screenshot workflow step・画像diffは既存の撮影serviceとartifact writerを使い、`native`操作コマンド・ref・UI操作は追加しない。pairing pathはIPC前に呼出元CLIのcwdで絶対化する。別途起動するInstrumentationがEmulatorの10.0.2.2から一時的なhost loopback listenerへ接続し、nonceを使う相互HMAC-SHA256で要求を認証する。撮影実装はADBコマンド・shell・port forwardingを実行しない。配布とInstrumentation起動はAndroid Studio／Gradleの別のテスト環境で行い、その環境はAndroid debugging transportを内部利用する。
 
-[ネイティブ撮影契約](cli-reference.ja.md#native-android-capture)にUI Automator Instrumentation、私有pairing、明示した端末名、物理pixel metadata、上限と失敗を定義します。CLI・MCP・workflowは同じserviceと呼出元writerを使います。撮影経路はADBコマンドとMarionette撮影を使いません。Flutter撮影・注釈・crop・Flutterフレーム録画は廃止し、Android Emulatorのdisplay 0だけに対応します。public schemaVersionは1、内部IPCは9です。
+ranchu/goldfishのEmulatorで、単一display 0だけを対象とする。pairingが明示的な論理端末identityを固定する。結果にはsource:android-emulator、method:uiautomator、pairingの端末名、runtime:android-emulator、display:0、scope:device-screen、mask:system-defaultと共通decoderが得た物理pixel寸法を返す。権限ダイアログ・picker・IME・system barを含む。AndroidはFLAG_SECUREの対象を隠すか撮影を拒否する場合があり、黒pixelだけで保護を確定しない。agent不在・期限切れ、認証、接続断、破損・過大出力は明示的に失敗し、別の取得元やUI再送へ切り替えない。PNGは32 MiBまで。準備は[captureガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照する。

@@ -86,12 +86,12 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 
 | 構文                                                    | 用途                                                |
 | ------------------------------------------------------- | --------------------------------------------------- |
-| `screenshot [PATH] --device PAIRING_FILE`               | 画像を新規保存                                      |
-| `record start PATH --platform PLATFORM --device ID`     | 動画開始。ネイティブ録画にはdevice必須              |
-| `record restart PATH --platform PLATFORM --device ID`   | 現在の録画を確定後、新規開始                        |
+| `screenshot --device UDID [PATH]`                       | 画像を新規保存                                      |
+| `record start PATH --platform PLATFORM [--device ID]`   | 動画開始。Flutter描画はdevice不要                   |
+| `record restart PATH --platform PLATFORM [--device ID]` | 現在の録画を確定後、新規開始                        |
 | `record status` / `record stop`                         | 状態取得／確定して停止                              |
 | `diff snapshot --baseline PATH`                         | 保存したsnapshotとの差分                            |
-| `diff screenshot --baseline PATH --device PAIRING_FILE` | 保存画像との差分。`--threshold`・`--output`も使用可 |
+| `diff screenshot --device UDID --baseline PATH`         | 保存画像との差分。`--threshold`・`--output`も使用可 |
 
 保存条件とプラットフォーム差は[画像と動画](/marionette_agent/ja/guides/capture/)を参照してください。
 
@@ -115,3 +115,5 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 batchは最初の失敗で止まり、接続寿命の変更、録画、ファイル保存などは内包できません。操作ポリシーと状態ファイルの扱いは[設定](/marionette_agent/ja/reference/configuration/)を参照してください。
 
 providerの観測範囲・照合規則・操作の制約は[追加操作の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-parity.ja.md)を参照してください。
+
+Androidの撮影は`--source android-emulator --device <私有pairingファイル>`を指定します。iOSの既定と他のコマンドは維持します。

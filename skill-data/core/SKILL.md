@@ -26,7 +26,9 @@ marionette-agent --session demo snapshot
 ```
 
 After each operation, confirm the state change in a fresh snapshot and, when
-checking visible behavior, native Simulator evidence or an Android UI Automator screenshot. A successful gesture response does not
+checking visible behavior on iOS Simulator, an XCUIScreen screenshot with
+`--device <UDID> --timeout 120000`. The first call builds the bundled XCTest
+runner. A successful gesture response does not
 prove that the intended page or state was reached.
 
 ## Targeting and input

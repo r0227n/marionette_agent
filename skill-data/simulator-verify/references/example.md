@@ -17,6 +17,7 @@ umask 077
 MRA_VERIFY_DIR=$(mktemp -d /tmp/mra-check.XXXXXX)
 export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_VERIFY_DIR/runtime"
 export MRA_VERIFY_SESSION=verify
+SIMULATOR_UDID="<booted-iOS-Simulator-UDID>"
 export MRA_VERIFY_URI_FILE="$MRA_VERIFY_DIR/uri"
 mkdir -m 700 "$MRA_VERIFY_DIR/evidence"
 ```
@@ -40,7 +41,7 @@ unset MRA_VERIFY_URI
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" snapshot
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" tap --key tap_button
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" snapshot
-# Capture iOS display evidence with the Simulator’s native screenshot tool.
+dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" screenshot "$MRA_VERIFY_DIR/evidence/after-tap.png" --device "$SIMULATOR_UDID" --timeout 120000
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" close
 ```
 

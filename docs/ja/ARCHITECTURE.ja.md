@@ -137,6 +137,17 @@ adapterはURI正規化、wire変換、response検証、例外分類を担当す�
 
 Backend interfaceはconnect、disconnect、inspect、tap、fill、swipe、readLogsを型付き引数・結果で提供する。上流mapは境界で閉じる。scrollは同じswipe primitiveを使い、helpと出力はscrollとして返す。
 
+<a id="native-screen-capture"></a>
+## ネイティブ画面取得
+
+`ScreenCapturer`がPNG bytesと由来を返し、disposeで所有資源を片付けます。iOS adapterは同梱の独立XCTest targetを非公開領域でbuild-for-testingし、そのbuildをdaemon内で再利用します。test-without-buildingの実行先をUDIDで固定し、Swiftの`XCUIScreen.main.screenshot()`だけで現在のmain screenを取得します。xcresulttoolのmanifestで端末ID・test・attachment名を検証し、正確に1枚の通常PNGを回収します。シンボリックリンク、不正な名前、別端末、重複、32 MiB超過は拒否します。画像取得でsimctl screenshotやMarionetteは呼びません。
+
+runnerは対象アプリを起動・前面化・操作しません。一意のrunner bundle IDで終了・アンインストールを所有し、期限超過・失敗・disposeで結果領域とbuildを片付けます。adapter内の直列queueは期限切れの後続要求から新たなOS操作を始めません。SDK/build/test/export/保存には元の絶対期限を使います。初回build/startは長いtimeoutを必要とする場合があります。
+
+CLI・MCP・workflow・画像diffは同じ`captureDeviceScreen`を通り、deviceを必須とします。nativeのみの要求はdaemonと未接続sessionを作成できます。Flutter操作を含むworkflowは接続を事前検証します。共通artifact writerが復号、寸法と縦横比、由来、JPEG変換、排他的保存とcleanupを担当します。workflowは全step成功後に保存し、保存失敗は完了進捗と`phase:screenshot-save`を返します。撮影成功はrefを失効させません。
+
+Backendから静止画とmapped capture能力を削除し、exampleのmapped providerと注釈合成も削除しました。連続Flutter動画の専用read-only frame connectionは静止画コマンドから独立しています。実機の署名・runner管理は未実装で、明示的な非対応です。exampleはOS許可画面とPHPickerの実環境fixtureを持ちます。
+
 <a id="ipc-and-daemon-startup"></a>
 <a id="ipcとdaemon起動"></a>
 
@@ -216,7 +227,7 @@ Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示�
 
 `batch_loader`は全argvの構文・重複option・コマンドparamsだけを解析する。親の共通オプション解決は再実行せず、上書き済みの環境session/timeoutを再検証しない。snapshot差分は構造等価な行をhashで数え、重複件数を維持して比較する。逐次総当たりの二乗時間を避け、ループ内でも同じ期限を確認する。
 
-通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはSessionManagerの共通session queueでRecordServiceへ分岐する。ネイティブ録画はVM Service非依存で扱う。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
+通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはSessionManagerの共通session queueでRecordServiceへ分岐する。platformがflutterの場合だけ接続済みbackendとURIを渡し、他の録画はVM Service非依存で扱う。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
 
 CommandContextにsession実行、対象解決、期限確認、ref失効、mutationの1回送信を集約する。handlerは独自のqueue、retry、session生成、ref保存、接続破棄を実装しない。外部のCLI組立向けの型は`lib/marionette_agent.dart`から公開し、内部handlerは必要なファイルを直接importする。上流connectorやresponse mapをコマンド層へ漏らさない。
 
@@ -255,7 +266,7 @@ SessionManagerはworkflowを単独Execution.boundの外で分岐し、WorkflowEx
 
 wait stepは単独waitと同じ登録済みread handlerを使い、ElementInfo.candidateValueによる一致をinspectでpollし、単独のtext候補は由来の信頼性も確認する。CommandContext.checkで計算後の期限も確認し、公開refを生成しない。全stepが既存CommandRegistryを直接呼び、SessionManagerへstep単位で再帰しない。最終snapshot候補は後続mutationで破棄し、失敗時は返さない。
 
-IPC protocolVersionは9でネイティブ撮影・workflow画像結果を追加した（7で管理対象アプリの起動・終了を追加）（6でsession action policyを追加）（5で要求単位のdebug policy、4で共通出力policyとidle設定handshakeを追加）。workflow requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
+IPC protocolVersionは7で管理対象アプリの起動・終了を追加した（6でsession action policyを追加）（5で要求単位のdebug policy、4で共通出力policyとidle設定handshakeを追加）。workflow requestのparamsはworkflow templateとinputs objectのみで、daemonでも全件検証してから接続・selector capabilityを確認する。AgentError.detailsはIPCとwithOutcomeで保持する。配送失敗はunknown/progressKnown:falseにし、UIを再送しない。schema/validateはRuntimeDirectory.prepareを呼ばない。
 
 workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/progressKnown:falseとsession名を保持する。CLIのローカル検証はparseと意味検証後も絶対deadlineを確認し、期限を過ぎた成功を返さない。
 
@@ -266,7 +277,7 @@ workflow応答のframe生成・配送失敗はdaemonのfallbackでもunknown/pro
 
 `cli/common_options.dart`が形式・品質のroot登録、既定PNG／JPEG品質90、値検証と拡張子規則を所有する。`CliParser`はscreenshotのpathを接続前に検証し、拡張子省略時に選択形式の拡張子を付加する。help/versionと全サブコマンドも共通定義を継承する。形式・品質はInvocationのCommonOptionsからrunnerへ渡し、IPC paramsやbackend adapterへ追加しない。workflow内のscreenshot対応やprotocolVersion変更は行わない。
 
-`cli/artifact_writer.dart`はbackendのPNGを全件復号検証し、PNGなら元のバイト列、JPEGなら白背景へ合成した8-bit RGBを固定image 4.9.1のJpegEncoderへ渡す。RGBA／grayscale alpha／palette／16-bitを画素の正規化値で処理し、透過を捨てる前に合成する。encoderに透過の合成を任せないため、JPEG端部のpaddingによる反復合成も避ける。品質0はencoderの最低品質1へ丸められる。imageの内部importは従来のPNG decoderと同じ境界へ集約し、依存更新時は画像fixtureを再検証する。
+`cli/artifact_writer.dart`はbackendのPNGを全件復号検証し、注釈を指定した場合はgeometryに従いPNGへ合成してから出力形式へ進む。注釈なしのPNGなら元のバイト列、JPEGなら白背景へ合成した8-bit RGBを固定image 4.9.1のJpegEncoderへ渡す。RGBA／grayscale alpha／palette／16-bitを画素の正規化値で処理し、透過を捨てる前に合成する。encoderに透過の合成を任せないため、JPEG端部のpaddingによる反復合成も避ける。品質0はencoderの最低品質1へ丸められる。imageの内部importは従来のPNG decoderと同じ境界へ集約し、依存更新時は画像fixtureを再検証する。
 
 runnerはCLI開始時の共通絶対deadlineをそのままwriterへ渡す。復号・合成・encode後にも期限を確認してから、従来の全宛先の排他的予約と書込みへ進む。同期codec自体は中断しないが、遅れて得た画像を成功として公開しない。予約後の失敗・TIMEOUTではこの要求の予約file・書込み済みfile・自動directoryを回収する。OSによるcleanup失敗時は残存し得るが、成功pathsを返さず元のエラーを保持する。テストの時計注入により変換後・予約後・書込み後の期限切れをhost負荷によらず検証する。
 
@@ -302,7 +313,7 @@ runnerはCLI開始時の共通絶対deadlineをそのままwriterへ渡す。復
 
 旧`marionette_agent_util`パッケージは削除する。Flutterアプリは依存先を`packages/marionette_agent_flutter`、importを`package:marionette_agent_flutter/flutter.dart`へ変更する。公開provider関数とextension名は維持する。CLIは同じPub workspaceの6パッケージへ直接依存し、すべて`publish_to: none`とする。ルートのlockfileを共有し、依存はルートで`flutter pub get`を一度実行する。配布には全パッケージを含むcheckoutまたはコンパイル済みCLIを使う。
 
-record start、connect、launchがdaemonを自動起動できる。sessionは録画だけでも予約・保持でき、後からVM Serviceを接続できる。recordのstart/stop/statusとcloseは既存session queueで直列化し、長時間のフレーム処理はqueue外で継続する。録画にはUI mutationのExecution.boundを使わず、CLIの共通管理が開始期限・停止後の有界cleanup・状態を管理する。VM Serviceのepoch破棄は録画handleへ波及しない。
+record start、connect、launchがdaemonを自動起動できる。sessionは録画だけでも予約・保持でき、後からVM Serviceを接続できる。recordのstart/stop/statusとcloseは既存session queueで直列化し、長時間のフレーム処理はqueue外で継続する。録画にはUI mutationのExecution.boundを使わず、CLIの共通管理が開始期限・停止後の有界cleanup・状態を管理する。VM Serviceのepoch破棄は録画handleへ波及しない。Flutter録画用接続の取得失敗はその録画を失敗へ遷移させる。
 
 RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に返す。startのbackend待ちは要求期限と30秒上限で打ち切り、遅れて生成されたhandleの停止・予約回収は追跡付きcleanupとして継続する。start時の終了競合や停止失敗でも、handleの終了確認まではdevice予約を解放しない。stopの要求期限超過後も終了処理を保持し、終わるまで同じdeviceへ別録画を開始しない。Androidの自動終了も同じfinalizationへ合流する。closeでは録画を確定してから所有権を解放する。daemonのSIGINT/SIGTERMではRecordingManager.disposeが開始待ち・停止・保存・追跡cleanup全体を60秒に制限する。期限超過時はRecordingHandle.abortで所有プロセスを強制停止し、ファイル読込をキャンセルして出力を閉じる（追加待ちは最大5秒）。stagingと未確定の予約先を保持し、遅延完了で動画を公開しない。Androidは固有remote pathとPIDを照合して強制停止を試みるが、端末切断時の成功は保証しない。OSで進行中のI/Oは取り消しを保証できないため削除と競合させない。
 
@@ -315,7 +326,13 @@ CLIのRecordingManagerが出力先予約とprivate stagingを所有し、iOS・A
 
 ### 非表示アプリの描画録画（Issue #20）
 
+`ScreenshotConnectionBackend`は任意のbackend能力で、録画専用`ScreenshotConnection`の作成だけを公開する。`MarionetteBackend`が上流connectorを別インスタンスで開き、captureとdisconnectを提供する。この接続ではinteraction providerをdiscoverせず、切断時にkeyboard.releaseを呼ばない。操作sessionの接続・epoch・refとは独立する。
+
+`FlutterScreenRecorder`はこの接続の所有・開始期限・base64変換を扱うadapter。上流内部importは`marionette_backend.dart`に限定する。Flutterパッケージの`PngScreenRecorder`はcapture/closeコールバックだけに依存し、PNG寸法検証、逐次ファイル保存、単調時計の取得時刻、ffconcatによるVFR変換を所有する。RecordingManagerへ録画ごとにScreenRecorderを注入し、既存の保存保護・停止・close・遅延cleanupを共有する。`FfmpegKitVideoEncoder`が固定版`ffmpeg_kit_extended_flutter: 1.0.0`の生成C ABIを隔離し、CLIで公開Flutter barrelのdart:ui依存を避ける。Process実行をnative argvとsession単位のcancelへ置き換える。root hookはPNG decoderを含むvideo/LGPL/smallを選び、macOS H.264はsoftware fallbackを許可したVideoToolboxを使う。hostのffmpeg実行ファイルは不要。timeout後もnativeの終了確認までhandleの所有権を保つ。終了コードと構造化されたerror-levelログを併せて確認し、破損入力からの部分動画を成功として公開しない。個別captureは5秒、feedの終了は5秒、ffmpeg変換は30秒で制限する。取得エラーを成功動画に変えず、復旧用stagingにはPNGと生成途中の動画が残る場合がある。
+
 macOS fixtureのMainFlutterWindowは明示環境変数でNSWindowの表示を抑え、FlutterEngineを開始する。Flutter側はdebug限定の`enableHeadlessRendering()`でhidden/paused/detachedの通知を変更せず、16ms間隔のscheduleForcedFrameでフレーム生成を維持する。可視状態への復帰とdisposeでtimerを停止する。他のアプリは自分のnative windowを隠す処理を持つ必要がある。通常起動はopt-inなしで既存のlifecycleに従う。iOS/Android/Webはそれぞれの標準ヘッドレス起動手段を使い、testerによるプラットフォーム模倣はしない。
+
+`record_smoke.dart`はplatform=flutterの場合connectまたはlaunchを先に行い、testerを含む5環境共通で操作・録画保存・重複stop・既存出力保護・closeによる保存を検証する。PNG recorderの単体テストは取得失敗・寸法変更・途中abort・変換失敗・実取得間隔を扱い、widgetテストは描画維持のopt-inと解除を検証する。
 
 <a id="common-options-issues-2-and-8"></a>
 <a id="共通オプションissue-28"></a>
@@ -363,7 +380,7 @@ Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読�
 
 - `marionette_agent_flutter/flutter.dart`は任意のdebug専用providerを公開する。public Widget/State APIで属性を読む。controller値と表示textを別fieldにし、パスワード値は送信しない。mounted Widgetの観測、対象の再照合と有限のinteraction集合を固定名extensionに閉じ込める。完全Semantics treeや永続IDは導入しない。
 - `MarionetteBackend`だけがproviderの登録検出・version確認・DTO変換・固定binding APIを扱う。未登録ならstock観測を使用する。`InteractionBackend`と`ClipboardBackend`は任意capabilityで、通常commandsへ上流mapを露出しない。
-- snapshotの絞り込みは全観測の衝突判定・採番後、ref保持の確定前に行う。findによる位置選択も一意な既存matcherへ変換して共通action経路へ渡す。diffはCLIでbaselineを読み、画像または非公開のread観測と比較する。clipboard write/copyは送信結果を追跡するが、UI refを失効させないeffect経路を使う。
+- snapshotの絞り込みは全観測の衝突判定・採番後、ref保持の確定前に行う。findによる位置選択も一意な既存matcherへ変換して共通action経路へ渡す。cropは撮影前後の対象照合と明示geometryを使い、artifact writerの排他的保存を共用する。diffはCLIでbaselineを読み、画像または非公開のread観測と比較する。clipboard write/copyは送信結果を追跡するが、UI refを失効させないeffect経路を使う。
 - batchはsession queueを1枠占有し、各stepは別Executionで1回送信ガードを維持する。失敗時はそこで止まり、進捗を返す。workflow v1の構文は変更しない。
 - action policyはsession queue内の実行前に検査し、find/batch/workflowの内包操作も検査する。保留要求はsessionの接続世代と有効期限へ固定し、承認時に1回だけ取り出して通常の対象解決を実行する。close／切断は保留を破棄する。policyは同一ユーザーが変更できるopt-in機能で、IPCの認可境界ではない。
 - config、connection state、diff、install/upgradeはCLI側のファイル処理。接続stateの認証URIはprivate IPCから0600の新規ファイルへ書き、公開応答へ戻さない。namespaceはruntimeの名前を分離する。doctorは通常read-onlyで、fix指定時だけ自身所有runtime directoryのmodeを修復する。
@@ -382,10 +399,6 @@ OwnedProcessは引数配列で起動し、stdoutを有界に保持してFlutter 
 
 closeは既存RecordingManagerによる確定後にRunningApplication.stopを呼び、その後にsessionを廃棄する。アプリ終了通知は該当handleがまだ同じsessionに属する場合だけ世代を失効する。close --allとdaemon disposeも同じ共通hostの終了処理を使う。CLI側のテストで起動・接続準備失敗・policy・外部接続の非所有・異常終了を確認し、platformとCLIのlifecycleテストは実fixture processで開始・timeout・中断・project排他・終了を確認する。
 
-<a id="native-screen-capture"></a>
+### Androidのスクリーンショット取得元
 
-## ネイティブ画面取得
-
-`ScreenCapturer`はplatform interface契約です。Androidは私有pairing読込、loopback listener、HMAC認証、deadline、有界の画像転送、socket cleanupを担当します。別のAndroidテストproject `capture_agent`が`UiDevice.takeScreenshot(File)`を直接呼びます。両撮影componentはhost端末コマンドを起動せず、Marionetteのpixelも読みません。標準Androidテスト環境でInstrumentationを別途配備・起動します。
-
-CLIはpairing pathを呼出元cwdでIPC前に解決し、MCPは同じparser、workflowは同じ要求validatorを使います。共通artifact_writerがPNG寸法をデコードしPNG/JPEGを保存します。workflowは全step成功後に保存し、base64蓄積に上限を設け、finalSnapshotを保持して保存失敗時の進捗を再送せず返します。Flutter撮影interface、geometry、provider、注釈・crop合成、Marionette録画feedは削除しました。端末のネイティブ録画は別機能です。
+既存のScreenCapturer契約へ任意の取得元を追加する。CLIのcomposition rootはandroid-emulatorだけでAndroidScreenCapturerを選び、既定のiOS経路とIosScreenCapturerのlifecycleを維持する。Androidのplatform packageが私有pairing検証、相互HMAC、別のUiDevice Instrumentationからの有界PNG転送を担当する。CommandContextは既存のscreenshot経路へ画像とmetadataを返し、共通writerがPNG/JPEG変換と保存を担当する。native UI操作service、操作protocol、ref状態は追加しない。

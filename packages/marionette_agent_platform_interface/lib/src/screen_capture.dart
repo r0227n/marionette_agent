@@ -1,18 +1,38 @@
 import 'dart:typed_data';
 
-/// Native screen pixels, with no relationship to Flutter logical coordinates.
-class CapturedScreen {
-  const CapturedScreen(
-    this.png, {
+/// Device pixels and their provenance. Image decoding and persistence belong to
+/// the caller's common artifact writer, not the platform implementation.
+class DeviceScreenshot {
+  const DeviceScreenshot({
+    required this.png,
     required this.source,
     required this.device,
+    required this.runtime,
     required this.display,
+    required this.mask,
+    this.method = 'xcuiscreen',
   });
+
   final Uint8List png;
-  final String source, device;
-  final int display;
+  final String source, device, runtime, display, mask, method;
+
+  Map<String, Object?> get metadata => {
+    'source': source,
+    'method': method,
+    'device': device,
+    'runtime': runtime,
+    'display': display,
+    'scope': 'device-screen',
+    'mask': mask,
+    'coordinateSpace': 'physical-pixels',
+  };
 }
 
 abstract interface class ScreenCapturer {
-  Future<CapturedScreen> capture(String device, DateTime deadline);
+  Future<DeviceScreenshot> capture(
+    String device,
+    DateTime deadline, {
+    String? source,
+  });
+  Future<void> dispose();
 }

@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
 
 void main() {
   test('product CLI saves text/JSON paths in its cwd and keeps directory options local', () async {
@@ -24,7 +25,8 @@ void main() {
     final backend = FakeBackend()..screenshots = [base64Encode(bytes)];
     final manager = SessionManager(
       () => backend,
-      coreCommands(capturer: backend),
+      coreCommands(),
+      screenCapturer: FakeScreenCapturer(bytes),
     );
     final server = DaemonServer(runtime, manager);
     final serving = server.run();
@@ -32,7 +34,14 @@ void main() {
     final output = await Directory(p.join(root.path, 'images')).create();
     Future<ProcessResult> cli(List<String> args) => Process.run(
       Platform.resolvedExecutable,
-      [cliPath, '--session', 'screenshots', ...args],
+      [
+        cliPath,
+        '--session',
+        'screenshots',
+        ...args,
+        if (args.contains('screenshot'))
+          '--device=11111111-2222-3333-4444-555555555555',
+      ],
       workingDirectory: root.path,
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );
@@ -67,7 +76,6 @@ void main() {
           await cli([
             if (!json) ...['--screenshot-dir', 'images'],
             'screenshot',
-            '--device=test-pairing',
             if (json) ...['--screenshot-dir=images', '--json'],
           ]),
           json: json,
@@ -81,7 +89,6 @@ void main() {
       final explicit = data(
         await cli([
           'screenshot',
-          '--device=test-pairing',
           'explicit.png',
           '--screenshot-dir=missing',
           '--json',
@@ -93,9 +100,7 @@ void main() {
         bytes,
       );
       expect(Directory(p.join(root.path, 'missing')).existsSync(), isFalse);
-      final temporary = data(
-        await cli(['screenshot', '--device=test-pairing', '--json']),
-      );
+      final temporary = data(await cli(['screenshot', '--json']));
       final temporaryFile = File((temporary['paths'] as List).single as String);
       try {
         expect(p.isAbsolute(temporaryFile.path), isTrue);
@@ -107,7 +112,6 @@ void main() {
       }
       final failure = await cli([
         'screenshot',
-        '--device=test-pairing',
         '--screenshot-dir=missing',
         '--json',
       ]);

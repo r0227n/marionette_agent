@@ -84,28 +84,15 @@ listのdataはname/description、getはname/contentの配列です。fullは補�
 install/upgradeはローカルsourceをAOTコンパイルし、隣接する専用`.marionette-agent-*`bundleを配置します。新規配置失敗では新bundleを回収し、既存バイナリを維持します。upgrade後の旧bundleは旧プロセス用に残るため、不要になったことを確認して整理してください。`skills path`で使用中の場所を調べられます。
 
 <a id="capture"></a>
-## 画像保存
+## 画像の取得と保存
+
+スクリーンショットの既定は`ios-simulator`で、`--device <UDID>`が必須です。同梱XCTest runnerの`XCUIScreen.main.screenshot()`からPNGを回収し、`capture.method:xcuiscreen`、`display:main`、`mask:system-default`と端末・寸法を返します。初回build/startには`--timeout 120000`などで時間を確保してください。接続不要です。Marionette静止画・crop・ref注釈は削除済みで、実機sourceは非対応です。[取得契約](SPEC.ja.md#native-ios-screenshots)を参照してください。MCPとworkflowもdeviceを必須とし、画像diffも同じXCUIScreen経路です。
 
 基本操作は[画像・動画ガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。明示pathがあれば`--screenshot-dir`を検査しません。directory指定時の自動名は`screen-<32桁hex>.png`または`.jpg`、両方省略時はprivate一時directoryの`screen.png`または`screen.jpg`です。複数画像は拡張子前に`-1`、`-2`を付けます。
 
 拡張子はPNGなら`.png`、JPEGなら`.jpg/.jpeg`で、大文字小文字を区別せず綴りを保持します。拡張子なしなら形式に応じて補います。形式の自動推定はしません。JPEG品質の既定は90、0はencoderの1と同じで、100もlosslessではありません。PNGは元のbytes・寸法・透過を保ちます。JPEGは同じ寸法で透過を白へ合成します。
 
 親directoryは事前作成が必要です。指定directory自身のsymlinkは拒否し、祖先のsymlinkは利用できます。全画像を検証・変換し、全保存先を排他的に予約してから書き込みます。既存file/directory/symlinkは上書きしません。期限には取得・変換・保存を含み、途中失敗では作成した画像の削除を試みます。OSの削除拒否や進行中I/Oの即時取消しは保証できず、失敗時は成功pathsを返しません。
-
-<a id="native-android-capture"></a>
-## Androidネイティブスクリーンショット契約
-
-`screenshot [path] --device <pairing-file> [--platform android] [--display 0]`は、別途起動したUI Automator Instrumentationを使います。CLI・MCP・workflowのFlutter撮影、注釈、要素cropは廃止しました。`--platform flutter`、ref・selector、`--annotate`は拒否し、fallbackしません。`diff screenshot`も同じpairingファイルと同寸法PNG baselineを必須とします。
-
-`--device`はADB serialではなく、私有の通常pairingファイル（mode 0600、symlink不可、4096 bytes以下）です。version 1のfieldは`device`（安全な識別文字1〜64文字）、`port`（1024〜65535）、`token`（小文字16進64文字）です。CLI・MCP・workflowの相対pairing pathはIPC前に呼出元cwdで解決します。tokenやpeerの生診断は公開しません。準備と停止は[agentプロジェクト](../../packages/marionette_agent_android/capture_agent/README.md)を参照してください。
-
-ホストは明示したpairing portの127.0.0.1を撮影中だけlistenし、Emulatorは10.0.2.2から接続します。新しいnonceと相互HMAC-SHA256でagentとcapture/stop要求を認証し、秘密値を送信しません。指定した論理端末名だけを受理しますが、hardwareの証明ではありません。両撮影componentはADB process、shell撮影、port forwardingを利用しません。APK配備・Instrumentation起動は別のAndroidテスト環境で行います。
-
-agentは`UiDevice.takeScreenshot(File)`を直接呼び、転送後に私有cacheファイルを削除します。ranchu/goldfishのEmulatorでdisplay 0のみの構成に対応し、他のhardwareや構成はUNSUPPORTED_CAPABILITYです。回転後の合成済みdisplayの物理pixelを取得し、表示中のbar・IME・OS overlayを含めます。論理座標への推測はしません。構成確認は事前確認であり、外部からのdisplay変更をロックするものではありません。
-
-結果は`paths`に`capture:{source:"android-uiautomator",platform:"android",device,display:0,scope:"entire-display",coordinateSpace:"physical-pixels",protectedContent:"not-detectable",width,height}`を加えます。deviceはpairingした論理名、寸法はPNGデコード結果です。共通writerがPNG/JPEG変換、排他的作成、保存先優先順位、timeout、rollbackを維持します。画像は32 MiB、protocol JSONは8192 bytesが上限です。絶対deadlineはpairing読込、agent待ち、認証、撮影、転送、保存を含み、期限切れ・失敗時は所有socketを閉じ、受信済み撮影を再送しません。
-
-不正・非私有ファイルはINVALID_ARGUMENT、port競合はSESSION_CONFLICT、認証・不正frame・保護拒否はIO_ERROR、切断はCONNECTION_LOST、agent不在・応答停止はTIMEOUT、PNGデコード不能はBACKEND_ERRORで保存pathを返しません。AndroidはFLAG_SECURE対象を隠す場合や取得を拒否する場合があります。明示的なAPI失敗だけを報告し、黒pixelからの推測や保護の回避は行いません。
 
 <a id="recording"></a>
 ## 録画の寿命と復旧
@@ -135,3 +122,7 @@ marionette-agent --session web-demo record start ./web.mov --platform web \
 displayは1〜999です。画面収録許可が必要で、指定display全体に映る他アプリやOSダイアログも含みます。Chromeの配置確認・移動追従はしません。localhost、remote host、認証情報、query、fragmentはdeviceに使えません。headless Chromeはこの方式では非対応です。
 
 同一displayのWeb/macOS録画は排他です。対象tabの終了・crash・debug接続断はCONNECTION_LOSTとなり、statusはfailed、stopはエラーを返します。復旧pathを確認してください。方式と起動例の詳細は[Web録画設計](../web-recording.md)を参照してください。
+
+### Androidの取得元
+
+screenshotとdiff screenshotでは`--source android-emulator`を明示する。`--device`はserialではなく私有pairingファイルで、相対pathは呼出元cwdで解決する。MCPとworkflowは同じsource/deviceと保存経路を使う。methodはuiautomatorとなり、寸法と向きは既存の物理pixel fieldを使う。pairing先のagentは事前起動する。[Android撮影の制限](SPEC.ja.md#android-emulator-screenshots)を参照。

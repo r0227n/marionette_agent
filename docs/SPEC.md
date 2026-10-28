@@ -74,7 +74,7 @@ marionette-agent --session demo snapshot
 marionette-agent --session demo fill @e5 'hello'
 marionette-agent --session demo snapshot
 marionette-agent --session demo swipe @e9 left --distance 200
-marionette-agent --session demo screenshot ./screen.png --device capture-pairing.json
+marionette-agent --session demo screenshot ./screen.png --device "$SIMULATOR_UDID" --timeout 120000
 marionette-agent --session demo close
 ```
 
@@ -147,7 +147,7 @@ Idle time starts only after all session queues and request deliveries are idle; 
 | `swipe --start-x <n> --start-y <n> --end-x <n> --end-y <n>` | Swipes from an explicit start to end |
 | `scroll <ref> <direction> [--distance <n>]` | Sends a directional gesture to a scroll region; selectors also supported |
 | `wait <selector> [--state exists\|gone] [--poll-interval <ms>]` | Waits for appearance/disappearance through observation only |
-| `screenshot [path] --device <pairing-file>` | Exclusively saves PNG (default) or JPEG. Explicit path > `--screenshot-dir` > temporary file. Android UI Automator instrumentation and a private pairing file are required |
+| `screenshot --device <UDID> [--source <source>] [path]` | Capture XCUIScreen PNG/JPEG without an app connection; exclusive saving. |
 | `logs` | Retrieves binding-collected logs without subscription or indefinite waiting |
 | `record start <path> --platform <platform> --device <id>` | Starts device-screen recording without requiring VM Service |
 | `record status` / `record stop` | Queries recording state / stops and waits for video finalization |
@@ -168,12 +168,29 @@ Standalone `wait` defaults `state` to `exists` and also accepts `gone`. State an
 
 ### Screenshot format and persistence
 
-- Default unannotated PNG saves the backend's original bytes after decode validation, preserving dimensions and transparency. JPEG decodes PNG in the CLI, alpha-composites each pixel's RGB over white, then applies lossy compression without changing dimensions. PNG background-color metadata is not used.
+- Default PNG saves the backend's original bytes after decode validation, preserving dimensions and transparency. JPEG decodes PNG in the CLI, alpha-composites each pixel's RGB over white, then applies lossy compression without changing dimensions. PNG background-color metadata is not used.
 - `--screenshot-format` accepts lowercase `png` or `jpeg`. `--screenshot-quality` accepts integers 0–100 only with JPEG, default 90. The pinned encoder compresses quality 0 like its minimum quality 1. Quality 100 is also lossy.
 - PNG paths use `.png`; JPEG paths use `.jpg` or `.jpeg`. Matching is case-insensitive and preserves the supplied spelling. Format is not inferred from the extension. Mismatched or unknown extensions yield INVALID_ARGUMENT before connection. Missing extensions become `.png` for PNG or `.jpg` for JPEG.
 - Omitting both path and `--screenshot-dir` saves `screen.png` or `screen.jpg` in a dedicated private temporary directory. Multiple images preserve backend order and add `-1`, `-2`, etc. before the extension: `screen.jpeg`→`screen-1.jpeg`, `screen-2.jpeg`. Automatic names follow the same numbering.
 - Common `--timeout` is the original absolute deadline covering capture, transfer, decoding, white-background composition, JPEG conversion, and saving. It is checked before/after codecs, during composition, and during persistence; late success is forbidden. Immediate interruption of synchronous codecs or in-flight OS I/O is not guaranteed.
 - Only after every image decodes/converts successfully are all destinations exclusively reserved and written. Existing files/directories/symlinks yield IO_ERROR. Conversion failure creates no output. Reservation/write failure or TIMEOUT attempts to remove every file and automatic directory created by this request, never preexisting files. OS cleanup refusal may leave partial artifacts, but no successful paths are returned. Deliberate replacement after reservation remains outside the guarantee.
+
+<a id="native-ios-screenshots"></a>
+### Native iOS screenshots (Issue #56)
+
+`screenshot --device <UDID> [--source ios-simulator|ios-device] [path]` captures the device main screen with `XCUIScreen.main.screenshot()` in the CLI's bundled XCTest runner. The default source is `ios-simulator`. The Marionette/Flutter screenshot route, ref/selector crop, annotation and mapped-provider capability are removed. Missing device or source `flutter` is INVALID_ARGUMENT; unsupported target/annotation fields in IPC are UNSUPPORTED_CAPABILITY.
+
+The Simulator source requires macOS, selected full Xcode and one available, booted iOS Simulator identified by a UUID-shaped UDID in the default device set. Aliases/names/`booted` are INVALID_ARGUMENT, missing/stopped targets UNRESOLVABLE_TARGET, duplicate identity AMBIGUOUS_TARGET, missing SDK UNSUPPORTED_CAPABILITY, build/test/export/recovery failures IO_ERROR, and deadline expiry TIMEOUT. Invalid PNG uses BACKEND_ERROR. Inventory and owned-runner lifecycle use the existing Simulator management service; image acquisition never invokes simctl screenshot.
+
+The embedded standalone UI-test target has no application-under-test target and only attaches the current main screen. It does not launch/activate the observed app, tap controls, clear permissions or retry UI actions. No Flutter connection or app-side provider is required. The first request builds a private runner, reused for that daemon's lifetime. Requests serialize through the adapter as well as their session; expired queued work starts no process. Each test uses an explicit destination UDID. A request-private xcresult bundle exports exactly one named attachment with matching device identity; malformed, foreign, duplicate, symlink or oversized attachments fail. Result staging is removed on completion/failure. Timeout interrupts the owned driver and terminates only the unique owned runner bundle. Disposal removes its build and installed runner.
+
+The existing absolute `--timeout` includes queueing, SDK discovery, build/start, test execution, attachment export, decoding/conversion and saving. Initial build/start can exceed the usual default; allow `--timeout 120000`. No deadline is renewed and no Flutter fallback exists. Active OS I/O may finish during cleanup after a timed-out response.
+
+Success preserves `paths` and adds `capture:{source,method,device,runtime,display,scope,mask,coordinateSpace,pixelWidth,pixelHeight,orientation}`. Method is `xcuiscreen`, display `main`, scope `device-screen`, mask `system-default`, and coordinates `physical-pixels`. XCUIScreen supplies visible system UI and device pixels independently of Mac window zoom. There is no configurable notch/corner mask, rotation, resize or Flutter-coordinate mapping. Dimensions are decoded from the returned PNG and orientation is its aspect. Landscape XCUIScreen PNGs can retain portrait raster dimensions with EXIF orientation; JPEG preserves that orientation tag. Protected content is not guaranteed.
+
+PNG/JPEG, quality, explicit path > screenshot-dir > private temporary storage, exclusive writes, deadline and failure cleanup share the artifact writer. Successful captures preserve refs. CLI `diff screenshot --device <UDID> --baseline <PNG>` acquires through this same route; callers supply a baseline from the same device/method/orientation with matching dimensions. MCP requires device and uses the same CLI route; workflow screenshot steps require device and share capture/save/progress rules.
+
+`ios-device` returns UNSUPPORTED_CAPABILITY. A physical-device runner needs development signing/provisioning, pairing/trust, Developer Mode where required and compatible Xcode/OS. These lifecycle steps are not implemented or verified and no physical-device OS is certified. See Apple's [XCUIScreen API](https://developer.apple.com/documentation/xcuiautomation/xcuiscreen), [device setup](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices) and [Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device).
 
 <a id="workflow-v1"></a>
 
@@ -312,7 +329,7 @@ Multiple images add `-1`, `-2`, etc. before the explicit/generated name's extens
 
 Logs normalize the returned range and explain when unavailable collection cannot be distinguished from zero entries. URI credentials and input strings never appear in diagnostic logs.
 
-Flutter screenshot/annotation/crop and Marionette frame recording have been removed. Android screenshots use UI Automator; see the native contract below.
+Screenshot ref annotation and logical target crop are removed; OS screen capture follows the native contract above.
 
 <a id="verification-criteria"></a>
 <a id="検証基準"></a>
@@ -357,7 +374,7 @@ For compatibility, skills alone uses `{"success":true,"data":...}` or, on failur
 
 Find supports role/label/placeholder, and get value/is enabled/is checked have been added. Normal selectors remain key/identifier/text/type. Hint/tooltip, a complete Semantics tree, and persistent target IDs are unsupported. The [Issue #14 proposal](semantics-selector-state-design.md) remains the original stock-binding investigation and future design.
 
-Formal support for physical iOS/Android devices or other host OSes, physical-iOS recording, Linux/Windows recording, an arbitrary-extension CLI, hot reload/restart, long-press/pinch, and arbitrary app-state restoration remain out of scope. Workflow v1 remains backward-compatible and adds the screenshot action.
+Formal support for physical iOS/Android devices or other host OSes, physical-iOS recording, Linux/Windows recording, an arbitrary-extension CLI, hot reload/restart, long-press/pinch, and arbitrary app-state restoration remain out of scope. Workflow v1's schema is preserved.
 
 <a id="stdio-mcp-server"></a>
 <a id="stdio-mcpサーバー"></a>
@@ -381,11 +398,11 @@ MCP traffic, authenticated URIs, and input strings are never logged as diagnosti
 
 ## Flutter extensions
 
-The [additional command specification](cli-parity.md) forms part of this specification. It defines syntax, output, and scope for snapshot interactive/compact/depth, typed get/is, find, additional interactions, ref/duration waits, diff, clipboard, config/namespace, connection state, batch/policy, record restart/fps, device list, extra doctor modes, and install/upgrade.
+The [additional command specification](cli-parity.md) forms part of this specification. It defines syntax, output, and scope for snapshot interactive/compact/depth, typed get/is, find, additional interactions, ref/duration waits, crop/diff, clipboard, config/namespace, connection state, batch/policy, record restart/fps, device list, extra doctor modes, and install/upgrade.
 
 Typed mounted-Widget observation is enabled only when the optional `marionette_agent_flutter/flutter.dart` provider is present. Attributes with unknown provenance are never inferred. Ref matching, uniqueness, invalidation immediately before send, and no automatic resend retain existing contracts. UI actions and role/label searches are limited to the provider's declared scope; atomic re-observation/send and complete clipping/occlusion detection are not guaranteed.
 
-IPC protocolVersion is 9, adding native screenshots and workflow image results (7 added managed-app launch and shutdown). Requests include optional session action policy. Public schemaVersion stays 1, with expanded data for launch and session information displaying owned apps. Close an old daemon using the old CLI before switching to the new CLI.
+IPC protocolVersion is 7, adding managed-app launch and shutdown on close. Requests include optional session action policy. Public schemaVersion stays 1, with expanded data for launch and session information displaying owned apps. Close an old daemon using the old CLI before switching to the new CLI.
 
 <a id="device-screen-recording"></a>
 <a id="端末画面録画"></a>
@@ -400,9 +417,10 @@ IPC protocolVersion is 9, adding native screenshots and workflow image results (
 | android | Online, authorized adb serial | `.mp4`, Android platform-tools; standard screenrecord on Emulator/physical device |
 | macos | Display number starting at 1 | `.mov`, standard macOS screencapture and Screen Recording permission for the invoking app |
 | web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`, macOS, visible Chrome, a dedicated debug profile, and Screen Recording permission; captures the entire explicit display |
+| flutter | Omitted in CLI; result uses session name | `.mp4`, a connected Marionette debug app and bundled FFmpegKit; saves in-app rendering, including hidden execution environments |
 | linux / windows | Any | Unsupported; internal API throws UNSUPPORTED_CAPABILITY and CLI exits 6 |
 
-- Platform/path/device are required. Unknown platforms, malformed devices, and extension mismatches are INVALID_ARGUMENT. Unsupported platforms are also validated by the CLI and rejected before daemon startup.
+- Platform/path are required. Flutter forbids device; other platforms require it. Unknown platforms, malformed devices, and extension mismatches are INVALID_ARGUMENT. Unsupported platforms are also validated by the CLI and rejected before daemon startup.
 - Relative paths become absolute against the caller CLI's cwd. The parent directory must exist and be writable. Existing files/directories/symlinks yield IO_ERROR and are never automatically overwritten.
 - One recording per session and one per device within the same daemon. Reservations apply during startup and stopping too; conflicts yield SESSION_CONFLICT. After stopping, the same session can start another recording at a new destination.
 - Start launches the daemon if needed and retains a session as recording owner. An unconnected recording session is disconnected with URI:null. Once recording starts successfully, the session remains until close.
@@ -425,14 +443,20 @@ Verification status: product CLI checks have covered iOS Simulator, Android Emul
 
 ### Headless Flutter app recording (Issue #20)
 
-Marionette frame capture and `record --platform flutter` are removed. Native device recording remains available. Hidden launch and headless interaction remain supported; tester has no screenshot or recording source.
+`record start <new.mp4> --platform flutter [--fps 1..60]` requires a prior connection to the selected session's VM Service. No connection yields NOT_CONNECTED; unsupported backends or multiple views yield UNSUPPORTED_CAPABILITY. Supplying CLI `--device` is INVALID_ARGUMENT. Result platform is flutter and device is the session name. Recording is exclusive per session without preventing explicit recording of the same app through another session. Restart, status, stop, close, save protection, and request deadlines use shared contracts.
+
+A dedicated read connection continuously captures PNGs from the actual app. Start returns only after the first PNG is confirmed. Default fps is 10; 1–60 specifies the waiting interval after each completed capture. Capture/save time is additional, so the requested capture frequency is not guaranteed. Actual capture timestamps produce silent H.264 MP4 with VFR (variable frame rate). Fast animations may be missed. Images are saved sequentially to private staging; bundled FFmpegKit conversion on stop is bounded to 30 seconds. Temporary disk space grows with recording duration. Missing bundled native libraries yield UNSUPPORTED_CAPABILITY; invalid PNG or conversion failure yields IO_ERROR; capture failure marks recording failed instead of substituting white frames and claiming success. Image-size changes stop recording with UNSUPPORTED_CAPABILITY.
+
+The target is a single Flutter-rendered view. OS keyboards/dialogs, browser UI, and platform-view capture are not guaranteed. Screen Recording permission is unnecessary, but the app needs the Marionette debug binding. Stopping recording does not affect the action connection, refs, or held keys. Loss of the recording connection fails without reconnection/resend. Losing only the action connection does not close the recording connection. Continuation through hot restart is not guaranteed.
+
+Headless means starting each platform's execution environment without showing it. iOS boots/installs/launches a Simulator in a private device set, separate from Simulator.app, without opening a display window. Android uses Emulator `-no-window`; Web uses Flutter `--web-run-headless`. macOS keeps a real FlutterEngine in a hidden NSWindow and explicitly enables debug-only `enableHeadlessRendering()` for hidden-frame production. macOS requires a logged-in GUI session; hosts without WindowServer are outside the verified scope. Connect to a manually started app owns neither app nor device. Launch starts through the target implementation, and close stops the owned environment. See the [headless guide](headless.md).
 
 <a id="web-recording-scope-and-connection"></a>
 <a id="web録画の範囲と接続"></a>
 
 ### Web recording scope and connection
 
-`--platform web` targets visible Google Chrome on macOS. Device combines a display number from 1 to 999 and a page WebSocket endpoint chosen from Chrome's `/json/list`, as `display:1@ws://127.0.0.1:9222/devtools/page/<ID>`. Ports are 1–65535 and IDs uppercase alphanumeric. Localhost, remote hosts, credentials, query, fragment, browser/worker endpoints, and leading zeroes are rejected. The user starts Chrome with a dedicated `--user-data-dir` and loopback `--remote-debugging-port`. Other browsers, headless Chrome, and non-macOS hosts are unsupported. Missing protocol capabilities yield UNSUPPORTED_CAPABILITY; disabled debugging/connection refusal yield CONNECTION_LOST; protocol rejection yields IO_ERROR. Raw server messages are not printed.
+`--platform web` targets visible Google Chrome on macOS. Use `--platform flutter` above for hidden Flutter Web rendering. Device combines a display number from 1 to 999 and a page WebSocket endpoint chosen from Chrome's `/json/list`, as `display:1@ws://127.0.0.1:9222/devtools/page/<ID>`. Ports are 1–65535 and IDs uppercase alphanumeric. Localhost, remote hosts, credentials, query, fragment, browser/worker endpoints, and leading zeroes are rejected. The user starts Chrome with a dedicated `--user-data-dir` and loopback `--remote-debugging-port`. Other browsers, headless Chrome, and non-macOS hosts are unsupported. Missing protocol capabilities yield UNSUPPORTED_CAPABILITY; disabled debugging/connection refusal yield CONNECTION_LOST; protocol rejection yields IO_ERROR. Raw server messages are not printed.
 
 Standard screencapture records the entire selected display to MOV, including Chrome's address bar, tabs, settings, OS dialogs, and other apps on that display. This is neither tab-only video nor Flutter-rendering capture, and it has no audio. The user places Chrome on the selected display; the CLI neither moves nor follows windows. Moving Chrome to another display does not change the recorded display. Hidden/minimized windows and dialogs on other displays are absent; occluding content is captured. Protected content is not guaranteed.
 
@@ -459,10 +483,11 @@ Startup uses marionette_agent_platform_interface contracts and the ios/android/m
 
 Close finalizes recording, stops the launched environment, and discards the connection. Connect to an external app closes only the connection. Close --all and daemon shutdown also reclaim owned resources. App exit invalidates the connection generation and refs. Startup/readiness failure or timeout cleans up owned processes, devices, and URIs; cleanup may continue past the request deadline. Per-process shutdown allows eight seconds for normal exit, three for TERM, and three for KILL; iOS device cleanup is bounded to 30 seconds. Unconfirmed shutdown is not success, and temporary storage remains. Shared devices and the adb server are untouched. Automatic recovery after SIGKILL or host shutdown is out of scope.
 
-Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares session operations; image and recording sources have their own platform scope. See the [headless guide](headless.md) for procedures and limitations.
+Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares existing session operations and record --platform flutter. See the [headless guide](headless.md) for procedures and limitations.
 
-<a id="native-android-screenshots"></a>
+<a id="android-emulator-screenshots"></a>
+## Android Emulator screenshots
 
-## Native Android screenshots (Issue #57)
+`--source android-emulator --device <private-pairing-file>` selects UI Automator's `UiDevice.takeScreenshot(File)`. The default remains ios-simulator. CLI, MCP, screenshot workflow steps and image diff use the existing screenshot service and artifact writer; no `native` operation commands, refs or UI actions are added. Pairing paths resolve against the calling CLI's cwd before IPC. A separately started instrumentation connects through Emulator 10.0.2.2 to a temporary host-loopback listener and authenticates each capture with nonce-based mutual HMAC-SHA256. The capture implementation executes no ADB commands, shell or port forwarding. Android Studio/Gradle supply the separate installation and instrumentation environment, which uses Android debugging transport internally.
 
-The [native capture contract](cli-reference.md#native-android-capture) defines UI Automator instrumentation, private pairing, explicit device identity, physical-pixel metadata, limits and failures. CLI/MCP/workflow share the same service and caller-side writer. Screenshots execute no ADB commands or Marionette capture. Flutter capture/annotations/crop and Flutter frame recording are removed. Only Android Emulator display 0 is supported. Public schemaVersion remains 1; internal IPC is 9.
+Only ranchu/goldfish Emulator hardware with one display 0 is supported. Pairing fixes an explicit logical device identity. Captures return source:android-emulator, method:uiautomator, paired device name, runtime:android-emulator, display:0, scope:device-screen, mask:system-default and physical pixel dimensions from the common decoder. Permission dialogs, pickers, IME and system bars are included. Android may hide FLAG_SECURE content or deny capture; black pixels do not prove protection. Missing agent/deadline, authentication, connection loss, malformed or oversized output are explicit errors with no alternative source or UI replay. PNG bytes are bounded to 32 MiB. Setup is documented in the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/).

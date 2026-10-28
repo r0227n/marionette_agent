@@ -60,9 +60,9 @@ void main() {
     );
     expect(
       plan.steps.map((step) => step.action).toSet(),
-      workflowActions.toSet(),
+      workflowActions.where((action) => action != 'screenshot').toSet(),
     );
-    expect(plan.steps.last.action, 'screenshot');
+    expect(plan.steps.last.action, 'snapshot');
   });
   test('JSON and safe YAML normalize equally including literal punctuation and BOM', () {
     const yaml = '''schemaVersion: 1
@@ -314,9 +314,10 @@ steps:
       final step = <String, Object?>{
         'id': 's',
         'action': action,
+        if (action == 'screenshot')
+          'device': '11111111-2222-3333-4444-555555555555',
         if (!['snapshot', 'screenshot'].contains(action))
           'target': {'key': 'k'},
-        if (action == 'screenshot') 'device': 'pairing.json',
         if (action == 'fill') 'text': {'literal': ''},
         if (['swipe', 'scroll'].contains(action)) 'direction': 'left',
         if (action == 'wait') 'state': 'exists',

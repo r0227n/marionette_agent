@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -31,7 +33,7 @@ Future<void> main() async {
         '--session',
         'issue2',
         if (json) '--json',
-        ...args,
+        ...nativeScreenshotArguments(args),
       ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );

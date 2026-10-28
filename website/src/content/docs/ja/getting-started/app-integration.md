@@ -61,6 +61,6 @@ registerAgentExtensions();
 
 このパッケージはFFmpegKitのnative assetsを含みます。nativeアプリはAndroid API 26以上・iOS 13以上・macOS 13以上が必要なため、下回るdeployment targetはbuild前に引き上げてください。録画変換はCLI側で設定したvideo/LGPL runtimeを使います。debug providerの登録時にアプリ側でFFmpegを初期化する必要はありません。
 
-exampleには登録済みです。撮影は画像・動画ガイドの別UI Automator agentを使います。
+exampleには登録済みです。OS画面のスクリーンショットは独立したXCUIScreen runnerで取得し、アプリ側の画像providerは不要です。
 
 [exampleの初期化コード](https://github.com/r0227n/marionette_agent/blob/develop/example/lib/main.dart)と[補助パッケージ](https://github.com/r0227n/marionette_agent/tree/develop/packages/marionette_agent_flutter)で実装例を確認できます。登録していない機能は`UNSUPPORTED_CAPABILITY`となる場合があり、未観測の値は空文字やfalseとは区別されます。

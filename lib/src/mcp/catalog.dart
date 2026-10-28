@@ -252,20 +252,21 @@ List<McpToolDefinition> mcpToolCatalog() => [
     ),
   McpToolDefinition(
     'screenshot',
-    'Capture the Android display through a paired UI Automator agent and return image content. '
-        'Existing files are never overwritten.',
+    'Capture an iOS Simulator with XCUIScreen or Android Emulator with UI Automator. '
+        'Device is a Simulator UDID, or an Android private pairing file. No Flutter connection is needed. '
+        'The first call builds an XCTest runner; allow a longer timeout. '
+        'Flutter screenshot, crop and ref annotation are removed. ios-device is unsupported.',
     ['screenshot'],
+    required: ['device'],
     properties: {
       'path': _string,
-      'platform': _enum(['android']),
+      'source': _enum(['ios-simulator', 'ios-device', 'android-emulator']),
       'device': _string,
-      'display': _enum(['0']),
       'format': _enum(['png', 'jpeg']),
       'quality': Schema.int(minimum: 0, maximum: 100),
     },
-    required: ['device'],
     positionals: ['path'],
-    options: {'platform': 'platform', 'device': 'device', 'display': 'display'},
+    options: {'source': 'source', 'device': 'device'},
   ),
   for (final observation in ['text', 'box', 'count', 'value'])
     McpToolDefinition(
@@ -480,16 +481,17 @@ List<McpToolDefinition> mcpToolCatalog() => [
   for (final action in ['start', 'restart'])
     McpToolDefinition(
       'record_$action',
-      '$action a native device recording.',
+      '$action a recording. Non-Flutter '
+          'platforms require a device; Flutter uses the connected session.',
       ['record', action],
       profile: 'record',
       properties: {
         'path': _string,
-        'platform': _enum(['ios', 'android', 'macos', 'web']),
+        'platform': _enum(['ios', 'android', 'macos', 'web', 'flutter']),
         'device': _string,
         'fps': Schema.int(minimum: 1, maximum: 60),
       },
-      required: ['path', 'platform', 'device'],
+      required: ['path', 'platform'],
       positionals: ['path'],
       options: {'platform': 'platform', 'device': 'device', 'fps': 'fps'},
     ),

@@ -55,10 +55,10 @@ marionette-agent fill --key text_input 'hello'
 marionette-agent snapshot
 ```
 
-入力欄が`hello`になっていることを画面で確認します。`fill`は既存の入力全体を置き換えます。続けて画面を保存できます。
+入力欄が`hello`になっていることを画面で確認します。`fill`は既存の入力全体を置き換えます。`SIMULATOR_UDID`に上で使用した起動済みiOS SimulatorのUDIDを設定し、XCUIScreenでmain screenを保存できます。
 
 ```sh
-marionette-agent get text --key tap_result
+marionette-agent --timeout 120000 screenshot --device "$SIMULATOR_UDID"
 ```
 
 返された保存先の画像を開き、入力後の画面であることを確認してください。

@@ -60,6 +60,3 @@ steps:
     target: {key: log_button}
   - id: inspect-bottom
     action: snapshot
-  - id: capture-bottom
-    action: screenshot
-    device: capture-pairing.json

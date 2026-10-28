@@ -1,24 +1,44 @@
+import 'dart:io';
+
 import '../protocol/protocol.dart';
 
-/// Native screenshot validation shared by CLI, IPC, workflow and diff.
-void screenshotTarget(Json params) {
-  if (params.keys.any(
-        (key) => !['path', 'platform', 'device', 'display'].contains(key),
-      ) ||
-      (params.containsKey('platform') && params['platform'] != 'android') ||
-      params['device'] is! String ||
-      (params['device'] as String).isEmpty ||
-      (params['device'] as String).contains('\u0000') ||
-      (params.containsKey('path') &&
-          (params['path'] is! String || (params['path'] as String).isEmpty))) {
-    invalid(
-      'Screenshot requires --device <private UI Automator pairing file>; Flutter capture, annotation and crop are removed',
-    );
+const screenshotSources = ['ios-simulator', 'ios-device', 'android-emulator'];
+
+/// Validate the one OS-screen acquisition route before any process is started.
+void validateScreenshotRequest(Json params) {
+  final source = params['source'] ?? 'ios-simulator';
+  if (!screenshotSources.contains(source) ||
+      (params.containsKey('source') && params['source'] is! String)) {
+    invalid('Unknown screenshot source');
   }
-  if (params.containsKey('display') && params['display'] != '0') {
+  if (params.keys.any((key) => !['source', 'device', 'path'].contains(key))) {
     throw const AgentError(
       'UNSUPPORTED_CAPABILITY',
-      'Only Android display 0 is supported',
+      'OS screenshots do not support Flutter targets, crop or ref annotation',
     );
   }
+  if (params.containsKey('path') &&
+      (params['path'] is! String ||
+          (params['path'] as String).isEmpty ||
+          (params['path'] as String).contains('\u0000'))) {
+    invalid('Invalid screenshot destination');
+  }
+  final device = params['device'];
+  if (device is! String || device.isEmpty || device.contains('\u0000')) {
+    invalid('Screenshot requires --device <UDID>');
+  }
+  if (source == 'ios-simulator' &&
+      !RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(device)) {
+    invalid('Specify a Simulator UDID, never a name or booted');
+  }
 }
+
+bool isNativeScreenshot(String command, Json params) => command == 'screenshot';
+
+/// Resolve a pairing path before IPC; Simulator UDIDs are preserved verbatim.
+String resolveScreenshotDevice(Json params) =>
+    params['source'] == 'android-emulator'
+    ? File(params['device'] as String).absolute.path
+    : params['device'] as String;

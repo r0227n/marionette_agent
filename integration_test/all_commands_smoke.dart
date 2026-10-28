@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -30,25 +32,7 @@ Future<void> main() async {
   await Process.run('chmod', ['700', runtime.path]);
   final root = p.dirname(p.dirname(Platform.script.toFilePath()));
   final script = p.join(root, 'bin/marionette_agent.dart');
-  final originalWorkflow = File(
-    p.join(root, 'samples/workflows/all-actions.yaml'),
-  ).readAsStringSync();
-  final pairing = platform == 'android'
-      ? File(required('MARIONETTE_CAPTURE_PAIRING')).absolute.path
-      : null;
-  final workflow = p.join(evidence.path, 'all-actions.yaml');
-  File(workflow).writeAsStringSync(
-    pairing == null
-        ? originalWorkflow.replaceFirst(
-            RegExp(r'  - id: capture-bottom[\s\S]*$'),
-            '',
-          )
-        : originalWorkflow.replaceFirst(
-            'device: capture-pairing.json',
-            'device: ${jsonEncode(pairing)}',
-          ),
-  );
-  final stepCount = pairing == null ? 16 : 17;
+  final workflow = p.join(root, 'samples/workflows/all-actions.yaml');
   final records = <Map<String, dynamic>>[];
   final checks = <String>[];
   String? failure;
@@ -74,7 +58,7 @@ Future<void> main() async {
         if (!global) ...['--session', 'all-$platform'],
         '--timeout',
         args.first == 'wait' ? '5000' : '60000',
-        ...args,
+        ...nativeScreenshotArguments(args),
       ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );
@@ -117,7 +101,7 @@ Future<void> main() async {
   }
 
   Future<void> capture(String name, {bool jpeg = false}) async {
-    if (pairing == null) return;
+    if (platform != 'ios') return;
     final data = await cli([
       if (jpeg) ...[
         '--screenshot-format',
@@ -126,8 +110,6 @@ Future<void> main() async {
         '75',
       ],
       'screenshot',
-      '--device',
-      pairing,
       p.join(evidence.path, '$name.${jpeg ? 'jpg' : 'png'}'),
     ]);
     for (final path in data['paths'] as List) {
@@ -172,8 +154,7 @@ Future<void> main() async {
       '--check-inputs',
     ], global: true);
     check(
-      validated['stepCount'] == stepCount &&
-          validated['inputsValidated'] == true,
+      validated['stepCount'] == 16 && validated['inputsValidated'] == true,
       'All-actions YAML validates with inputs',
     );
     check(
@@ -309,8 +290,8 @@ Future<void> main() async {
     stdout.writeln('Standalone commands passed; running all-actions workflow.');
     final flow = await cli(['workflow', 'run', workflow]);
     check(
-      flow['completedSteps'] == stepCount && flow['requiresSnapshot'] == false,
-      'All $stepCount workflow steps complete',
+      flow['completedSteps'] == 16 && flow['requiresSnapshot'] == false,
+      'All 16 workflow steps complete',
     );
     final finalSnapshot = flow['finalSnapshot'] as Map<String, dynamic>;
     check(

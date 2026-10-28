@@ -368,23 +368,20 @@ const _schema = r'''{
         "action": {
           "const": "screenshot"
         },
-        "path": {
-          "type": "string",
-          "minLength": 1
-        },
-        "platform": {
+        "source": {
           "enum": [
-            "android"
+            "ios-simulator",
+            "ios-device",
+            "android-emulator"
           ]
         },
         "device": {
           "type": "string",
           "minLength": 1
         },
-        "display": {
-          "enum": [
-            "0"
-          ]
+        "path": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [

@@ -4,7 +4,7 @@ Flutter app automation for AI agents. Observe the UI, act on a target, and verif
 
 [English documentation](https://r0227n.github.io/marionette_agent/en/) · [日本語ドキュメント](https://r0227n.github.io/marionette_agent/ja/) · [Detailed references](docs/README.md)
 
-Version 1.0.0 runs on **macOS** and connects to **debug Flutter apps with Marionette enabled**. It supports named sessions, snapshot refs, text input, gestures, screenshots, recordings, and sequential workflows. Apps can run in iOS Simulator, Android Emulator, macOS, Chrome, or Flutter tester, subject to the selected platform’s requirements.
+Version 1.0.0 runs on **macOS** and connects to **debug Flutter apps with Marionette enabled**. It supports named sessions, snapshot refs, text input, gestures, screenshots, recordings, and sequential workflows. Apps can run in iOS Simulator, Android Emulator, macOS, Chrome, or Flutter tester, subject to the selected platform’s requirements. Still screenshots use XCUIScreen on iOS Simulator and require its explicit UDID; see the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/).
 
 The documentation site is deployed from `develop`. For offline reading, use the [English source](website/src/content/docs/en/getting-started/overview.md), [Japanese source](website/src/content/docs/ja/getting-started/overview.md), or [local preview](website/README.md).
 
@@ -64,12 +64,13 @@ marionette-agent get text --key tap_result
 marionette-agent snapshot
 marionette-agent fill --key text_input 'hello'
 marionette-agent snapshot
-marionette-agent get text --key tap_result
+marionette-agent record start rendered.mp4 --platform flutter
+marionette-agent record stop
 marionette-agent close
 unset MARIONETTE_AGENT_SESSION
 ```
 
-Verify `Tap count: 1` and `5 characters`, then inspect native Simulator evidence and
+Verify `Tap count: 1` and `5 characters`, then play the saved recording and
 confirm the input displays `hello`. Flutter tester covers shared Flutter UI;
 native plugins and OS behavior need the corresponding target platform.
 
@@ -104,7 +105,7 @@ personal information, authentication tokens, or abuse-enabling details.
 
 Snapshots also return short refs such as `@e7`. Use only refs returned by the latest snapshot in the selected session. A new snapshot, a UI mutation, or reconnection expires earlier refs. Reobserve after each action; the CLI does not automatically resend UI operations.
 
-For your own app, follow [app integration](https://r0227n.github.io/marionette_agent/en/getting-started/app-integration/). Optional app-side providers add typed input state, semantic find operations, and mapped screenshots.
+For your own app, follow [app integration](https://r0227n.github.io/marionette_agent/en/getting-started/app-integration/). Optional app-side providers add typed input state, semantic find operations.
 
 ## Commands
 
@@ -158,7 +159,8 @@ The MCP server uses stdio. Choose additional tool profiles when needed; the [age
 ```sh
 marionette-agent --session headless --timeout 600000 launch ./example --platform tester
 marionette-agent --session headless snapshot
-marionette-agent --session headless get text --key tap_result
+marionette-agent --session headless record start headless.mp4 --platform flutter
+marionette-agent --session headless record stop
 marionette-agent --session headless --timeout 60000 close
 ```
 
@@ -220,5 +222,3 @@ Read [AGENTS.md](AGENTS.md) before making changes. CLI changes require formattin
 Follow [Contributing](CONTRIBUTING.md) to install Lefthook and enable the extension-filtered pre-commit quality checks before your first commit.
 
 For website development and the GitHub Pages deployment pipeline, follow [website/README.md](website/README.md).
-
-Android screenshots use a separately started UI Automator agent and `--device <private pairing file>`. Flutter screenshot/annotation/crop and Marionette frame recording are removed. See the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/).

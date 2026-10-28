@@ -1,24 +1,26 @@
+import 'support/evidence.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
 /// Run with MARIONETTE_RECORD_PLATFORM, MARIONETTE_RECORD_DEVICE,
 /// MARIONETTE_TEST_VM_URI_FILE and MARIONETTE_RECORD_EVIDENCE.
+/// Set MARIONETTE_LAUNCH_OPTIONS to a JSON argv array instead of a URI file
+/// to exercise managed launch and close on tester or a native runtime.
 /// Optionally set MARIONETTE_RECORD_FPS to select the recording rate.
 /// Uses only product CLI calls; preserves no VM Service credentials in evidence.
 Future<void> main() async {
   final env = Platform.environment;
   final platform = env['MARIONETTE_RECORD_PLATFORM']!;
-  final device = env['MARIONETTE_RECORD_DEVICE']!;
+  final launch = env['MARIONETTE_LAUNCH_OPTIONS'];
+  final device = env['MARIONETTE_RECORD_DEVICE'];
   final fps = env['MARIONETTE_RECORD_FPS'];
-  if (!['ios', 'android', 'macos', 'web'].contains(platform)) {
-    throw ArgumentError('Select a native recording platform');
-  }
-  final pairing = env['MARIONETTE_CAPTURE_PAIRING'];
+  final applicationFrames = platform == 'flutter';
   final output = await Directory(env['MARIONETTE_RECORD_EVIDENCE']!)
       .create(recursive: true);
-  final uri = (await File(
-    env['MARIONETTE_TEST_VM_URI_FILE']!,
-  ).readAsString()).trim();
+  final uri = launch == null
+      ? (await File(env['MARIONETTE_TEST_VM_URI_FILE']!).readAsString()).trim()
+      : null;
   final runtime = await Directory('/tmp').createTemp('mra-record-smoke-');
   await Process.run('chmod', ['700', runtime.path]);
   final script = File('bin/marionette_agent.dart').absolute.path;
@@ -38,7 +40,7 @@ Future<void> main() async {
         'record-smoke',
         '--timeout',
         args.first == 'launch' ? '600000' : '60000',
-        ...args,
+        ...nativeScreenshotArguments(args),
       ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );
@@ -59,6 +61,17 @@ Future<void> main() async {
     () async {
       final idle = await cli(['record', 'status']);
       if (idle['recordingState'] != 'idle') throw StateError('Expected idle');
+      if (launch != null) {
+        if (!applicationFrames) {
+          throw StateError('Managed launch requires Flutter recording');
+        }
+        final options = (jsonDecode(launch) as List).cast<String>();
+        final launched = await cli(['launch', ...options]);
+        await File('${output.path}/launch.json')
+            .writeAsString(jsonEncode(launched));
+      } else if (applicationFrames) {
+        await cli(['connect', uri!], secret: true);
+      }
       final started = await cli([
         'record',
         'start',
@@ -66,25 +79,17 @@ Future<void> main() async {
         if (fps != null) ...['--fps', fps],
         '--platform',
         platform,
-        '--device',
-        device,
+        if (!applicationFrames) ...['--device', device!],
       ]);
       if (started['recordingState'] != 'recording') {
         throw StateError('Expected recording');
       }
-      await cli(['connect', uri], secret: true);
+      if (!applicationFrames) await cli(['connect', uri!], secret: true);
       // Reset the fixture so repeated runs visibly demonstrate input/count changes.
       await cli(['tap', '--key', 'about_tab']);
       await cli(['tap', '--key', 'controls_tab']);
       final initial = await cli(['snapshot']);
-      if (pairing != null) {
-        await cli([
-          'screenshot',
-          '${output.path}/before.png',
-          '--device',
-          pairing,
-        ]);
-      }
+      await cli(['screenshot', '${output.path}/before.png']);
       await Future<void>.delayed(const Duration(seconds: 1));
       await cli(['tap', '--key', 'tap_button']);
       await cli(['tap', '--key', 'text_input']);
@@ -96,14 +101,7 @@ Future<void> main() async {
       if (!jsonEncode(after['elements']).contains('19 characters')) {
         throw StateError('Fill state did not update');
       }
-      if (pairing != null) {
-        await cli([
-          'screenshot',
-          '${output.path}/after.png',
-          '--device',
-          pairing,
-        ]);
-      }
+      await cli(['screenshot', '${output.path}/after.png']);
       await Future<void>.delayed(const Duration(seconds: 1));
       final status = await cli(['record', 'status']);
       if (status['recordingState'] != 'recording') {
@@ -128,8 +126,7 @@ Future<void> main() async {
         if (fps != null) ...['--fps', fps],
         '--platform',
         platform,
-        '--device',
-        device,
+        if (!applicationFrames) ...['--device', device!],
       ], expected: 1);
       if (await File(stopped['path'] as String).length() != length) {
         throw StateError('Existing video modified');
@@ -141,8 +138,7 @@ Future<void> main() async {
         if (fps != null) ...['--fps', fps],
         '--platform',
         platform,
-        '--device',
-        device,
+        if (!applicationFrames) ...['--device', device!],
       ]);
       await Future<void>.delayed(const Duration(seconds: 1));
       final closed = await cli(['close']);

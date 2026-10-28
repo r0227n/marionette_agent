@@ -52,11 +52,13 @@ scrollintoviewは観測済みmounted targetへensureVisibleを1回行います�
 clipboardはホストCLIではなく接続先アプリのclipboardです。readは`{text,scope:"target_app"}`でtextがnullの場合もあります。copyはfocus中の選択文字列でpasswordを拒否し、pasteはfocus入力へ挿入します。read/write/copyはrefを保持し、pasteはmutationとして失効させます。
 
 <a id="diff"></a>
-## 画像と差分
+## 差分
+
+対象cropとref注釈は削除しました。画像diffは指定したiOS SimulatorをXCUIScreenで取得し、`--device <UDID>`を必要とします。
 
 diff snapshotは保存済みの通常包絡またはdataをbaselineとして受理します。ref/reasonと順序は比較せず、重複要素の個数は比較し、`added/removed/changed`を返します。現在の観測ではrefを発行・更新せず、max-outputによる省略前の全体を比較します。
 
-diff screenshotはUI Automatorで撮影し、`--device <pairing-file>`を必須とします。同寸法の単一PNGだけを比較します。各pixelのRGBA最大channel差がthreshold（0〜255）を超える場合を変更とし、赤く示したPNGを新規pathへ保存します。baselineは32 MiB以下の通常fileで、JPEG・複数画像・baseline上書きは受理しません。
+diff screenshotは同寸法の単一PNGだけです。各pixelのRGBA最大channel差がthreshold（0〜255）を超える場合を変更とし、赤く示したPNGを新規pathへ保存します。baselineは32 MiB以下の通常fileで、JPEG・複数画像・baseline上書きは受理しません。
 
 <a id="configuration"></a>
 ## config、namespace、state

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:marionette_agent/marionette_agent.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
@@ -63,12 +61,12 @@ void main() {
       ),
     );
     expect(
-      parser.parse(['screenshot', '--device=test-pairing', 'a.png']).params,
-      {
-        'platform': 'android',
-        'device': File('test-pairing').absolute.path,
-        'path': 'a.png',
-      },
+      parser.parse([
+        'screenshot',
+        '--device=11111111-2222-3333-4444-555555555555',
+        'a.png',
+      ]).params,
+      {'device': '11111111-2222-3333-4444-555555555555', 'path': 'a.png'},
     );
     expect(parser.parse(['logs']).params, isEmpty);
   });
@@ -101,7 +99,7 @@ void main() {
   setUp(() async {
     backend = RecordingBackend()
       ..elements = [ElementInfo(key: 'input', type: 'TextField')];
-    manager = SessionManager(() => backend, coreCommands(capturer: backend));
+    manager = SessionManager(() => backend, coreCommands());
     await manager.handle(
       request('connect', params: {'uri': 'http://localhost:1/'}),
     );
@@ -209,14 +207,7 @@ void main() {
   );
   test('read commands preserve refs, log configuration and failures', () async {
     final target = await ref();
-    backend.screenshots = ['ZW5jb2RlZA=='];
-    expect(
-      (await call('screenshot', {
-        'platform': 'android',
-        'device': 'test-pairing',
-      })).data!['images'],
-      ['ZW5jb2RlZA=='],
-    );
+    expect((await call('screenshot', {})).error!.code, 'INVALID_ARGUMENT');
     expect((await call('logs', {})).data, {'entries': [], 'configured': true});
     backend.logs = const LogBatch([], configured: false);
     expect((await call('logs', {})).data!['configured'], false);

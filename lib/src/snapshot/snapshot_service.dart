@@ -27,7 +27,6 @@ class SnapshotService {
   int _generation = 0;
 
   /// Invalidate stale refs and expose only data and uniquely actionable refs.
-
   Future<Json> publish(
     Execution context, {
     Selector? filter,
