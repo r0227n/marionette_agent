@@ -36,13 +36,13 @@ Only an Emulator with a single display 0 is supported. The result uses `method: 
 
 The Marionette/Flutter screenshot route, ref/selector crop, `--annotate`, and the example mapped provider have been removed. Every screenshot now requires a device. Screenshot capture is available for iOS Simulator and Android Emulator; Flutter tester and other app runtimes can use [Flutter rendering video](#record-the-flutter-rendering).
 
-MCP screenshot requires `device`; optional `source` defaults to `ios-simulator`. Workflow screenshot steps use the same route and require a literal `device` UDID. A screenshot-only workflow needs no connection. See [workflow steps](/marionette_agent/en/guides/workflows/).
+MCP screenshot requires `device`; optional `source` defaults to `ios-simulator`. Workflow screenshot steps use the same route and require a literal `device`: an iOS UDID or Android pairing file. A screenshot-only workflow needs no connection. See [workflow steps](/marionette_agent/en/guides/workflows/).
 
 ```sh
 marionette-agent --timeout 120000 diff screenshot --device "$SIMULATOR_UDID" --baseline artifacts/after.png --output artifacts/difference.png
 ```
 
-Image diff takes a fresh XCUIScreen capture. Use a PNG baseline from the same device, capture method and settled orientation; dimensions must match. The threshold compares physical pixels without mapping Flutter refs.
+Image diff captures the selected source again. Use a PNG baseline from the same device, capture method and settled orientation; dimensions must match. The threshold compares physical pixels without mapping Flutter refs.
 
 Physical iOS devices remain unsupported in this implementation: `--source ios-device --device <id>` returns `UNSUPPORTED_CAPABILITY`. Signing/provisioning and a verified physical-device runner lifecycle are not implemented. Protected or restricted content is not guaranteed. Capture failures never select another source, close dialogs or repeat app actions. See the [capture contract](https://github.com/r0227n/marionette_agent/blob/develop/docs/SPEC.md#native-ios-screenshots).
 
