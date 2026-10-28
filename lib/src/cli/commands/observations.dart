@@ -52,6 +52,7 @@ CliCommand screenshotCommand() => CliCommand(
       if (args.rest.isNotEmpty) 'path': args.rest.single,
     };
     validateScreenshotRequest(params);
+    params['device'] = resolveScreenshotDevice(params);
     return params;
   },
 );

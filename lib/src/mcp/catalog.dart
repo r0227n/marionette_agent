@@ -312,15 +312,15 @@ List<McpToolDefinition> mcpToolCatalog() => [
     ),
   McpToolDefinition(
     'screenshot',
-    'Capture the iOS Simulator main screen with XCUIScreen and return image content. '
-        'Requires an explicit device UDID; no Flutter connection is needed. '
+    'Capture an iOS Simulator with XCUIScreen or Android Emulator with UI Automator. '
+        'Device is a Simulator UDID, or an Android private pairing file. No Flutter connection is needed. '
         'The first call builds an XCTest runner; allow a longer timeout. '
         'Flutter screenshot, crop and ref annotation are removed. ios-device is unsupported.',
     ['screenshot'],
     required: ['device'],
     properties: {
       'path': _string,
-      'source': _enum(['ios-simulator', 'ios-device']),
+      'source': _enum(['ios-simulator', 'ios-device', 'android-emulator']),
       'device': _string,
       'format': _enum(['png', 'jpeg']),
       'quality': Schema.int(minimum: 0, maximum: 100),

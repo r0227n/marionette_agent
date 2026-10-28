@@ -399,6 +399,10 @@ OwnedProcessは引数配列で起動し、stdoutを有界に保持してFlutter 
 
 closeは既存RecordingManagerによる確定後にRunningApplication.stopを呼び、その後にsessionを廃棄する。アプリ終了通知は該当handleがまだ同じsessionに属する場合だけ世代を失効する。close --allとdaemon disposeも同じ共通hostの終了処理を使う。CLI側のテストで起動・接続準備失敗・policy・外部接続の非所有・異常終了を確認し、platformとCLIのlifecycleテストは実fixture processで開始・timeout・中断・project排他・終了を確認する。
 
+### Androidのスクリーンショット取得元
+
+既存のScreenCapturer契約へ任意の取得元を追加する。CLIのcomposition rootはandroid-emulatorだけでAndroidScreenCapturerを選び、既定のiOS経路とIosScreenCapturerのlifecycleを維持する。Androidのplatform packageが私有pairing検証、相互HMAC、別のUiDevice Instrumentationからの有界PNG転送を担当する。CommandContextは既存のscreenshot経路へ画像とmetadataを返し、共通writerがPNG/JPEG変換と保存を担当する。native UI操作service、操作protocol、ref状態は追加しない。
+
 <a id="native-ui-boundary"></a>
 
 ## ネイティブUI境界

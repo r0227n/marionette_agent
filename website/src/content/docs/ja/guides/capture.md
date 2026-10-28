@@ -21,17 +21,28 @@ PNGには表示中のOS権限ダイアログ、写真ピッカー、ソフトウ
 
 既定形式はPNGです。JPEGは`--screenshot-format jpeg`で明示し、品質は`--screenshot-quality`で0〜100を指定します。拡張子だけで形式は変わりません。JPEGは透過を白へ合成します。pathを省略すると非公開の一時出力を返し、既存directoryは`--screenshot-dir`で指定できます。親directoryは事前作成が必要で、既存fileは上書きしません。
 
+## AndroidのOS標準UIを撮影する
+
+`--source android-emulator`を選び、私有pairingファイルのpathを`CAPTURE_PAIRING`へ設定します。[撮影agentの準備](https://github.com/r0227n/marionette_agent/blob/develop/packages/marionette_agent_android/capture_agent/README.md)に従ってpairingを作成し、Android StudioまたはGradleでInstrumentationを起動したままにします。この別の準備環境はAndroid debugging transportを内部利用します。撮影コマンドは認証付きローカルTCPからUI Automatorを呼び、ADBコマンドを実行しません。Flutter接続は不要です。
+
+```sh
+marionette-agent screenshot artifacts/android.png --source android-emulator --device "$CAPTURE_PAIRING"
+marionette-agent screenshot artifacts/android.jpg --source android-emulator --device "$CAPTURE_PAIRING" --screenshot-format jpeg
+```
+
+単一display 0のEmulatorだけを対象とします。結果は`method: uiautomator`となり、既存のPNG/JPEG・排他的保存・物理pixel metadataを使います。権限ダイアログ・写真／ファイルpicker・IME・system barを含み、回転後のdisplay pixelを取得します。FLAG_SECUREの対象が隠れるかエラーになる場合があり、黒pixelだけでは保護を確定しません。失敗時にFlutterや別の取得元へ切り替えません。MCP・workflowでも`source: android-emulator`とpairingファイルの`device`を使えます。既定のiOS撮影は維持します。
+
 ## 既存の撮影コマンドから移行する
 
-Marionette/Flutter経由の静止画、ref/selectorによるcrop、`--annotate`、exampleのmapped providerは削除しました。すべての撮影にdeviceが必要です。静止画の対応対象はiOS Simulatorです。Flutter testerなどのアプリ環境では[Flutter描画の録画](#flutterアプリの描画を録画する)を使えます。
+Marionette/Flutter経由の静止画、ref/selectorによるcrop、`--annotate`、exampleのmapped providerは削除しました。すべての撮影にdeviceが必要です。静止画の対応対象はiOS SimulatorとAndroid Emulatorです。Flutter testerなどのアプリ環境では[Flutter描画の録画](#flutterアプリの描画を録画する)を使えます。
 
-MCP screenshotは`device`が必須で、任意の`source`は既定`ios-simulator`です。workflowのscreenshot stepも同じ経路で、`device`にUDID文字列が必要です。撮影だけのworkflowには接続が不要です。[workflow step](/marionette_agent/ja/guides/workflows/)を参照してください。
+MCP screenshotは`device`が必須で、任意の`source`は既定`ios-simulator`です。workflowのscreenshot stepも同じ経路で、`device`にはiOSのUDIDまたはAndroidのpairingファイルを指定します。撮影だけのworkflowには接続が不要です。[workflow step](/marionette_agent/ja/guides/workflows/)を参照してください。
 
 ```sh
 marionette-agent --timeout 120000 diff screenshot --device "$SIMULATOR_UDID" --baseline artifacts/after.png --output artifacts/difference.png
 ```
 
-画像diffも新しいXCUIScreen画像を取得します。同じ端末・取得方式・回転後の向きで撮ったPNGをbaselineにしてください。寸法の一致が必要です。thresholdは物理pixelを比較し、Flutter refの座標へ変換しません。
+画像diffも選択した取得元から新しい画像を取得します。同じ端末・取得方式・回転後の向きで撮ったPNGをbaselineにしてください。寸法の一致が必要です。thresholdは物理pixelを比較し、Flutter refの座標へ変換しません。
 
 この実装ではiOS実機は引き続き非対応です。`--source ios-device --device <id>`は`UNSUPPORTED_CAPABILITY`です。署名・provisioningと実機runnerの寿命管理は実装・検証していません。保護・制限された内容の取得は保証しません。失敗時に取得元を切り替えたり、ダイアログを閉じたり、アプリ操作を再送したりしません。[撮影契約](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/SPEC.ja.md#native-ios-screenshots)を参照してください。
 

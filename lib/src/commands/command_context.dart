@@ -77,7 +77,11 @@ class CommandContext {
       );
     }
     try {
-      final image = await _screenCapturer.capture(device, deadline);
+      final image = await _screenCapturer.capture(
+        device,
+        deadline,
+        source: source,
+      );
       check();
       return {
         'images': [base64Encode(image.png)],

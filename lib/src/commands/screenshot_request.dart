@@ -1,13 +1,15 @@
+import 'dart:io';
+
 import '../protocol/protocol.dart';
 
-const screenshotSources = ['ios-simulator', 'ios-device'];
+const screenshotSources = ['ios-simulator', 'ios-device', 'android-emulator'];
 
 /// Validate the one OS-screen acquisition route before any process is started.
 void validateScreenshotRequest(Json params) {
   final source = params['source'] ?? 'ios-simulator';
   if (!screenshotSources.contains(source) ||
       (params.containsKey('source') && params['source'] is! String)) {
-    invalid('Screenshot source must be ios-simulator or ios-device');
+    invalid('Unknown screenshot source');
   }
   if (params.keys.any((key) => !['source', 'device', 'path'].contains(key))) {
     throw const AgentError(
@@ -34,3 +36,9 @@ void validateScreenshotRequest(Json params) {
 }
 
 bool isNativeScreenshot(String command, Json params) => command == 'screenshot';
+
+/// Resolve a pairing path before IPC; Simulator UDIDs are preserved verbatim.
+String resolveScreenshotDevice(Json params) =>
+    params['source'] == 'android-emulator'
+    ? File(params['device'] as String).absolute.path
+    : params['device'] as String;

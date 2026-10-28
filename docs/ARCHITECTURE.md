@@ -398,6 +398,10 @@ OwnedProcess starts with an argument array, retains bounded stdout, and interpre
 
 Close finalizes through the existing RecordingManager, calls RunningApplication.stop, then discards the session. An app-exit notification invalidates the generation only if that handle still belongs to the same session. Close --all and daemon disposal use the same shared host shutdown. CLI tests cover launch, connection-readiness failure, policy, nonownership of external connections, and abnormal exit. Platform and CLI lifecycle tests use real fixture processes for startup, timeout, interruption, project exclusion, and shutdown.
 
+### Android screenshot source
+
+The existing ScreenCapturer contract accepts an optional acquisition source. The CLI composition root selects AndroidScreenCapturer only for android-emulator and retains IosScreenCapturer and its lifecycle for the default iOS route. Android's platform package owns private pairing validation, mutual HMAC and bounded PNG transport from a separate UiDevice instrumentation. CommandContext still returns pixels and metadata through the existing screenshot path; the common writer owns PNG/JPEG conversion and persistence. No native UI operation service, action protocol or reference state is introduced.
+
 <a id="native-ui-boundary"></a>
 
 ## Native UI boundary

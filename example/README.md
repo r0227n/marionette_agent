@@ -91,3 +91,5 @@ FFmpegKit native assetsに合わせ、AndroidはAPI 26以上、macOSは13以上�
 debug iOSのAboutタブに`native_photo_permission`（Photos権限要求）と`native_photo_picker`（PHPicker）を用意する。専用Simulatorにダミー写真だけを追加し、通常画面→キーボード→権限画面→写真ピッカーを製品CLIの`--source ios-simulator --device <UDID>`で保存する。標準UIの操作・回転は人間または外部Simulator操作ツールで行い、製品CLIの機能と区別する。選択画像の読込・コピー・ログ出力はしない。権限ダイアログの初回状態は新規Simulatorまたは人間による権限リセットで用意する。撮影機能自身は権限を変更しない。
 
 XCUIScreenの取得元と表示の一致、PNG/JPEG、縦横寸法・UDIDの照合、未接続撮影、停止端末・不正ID・複数起動・取得失敗を確認する。詳細は[日英captureガイド](../website/src/content/docs/ja/guides/capture.md)と[SPEC](../docs/ja/SPEC.ja.md#native-ios-screenshots)。
+
+Android capture verification uses About's debug-only fixture for camera permission, a synthetic picker image, Photo Picker/file selection, IME and FLAG_SECURE. Start the separate [UI Automator capture agent](../packages/marionette_agent_android/capture_agent/README.md), then capture with `--source android-emulator --device <private-pairing-file>`. These controls only prepare screenshot states; no native operation commands are added.

@@ -36,7 +36,10 @@ CliCommand diffCommand() => CliCommand(
       'action': child.name,
       'baseline': path,
       if (child.name == 'screenshot') ...{
-        'device': child.option('device'),
+        'device': resolveScreenshotDevice({
+          'device': child.option('device'),
+          'source': child.option('source'),
+        }),
         if (child.wasParsed('source')) 'source': child.option('source'),
         'output': child.option('output'),
         'threshold': parseThreshold(child.option('threshold')!),

@@ -488,6 +488,13 @@ Close finalizes recording, stops the launched environment, and discards the conn
 
 Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares existing session operations and record --platform flutter. See the [headless guide](headless.md) for procedures and limitations.
 
+<a id="android-emulator-screenshots"></a>
+## Android Emulator screenshots
+
+`--source android-emulator --device <private-pairing-file>` selects UI Automator's `UiDevice.takeScreenshot(File)`. The default remains ios-simulator. CLI, MCP, screenshot workflow steps and image diff use the existing screenshot service and artifact writer; no `native` operation commands, refs or UI actions are added. Pairing paths resolve against the calling CLI's cwd before IPC. A separately started instrumentation connects through Emulator 10.0.2.2 to a temporary host-loopback listener and authenticates each capture with nonce-based mutual HMAC-SHA256. The capture implementation executes no ADB commands, shell or port forwarding. Android Studio/Gradle supply the separate installation and instrumentation environment, which uses Android debugging transport internally.
+
+Only ranchu/goldfish Emulator hardware with one display 0 is supported. Pairing fixes an explicit logical device identity. Captures return source:android-emulator, method:uiautomator, paired device name, runtime:android-emulator, display:0, scope:device-screen, mask:system-default and physical pixel dimensions from the common decoder. Permission dialogs, pickers, IME and system bars are included. Android may hide FLAG_SECURE content or deny capture; black pixels do not prove protection. Missing agent/deadline, authentication, connection loss, malformed or oversized output are explicit errors with no alternative source or UI replay. PNG bytes are bounded to 32 MiB. Setup is documented in the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/).
+
 <a id="native-ui"></a>
 
 ## Native device UI

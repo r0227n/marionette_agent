@@ -21,17 +21,28 @@ Results include `capture.method: xcuiscreen`, source, device UDID, runtime, `dis
 
 PNG is the default. Select JPEG explicitly with `--screenshot-format jpeg`; quality is 0–100 using `--screenshot-quality`. Extensions do not select the format. JPEG composites transparency onto white. Omit the path for a private temporary output, or use `--screenshot-dir` with an existing directory. Parent directories must exist and existing files are never overwritten.
 
+## Capture Android system UI
+
+Select `--source android-emulator` and set `CAPTURE_PAIRING` to a private pairing file. Follow the [capture agent setup](https://github.com/r0227n/marionette_agent/blob/develop/packages/marionette_agent_android/capture_agent/README.md) to prepare the pairing and start its Instrumentation with Android Studio or Gradle. That separate setup environment uses Android debugging transport internally. Leave the agent running. The screenshot command calls UI Automator through authenticated local TCP; it executes no ADB commands and needs no Flutter connection.
+
+```sh
+marionette-agent screenshot artifacts/android.png --source android-emulator --device "$CAPTURE_PAIRING"
+marionette-agent screenshot artifacts/android.jpg --source android-emulator --device "$CAPTURE_PAIRING" --screenshot-format jpeg
+```
+
+Only an Emulator with a single display 0 is supported. The result uses `method: uiautomator` and the existing PNG/JPEG, exclusive saving and physical-pixel metadata. Permission dialogs, photo/file pickers, IME and system bars are included. Rotation uses the current display pixels. FLAG_SECURE can produce hidden content or an error; black pixels alone do not establish protection. No failure falls back to Flutter or another source. MCP/workflow also accept `source: android-emulator` and the pairing file as `device`. Existing iOS capture remains the default.
+
 ## Migrate existing capture commands
 
-The Marionette/Flutter screenshot route, ref/selector crop, `--annotate`, and the example mapped provider have been removed. Every screenshot now requires a device. Screenshot capture is available for iOS Simulator; Flutter tester and other app runtimes can use [Flutter rendering video](#record-the-flutter-rendering).
+The Marionette/Flutter screenshot route, ref/selector crop, `--annotate`, and the example mapped provider have been removed. Every screenshot now requires a device. Screenshot capture is available for iOS Simulator and Android Emulator; Flutter tester and other app runtimes can use [Flutter rendering video](#record-the-flutter-rendering).
 
-MCP screenshot requires `device`; optional `source` defaults to `ios-simulator`. Workflow screenshot steps use the same route and require a literal `device` UDID. A screenshot-only workflow needs no connection. See [workflow steps](/marionette_agent/en/guides/workflows/).
+MCP screenshot requires `device`; optional `source` defaults to `ios-simulator`. Workflow screenshot steps use the same route and require a literal `device`: an iOS UDID or Android pairing file. A screenshot-only workflow needs no connection. See [workflow steps](/marionette_agent/en/guides/workflows/).
 
 ```sh
 marionette-agent --timeout 120000 diff screenshot --device "$SIMULATOR_UDID" --baseline artifacts/after.png --output artifacts/difference.png
 ```
 
-Image diff takes a fresh XCUIScreen capture. Use a PNG baseline from the same device, capture method and settled orientation; dimensions must match. The threshold compares physical pixels without mapping Flutter refs.
+Image diff captures the selected source again. Use a PNG baseline from the same device, capture method and settled orientation; dimensions must match. The threshold compares physical pixels without mapping Flutter refs.
 
 Physical iOS devices remain unsupported in this implementation: `--source ios-device --device <id>` returns `UNSUPPORTED_CAPABILITY`. Signing/provisioning and a verified physical-device runner lifecycle are not implemented. Protected or restricted content is not guaranteed. Capture failures never select another source, close dialogs or repeat app actions. See the [capture contract](https://github.com/r0227n/marionette_agent/blob/develop/docs/SPEC.md#native-ios-screenshots).
 

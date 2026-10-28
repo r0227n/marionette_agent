@@ -29,6 +29,10 @@ class DeviceScreenshot {
 }
 
 abstract interface class ScreenCapturer {
-  Future<DeviceScreenshot> capture(String device, DateTime deadline);
+  Future<DeviceScreenshot> capture(
+    String device,
+    DateTime deadline, {
+    String? source,
+  });
   Future<void> dispose();
 }

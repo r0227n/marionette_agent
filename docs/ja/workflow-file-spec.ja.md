@@ -140,3 +140,5 @@ workflow本文・inputs・解決済みparams・fill入力を診断や実行報�
 - [workflow_runner.dart](../../lib/src/workflow/workflow_runner.dart): 実行と進捗。
 - [wait.dart](../../lib/src/commands/wait.dart): 条件判定。
 - [workflow_model_test.dart](../../test/workflow_model_test.dart)、[workflow_cli_test.dart](../../test/workflow_cli_test.dart)、[workflow_execution_test.dart](../../test/workflow_execution_test.dart): 境界検証。
+
+Androidのscreenshot stepは`source: android-emulator`を選び、`device`へ私有UI Automator pairingファイルを指定する。相対pairing pathはIPC前に呼出元CLIのcwdで解決する。agentを事前起動し、撮影だけのworkflowではFlutter接続を不要とする。結果・画像上限・全step成功後の一括保存は既存契約を使う。

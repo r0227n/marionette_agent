@@ -140,3 +140,5 @@ Workflow content, inputs, resolved params, and fill values are not copied into d
 - [workflow_runner.dart](../lib/src/workflow/workflow_runner.dart): execution and progress.
 - [wait.dart](../lib/src/commands/wait.dart): conditions.
 - [workflow_model_test.dart](../test/workflow_model_test.dart), [workflow_cli_test.dart](../test/workflow_cli_test.dart), [workflow_execution_test.dart](../test/workflow_execution_test.dart): boundary verification.
+
+For Android screenshot steps, select `source: android-emulator` and set `device` to a private UI Automator pairing file. Relative pairing paths resolve against the invoking CLI's cwd before IPC. The agent must already be running; screenshot-only workflows still need no Flutter connection. Existing result, image limits and all-or-nothing saving apply.
