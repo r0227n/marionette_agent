@@ -421,4 +421,4 @@ UiServiceは必要な取得が成功してから両取得元を公開し、失�
 
 macOS exampleにdebug専用のAppKit file panel・alert・menu・別display移動操作を固定MethodChannelで公開します。Debug専用のUser Selected File Read entitlementで標準panelを許可し、アプリ一時領域にダミーデータを用意して初期directoryに指定します。macOSが別のpanel表示位置を復元する場合があるため、検証時はダミーフォルダを明示的に選び、共有前に画像を確認します。alertはfixtureでありOS権限dialogではありません。OS権限設定は変更しません。対象選択・pixel geometry・権限の制約は[native撮影契約](SPEC.ja.md#native-macos-screenshots)を参照してください。
 
-debugのmove fixtureはwindow移動後に検証アプリを明示的にactivateします。撮影処理自身はwindowやSpaceを操作しません。
+debugのmove fixtureは検証windowを全Spaceでfloating表示し、アプリを明示的にactivateします。native alertも検証用のfloating modal windowで表示します。撮影処理自身はwindowやSpaceを操作しません。

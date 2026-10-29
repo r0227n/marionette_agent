@@ -420,4 +420,4 @@ The public native command/MCP tools are removed. `session bind`, snapshot, tap a
 
 The macOS example exposes debug-only AppKit file-panel, alert, menu and cross-display move controls via a fixed MethodChannel. Debug-only User Selected File Read entitlement permits the standard panel; the fixture prepares dummy data in its temporary folder and requests it as the initial directory. macOS may restore another panel location, so verification must explicitly select the dummy folder and inspect the image before sharing. The alert is explicitly a fixture, not a system permission dialog. The controls do not change OS permission settings. See [native screenshot contract](SPEC.md#native-macos-screenshots) for selection, pixel geometry and permission limitations.
 
-The debug move fixture explicitly activates the verification app after moving its window. The capture implementation itself never moves windows or changes Spaces.
+The debug move fixture makes its verification window floating across Spaces and explicitly activates the app. Its native alert uses a floating modal window for verification. The capture implementation itself never moves windows or changes Spaces.

@@ -44,7 +44,10 @@ class MainFlutterWindow: NSWindow {
           alert.messageText = "Native alert fixture"
           alert.informativeText = "This is an AppKit alert, not an OS permission request."
           alert.addButton(withTitle: "OK")
-          alert.beginSheetModal(for: self) { _ in }
+          alert.window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+          alert.window.level = .floating
+          NSApp.activate(ignoringOtherApps: true)
+          alert.runModal()
         case "menu":
           let menu = NSMenu(title: "Native fixture menu")
           menu.addItem(withTitle: "Native menu item", action: nil, keyEquivalent: "")
@@ -53,8 +56,11 @@ class MainFlutterWindow: NSWindow {
         case "move":
           guard NSScreen.screens.count > 1,
                 let screen = NSScreen.screens.first(where: { $0 != self.screen }) else { return }
+          self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+          self.level = .floating
           self.setFrame(screen.visibleFrame.insetBy(dx: 30, dy: 30), display: true)
           self.makeKeyAndOrderFront(nil)
+          self.orderFrontRegardless()
           NSApp.activate(ignoringOtherApps: true)
         default: break
         }
