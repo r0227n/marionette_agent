@@ -1,44 +1,50 @@
 ---
 title: 画像と動画を残す
-description: スクリーンショット・注釈・録画を使って、操作後の状態を記録する。
+description: XCUIScreenでiOS標準UIを撮影し、アプリや端末の動画を残す。
 ---
 
-画面を保存すると、CLIの応答と実際の表示を照合できます。保存先の親ディレクトリは先に作り、各実行で新しいファイル名を使います。
+画面を保存し、CLIの応答と実際の表示を照合します。スクリーンショットは、同梱のXCTest UI-test runnerからAppleの`XCUIScreen.main.screenshot()`で取得します。`SIMULATOR_UDID`に起動済みiOS Simulatorの正確なUDIDを設定してください。名前や`booted`は拒否します。完全なXcodeを選択したmacOSが必要です。アプリ接続、Marionette binding、アプリ側の画像providerは不要です。
 
 ## スクリーンショット
 
 ```sh
 mkdir -p artifacts
-marionette-agent screenshot artifacts/after.png
-marionette-agent screenshot artifacts/after.jpg --screenshot-format jpeg
+marionette-agent --timeout 120000 screenshot artifacts/after.png --device "$SIMULATOR_UDID"
+marionette-agent --timeout 120000 screenshot artifacts/after.jpg --device "$SIMULATOR_UDID" --screenshot-format jpeg
 ```
 
-既定はPNGです。JPEGは`--screenshot-format jpeg`を明示し、品質を変える場合は`--screenshot-quality`を0〜100で指定します。拡張子だけで形式は切り替わりません。JPEGの透過部分は白背景へ合成されます。
+取得元の既定は`ios-simulator`です。初回撮影でCLI自身のrunnerをビルドし、daemonの存続中はそのbuildを再利用します。`--timeout`にはコンパイルとXCTest起動の時間を確保してください。同じ期限に画像回収・変換・保存も含まれます。対象アプリのXcode projectを編集する必要はありません。コンパイル済みCLIにも同じrunnerソースが含まれます。
 
-pathを省略すると、専用の一時ディレクトリへ保存してパスを返します。`--screenshot-dir`で既存ディレクトリを指定することもできます。既存ファイルを上書きしません。
+PNGには表示中のOS権限ダイアログ、写真ピッカー、ソフトウェアキーボード、ステータスバー、セーフエリアが入ります。runnerは対象アプリの起動・前面化やUIのtapを行わず、main screenを観測します。sessionの接続先が別アプリでも、指定UDIDが撮影対象です。ダミーデータの専用Simulatorを使い、共有する画像を目視確認してください。
 
-## macOSの標準UIを含める
+結果の`capture`には`method: xcuiscreen`、取得元、端末UDID、runtime、`display: main`、`scope: device-screen`、`mask: system-default`、物理pixel寸法と画像の向きが入ります。ノッチ・角丸maskを指定するAPIは使わず、XCUIScreenのシステム画像をそのまま取得します。Macのウィンドウ装飾や倍率は影響しません。回転完了後に取得し、保存PNGと返された寸法を照合してください。`orientation`は画像の縦横比であり、センサーの向きではありません。CLIは画像を回転・resizeしません。横向きのXCUIScreen PNGが縦長の画素配列とEXIFの向き情報を持つ場合があり、JPEGでもその向き情報を保持します。
 
-接続済みsessionで、まずdisplay一覧を確認して対象番号を選びます。次はmain display（1）の例です。既定のFlutter撮影は変わりません。
+既定形式はPNGです。JPEGは`--screenshot-format jpeg`で明示し、品質は`--screenshot-quality`で0〜100を指定します。拡張子だけで形式は変わりません。JPEGは透過を白へ合成します。pathを省略すると非公開の一時出力を返し、既存directoryは`--screenshot-dir`で指定できます。親directoryは事前作成が必要で、既存fileは上書きしません。
+
+## AndroidのOS標準UIを撮影する
+
+`--source android-emulator`を選び、私有pairingファイルのpathを`CAPTURE_PAIRING`へ設定します。[撮影agentの準備](https://github.com/r0227n/marionette_agent/blob/develop/packages/marionette_agent_android/capture_agent/README.md)に従ってpairingを作成し、Android StudioまたはGradleでInstrumentationを起動したままにします。この別の準備環境はAndroid debugging transportを内部利用します。撮影コマンドは認証付きローカルTCPからUI Automatorを呼び、ADBコマンドを実行しません。Flutter接続は不要です。
 
 ```sh
-marionette-agent device list --platform macos
-marionette-agent screenshot --source macos --display 1 artifacts/native.png
-marionette-agent screenshot --source macos --display 1 artifacts/native.jpg --screenshot-format jpeg
+marionette-agent screenshot artifacts/android.png --source android-emulator --device "$CAPTURE_PAIRING"
+marionette-agent screenshot artifacts/android.jpg --source android-emulator --device "$CAPTURE_PAIRING" --screenshot-format jpeg
 ```
 
-選択display全体を取得するため、他アプリや個人情報も写ります。共有前に画像を確認してください。現在表示中のfile panel・menu・取得可能な権限dialogを含みますが、別display・Space・非表示windowや保護UIは取得を保証しません。windowの移動に追従せず、遮蔽物もそのまま写ります。native撮影ではFlutterのref注釈・cropは使えません。
+単一display 0のEmulatorだけを対象とします。結果は`method: uiautomator`となり、既存のPNG/JPEG・排他的保存・物理pixel metadataを使います。権限ダイアログ・写真／ファイルpicker・IME・system barを含み、回転後のdisplay pixelを取得します。FLAG_SECUREの対象が隠れるかエラーになる場合があり、黒pixelだけでは保護を確定しません。失敗時にFlutterや別の取得元へ切り替えません。MCP・workflowでも`source: android-emulator`とpairingファイルの`device`を使えます。既定のiOS撮影は維持します。
 
-実行元terminal/host appに画面収録権限が必要です。権限不足、対象消失、timeoutは失敗となり、Flutter画像へ切り替えません。結果の`capture`にdisplay番号・ID・画像pixel寸法・撮影範囲・倍率を返します。MCP screenshotも`source: "macos"`と整数`display`で同じ処理を使います。`diff screenshot`はFlutter画像専用です。
+## 既存の撮影コマンドから移行する
 
-## refを画像へ重ねる
+Marionette/Flutter経由の静止画、ref/selectorによるcrop、`--annotate`、exampleのmapped providerは削除しました。すべての撮影にdeviceが必要です。静止画の対応対象はiOS SimulatorとAndroid Emulatorです。Flutter testerなどのアプリ環境では[Flutter描画の録画](#flutterアプリの描画を録画する)を使えます。
+
+MCP screenshotは`device`が必須で、任意の`source`は既定`ios-simulator`です。workflowのscreenshot stepも同じ経路で、`device`にはiOSのUDIDまたはAndroidのpairingファイルを指定します。撮影だけのworkflowには接続が不要です。[workflow step](/marionette_agent/ja/guides/workflows/)を参照してください。
 
 ```sh
-marionette-agent snapshot
-marionette-agent screenshot --annotate artifacts/targets.png
+marionette-agent --timeout 120000 diff screenshot --device "$SIMULATOR_UDID" --baseline artifacts/after.png --output artifacts/difference.png
 ```
 
-注釈には直近の有効snapshotとmapped screenshot providerが必要です。exampleは対応しています。途中でUI操作をした場合は、snapshotを取り直します。画像上の番号と操作対象を照合する用途に使います。
+画像diffも選択した取得元から新しい画像を取得します。同じ端末・取得方式・回転後の向きで撮ったPNGをbaselineにしてください。寸法の一致が必要です。thresholdは物理pixelを比較し、Flutter refの座標へ変換しません。
+
+この実装ではiOS実機は引き続き非対応です。`--source ios-device --device <id>`は`UNSUPPORTED_CAPABILITY`です。署名・provisioningと実機runnerの寿命管理は実装・検証していません。保護・制限された内容の取得は保証しません。失敗時に取得元を切り替えたり、ダイアログを閉じたり、アプリ操作を再送したりしません。[撮影契約](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/SPEC.ja.md#native-ios-screenshots)を参照してください。
 
 ## Flutterアプリの描画を録画する
 
@@ -69,3 +75,12 @@ Androidは端末serial、macOSはディスプレイ番号を指定します。We
 `record restart`は現在の録画を確定してから別の保存先で再開します。新規開始が失敗しても、以前の録画へ戻るわけではありません。`stop`は動画の確定まで待つため、長い録画には十分なtimeoutを指定してください。
 
 [画像・録画の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#capture)に命名・排他保存・期限・確定・復旧の条件をまとめています。
+
+## macOSのスクリーンショット
+
+Flutter接続なしで画面番号を明示して撮影できます。他アプリを含む画面全体が保存されるため、共有前に画像を確認してください。呼出元terminal/host appの画面収録権限が必要です。表示中のpanel・menuも含みますが、保護されたUI・別Space・他画面は保証しません。ウィンドウの移動を追跡せず、権限不足・画面変更・timeout時はエラーになります。
+
+```sh
+marionette-agent device list --platform macos
+marionette-agent screenshot --source macos --display 1 artifacts/native.png
+```

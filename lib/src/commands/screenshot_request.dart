@@ -1,47 +1,65 @@
-import '../backend/backend.dart';
-import '../protocol/protocol.dart';
-import '../snapshot/target.dart';
-import 'arguments.dart';
+import 'dart:io';
 
-String screenshotSource(Json params) {
-  final source = params.containsKey('source') ? params['source'] : 'flutter';
-  if (!['flutter', 'macos'].contains(source)) {
-    invalid('Expected screenshot source flutter or macos');
+import '../protocol/protocol.dart';
+
+const screenshotSources = [
+  'ios-simulator',
+  'ios-device',
+  'android-emulator',
+  'macos',
+];
+
+/// Validate the one OS-screen acquisition route before any process is started.
+void validateScreenshotRequest(Json params) {
+  final source = params['source'] ?? 'ios-simulator';
+  if (!screenshotSources.contains(source) ||
+      (params.containsKey('source') && params['source'] is! String)) {
+    invalid('Unknown screenshot source');
+  }
+  if (params.keys.any(
+    (key) => !['source', 'device', 'path', 'display'].contains(key),
+  )) {
+    throw const AgentError(
+      'UNSUPPORTED_CAPABILITY',
+      'OS screenshots do not support Flutter targets, crop or ref annotation',
+    );
+  }
+  if (params.containsKey('path') &&
+      (params['path'] is! String ||
+          (params['path'] as String).isEmpty ||
+          (params['path'] as String).contains('\u0000'))) {
+    invalid('Invalid screenshot destination');
   }
   if (source == 'macos') {
     final display = params['display'];
-    if (display is! int || display < 1 || display > 999) {
-      invalid('macos source requires an explicit display from 1 to 999');
+    if (display is! int ||
+        display < 1 ||
+        display > 999 ||
+        params.containsKey('device')) {
+      invalid('macos source requires --display <1-999> and no device');
     }
-    if (params['annotate'] == true ||
-        params.containsKey('ref') ||
-        SelectorKind.values.any((kind) => params.containsKey(kind.name))) {
-      invalid(
-        'Native display screenshots do not support Flutter annotation or crop',
-      );
-    }
-  } else if (params.containsKey('display')) {
+    return;
+  }
+  if (params.containsKey('display')) {
     invalid('Display is only valid with source macos');
   }
-  return source as String;
+  final device = params['device'];
+  if (device is! String || device.isEmpty || device.contains('\u0000')) {
+    invalid('Screenshot requires --device <UDID>');
+  }
+  if (source == 'ios-simulator' &&
+      !RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(device)) {
+    invalid('Specify a Simulator UDID, never a name or booted');
+  }
 }
 
-TargetQuery? screenshotTarget(Json params) {
-  screenshotSource(params);
-  final target = {...params}
-    ..remove('path')
-    ..remove('annotate')
-    ..remove('source')
-    ..remove('display');
-  if (target.isEmpty) return null;
-  if (params['annotate'] == true) {
-    invalid('Crop and annotation cannot be combined');
-  }
-  if (target.keys.any(
-    (key) =>
-        key != 'ref' && !SelectorKind.values.any((kind) => kind.name == key),
-  )) {
-    invalid('Invalid screenshot target');
-  }
-  return decodeTarget(target);
-}
+bool isNativeScreenshot(String command, Json params) => command == 'screenshot';
+
+/// Resolve a pairing path before IPC; Simulator UDIDs are preserved verbatim.
+String? resolveScreenshotDevice(Json params) => params['source'] == 'macos'
+    ? null
+    : params['source'] == 'android-emulator'
+    ? File(params['device'] as String).absolute.path
+    : params['device'] as String;

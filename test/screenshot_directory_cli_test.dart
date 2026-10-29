@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
 
 void main() {
   test('product CLI saves text/JSON paths in its cwd and keeps directory options local', () async {
@@ -22,14 +23,25 @@ void main() {
     );
     final bytes = image.encodePng(image.Image(width: 2, height: 2));
     final backend = FakeBackend()..screenshots = [base64Encode(bytes)];
-    final manager = SessionManager(() => backend, coreCommands());
+    final manager = SessionManager(
+      () => backend,
+      coreCommands(),
+      screenCapturer: FakeScreenCapturer(bytes),
+    );
     final server = DaemonServer(runtime, manager);
     final serving = server.run();
     final cliPath = File('bin/marionette_agent.dart').absolute.path;
     final output = await Directory(p.join(root.path, 'images')).create();
     Future<ProcessResult> cli(List<String> args) => Process.run(
       Platform.resolvedExecutable,
-      [cliPath, '--session', 'screenshots', ...args],
+      [
+        cliPath,
+        '--session',
+        'screenshots',
+        ...args,
+        if (args.contains('screenshot'))
+          '--device=11111111-2222-3333-4444-555555555555',
+      ],
       workingDirectory: root.path,
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );

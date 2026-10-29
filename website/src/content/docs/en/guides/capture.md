@@ -1,44 +1,50 @@
 ---
 title: Capture images and video
-description: Record the post-action state with screenshots, annotations, and video.
+description: Capture iOS system UI with XCUIScreen and record app or device video.
 ---
 
-Save the screen to compare the CLI response with what the app actually displayed. Create parent directories first and choose a new filename for each run.
+Save the screen to compare the CLI response with the actual display. Screenshots use Apple's `XCUIScreen.main.screenshot()` in a bundled XCTest UI-test runner. Set `SIMULATOR_UDID` to the exact UDID of a booted iOS Simulator; names and `booted` are rejected. Use macOS with full Xcode selected. No app connection, Marionette binding, or app-side screenshot provider is needed.
 
 ## Take a screenshot
 
 ```sh
 mkdir -p artifacts
-marionette-agent screenshot artifacts/after.png
-marionette-agent screenshot artifacts/after.jpg --screenshot-format jpeg
+marionette-agent --timeout 120000 screenshot artifacts/after.png --device "$SIMULATOR_UDID"
+marionette-agent --timeout 120000 screenshot artifacts/after.jpg --device "$SIMULATOR_UDID" --screenshot-format jpeg
 ```
 
-PNG is the default. Select JPEG explicitly with `--screenshot-format jpeg`; set `--screenshot-quality` from 0 to 100 to change quality. The extension alone does not select the format. Transparent pixels are composited onto white for JPEG.
+The default source is `ios-simulator`. The CLI builds its own runner on the first capture and reuses that build for the daemon's lifetime. Allow time for compilation and XCTest startup with `--timeout`; its deadline also includes image recovery, conversion and saving. No changes to your app's Xcode project are needed. Compiled CLI installations contain the same runner sources.
 
-Omitting the path saves into a private temporary directory and returns the path. You can also select an existing directory with `--screenshot-dir`. Existing files are not overwritten.
+The PNG includes visible OS permission dialogs, photo pickers, software keyboard, status bar and safe-area content. The runner observes the main screen without launching/activating the observed app or tapping UI. The explicit UDID controls capture even if your session is connected to another app. Use a dedicated Simulator with dummy data and inspect shared evidence.
 
-## Include native macOS UI
+Results include `capture.method: xcuiscreen`, source, device UDID, runtime, `display: main`, `scope: device-screen`, `mask: system-default`, physical-pixel dimensions and raster orientation. XCUIScreen supplies its system image without a configurable notch/corner mask; Mac window decorations and zoom are irrelevant. Wait for rotation to settle, then compare the returned dimensions with the saved PNG. `orientation` describes the image aspect, not sensor position. The CLI does not rotate or resize pixels. Landscape XCUIScreen PNGs can retain portrait raster dimensions with EXIF orientation; JPEG preserves that orientation tag.
 
-With a connected session, inspect the display list and select its current index. This example selects the main display (1). The default Flutter capture is unchanged.
+PNG is the default. Select JPEG explicitly with `--screenshot-format jpeg`; quality is 0–100 using `--screenshot-quality`. Extensions do not select the format. JPEG composites transparency onto white. Omit the path for a private temporary output, or use `--screenshot-dir` with an existing directory. Parent directories must exist and existing files are never overwritten.
+
+## Capture Android system UI
+
+Select `--source android-emulator` and set `CAPTURE_PAIRING` to a private pairing file. Follow the [capture agent setup](https://github.com/r0227n/marionette_agent/blob/develop/packages/marionette_agent_android/capture_agent/README.md) to prepare the pairing and start its Instrumentation with Android Studio or Gradle. That separate setup environment uses Android debugging transport internally. Leave the agent running. The screenshot command calls UI Automator through authenticated local TCP; it executes no ADB commands and needs no Flutter connection.
 
 ```sh
-marionette-agent device list --platform macos
-marionette-agent screenshot --source macos --display 1 artifacts/native.png
-marionette-agent screenshot --source macos --display 1 artifacts/native.jpg --screenshot-format jpeg
+marionette-agent screenshot artifacts/android.png --source android-emulator --device "$CAPTURE_PAIRING"
+marionette-agent screenshot artifacts/android.jpg --source android-emulator --device "$CAPTURE_PAIRING" --screenshot-format jpeg
 ```
 
-The entire selected display is captured, including other apps and personal information; inspect images before sharing. Visible file panels, menus and capturable permission dialogs are included, but other displays/Spaces, hidden windows and protected UI are not guaranteed. Capture does not follow moving windows and includes occluding content. Flutter ref annotations and target crops are unavailable for native captures.
+Only an Emulator with a single display 0 is supported. The result uses `method: uiautomator` and the existing PNG/JPEG, exclusive saving and physical-pixel metadata. Permission dialogs, photo/file pickers, IME and system bars are included. Rotation uses the current display pixels. FLAG_SECURE can produce hidden content or an error; black pixels alone do not establish protection. No failure falls back to Flutter or another source. MCP/workflow also accept `source: android-emulator` and the pairing file as `device`. Existing iOS capture remains the default.
 
-The invoking terminal/host app needs Screen Recording permission. Missing permission, a lost display and timeout fail without switching to Flutter images. Result `capture` metadata reports the display index/ID, pixel dimensions, scope and scale. MCP screenshot uses the same route with `source: "macos"` and integer `display`. `diff screenshot` remains Flutter-only.
+## Migrate existing capture commands
 
-## Overlay refs on the image
+The Marionette/Flutter screenshot route, ref/selector crop, `--annotate`, and the example mapped provider have been removed. Every screenshot now requires a device. Screenshot capture is available for iOS Simulator and Android Emulator; Flutter tester and other app runtimes can use [Flutter rendering video](#record-the-flutter-rendering).
+
+MCP screenshot requires `device`; optional `source` defaults to `ios-simulator`. Workflow screenshot steps use the same route and require a literal `device`: an iOS UDID or Android pairing file. A screenshot-only workflow needs no connection. See [workflow steps](/marionette_agent/en/guides/workflows/).
 
 ```sh
-marionette-agent snapshot
-marionette-agent screenshot --annotate artifacts/targets.png
+marionette-agent --timeout 120000 diff screenshot --device "$SIMULATOR_UDID" --baseline artifacts/after.png --output artifacts/difference.png
 ```
 
-Annotations require a current valid snapshot and a mapped screenshot provider. The example supports this. Retake the snapshot if you performed a UI action in between. Use the image to relate ref numbers to their targets.
+Image diff captures the selected source again. Use a PNG baseline from the same device, capture method and settled orientation; dimensions must match. The threshold compares physical pixels without mapping Flutter refs.
+
+Physical iOS devices remain unsupported in this implementation: `--source ios-device --device <id>` returns `UNSUPPORTED_CAPABILITY`. Signing/provisioning and a verified physical-device runner lifecycle are not implemented. Protected or restricted content is not guaranteed. Capture failures never select another source, close dialogs or repeat app actions. See the [capture contract](https://github.com/r0227n/marionette_agent/blob/develop/docs/SPEC.md#native-ios-screenshots).
 
 ## Record the Flutter rendering
 
@@ -69,3 +75,12 @@ Android uses a device serial; macOS uses a display number. Web requires a displa
 `record restart` finalizes the current recording before starting a new destination. A failed new recording does not restore the previous one. `stop` waits for video finalization, so allow a sufficient timeout for longer recordings.
 
 See [capture and recording details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#capture) for naming, exclusive writes, deadlines, finalization, and recovery.
+
+## macOS screenshots
+
+Select a display explicitly without a Flutter connection. The image includes the whole display and other apps; inspect it before sharing. The invoking terminal/host app needs Screen Recording permission. Visible panels and menus are included; protected UI, other Spaces and displays are not guaranteed. Capture does not follow moving windows. Missing permission, topology changes and timeout return errors.
+
+```sh
+marionette-agent device list --platform macos
+marionette-agent screenshot --source macos --display 1 artifacts/native.png
+```

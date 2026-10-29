@@ -31,7 +31,13 @@ Future<void> main() async {
   }) async {
     final process = await Process.run(
       Platform.resolvedExecutable,
-      [cliPath, '--json', '--session', 'fixture', ...args],
+      [
+        cliPath,
+        '--json',
+        '--session',
+        'fixture',
+        ...nativeScreenshotArguments(args),
+      ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );
     final diagnostics = process.stderr as String;

@@ -55,10 +55,10 @@ marionette-agent fill --key text_input 'hello'
 marionette-agent snapshot
 ```
 
-Check that the field displays `hello`. `fill` replaces the entire existing value. You can now capture the screen.
+Check that the field displays `hello`. `fill` replaces the entire existing value. Set `SIMULATOR_UDID` to the same booted iOS Simulator used above, then capture its main screen with XCUIScreen.
 
 ```sh
-marionette-agent screenshot
+marionette-agent --timeout 120000 screenshot --device "$SIMULATOR_UDID"
 ```
 
 Open the image at the returned path and confirm it shows the screen after the text edit.

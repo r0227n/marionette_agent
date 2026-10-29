@@ -153,6 +153,8 @@ class WorkflowPlan {
   final String name;
   final List<WorkflowStep> steps;
   final List<String> requiredInputs;
+  bool get nativeOnly =>
+      steps.every((step) => isNativeScreenshot(step.action, step.params));
   static WorkflowPlan decode(
     Object? document, {
     Object? inputs = const <String, Object?>{},
@@ -203,10 +205,10 @@ class WorkflowPlan {
             );
       final params = <String, Object?>{...target};
       if (action == 'screenshot') {
-        for (final key in ['path', 'source', 'display', 'annotate']) {
+        for (final key in ['source', 'device', 'path', 'display']) {
           if (step.containsKey(key)) params[key] = step[key];
         }
-        screenshotTarget(params);
+        validateScreenshotRequest(params);
       }
       if (action == 'fill') {
         final text = asJson(step['text']);
@@ -264,7 +266,6 @@ AgentError workflowError(
   int? completed = 0,
   int? index,
   WorkflowStep? step,
-  List<Json> screenshots = const [],
 }) => AgentError(
   error.code,
   index == null ? error.message : 'Workflow step failed',
@@ -277,7 +278,6 @@ AgentError workflowError(
     'stepId': known ? step?.id : null,
     'action': known ? step?.action : null,
     'completedSteps': known ? completed : null,
-    if (screenshots.isNotEmpty) 'screenshots': screenshots,
   },
 );
 

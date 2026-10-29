@@ -3,6 +3,8 @@
 library;
 
 export 'src/platform_exception.dart';
+export 'src/native/native_ui.dart';
+export 'src/screen_capture.dart';
 export 'src/recording/recorder.dart';
 export 'src/recording/web_target.dart';
 export 'src/application/launch_options.dart';

@@ -8,6 +8,7 @@ import '../target_options.dart';
 
 CliCommand snapshotCommand() {
   final parser = ArgParser()
+    ..addOption('source', allowed: ['flutter', 'native', 'all'])
     ..addFlag('interactive', negatable: false)
     ..addFlag('compact', negatable: false)
     ..addOption('depth');
@@ -27,40 +28,42 @@ CliCommand snapshotCommand() {
       }
       params['depth'] = depth;
     }
+    if (args.wasParsed('source')) params['source'] = args.option('source');
     snapshotFilter(params);
     return params;
   });
 }
 
-CliCommand screenshotCommand() {
-  final parser = ArgParser()
-    ..addFlag('annotate', negatable: false)
-    ..addOption('source', allowed: ['flutter', 'macos'])
-    ..addOption('display');
-  addSelectorOptions(parser);
-  return CliCommand(parser, (args) {
-    final rest = args.rest.toList();
-    final params = <String, Object?>{};
-    for (final kind in SelectorKind.values) {
-      if (args.wasParsed(kind.name)) params[kind.name] = args.option(kind.name);
+CliCommand screenshotCommand() => CliCommand(
+  ArgParser()
+    ..addOption('source', allowed: screenshotSources)
+    ..addOption('device')
+    ..addOption('display'),
+  (args) {
+    if (args.rest.length > 1) {
+      invalid('Usage: screenshot --device <UDID> [path]');
     }
-    if (rest.isNotEmpty && rest.first.startsWith('@')) {
-      params['ref'] = rest.removeAt(0);
+    if (args.rest.isNotEmpty &&
+        RegExp(r'^@e[0-9]+$').hasMatch(args.rest.single)) {
+      invalid(
+        'Screenshot ref/crop targets have been removed; specify an output path',
+      );
     }
-    if (rest.length > 1 || (rest.isNotEmpty && rest.single.isEmpty)) {
-      invalid('Usage: screenshot [ref|selector] [--annotate] [path]');
+    if (args.wasParsed('display') &&
+        !RegExp(r'^[1-9][0-9]{0,2}$').hasMatch(args.option('display') ?? '')) {
+      invalid('Display must be an integer from 1 to 999');
     }
-    if (rest.isNotEmpty) params['path'] = rest.single;
-    if (args.flag('annotate')) params['annotate'] = true;
-    if (args.wasParsed('source')) params['source'] = args.option('source');
-    if (args.wasParsed('display')) {
-      final value = args.option('display')!;
-      if (!RegExp(r'^[1-9][0-9]{0,2}$').hasMatch(value)) {
-        invalid('Invalid display number');
-      }
-      params['display'] = int.parse(value);
+    final params = <String, Object?>{
+      if (args.wasParsed('device')) 'device': args.option('device'),
+      if (args.wasParsed('display'))
+        'display': int.tryParse(args.option('display') ?? ''),
+      if (args.wasParsed('source')) 'source': args.option('source'),
+      if (args.rest.isNotEmpty) 'path': args.rest.single,
+    };
+    validateScreenshotRequest(params);
+    if (params.containsKey('device')) {
+      params['device'] = resolveScreenshotDevice(params);
     }
-    screenshotTarget(params);
     return params;
-  });
-}
+  },
+);

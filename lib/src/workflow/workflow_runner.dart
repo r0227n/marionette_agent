@@ -1,20 +1,29 @@
 import 'dart:async';
 
-import '../artifacts/artifact_writer.dart';
-import '../artifacts/screenshot_options.dart';
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
 
 import '../commands/command_context.dart';
 import '../commands/registry.dart';
 import '../protocol/protocol.dart';
 import '../session/session.dart';
 import '../snapshot/snapshot_service.dart';
+import '../snapshot/ui_service.dart';
 import 'model.dart';
 
 /// Parent lifetime is pinned to the connection generation acquired by this queue entry.
 /// Each child retains its own one-mutation guard and error classification.
 class WorkflowExecution {
-  WorkflowExecution(this.request, this.session, this.snapshots, this.commands)
-    : epoch = session.epoch;
+  WorkflowExecution(
+    this.request,
+    this.session,
+    this.snapshots,
+    this.commands, {
+    this.screenCapturer,
+    this.ui,
+  }) : epoch = session.epoch;
+  final ScreenCapturer? screenCapturer;
+  final UiService? ui;
+  final screenshots = <Json>[];
   final Request request;
   final Session session;
   final SnapshotService snapshots;
@@ -25,7 +34,6 @@ class WorkflowExecution {
   WorkflowStep? activeStep;
   int? activeIndex;
   Json? finalSnapshot;
-  final screenshots = <Json>[];
   void check() {
     if (stopped || session.epoch != epoch) {
       throw const AgentError('CONNECTION_LOST', 'Workflow generation retired');
@@ -41,9 +49,7 @@ class WorkflowExecution {
   Future<Json> run() async {
     String? name = workflowNameFrom(request.params['workflow']);
     try {
-      if (request.params.keys.any(
-            (key) => !{'workflow', 'inputs', 'screenshotOptions'}.contains(key),
-          ) ||
+      if (request.params.length != 2 ||
           !request.params.containsKey('workflow') ||
           !request.params.containsKey('inputs')) {
         invalid('Invalid workflow request');
@@ -52,20 +58,16 @@ class WorkflowExecution {
         request.params['workflow'],
         inputs: request.params['inputs'],
       );
-      final output = ScreenshotOptions.decode(
-        request.params['screenshotOptions'],
-      );
-      for (final step in plan.steps.where((s) => s.action == 'screenshot')) {
-        output.validateDestination(step.params['path']);
-      }
       name = plan.name;
       check();
-      Execution(
-        request,
-        session,
-        initialEpoch: epoch,
-        parentCheck: check,
-      ).requireConnected();
+      if (!plan.nativeOnly) {
+        Execution(
+          request,
+          session,
+          initialEpoch: epoch,
+          parentCheck: check,
+        ).requireConnected();
+      }
       // All capability checks precede the first UI read or mutation.
       for (final step in plan.steps) {
         if (step.selector != null &&
@@ -101,30 +103,25 @@ class WorkflowExecution {
           parentCheck: check,
           onRetire: retire,
         );
-        final context = CommandContext(child, snapshots);
-        final result = await child.bound(() async {
-          final data = await commands.dispatch(
-            context,
-            step.action,
-            step.params,
-          );
-          if (step.action != 'screenshot') return data;
-          check();
-          return saveScreenshots(
-            data,
-            step.params['path'] as String?,
-            deadline,
-            format: output.format,
-            quality: output.quality,
-            screenshotDir: output.directory,
-          );
-        });
+        final context = CommandContext(
+          child,
+          snapshots,
+          screenCapturer: screenCapturer,
+          ui: ui,
+        );
+        final result = await child.bound(
+          () => commands.dispatch(context, step.action, step.params),
+        );
         check();
         completed++;
-        if (step.action == 'screenshot') {
-          screenshots.add({'stepId': step.id, ...result});
-        } else if (step.action == 'snapshot') {
+        if (step.action == 'snapshot') {
           finalSnapshot = result;
+        } else if (step.action == 'screenshot') {
+          screenshots.add({
+            'stepId': step.id,
+            'path': step.params['path'],
+            ...result,
+          });
         } else if (step.action != 'wait') {
           finalSnapshot = null;
         }
@@ -146,7 +143,6 @@ class WorkflowExecution {
         completed: completed,
         index: activeIndex,
         step: activeStep,
-        screenshots: screenshots,
       );
     } catch (_) {
       stopped = true;
@@ -156,7 +152,6 @@ class WorkflowExecution {
         completed: completed,
         index: activeIndex,
         step: activeStep,
-        screenshots: screenshots,
       );
     }
   }

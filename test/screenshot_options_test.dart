@@ -10,12 +10,15 @@ void main() {
   );
 
   test('screenshot defaults and common inheritance include help/version and nested commands', () {
-    final defaults = parser.parse(['screenshot']).options;
+    final defaults = parser.parse([
+      'screenshot',
+      '--device=11111111-2222-3333-4444-555555555555',
+    ]).options;
     expect(defaults.screenshotFormat, ScreenshotFormat.png);
     expect(defaults.screenshotQuality, 90);
     final flags = ['--screenshot-format', 'jpeg', '--screenshot-quality', '0'];
     for (final command in [
-      ['screenshot'],
+      ['screenshot', '--device=11111111-2222-3333-4444-555555555555'],
       ['snapshot'],
       ['logs'],
       ['connect', 'http://localhost:1/'],
@@ -73,6 +76,7 @@ void main() {
     ]) {
       final value = parser.parse([
         'screenshot',
+        '--device=11111111-2222-3333-4444-555555555555',
         path,
         '--screenshot-format=jpeg',
         '--screenshot-quality=100',
@@ -80,12 +84,24 @@ void main() {
       expect(value.params['path'], path == 'image' ? 'image.jpg' : path);
       expect(value.options.screenshotQuality, 100);
       expect(value.params.keys, [
+        'device',
         'path',
       ]); // Conversion policy stays in the CLI.
     }
-    expect(parser.parse(['screenshot', 'image']).params['path'], 'image.png');
     expect(
-      parser.parse(['screenshot', 'image.PNG']).params['path'],
+      parser.parse([
+        'screenshot',
+        '--device=11111111-2222-3333-4444-555555555555',
+        'image',
+      ]).params['path'],
+      'image.png',
+    );
+    expect(
+      parser.parse([
+        'screenshot',
+        '--device=11111111-2222-3333-4444-555555555555',
+        'image.PNG',
+      ]).params['path'],
       'image.PNG',
     );
     for (final args in [

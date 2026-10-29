@@ -129,19 +129,22 @@ The neighboring `../marionette_mcp` is reference source and may differ from the 
 | tap | tap |
 | fill | enterText |
 | swipe / initial scroll | swipe |
-| screenshot | takeScreenshots |
-| screenshot --annotate | callCustomExtension with the fixed name marionette_agent.captureMappedScreenshot (requires an opt-in provider) |
 | logs | getLogs |
 
 The adapter handles URI normalization, wire conversion, response validation, and exception classification. HTTP→WS and HTTPS→WSS conversion preserves authentication paths/queries and does not append `/ws` twice. Missing capabilities produce UNSUPPORTED_CAPABILITY. Success is never inferred solely from a message string.
 
-The Backend interface exposes connect, disconnect, inspect, tap, fill, swipe, captureScreenshots, and readLogs with typed arguments and results. Upstream maps stay inside the boundary. Scroll uses the same swipe primitive but retains scroll in help and output.
+The Backend interface exposes connect, disconnect, inspect, tap, fill, swipe and readLogs with typed arguments and results. Upstream maps stay inside the boundary. Scroll uses the same swipe primitive but retains scroll in help and output.
 
-Annotated capture is a separate MappedScreenshotBackend capability, not a required method on every Backend. MarionetteBackend validates the fixed provider's supported/status, single image, and ScreenshotGeometry v1, then converts the response into a MappedScreenshot DTO. Geometry requires version=1, viewCount=1, a nonempty viewId, originX=originY=rotation=0, positive integer pixelWidth/pixelHeight, and finite positive logicalWidth/logicalHeight. After IPC, the CLI also checks geometry against actual PNG dimensions and applies pixelWidth/logicalWidth on x and pixelHeight/logicalHeight on y. Orientation and scale are not inferred from the image or bounds.
+<a id="native-screen-capture"></a>
+## Native screen capture
 
-Pinned binding 0.6.0 renders a RenderView layer at FlutterView.physicalSize and, when maxScreenshotSize is set, resizes it to floored dimensions. Failed views are omitted from the image array, so an array index cannot serve as a view ID. ElementInfo.bounds comes from RenderBox.localToGlobal(Offset.zero) and size; normal responses contain no matching metadata. Normal takeScreenshots results are therefore not reused for annotations. In debug mode, example/lib/mapped_screenshot.dart registers an opt-in provider that returns an unresized single-RenderView layer image together with explicit geometry for that view. Changes to view count, identity, physicalSize, or devicePixelRatio during capture are reported as unsupported. No upstream package modification, neighboring-repository path dependency, or overlay injection is required. General binding support would require an equivalent upstream capture-metadata contract; only the example-provider configuration is currently covered by real-environment verification.
+`ScreenCapturer` returns PNG bytes/provenance and disposes its owned resources. The iOS adapter materializes a bundled standalone XCTest target privately, runs build-for-testing once per daemon, and selects an exact UDID with test-without-building. Swift only calls `XCUIScreen.main.screenshot()` on the current main screen. xcresulttool exports one regular PNG whose manifest matches the test, device and attachment name. Symlinks, invalid names, foreign/duplicate attachments and output above 32 MiB fail. Acquisition calls neither simctl screenshot nor Marionette.
 
-SnapshotService.annotationTargets is a read-only path that re-observes and matches published refs. It checks before and after capture without issuing or invalidating refs. CLI screenshot_annotation is a pure PNG-composition boundary that explicitly skips invalid bounds and labels that cannot fit. artifact_writer saves a separate PNG rather than changing the original bytes and checks the same deadline through decoding, composition, encoding, and saving. An arbitrary custom-extension CLI remains out of scope; the fixed provider is the limited exception defined in SPEC.
+The runner never launches/activates/interacts with the observed app. Its unique bundle identity scopes termination and uninstall; failed/expired captures remove result staging and disposal removes the build. The adapter serializes captures and checks expired queued work before OS operations. SDK/build/test/export/save share the caller's absolute deadline. First build/start may need a longer timeout.
+
+CLI, MCP, workflow and image diff share captureDeviceScreen and require device. Native-only requests may start a daemon and reserve a disconnected session; workflows with Flutter interactions preflight the connection. The common artifact writer owns decoding, dimensions/aspect, provenance, JPEG conversion, exclusive saving and cleanup. Workflows save after every step succeeds; save failure preserves completed progress with phase:screenshot-save. Successful capture preserves refs.
+
+Backend no longer exposes still/mapped capture, and the example mapped provider and annotation compositor are removed. The dedicated read-only frame connection for continuous Flutter video is independent of still-image commands. Signed physical-device runner management remains unimplemented and explicitly unsupported. The example provides real OS permission and PHPicker fixtures.
 
 <a id="ipc-and-daemon-startup"></a>
 <a id="ipcとdaemon起動"></a>
@@ -395,11 +398,24 @@ OwnedProcess starts with an argument array, retains bounded stdout, and interpre
 
 Close finalizes through the existing RecordingManager, calls RunningApplication.stop, then discards the session. An app-exit notification invalidates the generation only if that handle still belongs to the same session. Close --all and daemon disposal use the same shared host shutdown. CLI tests cover launch, connection-readiness failure, policy, nonownership of external connections, and abnormal exit. Platform and CLI lifecycle tests use real fixture processes for startup, timeout, interruption, project exclusion, and shutdown.
 
+### Android screenshot source
+
+The existing ScreenCapturer contract accepts an optional acquisition source. The CLI composition root selects AndroidScreenCapturer only for android-emulator and retains IosScreenCapturer and its lifecycle for the default iOS route. Android's platform package owns private pairing validation, mutual HMAC and bounded PNG transport from a separate UiDevice instrumentation. CommandContext still returns pixels and metadata through the existing screenshot path; the common writer owns PNG/JPEG conversion and persistence. No native UI operation service, action protocol or reference state is introduced.
+
+<a id="native-ui-boundary"></a>
+
+## Native UI boundary
+
+`snapshot/ui_service.dart` composes Flutter SnapshotService and platform NativeService. SessionManager owns session binding, policy, and session→device queue ordering; CommandContext and the command registry share the router with batch/workflow. NativeService owns normalized native matching and OS dispatch but no longer owns a nested device queue. Platform adapters and standalone XCUITest/UI Automator runners retain their existing authenticated loopback transport.
+
+UiService publishes both sources after successful reads, invalidates both on failure, preserves source/coordinateSpace, and retains only delivered refs after output limiting. SnapshotService owns publication generations. Normal tap/swipe route by ref or explicit source without retry/fallback; unsupported native actions fail before input. Execution keeps the single-send guard and deadline/outcome rules. Known native modal checks run before Flutter input; unknown occlusion remains a limitation. Bind is explicitly declared, not verified VM/device identity, so native input retains conservative daemon-wide Flutter ref invalidation.
+
+The public native command/MCP tools are removed. `session bind`, snapshot, tap and swipe serve connected and device-only sessions. CLI/MCP/parser, policy, mixed-ref, queue, timeout and real-device tests own the acceptance contract. See [SPEC](SPEC.md#native-ui) for source selection, unsupported operations and runner setup.
+
+
 <a id="native-screenshot-boundary"></a>
 ## Native screenshot and shared artifact boundary
 
 `commands/screenshot_request.dart` validates source, display and coordinate compatibility without importing execution or CLI grammar. `commands/observations.dart` calls the injected native capture through `platform/screenshot_service.dart`; OS enumeration, permission checks, child-process lifetime and private staging live in `marionette_agent_macos`. `marionette_agent_platform_interface/host_support.dart` shares the read-only permission probe with Web recording without sibling package imports. The backend adapter and Flutter capture are not involved in native capture. Device enumeration exposes the same display topology.
-
-`artifacts/artifact_writer.dart`, `screenshot_format.dart` and `screenshot_annotation.dart` own shared encoding, native PNG/metadata validation and exclusive persistence. CLI forwarding libraries preserve existing imports. Standalone screenshots still cross IPC as PNG; workflow screenshots are saved inside each child execution before the next step. The caller resolves relative paths and sends validated output settings; the daemon never interprets paths relative to its own startup directory. Successful screenshot steps return only saved paths/metadata, not base64 payloads, including in the confirmed prefix of a failed workflow. Previously saved steps are not rolled back. IPC version 8 prevents old daemons from silently ignoring the new selection/output contract.
 
 The macOS example exposes debug-only AppKit file-panel, alert, menu and cross-display move controls via a fixed MethodChannel. Debug-only User Selected File Read entitlement permits the standard panel; the fixture prepares dummy data in its temporary folder and requests it as the initial directory. macOS may restore another panel location, so verification must explicitly select the dummy folder and inspect the image before sharing. The alert is explicitly a fixture, not a system permission dialog. The controls do not change OS permission settings. See [native screenshot contract](SPEC.md#native-macos-screenshots) for selection, pixel geometry and permission limitations.

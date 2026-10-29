@@ -51,7 +51,7 @@ checkは`success`、`failure`、`unknown`、`skipped`です。診断を返せれ
 
 | Profile | Tool名の末尾 |
 | --- | --- |
-| `core`（既定） | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show |
+| `core`（既定） | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show, session_bind |
 | `inspect` | get_value, is_enabled, is_checked, logs, doctor, device_list |
 | `actions` | dblclick, focus, hover, check, uncheck, scrollintoview, type, select, press, keydown, keyup, keyboard_press, keyboard_type, keyboard_inserttext, clipboard_read, clipboard_write, clipboard_copy, clipboard_paste, drag |
 | `workflow` | workflow_run, workflow_validate, workflow_schema, batch, confirm, deny |
@@ -61,6 +61,8 @@ checkは`success`、`failure`、`unknown`、`skipped`です。診断を返せれ
 `marionette_agent_tools_profiles`は常に利用できます。find/diff/state/skills/install/upgradeはMCPに公開していません。`tools/list`は20件ずつで、返却された`nextCursor`を次の`cursor`へ渡します。省略/nullは先頭、不正値・型はJSON-RPC `-32602`です。無効profileのtoolは呼べません。
 
 各toolの`inputSchema`を入力の正本として使用してください。`target`はref/key/identifier/text/typeのいずれか1つです。要求の`session`、`timeoutMs`、`maxOutput`、`contentBoundaries`は起動時指定より優先します。接続・対象解決・policy・ref失効はCLIと同じです。
+
+`session_bind`でplatform/deviceをsessionに紐付けます。通常のsnapshot/tap/swipeが設定済みの取得元を扱い、`@e` refをFlutter、`@n` refをnativeへ送ります。nativeのselector/座標には`source: native`を指定し、指定なしのselectorはFlutterです。nativeのkey対象は未対応です。native tap/swipeはtap/swipeに加えてaction policyの`native`を維持します。旧native tools/profileは廃止しました。
 
 CLI toolのtextと`structuredContent`には`{exitCode,response}`を返し、responseは通常のCLI包絡です。失敗は`isError:true`でcode/outcomeを保持します。tools_profilesはprofile情報を直接返します。screenshotのinline画像は合計16 MiBまでで、超過・読込失敗は保存pathと省略理由を返します。
 
@@ -84,15 +86,15 @@ listのdataはname/description、getはname/contentの配列です。fullは補�
 install/upgradeはローカルsourceをAOTコンパイルし、隣接する専用`.marionette-agent-*`bundleを配置します。新規配置失敗では新bundleを回収し、既存バイナリを維持します。upgrade後の旧bundleは旧プロセス用に残るため、不要になったことを確認して整理してください。`skills path`で使用中の場所を調べられます。
 
 <a id="capture"></a>
-## 画像保存と注釈の境界条件
+## 画像の取得と保存
+
+スクリーンショットの既定は`ios-simulator`で、`--device <UDID>`が必須です。同梱XCTest runnerの`XCUIScreen.main.screenshot()`からPNGを回収し、`capture.method:xcuiscreen`、`display:main`、`mask:system-default`と端末・寸法を返します。初回build/startには`--timeout 120000`などで時間を確保してください。接続不要です。Marionette静止画・crop・ref注釈は削除済みで、実機sourceは非対応です。[取得契約](SPEC.ja.md#native-ios-screenshots)を参照してください。MCPとworkflowもdeviceを必須とし、画像diffも同じXCUIScreen経路です。
 
 基本操作は[画像・動画ガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。明示pathがあれば`--screenshot-dir`を検査しません。directory指定時の自動名は`screen-<32桁hex>.png`または`.jpg`、両方省略時はprivate一時directoryの`screen.png`または`screen.jpg`です。複数画像は拡張子前に`-1`、`-2`を付けます。
 
 拡張子はPNGなら`.png`、JPEGなら`.jpg/.jpeg`で、大文字小文字を区別せず綴りを保持します。拡張子なしなら形式に応じて補います。形式の自動推定はしません。JPEG品質の既定は90、0はencoderの1と同じで、100もlosslessではありません。PNGは元のbytes・寸法・透過を保ちます。JPEGは同じ寸法で透過を白へ合成します。
 
 親directoryは事前作成が必要です。指定directory自身のsymlinkは拒否し、祖先のsymlinkは利用できます。全画像を検証・変換し、全保存先を排他的に予約してから書き込みます。既存file/directory/symlinkは上書きしません。期限には取得・変換・保存を含み、途中失敗では作成した画像の削除を試みます。OSの削除拒否や進行中I/Oの即時取消しは保証できず、失敗時は成功pathsを返しません。
-
-注釈はmapped providerと有効snapshotが必要です。返却metadataは`annotated`、`generation`、`annotationCount`、`skippedAnnotations`です。省略理由は`missing_or_invalid_bounds`、`bounds_outside_view`、`label_space_exhausted`。capture前後の対象変更はSTALE_REF、複数画像・回転・不明な画像/view対応・PNG寸法不一致はUNSUPPORTED_CAPABILITYです。JPEGはPNGへ注釈後に変換します。refは更新しません。領域cropと注釈は併用できません。
 
 <a id="recording"></a>
 ## 録画の寿命と復旧
@@ -123,7 +125,11 @@ displayは1〜999です。画面収録許可が必要で、指定display全体�
 
 同一displayのWeb/macOS録画は排他です。対象tabの終了・crash・debug接続断はCONNECTION_LOSTとなり、statusはfailed、stopはエラーを返します。復旧pathを確認してください。方式と起動例の詳細は[Web録画設計](../web-recording.md)を参照してください。
 
-<a id="native-capture"></a>
-## Native撮影のmetadata
+### Androidの取得元
 
-MCP screenshotは`source: "flutter" | "macos"`と`display: 1..999`を公開します。native撮影はtext/JSONの保存pathに`capture`を追加します。display選択・Retina geometry・権限error・保護UI制約は[SPEC](SPEC.ja.md#native-macos-screenshots)、操作は[撮影ガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。`diff screenshot`はFlutter専用です。workflow screenshotはpathとmetadataを返し、MCPのinline ImageContentは単独screenshot toolだけが返します。
+screenshotとdiff screenshotでは`--source android-emulator`を明示する。`--device`はserialではなく私有pairingファイルで、相対pathは呼出元cwdで解決する。MCPとworkflowは同じsource/deviceと保存経路を使う。methodはuiautomatorとなり、寸法と向きは既存の物理pixel fieldを使う。pairing先のagentは事前起動する。[Android撮影の制限](SPEC.ja.md#android-emulator-screenshots)を参照。
+
+
+## macOSのスクリーンショット
+
+macOSは `screenshot --source macos --display <1-999> [path]`。deviceの代わりに現在のdisplay番号を必須とし、Flutter接続は不要。PNG/JPEG・保存先・上書き拒否・deadlineは既存と共通。画面全体には他アプリも含まれる。

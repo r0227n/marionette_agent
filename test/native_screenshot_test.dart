@@ -2,233 +2,300 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:image/image.dart' as image;
-import 'package:marionette_agent/src/artifacts/artifact_writer.dart';
+import 'package:marionette_agent/src/cli/artifact_writer.dart';
 import 'package:marionette_agent/src/cli/common_options.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
+import 'package:marionette_agent/src/cli/workflow_artifacts.dart';
 import 'package:marionette_agent/src/commands/core_commands.dart';
-import 'package:marionette_agent/src/mcp/catalog.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart';
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:marionette_agent/src/workflow/model.dart';
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
 import 'support/requests.dart';
-import 'workflow_model_test.dart' show doc;
 
+final native = <String, Object?>{
+  'source': 'ios-simulator',
+  'device': screenshotDevice,
+};
+Json workflow(List<Json> steps) => {
+  'workflow': {'schemaVersion': 1, 'name': 'native', 'steps': steps},
+  'inputs': <String, Object?>{},
+};
 void main() {
-  late Directory root;
   late FakeBackend backend;
+  late FakeScreenCapturer capturer;
   late SessionManager manager;
-  late Json native;
-  late List<int> displays;
-  AgentError? failure;
-  setUp(() async {
-    root = await Directory.systemTemp.createTemp('native-screenshot-test-');
-    backend = FakeBackend();
-    displays = [];
-    failure = null;
-    native = {
-      'images': [
-        base64Encode(image.encodePng(image.Image(width: 4, height: 2))),
-      ],
-      'capture': {
-        'source': 'macos-screencapture',
-        'scope': 'display',
-        'displayIndex': 2,
-        'displayId': 52,
-        'pixelWidth': 4,
-        'pixelHeight': 2,
-        'includesOtherApplications': true,
-      },
-    };
+  setUp(() {
+    backend = FakeBackend()..screenshots = ['legacy'];
+    capturer = FakeScreenCapturer(
+      image.encodePng(image.Image(width: 9, height: 7)),
+    );
     manager = SessionManager(
       () => backend,
-      coreCommands(
-        captureNative: (display, deadline) async {
-          displays.add(display);
-          if (failure != null) throw failure!;
-          return native;
-        },
-      ),
-    );
-    await manager.handle(
-      request('connect', params: {'uri': 'http://localhost:1/'}),
+      coreCommands(),
+      screenCapturer: capturer,
     );
   });
-  tearDown(() async {
-    await manager.dispose();
-    await root.delete(recursive: true);
+  tearDown(() => manager.dispose());
+  test('native screenshot succeeds without a Flutter connection', () async {
+    final result = await manager.handle(request('screenshot', params: native));
+    expect(result.error, isNull);
+    expect(result.data!['capture'], containsPair('device', screenshotDevice));
+    expect(backend.calls, isEmpty);
+    expect(capturer.devices, [screenshotDevice]);
   });
   test(
-    'CLI defaults preserve Flutter and native source requires explicit display',
-    () {
-      final parser = CliParser();
-      expect(parser.parse(['screenshot']).params, isEmpty);
-      expect(
-        parser.parse(['screenshot', '--source=macos', '--display=2']).params,
-        {'source': 'macos', 'display': 2},
-      );
-      for (final args in [
-        ['--source=macos'],
-        ['--display=1'],
-        ['--source=macos', '--display=0'],
-        ['--source=macos', '--display=01'],
-        ['--source=macos', '--display=2', '--annotate'],
-        ['--source=macos', '--display=2', '--key=button'],
-        ['--source=macos', '--display=2', '@e1'],
-      ]) {
-        expect(
-          () => parser.parse(['screenshot', ...args]),
-          throwsA(isA<AgentError>()),
-          reason: '$args',
-        );
-      }
-    },
-  );
-  test('MCP passes typed native selection through the product CLI parser', () {
-    final tool = mcpToolCatalog().singleWhere(
-      (tool) => tool.name == 'screenshot',
-    );
-    final args = tool.arguments({
-      'source': 'macos',
-      'display': 2,
-      'path': 'native.png',
-    }, const CommonOptions());
-    expect(CliParser().parse(args).params, {
-      'source': 'macos',
-      'display': 2,
-      'path': 'native.png',
-    });
-  });
-  test(
-    'native dispatch bypasses Flutter capture and errors never fall back',
+    'native failure never falls back and implicit Flutter capture is removed',
     () async {
-      final params = {'source': 'macos', 'display': 2};
-      final shot = await manager.handle(request('screenshot', params: params));
-      expect(shot.error, isNull);
-      expect(shot.data, native);
-      failure = const AgentError(
-        'SCREEN_CAPTURE_PERMISSION_REQUIRED',
-        'not granted',
+      await manager.handle(
+        request('connect', params: {'uri': 'ws://localhost:1/ws'}),
       );
-      final rejected = await manager.handle(
-        request('screenshot', params: params),
-      );
-      expect(rejected.error!.code, 'SCREEN_CAPTURE_PERMISSION_REQUIRED');
-      expect(rejected.error!.outcome, Outcome.notSent);
-      expect(backend.calls, ['connect']);
-      expect(displays, [2, 2]);
-    },
-  );
-  test(
-    'shared PNG/JPEG writer retains native dimensions and exclusive paths',
-    () async {
-      for (final format in ScreenshotFormat.values) {
-        final file = '${root.path}/shot${format.extension}';
-        final saved = await saveScreenshots(
-          native,
-          file,
-          DateTime.now().add(const Duration(seconds: 5)),
-          format: format,
-        );
-        expect(saved['capture'], native['capture']);
-        final decoded = image.decodeImage(await File(file).readAsBytes())!;
-        expect([decoded.width, decoded.height], [4, 2]);
-        await expectLater(
-          saveScreenshots(
-            native,
-            file,
-            DateTime.now().add(const Duration(seconds: 5)),
-            format: format,
-          ),
-          throwsA(isA<AgentError>().having((e) => e.code, 'code', 'IO_ERROR')),
-        );
-      }
-    },
-  );
-  test('metadata mismatch rejects saving without an output file', () async {
-    (native['capture'] as Map)['pixelWidth'] = 5;
-    await expectLater(
-      saveScreenshots(
-        native,
-        '${root.path}/wrong.png',
-        DateTime.now().add(const Duration(seconds: 5)),
-      ),
-      throwsA(isA<AgentError>()),
-    );
-    expect(root.listSync(), isEmpty);
-  });
-  test(
-    'workflow saves before next action, keeps previous files on later failure',
-    () async {
-      final file = '${root.path}/step.jpg';
-      final flow = doc([
-        {
-          'id': 'proof',
-          'action': 'screenshot',
-          'source': 'macos',
-          'display': 2,
-          'path': file,
-        },
-        {
-          'id': 'again',
-          'action': 'screenshot',
-          'source': 'macos',
-          'display': 2,
-          'path': file,
-        },
-        {'id': 'never', 'action': 'snapshot'},
-      ]);
-      expect(WorkflowPlan.decode(flow).steps.length, 3);
+      capturer.failure = const PlatformException('IO_ERROR', 'Capture failed');
       final result = await manager.handle(
-        request(
-          'workflow',
-          params: {
-            'workflow': flow,
-            'inputs': <String, Object?>{},
-            'screenshotOptions': {'format': 'jpeg', 'quality': 80},
-          },
-        ),
+        request('screenshot', params: native),
       );
       expect(result.error!.code, 'IO_ERROR');
-      expect(result.error!.details!['completedSteps'], 1);
-      expect(result.error!.details!['stepId'], 'again');
-      expect((result.error!.details!['screenshots'] as List).single['paths'], [
-        file,
-      ]);
-      expect(image.decodeJpg(await File(file).readAsBytes()), isNotNull);
-      expect(backend.calls, ['connect']);
+      expect(result.error!.outcome, Outcome.notSent);
+      expect(backend.calls, isNot(contains('captureScreenshots')));
+      final legacy = await manager.handle(request('screenshot'));
+      expect(legacy.error!.code, 'INVALID_ARGUMENT');
     },
   );
   test(
-    'workflow invalid native options are rejected before any capture',
+    'physical device and native annotation/crop are explicit errors',
     () async {
+      for (final params in [
+        {'source': 'ios-device', 'device': '00008110-0000000000000000'},
+        {...native, 'annotate': true},
+        {...native, 'ref': '@e1'},
+        {...native, 'key': 'input'},
+      ]) {
+        final m = SessionManager(
+          () => backend,
+          coreCommands(),
+          screenCapturer: capturer,
+        );
+        final result = await m.handle(request('screenshot', params: params));
+        expect(result.error!.code, 'UNSUPPORTED_CAPABILITY');
+        await m.dispose();
+      }
+      expect(capturer.devices, isEmpty);
+      expect(backend.calls, isEmpty);
+    },
+  );
+  test('CLI requires a device, defaults to native and rejects removed Flutter capture', () {
+    final parser = CliParser(environment: {});
+    expect(parser.parse(['screenshot', '--device=$screenshotDevice']).params, {
+      'device': screenshotDevice,
+    });
+    expect(
+      parser.parse([
+        'screenshot',
+        '--source=ios-simulator',
+        '--device=$screenshotDevice',
+      ]).params,
+      native,
+    );
+    for (final args in [
+      ['--source=ios-simulator'],
+      ['--source=ios-simulator', '--device=booted'],
+      ['--source=flutter', '--device=$screenshotDevice'],
+      ['--source=unknown'],
+      [
+        '--source=ios-simulator',
+        '--device=$screenshotDevice',
+        '--source=flutter',
+      ],
+    ]) {
+      expect(
+        () => parser.parse(['screenshot', ...args]),
+        throwsA(
+          isA<AgentError>().having((e) => e.code, 'code', 'INVALID_ARGUMENT'),
+        ),
+      );
+    }
+  });
+  test('native-only workflow shares capture path without a backend', () async {
+    final result = await manager.handle(
+      request(
+        'workflow',
+        params: workflow([
+          {'id': 'proof', 'action': 'screenshot', ...native},
+        ]),
+      ),
+    );
+    expect(result.error, isNull);
+    expect(result.data!['completedSteps'], 1);
+    expect((result.data!['screenshots'] as List).single['stepId'], 'proof');
+    expect(capturer.devices, [screenshotDevice]);
+    expect(backend.calls, isEmpty);
+  });
+  test('workflow validates all native targets before mutations', () {
+    final params = workflow([
+      {
+        'id': 'tap',
+        'action': 'tap',
+        'target': {'key': 'button'},
+      },
+      {
+        'id': 'shot',
+        'action': 'screenshot',
+        'source': 'ios-simulator',
+        'device': 'booted',
+      },
+    ]);
+    expect(
+      () => WorkflowPlan.decode(params['workflow']),
+      throwsA(isA<AgentError>()),
+    );
+  });
+  test(
+    'capture failure stops workflow with completed-step accounting',
+    () async {
+      capturer.failure = const PlatformException('TIMEOUT', 'capture expired');
       final result = await manager.handle(
         request(
           'workflow',
-          params: {
-            'workflow': doc([
-              {
-                'id': 'proof',
-                'action': 'screenshot',
-                'source': 'macos',
-                'display': 2,
-              },
-              {
-                'id': 'bad',
-                'action': 'screenshot',
-                'source': 'macos',
-                'display': 2,
-                'annotate': true,
-              },
-            ]),
-            'inputs': <String, Object?>{},
-          },
+          params: workflow([
+            {'id': 'first', 'action': 'screenshot', ...native},
+            {'id': 'second', 'action': 'screenshot', ...native},
+          ]),
         ),
       );
-      expect(result.error!.code, 'INVALID_ARGUMENT');
-      expect(displays, isEmpty);
+      expect(result.error!.code, 'TIMEOUT');
+      expect(result.error!.details, containsPair('completedSteps', 0));
+      expect(result.error!.details, containsPair('stepId', 'first'));
+      expect(capturer.devices, hasLength(1));
+      expect(backend.calls, isEmpty);
     },
   );
+  group('shared artifact writer', () {
+    late Directory root;
+    setUp(() async {
+      root = await Directory.systemTemp.createTemp('native-save-');
+    });
+    tearDown(() => root.delete(recursive: true));
+    Future<Json> payload() async => {
+      'images': [base64Encode(capturer.png)],
+      'capture': (await capturer.capture(
+        screenshotDevice,
+        DateTime.now(),
+      )).metadata,
+    };
+    DateTime deadline() => DateTime.now().add(const Duration(seconds: 5));
+    test(
+      'PNG/JPEG, caller directory, size/orientation and overwrite protection',
+      () async {
+        final data = await payload();
+        final result = await saveScreenshots(
+          data,
+          null,
+          deadline(),
+          screenshotDir: root.path,
+        );
+        final path = (result['paths'] as List).single as String;
+        expect(await File(path).readAsBytes(), capturer.png);
+        expect(result['capture'], containsPair('pixelWidth', 9));
+        expect(result['capture'], containsPair('pixelHeight', 7));
+        expect(result['capture'], containsPair('orientation', 'landscape'));
+        final jpeg = await saveScreenshots(
+          data,
+          '${root.path}/screen.jpg',
+          deadline(),
+          format: ScreenshotFormat.jpeg,
+        );
+        expect(jpeg['capture'], result['capture']);
+        expect(
+          image
+              .decodeJpg(await File('${root.path}/screen.jpg').readAsBytes())!
+              .width,
+          9,
+        );
+        await expectLater(
+          saveScreenshots(data, path, deadline()),
+          throwsA(isA<AgentError>().having((e) => e.code, 'code', 'IO_ERROR')),
+        );
+        expect(await File(path).readAsBytes(), capturer.png);
+      },
+    );
+    test(
+      'JPEG retains XCUIScreen landscape EXIF without rotating raster pixels',
+      () async {
+        final png = base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAGmVYSWZNTQAqAAAACAABARIAAwAAAAEABgAAAAAAANZnS2kAAAARSURBVHicY/jPwABEDGAShgA+1gX72hMcmAAAAABJRU5ErkJggg==',
+        );
+        final data = {
+          'images': [base64Encode(png)],
+        };
+        final pngPath = '${root.path}/original.png';
+        await saveScreenshots(data, pngPath, deadline());
+        expect(await File(pngPath).readAsBytes(), png);
+        final path = '${root.path}/landscape.jpg';
+        await saveScreenshots(
+          data,
+          path,
+          deadline(),
+          format: ScreenshotFormat.jpeg,
+        );
+        final bytes = await File(path).readAsBytes();
+        final raster = image.JpegDecoder().startDecode(bytes)!;
+        expect([raster.width, raster.height], [2, 3]);
+        // The JPEG decoder applies EXIF orientation, just like an image viewer.
+        final displayed = image.decodeJpg(bytes)!;
+        expect([displayed.width, displayed.height], [3, 2]);
+      },
+    );
+    test('invalid native PNG and timeout leave no artifacts', () async {
+      final data = await payload();
+      await expectLater(
+        saveScreenshots(
+          {
+            ...data,
+            'images': ['broken'],
+          },
+          null,
+          deadline(),
+          screenshotDir: root.path,
+        ),
+        throwsA(isA<AgentError>()),
+      );
+      await expectLater(
+        saveScreenshots(data, null, DateTime.now(), screenshotDir: root.path),
+        throwsA(isA<AgentError>().having((e) => e.code, 'code', 'TIMEOUT')),
+      );
+      expect(root.listSync(), isEmpty);
+    });
+    test('workflow save failure rolls back new files and preserves existing output', () async {
+      final data = await payload();
+      final existing = File('${root.path}/exists.png');
+      await existing.writeAsString('keep');
+      await expectLater(
+        saveWorkflowScreenshots(
+          {
+            'workflow': 'proof',
+            'completedSteps': 2,
+            'screenshots': [
+              {...data, 'stepId': 'one', 'path': '${root.path}/new.png'},
+              {...data, 'stepId': 'two', 'path': existing.path},
+            ],
+          },
+          const CommonOptions(),
+          deadline(),
+        ),
+        throwsA(
+          isA<AgentError>().having(
+            (e) => e.details!['completedSteps'],
+            'completedSteps',
+            2,
+          ),
+        ),
+      );
+      expect(await File('${root.path}/new.png').exists(), isFalse);
+      expect(await existing.readAsString(), 'keep');
+    });
+  });
 }

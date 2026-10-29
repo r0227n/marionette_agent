@@ -13,25 +13,6 @@ Json workflowSchema([String? action]) {
     'minimum': minimumWaitPollIntervalMs,
     'maximum': maximumWaitPollIntervalMs,
   });
-  defs['screenshot'] = {
-    'type': 'object',
-    'properties': {
-      'id': {'type': 'string', 'pattern': r'^[A-Za-z][A-Za-z0-9_-]{0,63}$'},
-      'action': {'const': 'screenshot'},
-      'source': {
-        'enum': ['flutter', 'macos'],
-      },
-      'display': {'type': 'integer', 'minimum': 1, 'maximum': 999},
-      'path': {'type': 'string', 'minLength': 1},
-      'annotate': {'type': 'boolean'},
-      'target': {r'$ref': r'#/$defs/target'},
-    },
-    'required': ['id', 'action'],
-    'additionalProperties': false,
-  };
-  schema[r'$defs'] = defs;
-  final steps = asJson(asJson(asJson(schema['properties'])['steps'])['items']);
-  (steps['oneOf'] as List).add({r'$ref': r'#/$defs/screenshot'});
   if (action == null) return schema;
   if (!workflowActions.contains(action)) invalid('Unknown workflow action');
   return {
@@ -117,6 +98,9 @@ const _schema = r'''{
           },
           {
             "$ref": "#/$defs/wait"
+          },
+          {
+            "$ref": "#/$defs/screenshot"
           }
         ]
       }
@@ -371,6 +355,40 @@ const _schema = r'''{
         "action",
         "target",
         "state"
+      ],
+      "additionalProperties": false
+    },
+    "screenshot": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+        },
+        "action": {
+          "const": "screenshot"
+        },
+        "source": {
+          "enum": [
+            "ios-simulator",
+            "ios-device",
+            "android-emulator",
+            "macos"
+          ]
+        },
+        "display": {"type":"integer","minimum":1,"maximum":999},
+        "device": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "action"
       ],
       "additionalProperties": false
     }

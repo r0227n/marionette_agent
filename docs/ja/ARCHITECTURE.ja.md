@@ -131,19 +131,22 @@ Skillの互換JSONは`SkillsOutput`の専用境界で生成し、protocolのResu
 | tap | tap |
 | fill | enterText |
 | swipe / 初版scroll | swipe |
-| screenshot | takeScreenshots |
-| screenshot --annotate | callCustomExtensionで固定名marionette_agent.captureMappedScreenshotを呼ぶ（opt-in providerが必要） |
 | logs | getLogs |
 
 adapterはURI正規化、wire変換、response検証、例外分類を担当する。HTTP→WS、HTTPS→WSSへ変換するとき認証path/queryを保持し、`/ws` を重複追加しない。機能不足はUNSUPPORTED_CAPABILITY。成功メッセージ文字列だけで成否を判定しない。
 
-Backend interfaceはconnect、disconnect、inspect、tap、fill、swipe、captureScreenshots、readLogsを型付き引数・結果で提供する。上流mapは境界で閉じる。scrollは同じswipe primitiveを使い、helpと出力はscrollとして返す。
+Backend interfaceはconnect、disconnect、inspect、tap、fill、swipe、readLogsを型付き引数・結果で提供する。上流mapは境界で閉じる。scrollは同じswipe primitiveを使い、helpと出力はscrollとして返す。
 
-注釈captureは任意のBackendへ必須メソッドを追加せず、別のMappedScreenshotBackend能力として定義する。MarionetteBackendは固定名provider応答のsupported/status、単一画像、ScreenshotGeometry v1を検証し、MappedScreenshot DTOへ変換する。geometryはversion=1、viewCount=1、空でないviewId、originX=originY=rotation=0、正の整数pixelWidth/pixelHeight、有限で正のlogicalWidth/logicalHeightを要求する。CLIはIPC後にもgeometryと実PNG寸法を照合し、x方向pixelWidth/logicalWidth、y方向pixelHeight/logicalHeightを適用する。向きや倍率を画像またはboundsから推測しない。
+<a id="native-screen-capture"></a>
+## ネイティブ画面取得
 
-固定binding 0.6.0はRenderViewのlayerをFlutterView.physicalSizeへ描画し、maxScreenshotSize設定時にはfloorした寸法へresizeする。失敗viewを画像配列から除くため、配列indexをview IDと見なせない。ElementInfo.boundsはRenderBox.localToGlobal(Offset.zero)とsizeであり、通常応答は対応metadataを含まない。このため通常takeScreenshotsの結果を注釈へ流用しない。example/lib/mapped_screenshot.dartはdebug時にopt-in providerを登録し、単一RenderViewのlayerから未resize画像とそのviewの明示geometryを一緒に返す。capture中のview数・identity・physicalSize・devicePixelRatio変更は非対応として返す。上流パッケージの変更、隣接repoへのpath依存、overlay注入は不要。一般binding対応には同等のcapture metadata契約の上流提供が必要であり、現時点ではexample provider構成だけが実環境検証対象である。
+`ScreenCapturer`がPNG bytesと由来を返し、disposeで所有資源を片付けます。iOS adapterは同梱の独立XCTest targetを非公開領域でbuild-for-testingし、そのbuildをdaemon内で再利用します。test-without-buildingの実行先をUDIDで固定し、Swiftの`XCUIScreen.main.screenshot()`だけで現在のmain screenを取得します。xcresulttoolのmanifestで端末ID・test・attachment名を検証し、正確に1枚の通常PNGを回収します。シンボリックリンク、不正な名前、別端末、重複、32 MiB超過は拒否します。画像取得でsimctl screenshotやMarionetteは呼びません。
 
-SnapshotService.annotationTargetsは公開済みrefsを再観測して照合する読み取り専用経路である。capture前後に照合し、refを新規発行・失効しない。CLIのscreenshot_annotationは純粋なPNG合成境界で、bounds不備とラベル配置不足を明示的に省略する。artifact_writerが元bytesとは別のPNGを排他的に保存し、同じdeadlineをdecode・合成・encode・保存まで確認する。一般の独自拡張CLIは引き続き対象外で、固定名providerはSPECの限定例外である。
+runnerは対象アプリを起動・前面化・操作しません。一意のrunner bundle IDで終了・アンインストールを所有し、期限超過・失敗・disposeで結果領域とbuildを片付けます。adapter内の直列queueは期限切れの後続要求から新たなOS操作を始めません。SDK/build/test/export/保存には元の絶対期限を使います。初回build/startは長いtimeoutを必要とする場合があります。
+
+CLI・MCP・workflow・画像diffは同じ`captureDeviceScreen`を通り、deviceを必須とします。nativeのみの要求はdaemonと未接続sessionを作成できます。Flutter操作を含むworkflowは接続を事前検証します。共通artifact writerが復号、寸法と縦横比、由来、JPEG変換、排他的保存とcleanupを担当します。workflowは全step成功後に保存し、保存失敗は完了進捗と`phase:screenshot-save`を返します。撮影成功はrefを失効させません。
+
+Backendから静止画とmapped capture能力を削除し、exampleのmapped providerと注釈合成も削除しました。連続Flutter動画の専用read-only frame connectionは静止画コマンドから独立しています。実機の署名・runner管理は未実装で、明示的な非対応です。exampleはOS許可画面とPHPickerの実環境fixtureを持ちます。
 
 <a id="ipc-and-daemon-startup"></a>
 <a id="ipcとdaemon起動"></a>
@@ -396,11 +399,24 @@ OwnedProcessは引数配列で起動し、stdoutを有界に保持してFlutter 
 
 closeは既存RecordingManagerによる確定後にRunningApplication.stopを呼び、その後にsessionを廃棄する。アプリ終了通知は該当handleがまだ同じsessionに属する場合だけ世代を失効する。close --allとdaemon disposeも同じ共通hostの終了処理を使う。CLI側のテストで起動・接続準備失敗・policy・外部接続の非所有・異常終了を確認し、platformとCLIのlifecycleテストは実fixture processで開始・timeout・中断・project排他・終了を確認する。
 
+### Androidのスクリーンショット取得元
+
+既存のScreenCapturer契約へ任意の取得元を追加する。CLIのcomposition rootはandroid-emulatorだけでAndroidScreenCapturerを選び、既定のiOS経路とIosScreenCapturerのlifecycleを維持する。Androidのplatform packageが私有pairing検証、相互HMAC、別のUiDevice Instrumentationからの有界PNG転送を担当する。CommandContextは既存のscreenshot経路へ画像とmetadataを返し、共通writerがPNG/JPEG変換と保存を担当する。native UI操作service、操作protocol、ref状態は追加しない。
+
+<a id="native-ui-boundary"></a>
+
+## ネイティブUI境界
+
+`snapshot/ui_service.dart`がFlutterのSnapshotServiceとplatformのNativeServiceを組み合わせる。SessionManagerはsessionの端末紐付け・policy・session→deviceのqueue順を所有する。CommandContextとcommand registryの共通routerをbatch/workflowにも渡す。NativeServiceは正規化要素の照合とOS入力を担当し、入れ子のdevice queueは持たない。platform adapterと独立したXCUITest/UI Automator runnerの認証付きloopback transportは維持する。
+
+UiServiceは必要な取得が成功してから両取得元を公開し、失敗時は両方を失効する。source/coordinateSpaceを保持し、出力上限後に公開したrefだけ残す。SnapshotServiceが公開generationを所有する。通常tap/swipeはrefまたは明示sourceで振り分け、再送/fallbackしない。未対応native操作は送信前に拒否する。Executionのsingle-send guard・期限・outcomeを共用する。Flutter入力前に既知のnative modalを確認するが、未知の遮蔽は制限として残す。bindは宣言された対応でVM/device同一性の証明ではないため、native入力時のdaemon全体のFlutter ref失効を維持する。
+
+公開nativeコマンド/MCP toolsは廃止する。session bind、snapshot、tap、swipeがFlutter接続済み・端末のみのsessionを扱う。CLI/MCP/parser、policy、混在ref、queue、timeout、実環境テストで検証する。取得元指定・未対応操作・runner準備は[SPEC](SPEC.ja.md#native-ui)を参照。
+
+
 <a id="native-screenshot-boundary"></a>
 ## ネイティブ撮影と共通artifact境界
 
 `commands/screenshot_request.dart`はexecution/CLI grammarに依存せずsource・display・座標互換性を検証します。`commands/observations.dart`は`platform/screenshot_service.dart`経由で注入可能なnative取得を呼びます。OSのdisplay列挙・権限診断・子process寿命・私有stagingは`marionette_agent_macos`へ集約します。`marionette_agent_platform_interface/host_support.dart`がWeb録画とread-only権限probeを共有し、兄弟packageへ依存しません。native取得にbackend adapter・Flutter captureは使いません。device列挙も同じdisplay情報を公開します。
-
-`artifacts/artifact_writer.dart`・`screenshot_format.dart`・`screenshot_annotation.dart`が共通の変換・native PNG/metadata検証・排他的保存を担当し、CLI側の転送libraryで既存importを維持します。単独screenshotはPNGをIPCで返し、workflowでは次のstepへ進む前に子execution内で保存します。相対pathは呼出元CLIで解決し、検証済み出力設定を送ります。daemon起動時のcwdで解釈しません。成功stepはpath/metadataだけを返し、失敗workflowの完了prefixにも保存結果を含めます。既に保存したstepはrollbackしません。IPC version 8で旧daemonが新契約を無視することを防ぎます。
 
 macOS exampleにdebug専用のAppKit file panel・alert・menu・別display移動操作を固定MethodChannelで公開します。Debug専用のUser Selected File Read entitlementで標準panelを許可し、アプリ一時領域にダミーデータを用意して初期directoryに指定します。macOSが別のpanel表示位置を復元する場合があるため、検証時はダミーフォルダを明示的に選び、共有前に画像を確認します。alertはfixtureでありOS権限dialogではありません。OS権限設定は変更しません。対象選択・pixel geometry・権限の制約は[native撮影契約](SPEC.ja.md#native-macos-screenshots)を参照してください。

@@ -51,7 +51,7 @@ Start with the [agent integration guide](https://r0227n.github.io/marionette_age
 
 | Profile | Tool suffixes |
 | --- | --- |
-| `core` (default) | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show |
+| `core` (default) | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show, session_bind |
 | `inspect` | get_value, is_enabled, is_checked, logs, doctor, device_list |
 | `actions` | dblclick, focus, hover, check, uncheck, scrollintoview, type, select, press, keydown, keyup, keyboard_press, keyboard_type, keyboard_inserttext, clipboard_read, clipboard_write, clipboard_copy, clipboard_paste, drag |
 | `workflow` | workflow_run, workflow_validate, workflow_schema, batch, confirm, deny |
@@ -61,6 +61,8 @@ Start with the [agent integration guide](https://r0227n.github.io/marionette_age
 `marionette_agent_tools_profiles` is always available. Find/diff/state/skills/install/upgrade are not exposed through MCP. `tools/list` returns up to 20 tools; pass its `nextCursor` as the next `cursor`. Omitted/null means the first page; invalid values or types return JSON-RPC `-32602`. Tools in disabled profiles cannot be called.
 
 Use each tool’s `inputSchema` as the input definition. A `target` contains exactly one of ref/key/identifier/text/type. Per-request `session`, `timeoutMs`, `maxOutput`, and `contentBoundaries` override startup settings. Connection, target resolution, policies, and ref expiration follow the CLI contract.
+
+`session_bind` associates platform/device with the session. Normal snapshot/tap/swipe accept the configured sources: `@e` refs route to Flutter and `@n` to native. Native selectors/coordinates use `source: native`; unqualified selectors remain Flutter. Native key targets are unsupported. Native tap/swipe retain the `native` action policy in addition to tap/swipe. The old native tools/profile are removed.
 
 CLI tools return `{exitCode,response}` in text and `structuredContent`, where response is the normal CLI envelope. Failures set `isError:true` and preserve code/outcome. Tools_profiles returns profile information directly. Inline screenshot images are limited to 16 MiB total; oversized or unreadable images yield saved paths and an omission reason.
 
@@ -84,15 +86,15 @@ List data contains name/description objects; get contains name/content objects. 
 Install/upgrade AOT-compiles local source and installs an adjacent dedicated `.marionette-agent-*` bundle. Failed new installations clean up the new bundle and retain the existing executable. Upgrade keeps the old bundle for old running processes; remove it only after it is no longer needed. Use `skills path` to inspect the active location.
 
 <a id="capture"></a>
-## Image persistence and annotation edge cases
+## Image acquisition and persistence
+
+Screenshots default to ios-simulator and require `--device <UDID>`. The bundled XCTest runner recovers PNG from XCUIScreen.main.screenshot(); capture metadata includes method:xcuiscreen, display:main, mask:system-default, identity and dimensions. Allow time for first build/start with e.g. `--timeout 120000`. No connection is needed. Marionette still capture, crop and ref annotation are removed; physical-device source is unsupported. See the [acquisition contract](SPEC.md#native-ios-screenshots). MCP/workflow require device too, and image diff shares this XCUIScreen route.
 
 Start with the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/). An explicit path bypasses `--screenshot-dir` inspection. Directory-based names use `screen-<32 hex digits>.png` or `.jpg`; omitting both uses `screen.png` or `screen.jpg` in a private temporary directory. Multiple images add `-1`, `-2`, etc. before the extension.
 
 Accepted extensions are `.png` for PNG and `.jpg/.jpeg` for JPEG, case-insensitive while preserving spelling. Missing extensions are appended for the selected format. The extension does not infer the format. JPEG quality defaults to 90; 0 maps to encoder quality 1, and 100 is still lossy. PNG retains original bytes, dimensions, and transparency. JPEG retains dimensions and composites transparency onto white.
 
 Parent directories must exist. A symlink at the specified directory itself is rejected; ancestor symlinks are allowed. All images are validated/converted and all destinations reserved exclusively before writing. Existing files, directories, and symlinks are never overwritten. The deadline includes capture, conversion, and persistence. Failures attempt to remove created images; OS deletion refusal and immediate cancellation of active I/O cannot be guaranteed. Failures never return successful paths.
-
-Annotations require a mapped provider and a valid snapshot. Metadata includes `annotated`, `generation`, `annotationCount`, and `skippedAnnotations`. Omission reasons are `missing_or_invalid_bounds`, `bounds_outside_view`, and `label_space_exhausted`. Target changes across capture produce STALE_REF. Multiple images, relative rotation, unknown image/view mapping, and PNG dimension mismatches produce UNSUPPORTED_CAPABILITY. JPEG conversion follows annotation on PNG. Refs are preserved. Cropping and annotation cannot be combined.
 
 <a id="recording"></a>
 ## Recording lifetime and recovery
@@ -123,7 +125,11 @@ Displays range from 1–999. Screen recording permission is required. The entire
 
 Web/macOS recordings on the same display are mutually exclusive. Tab closure, crashes, or debug disconnection produce CONNECTION_LOST, failed status, and an error from stop. Inspect the recovery path. See the [Web recording design](web-recording.md) for the implementation rationale and startup examples.
 
-<a id="native-capture"></a>
-## Native capture metadata
+### Android acquisition
 
-MCP screenshot exposes `source: "flutter" | "macos"` and `display: 1..999`. Native capture adds `capture` to saved paths in both text and JSON. See [SPEC](SPEC.md#native-macos-screenshots) for display selection, Retina geometry, permission errors and protected-UI limitations, and the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/) for commands. `diff screenshot` remains Flutter-only. Workflow screenshot results return paths and metadata, while only the standalone MCP screenshot tool emits inline ImageContent.
+Select `--source android-emulator` explicitly for screenshot or diff screenshot. `--device` is a private pairing file, not a serial; relative paths resolve in the caller's cwd. MCP and workflow use the same source/device fields and save path. Result method is uiautomator; dimensions and orientation use the existing physical-pixel fields. The paired agent must already be running. See [Android capture constraints](SPEC.md#android-emulator-screenshots).
+
+
+## macOS screenshots
+
+Use `screenshot --source macos --display <1-999> [path]` for macOS. An explicit current display index replaces device; no Flutter connection is required. PNG/JPEG, destinations, exclusive writes and deadlines use the shared contract. The whole display includes other applications.

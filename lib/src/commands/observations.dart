@@ -1,12 +1,17 @@
 import '../backend/backend.dart';
-import '../platform/screenshot_service.dart';
 import '../protocol/protocol.dart';
+import '../platform/screenshot_service.dart';
 import 'screenshot_request.dart';
+
 export 'screenshot_request.dart';
 import 'command_context.dart';
 
 Selector? snapshotFilter(Json params) {
-  final options = {'interactive', 'compact', 'depth'};
+  final options = {'interactive', 'compact', 'depth', 'source'};
+  if (params.containsKey('source') &&
+      !['flutter', 'native', 'all'].contains(params['source'])) {
+    invalid('Invalid snapshot source');
+  }
   for (final flag in ['interactive', 'compact']) {
     if (params.containsKey(flag) && params[flag] is! bool) {
       invalid('Invalid snapshot flag');
@@ -42,68 +47,25 @@ Future<Json> handleSnapshot(CommandContext context, Json params) =>
       depth: params['depth'] as int?,
     );
 
-/// Standalone images cross IPC; workflow images are saved by the workflow runner.
-/// The caller owns local path resolution in both cases.
+/// Images cross IPC; the CLI owns local path resolution and writing.
 Future<Json> handleScreenshot(
   CommandContext context,
   Json params, {
   NativeScreenshotCapture captureNative = captureMacosScreenshot,
 }) async {
-  final target = screenshotTarget(params);
-  if ((params.containsKey('annotate') && params['annotate'] is! bool) ||
-      (params.containsKey('path') &&
-          (params['path'] is! String || (params['path'] as String).isEmpty))) {
-    invalid('Usage: screenshot [--annotate] [path]');
-  }
-  if (screenshotSource(params) == 'macos') {
-    return context.read(
-      (_) => captureNative(params['display'] as int, context.deadline),
+  validateScreenshotRequest(params);
+  if (params['source'] == 'macos') {
+    context.check();
+    final result = await captureNative(
+      params['display'] as int,
+      context.deadline,
     );
+    context.check();
+    return result;
   }
-  if (target != null) {
-    final before = await context.observeTarget(target);
-    final capture = await context.read((backend) {
-      if (backend is! MappedScreenshotBackend) {
-        throw const AgentError(
-          'UNSUPPORTED_CAPABILITY',
-          'Crop requires screenshot geometry',
-        );
-      }
-      return (backend as MappedScreenshotBackend).captureMappedScreenshot();
-    });
-    final after = await context.observeTarget(target);
-    if (!before.sameAs(after)) {
-      throw const AgentError(
-        'STALE_REF',
-        'Target changed during screenshot capture',
-      );
-    }
-    return {
-      'images': [capture.image],
-      'geometry': capture.geometry.toJson(),
-      'crop': before.bounds,
-    };
-  }
-  if (params['annotate'] == true) {
-    final annotations = await context.annotationTargets();
-    final capture = await context.read((backend) {
-      if (backend is! MappedScreenshotBackend) {
-        throw const AgentError(
-          'UNSUPPORTED_CAPABILITY',
-          'Binding does not provide screenshot geometry',
-        );
-      }
-      return (backend as MappedScreenshotBackend).captureMappedScreenshot();
-    });
-    await context.annotationTargets();
-    return {
-      'images': [capture.image],
-      'geometry': capture.geometry.toJson(),
-      'annotations': annotations,
-    };
-  }
-  return context.read(
-    (backend) async => {'images': await backend.captureScreenshots()},
+  return context.captureDeviceScreen(
+    params['source'] as String? ?? 'ios-simulator',
+    params['device'] as String,
   );
 }
 

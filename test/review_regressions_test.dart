@@ -20,6 +20,7 @@ import 'package:test/test.dart';
 
 import '../integration_test/support/evidence.dart';
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
 
 void main() {
   test('repeated verification runs save the same image name without clobbering evidence', () async {
@@ -213,10 +214,11 @@ void main() {
     () async {
       final dir = await Directory('/tmp').createTemp('mra-stall-');
       final runtime = await RuntimeDirectory.prepare(directory: dir.path);
-      final backend = FakeBackend()..screenshots = ['x' * (8 * 1024 * 1024)];
+      final backend = FakeBackend();
+      final capture = FakeScreenCapturer(List<int>.filled(8 * 1024 * 1024, 0));
       final server = DaemonServer(
         runtime,
-        SessionManager(() => backend, coreCommands()),
+        SessionManager(() => backend, coreCommands(), screenCapturer: capture),
       );
       final running = server.run();
       Socket? stalled;
@@ -235,9 +237,13 @@ void main() {
           InternetAddress(runtime.socket, type: InternetAddressType.unix),
           0,
         );
-        stalled.add(encodeFrame(_request('screenshot').toJson()));
+        stalled.add(
+          encodeFrame(
+            _request('screenshot', {'device': screenshotDevice}).toJson(),
+          ),
+        );
         await stalled.flush();
-        while (!backend.calls.contains('captureScreenshots')) {
+        while (capture.devices.isEmpty) {
           await Future<void>.delayed(const Duration(milliseconds: 5));
         }
         expect((await client.send(_request('close'))).exitCode, 0);

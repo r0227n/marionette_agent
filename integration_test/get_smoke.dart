@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -27,7 +29,7 @@ Future<void> main() async {
       '--session',
       'p1-issue-4',
       if (json) '--json',
-      ...args,
+      ...nativeScreenshotArguments(args),
     ]);
     check(!(result.stderr as String).contains(uri), 'URI diagnostic leak');
     final command = args.first == 'connect'

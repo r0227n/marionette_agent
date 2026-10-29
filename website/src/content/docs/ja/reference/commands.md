@@ -46,6 +46,19 @@ description: 接続、観測、操作、ファイル保存、管理の目的別�
 
 directionは`left`・`right`・`up`・`down`で、**指の移動方向**です。コンテンツの到達位置やページ切替は次のsnapshotで確認します。
 
+## ネイティブUI
+
+`session bind --platform ios|android --device ID`で一度登録し、通常のコマンドを使います。nativeのみの利用にVM接続は不要です。runner・混在観測・制限は[native UIガイド](/marionette_agent/ja/guides/native-ui/)を参照してください。
+
+| Syntax                                                                | 動作                                            |
+| --------------------------------------------------------------------- | ----------------------------------------------- |
+| `snapshot [--source flutter\|native\|all]`                            | 設定済みの取得元を観測しrefを発行               |
+| `tap REF`                                                             | 再観測し`@e`をFlutter、`@n`をnativeへ送る       |
+| `tap --source native --text TEXT`                                     | nativeの完全一致text。identifier/typeも利用可能 |
+| `tap --source native --x X --y Y`                                     | nativeの画面座標                                |
+| `swipe REF DIRECTION --distance N`                                    | refの取得元の座標系で指を移動                   |
+| `swipe --source native --start-x X --start-y Y --end-x X2 --end-y Y2` | nativeの画面座標による移動                      |
+
 ## 追加の入力・操作
 
 多くの操作は対応するアプリ側providerが必要ですが、dblclickとpressはbinding APIで実行できます。exampleのAdvanced画面で対応する操作を試せます。
@@ -84,17 +97,14 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 
 ## 画像・動画・差分
 
-| 構文                                                    | 用途                                                  |
-| ------------------------------------------------------- | ----------------------------------------------------- |
-| `screenshot [PATH]`                                     | 画像を新規保存                                        |
-| `screenshot --source macos --display N [PATH]`          | 指定display全体。OS UI・他アプリを含む。注釈/crop不可 |
-| `screenshot TARGET [PATH]`                              | 対象領域の画像                                        |
-| `screenshot --annotate [PATH]`                          | ref注釈付き画像。providerと有効snapshotが必要         |
-| `record start PATH --platform PLATFORM [--device ID]`   | 動画開始。Flutter描画はdevice不要                     |
-| `record restart PATH --platform PLATFORM [--device ID]` | 現在の録画を確定後、新規開始                          |
-| `record status` / `record stop`                         | 状態取得／確定して停止                                |
-| `diff snapshot --baseline PATH`                         | 保存したsnapshotとの差分                              |
-| `diff screenshot --baseline PATH`                       | 保存画像との差分。`--threshold`・`--output`も使用可   |
+| 構文                                                    | 用途                                                |
+| ------------------------------------------------------- | --------------------------------------------------- |
+| `screenshot --device UDID [PATH]`                       | 画像を新規保存                                      |
+| `record start PATH --platform PLATFORM [--device ID]`   | 動画開始。Flutter描画はdevice不要                   |
+| `record restart PATH --platform PLATFORM [--device ID]` | 現在の録画を確定後、新規開始                        |
+| `record status` / `record stop`                         | 状態取得／確定して停止                              |
+| `diff snapshot --baseline PATH`                         | 保存したsnapshotとの差分                            |
+| `diff screenshot --device UDID --baseline PATH`         | 保存画像との差分。`--threshold`・`--output`も使用可 |
 
 保存条件とプラットフォーム差は[画像と動画](/marionette_agent/ja/guides/capture/)を参照してください。
 
@@ -107,7 +117,7 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 | `batch PATH`                                   | JSONのargv配列を順次実行。共通オプションはbatch側に指定 |
 | `state save PATH` / `state load PATH`          | 接続URIだけを私有ファイルへ保存／再接続                 |
 | `confirm ID` / `deny ID`                       | 保留中の操作を承認／拒否                                |
-| `device list --platform ios`                   | 利用可能なiOS端末。android・macos displayも指定可       |
+| `device list --platform ios`                   | 利用可能なiOS端末。androidも指定可                      |
 | `doctor`                                       | ローカル環境診断。`--probe-uri`で接続先も照会           |
 | `doctor --quick` / `--offline` / `--fix`       | 検査を限定／VM probe省略／所有runtimeのmode修復         |
 | `install DIRECTORY` / `upgrade DIRECTORY`      | ローカルソースからバイナリとSkillsを配置／更新          |
@@ -118,3 +128,9 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 batchは最初の失敗で止まり、接続寿命の変更、録画、ファイル保存などは内包できません。操作ポリシーと状態ファイルの扱いは[設定](/marionette_agent/ja/reference/configuration/)を参照してください。
 
 providerの観測範囲・照合規則・操作の制約は[追加操作の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-parity.ja.md)を参照してください。
+
+Androidの撮影は`--source android-emulator --device <私有pairingファイル>`を指定します。iOSの既定と他のコマンドは維持します。
+
+## macOSのスクリーンショット
+
+macOSではdeviceの代わりにdisplayを指定します。MCPでも `source: "macos"` と整数 `display` を使います。

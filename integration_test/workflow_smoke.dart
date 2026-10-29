@@ -26,7 +26,7 @@ Future<void> main() async {
         '--json',
         '--session',
         'workflow-demo',
-        ...args,
+        ...nativeScreenshotArguments(args),
       ],
       environment: {'MARIONETTE_AGENT_RUNTIME_DIR': runtime.path},
     );

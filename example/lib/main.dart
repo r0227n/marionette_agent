@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:marionette_agent_flutter/flutter.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
-import 'mapped_screenshot.dart';
 import 'advanced_controls.dart';
+import 'native_capture_fixture.dart';
 
 final PrintLogCollector operationLogCollector = PrintLogCollector();
 
@@ -19,9 +19,6 @@ void main() {
     }
     if (!const bool.fromEnvironment('DISABLE_AGENT_EXTENSIONS')) {
       registerAgentExtensions();
-    }
-    if (!const bool.fromEnvironment('DISABLE_MAPPED_SCREENSHOT')) {
-      registerMappedScreenshot();
     }
   } else {
     WidgetsFlutterBinding.ensureInitialized();
@@ -117,9 +114,7 @@ class _MarionetteAgentExampleScreenState
       body: _tab == 2
           ? const AdvancedControls()
           : _tab == 1
-          ? const Center(
-              child: Text('Workflow fixture', key: ValueKey('about_content')),
-            )
+          ? const NativeCaptureFixture()
           : ListView(
               key: const ValueKey('operation_scroll_area'),
               padding: const EdgeInsets.all(16),

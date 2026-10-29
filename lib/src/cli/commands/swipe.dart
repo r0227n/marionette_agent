@@ -9,11 +9,18 @@ import '../target_options.dart';
 /// Shared grammar and primitive for swipe and region scroll.
 CliCommand swipeCommand({bool coordinates = true}) {
   final parser = ArgParser()
-    ..addOption('distance', help: 'Positive logical pixels (default 200)');
+    ..addOption(
+      'distance',
+      help: 'Positive source-coordinate distance (default 200)',
+    );
   addSelectorOptions(parser);
   if (coordinates) {
+    parser.addOption('source', allowed: ['flutter', 'native']);
     for (final name in swipeCoordinates) {
-      parser.addOption(name, help: 'Non-negative logical pixels');
+      parser.addOption(
+        name,
+        help: 'Non-negative coordinates in the selected source',
+      );
     }
   }
   return CliCommand(parser, (args) {
@@ -21,7 +28,7 @@ CliCommand swipeCommand({bool coordinates = true}) {
       for (final name in [
         ...SelectorKind.values.map((k) => k.name),
         'distance',
-        if (coordinates) ...swipeCoordinates,
+        if (coordinates) ...[...swipeCoordinates, 'source'],
       ])
         if (args.wasParsed(name)) name: args.option(name),
     };
