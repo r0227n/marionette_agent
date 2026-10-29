@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:vm_service/vm_service.dart';
+import 'package:vm_service/vm_service.dart' hide Version;
+import 'package:pub_semver/pub_semver.dart';
 
-// Internal API boundary for fixed dependencies approved in ARCHITECTURE.
+// Internal API boundary for dependencies approved in ARCHITECTURE.
 // ignore: implementation_imports
 import 'package:marionette_mcp/src/vm_service/vm_service_connector.dart';
 
@@ -18,12 +19,17 @@ class MarionetteBackend
     : _connector = connector ?? VmServiceConnector();
   final VmServiceConnector _connector;
   bool _extended = false;
+  bool _hasVersion = false;
+  bool _legacyEnvelope = false;
+  Version? _bindingVersion;
   Set<String> _extraInteractions = const {};
   @override
-  Set<SelectorKind> get selectors => const {
+  Set<SelectorKind> get selectors => {
     SelectorKind.key,
     SelectorKind.text,
-    SelectorKind.type,
+    if (!_legacyEnvelope) SelectorKind.type,
+    if (_bindingVersion != null && _bindingVersion! >= Version(0, 7, 0))
+      SelectorKind.identifier,
   };
 
   Future<T> _call<T>(Future<T> Function() call) async {
@@ -81,9 +87,30 @@ class MarionetteBackend
 
   @override
   Future<void> connect(Uri uri) => _call(() async {
+    _extended = false;
+    _extraInteractions = const {};
+    _hasVersion = false;
+    _legacyEnvelope = false;
+    _bindingVersion = null;
     await _connector.connect(uri.toString());
-    final extensions = await _connector.listExtensions();
-    final list = extensions['extensions'];
+    final version = await _optionalRead(_connector.getVersion);
+    _hasVersion = version != null;
+    if (version != null) {
+      _bindingVersion = Version.parse(version);
+    } else {
+      // Before 0.4 there is no version endpoint. Flutter overwrites 0.1
+      // type with _extensionType; only 0.2+ preserve a status discriminator.
+      final response = await _connector.getInteractiveElements(
+        compaction: 'none',
+      );
+      _legacyEnvelope =
+          !response.containsKey('status') &&
+          response['type'] == '_extensionType' &&
+          response['method'] == 'ext.flutter.marionette.interactiveElements';
+      _bindingResponse(response, 'interactiveElements');
+    }
+    final extensions = await _optionalRead(_connector.listExtensions);
+    final list = extensions?['extensions'];
     _extended =
         list is List &&
         list.any(
@@ -107,6 +134,56 @@ class MarionetteBackend
           .toSet();
     }
   });
+
+  // Only missing read-only discovery endpoints are optional. Connection,
+  // timeout and malformed-response failures must still fail the request.
+  Future<T?> _optionalRead<T>(Future<T> Function() read) async {
+    try {
+      return await read();
+    } on VmServiceExtensionException catch (error) {
+      if (error.errorCode != RPCErrorKind.kMethodNotFound.code) rethrow;
+    } on RPCError catch (error) {
+      if (error.code != RPCErrorKind.kMethodNotFound.code) rethrow;
+    }
+    return null;
+  }
+
+  Json _bindingResponse(Map<String, dynamic> response, String method) {
+    if (_legacyEnvelope && !response.containsKey('status')) {
+      // In 0.1 Flutter overwrites the binding's type:Success/Error. Its
+      // failure payload always has error; success has the method's result.
+      // Require the exact VM envelope and shape, never a success message.
+      if (response['type'] != '_extensionType' ||
+          response['method'] != 'ext.flutter.marionette.$method') {
+        throw const AgentError(
+          'BACKEND_ERROR',
+          'Invalid legacy binding envelope',
+        );
+      }
+      if (response.containsKey('error') || response.containsKey('stackTrace')) {
+        throw const AgentError(
+          'BACKEND_ERROR',
+          'Binding rejected the operation',
+          outcome: Outcome.failed,
+        );
+      }
+      final valid = switch (method) {
+        'interactiveElements' => response['elements'] is List,
+        'getLogs' => response['logs'] is List,
+        'tap' || 'enterText' => response['message'] is String,
+        _ => false,
+      };
+      if (!valid) {
+        throw const AgentError(
+          'BACKEND_ERROR',
+          'Invalid legacy binding response',
+        );
+      }
+      return {...response, 'status': 'Success'};
+    }
+    return validateResponse(response);
+  }
+
   @override
   Set<String> get interactions => {'dblclick', 'press', ..._extraInteractions};
 
@@ -127,9 +204,13 @@ class MarionetteBackend
     }
     switch (action) {
       case 'dblclick':
-        return _action(() => _connector.doubleTap(_selector(target!)));
+        return _action(
+          'doubleTap',
+          () => _connector.doubleTap(_selector(target!)),
+        );
       case 'press':
         return _action(
+          'pressKey',
           () => _connector.pressKey(
             arguments['key'] as String,
             modifiers: (arguments['modifiers'] as List).cast<String>().join(
@@ -175,7 +256,14 @@ class MarionetteBackend
   });
   @override
   Future<void> checkConnection() => _call(() async {
-    await _connector.getVersion();
+    if (_hasVersion) {
+      await _connector.getVersion();
+    } else {
+      _bindingResponse(
+        await _connector.getInteractiveElements(compaction: 'none'),
+        'interactiveElements',
+      );
+    }
   });
 
   /// Validate structured status from fixed binding instead of message text.
@@ -284,10 +372,12 @@ class MarionetteBackend
     return selector.toJson();
   }
 
-  Future<void> _action(Future<Map<String, dynamic>> Function() call) =>
-      _call(() async {
-        validateResponse(await call());
-      });
+  Future<void> _action(
+    String method,
+    Future<Map<String, dynamic>> Function() call,
+  ) => _call(() async {
+    _bindingResponse(await call(), method);
+  });
   @override
   Future<List<ElementInfo>> inspect() => _call(() async {
     if (_extended) {
@@ -295,8 +385,11 @@ class MarionetteBackend
         await _connector.callCustomExtension('marionette_agent.inspect'),
       );
     }
-    final response = validateResponse(
-      await _connector.getInteractiveElements(),
+    final response = _bindingResponse(
+      // 0.7 compaction omits visible:true. Ask for explicit observations;
+      // older bindings ignore this read-only parameter.
+      await _connector.getInteractiveElements(compaction: 'none'),
+      'interactiveElements',
     );
     final elements = response['elements'];
     if (elements is! List) {
@@ -312,12 +405,28 @@ class MarionetteBackend
         return {
           for (final key in ['type', 'text', 'key', 'bounds', 'visible'])
             if (element.containsKey(key)) key: element[key],
+          if (selectors.contains(SelectorKind.identifier) &&
+              element.containsKey('identifier'))
+            'identifier': element['identifier'],
+          // 0.2/0.3 omit extracted text, but Text.data is the exact string
+          // used by their Text matcher. Other diagnostics are not typed data.
+          if (!_hasVersion &&
+              !element.containsKey('text') &&
+              element['type'] == 'Text' &&
+              element['data'] is String)
+            'text': element['data'],
         };
       }).toList(),
     });
   });
   @override
   Future<void> tap(TapTarget target) {
+    if (_legacyEnvelope && target is CoordinateTarget) {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Binding does not support coordinate taps',
+      );
+    }
     final args = switch (target) {
       ElementTarget(:final selector) => _selector(selector),
       CoordinateTarget(:final point) => <String, Object?>{
@@ -325,13 +434,13 @@ class MarionetteBackend
         'y': point.y.toString(),
       },
     };
-    return _action(() => _connector.tap(args));
+    return _action('tap', () => _connector.tap(args));
   }
 
   @override
   Future<void> fill(Selector selector, String text) {
     final args = _selector(selector);
-    return _action(() => _connector.enterText(args, text));
+    return _action('enterText', () => _connector.enterText(args, text));
   }
 
   @override
@@ -349,7 +458,7 @@ class MarionetteBackend
         'endY': end.y.toString(),
       },
     };
-    return _action(() => _connector.swipe(args));
+    return _action('swipe', () => _connector.swipe(args));
   }
 
   @override
@@ -358,13 +467,13 @@ class MarionetteBackend
     try {
       response = await _connector.getLogs();
     } on VmServiceExtensionException catch (e) {
-      if (e.errorCode == -32000 &&
+      if ((e.errorCode == -32000 || e.errorCode == -32016) &&
           (e.error?.contains('Log collection is not configured') ?? false)) {
         return const LogBatch([], configured: false);
       }
       rethrow;
     }
-    final logs = validateResponse(response)['logs'];
+    final logs = _bindingResponse(response, 'getLogs')['logs'];
     if (logs is! List || logs.any((e) => e is! String)) {
       throw const AgentError('BACKEND_ERROR', 'Invalid logs response');
     }

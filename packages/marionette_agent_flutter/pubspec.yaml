@@ -12,7 +12,7 @@ dependencies:
     path: ../marionette_agent_platform_interface
   flutter:
     sdk: flutter
-  marionette_flutter: 0.6.0
+  marionette_flutter: ^0.7.0
 
 dev_dependencies:
   lints: ^6.0.0

@@ -38,7 +38,7 @@ If recording finalization times out during a selected-session close, the session
 <a id="doctor"></a>
 ## Doctor results
 
-Ordinary checks are read-only: host, runtime ownership/mode 0700/path length, daemon protocol, fixed dependencies, and available iOS Simulators. A runtime that does not exist is a normal unperformed check. Only explicit `--probe-uri` opens a dedicated app connection, released afterward. Binding version is not inferred without a real response.
+Ordinary checks are read-only: host, runtime ownership/mode 0700/path length, daemon protocol, dependency constraints and locked versions, and available iOS Simulators. A runtime that does not exist is a normal unperformed check. Only explicit `--probe-uri` opens a dedicated app connection, released afterward. Binding version is not inferred without a real response.
 
 Checks return `success`, `failure`, `unknown`, or `skipped`. A completed diagnostic can return `ok:true` while failure/unknown checks set `data.exitCode` and the process exit code to 1. Internal diagnostic timeouts mean unknown/exit 1; argument errors exit 2. Unstarted checks become unknown after the overall deadline; daemon handshake waits at most one second.
 

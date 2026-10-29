@@ -10,7 +10,7 @@ Enable the Marionette binding in your app so the CLI can observe and operate it 
 Add the dependency from your app directory.
 
 ```sh
-flutter pub add marionette_flutter:0.6.0
+flutter pub add 'marionette_flutter:^0.7.0'
 ```
 
 Initialize the binding before `runApp`. Replace `MyApp` with your existing root widget.

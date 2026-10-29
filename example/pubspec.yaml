@@ -31,7 +31,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  marionette_flutter: 0.6.0
+  marionette_flutter: ^0.7.0
   marionette_agent_flutter:
     path: ../packages/marionette_agent_flutter
 

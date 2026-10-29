@@ -9,13 +9,13 @@ CLIはDart VM Serviceを通じてアプリ内のMarionette bindingと通信し�
 
 ## 最初に揃えるもの
 
-| 要素                       | 必要なもの                                        |
-| -------------------------- | ------------------------------------------------- |
-| CLIを動かすホスト          | macOS。Linux・Windowsホストは現在の対応範囲外     |
-| CLIのビルド                | Dart 3.13.7以上・4.0.0未満とFlutter SDK           |
-| 操作対象                   | `marionette_flutter` 0.6.0を初期化したdebugアプリ |
-| 手動起動したアプリへの接続 | その実行のVM Service URI                          |
-| iOSで最初の確認            | Xcode、利用可能なiOS Simulator、同梱example       |
+| 要素                       | 必要なもの                                                |
+| -------------------------- | --------------------------------------------------------- |
+| CLIを動かすホスト          | macOS。Linux・Windowsホストは現在の対応範囲外             |
+| CLIのビルド                | Dart 3.13.7以上・4.0.0未満とFlutter SDK                   |
+| 操作対象                   | `marionette_flutter` (0.1.0–0.7.0)を初期化したdebugアプリ |
+| 手動起動したアプリへの接続 | その実行のVM Service URI                                  |
+| iOSで最初の確認            | Xcode、利用可能なiOS Simulator、同梱example               |
 
 同梱exampleの検証環境はFlutter 3.47.8です。まずこの組合せで接続を確認すると、SDK差とアプリ側の問題を切り分けやすくなります。
 

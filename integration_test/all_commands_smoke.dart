@@ -328,8 +328,8 @@ Future<void> main() async {
     );
     await cli(
       ['tap', '--identifier', 'tap_button'],
-      expected: 6,
-      error: 'UNSUPPORTED_CAPABILITY',
+      expected: 4,
+      error: 'TARGET_NOT_FOUND',
     );
     await textIs('tap_result', 'Tap count: 3');
     final active = await cli(['record', 'status']);

@@ -38,8 +38,8 @@ The CLI shares a workspace with `marionette_agent_platform_interface` and the
 `marionette_agent_{ios,android,macos,web,flutter}` implementations. The former
 `marionette_agent_util` package is removed. App dependencies and provider imports
 move to `marionette_agent_flutter` and `package:marionette_agent_flutter/flutter.dart`.
-The current upstream pair is `marionette_mcp: 0.6.0` and
-`marionette_flutter: 0.6.0`. Stock binding covers baseline capabilities; optional
+The CLI and default example use `marionette_mcp: ^0.7.0` and
+`marionette_flutter: ^0.7.0`. Stock binding covers baseline capabilities; optional
 Flutter providers enable additional ones. Missing extensions return
 `UNSUPPORTED_CAPABILITY`, not a guessed fallback.
 
@@ -78,3 +78,33 @@ GitHub private reporting is currently disabled. Reporting and safe-operation
 conditions are in [SECURITY.md](https://github.com/r0227n/marionette_agent/blob/develop/SECURITY.md).
 Read [output](/marionette_agent/en/reference/output/) and
 [troubleshooting](/marionette_agent/en/reference/troubleshooting/) for recovery.
+
+## App binding versions
+
+External apps resolve their own `marionette_flutter` dependency independently of
+this CLI. The compatibility matrix covers every published version: 0.1.0, 0.2.0,
+0.2.1, 0.2.2, 0.2.3, 0.2.4, 0.3.0, 0.4.0, 0.5.0, 0.6.0, and 0.7.0. Connection,
+snapshot, key-based tap, text replacement/clear, logs, and reconnection use each
+version's protocol. An app does not need the optional agent provider for these
+baseline operations. The optional provider in this checkout requires ^0.7.0.
+
+| Binding     | Additional capabilities and limits                                       |
+| ----------- | ------------------------------------------------------------------------ |
+| 0.1.0       | Key/text selectors; no type selector or coordinate tap                   |
+| 0.2.0–0.3.0 | Type selectors and coordinate taps; Text.data supplies snapshot text     |
+| 0.4.0       | Version discovery and custom-extension registry                          |
+| 0.5.0       | Swipe and double tap                                                     |
+| 0.6.0       | Hardware key input                                                       |
+| 0.7.0       | Identifier selectors; explicit visibility requested with compaction:none |
+
+Older bindings cannot execute operations they do not implement; those requests
+return `UNSUPPORTED_CAPABILITY` without retrying the action. In versions before
+0.4, filling updates the field controller but the upstream binding does not call
+`onChanged`; apps relying solely on that callback need a newer binding. Unknown
+future releases are not an assertion of tested compatibility.
+
+The repository's `tool/verify_binding_compatibility.py` creates a separate Flutter
+app for each exact version and drives the product CLI on an assigned iOS
+Simulator. It checks changed screen state, stale refs, missing targets, and
+reconnection, and saves sanitized JSON and Simulator screenshots. The shared
+workspace lockfile remains at the default 0.7.0 resolution.

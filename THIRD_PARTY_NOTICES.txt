@@ -1380,7 +1380,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ========================================================================
-marionette_flutter 0.6.0
+marionette_flutter 0.7.0
 Source: https://github.com/leancodepl/marionette_mcp
 
 --- LICENSE ---
@@ -1587,7 +1587,7 @@ Source: https://github.com/leancodepl/marionette_mcp
    limitations under the License.
 
 ========================================================================
-marionette_mcp 0.6.0
+marionette_mcp 0.7.0
 Source: https://github.com/leancodepl/marionette_mcp
 
 --- LICENSE ---

@@ -11,7 +11,7 @@ Snapshot refs are convenient for interactive exploration. A unique app key is us
 | `--key`        | Repeatable procedures and workflows   | Exact match on the observed key                                              |
 | `--text`       | Finding displayed wording             | Case-sensitive exact match; not all displayed text is usable for interaction |
 | `--type`       | Finding a widget type                 | An action requires a unique target                                           |
-| `--identifier` | Identifier selection                  | Unsupported by the interaction matcher in the pinned binding 0.6.0           |
+| `--identifier` | Identifier selection                  | Requires binding 0.7.0 or later                                              |
 
 Choose one targeting method accepted by the command. Do not combine a ref, selector, and coordinates.
 

@@ -53,7 +53,7 @@ One Execution sends at most one UI mutation; callbacks call a backend primitive 
 
 SessionManager serializes each session, includes queue time in the deadline, and never executes an expired queued request later. Pre-dispatch rejection is not_sent, confirmed mutation failure is failed, and post-dispatch timeout/disconnection/unclassified failure is unknown. A read timeout/disconnection is not_sent but still discards connection and refs. Late completion of old Futures cannot change a reconnected session.
 
-SnapshotService increases generations and ref numbers across the daemon without reusing numbers between sessions. Hidden elements receive reason:not_visible; elements without a safe unique selector receive reason:no_unique_supported_selector. Neither receives a ref. Binding 0.6.0 supports key/text/type action selectors, not identifier. Verified text origins are Text/RichText/EditableText/TextField/TextFormField.
+SnapshotService increases generations and ref numbers across the daemon without reusing numbers between sessions. Hidden elements receive reason:not_visible; elements without a safe unique selector receive reason:no_unique_supported_selector. Neither receives a ref. Binding 0.1.0 supports key/text, 0.2–0.6 add type, and 0.7 adds identifier action selectors. Verified text origins are Text/RichText/EditableText/TextField/TextFormField.
 
 Reobserve before mutation. Zero matches mean STALE_REF for refs or TARGET_NOT_FOUND for explicit selectors. Multiple matches, including hidden elements, mean AMBIGUOUS_TARGET. Changed ref attributes mean STALE_REF; a unique hidden element or unverified text origin means UNRESOLVABLE_TARGET. Observation and mutation are not atomic, and refs do not fall back to coordinates.
 

@@ -79,7 +79,7 @@ Do not publish the URI or raw Flutter logs, and do not enable shell tracing. The
 | `record start/status/stop` | Active recording, finalized MP4, and repeat stop returns the same artifact; visually inspect the video |
 | `close` / `close --all` | Reconnect after normal close, zero sessions after close-all, not-connected errors, and no daemon socket/metadata |
 
-Error checks compare exit and normalized error codes: disconnected is 3/NOT_CONNECTED, expired refs are 4/STALE_REF, missing targets are 4/TARGET_NOT_FOUND, and ambiguous targets are 4/AMBIGUOUS_TARGET. Binding 0.6.0 identifier operations should return 6/UNSUPPORTED_CAPABILITY. Rejected taps must not increment the counter.
+Error checks compare exit and normalized error codes: disconnected is 3/NOT_CONNECTED, expired refs are 4/STALE_REF, missing targets are 4/TARGET_NOT_FOUND, and ambiguous targets are 4/AMBIGUOUS_TARGET. Identifier operations on bindings before 0.7 should return 6/UNSUPPORTED_CAPABILITY; 0.7 supports them. Rejected taps must not increment the counter.
 
 ## Evidence and cleanup
 

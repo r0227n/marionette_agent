@@ -79,7 +79,7 @@ dart run integration_test/all_commands_smoke.dart
 | `record start` / `record status` / `record stop` | 対象platformで録画継続、MP4確定、stop再実行で同じ成果物。別途動画内容を確認 |
 | `close` / `close --all` | 通常close後の再接続、全close後0件、未接続エラー、daemonのsocket/metadata消失 |
 
-エラー系も期待終了コードと正規化コードを照合します。未接続は3/NOT_CONNECTED、古いrefは4/STALE_REF、不存在は4/TARGET_NOT_FOUND、複数一致は4/AMBIGUOUS_TARGETです。binding 0.6.0のidentifier操作は6/UNSUPPORTED_CAPABILITYが期待結果です。拒否されたtapの前後でカウンタが増えないことを確認します。
+エラー系も期待終了コードと正規化コードを照合します。未接続は3/NOT_CONNECTED、古いrefは4/STALE_REF、不存在は4/TARGET_NOT_FOUND、複数一致は4/AMBIGUOUS_TARGETです。binding 0.7未満のidentifier操作は6/UNSUPPORTED_CAPABILITY、0.7では対応対象への操作成功が期待結果です。拒否されたtapの前後でカウンタが増えないことを確認します。
 
 ## 証跡と終了
 
