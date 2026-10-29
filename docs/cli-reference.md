@@ -133,3 +133,6 @@ Select `--source android-emulator` explicitly for screenshot or diff screenshot.
 ## macOS screenshots
 
 Use `screenshot --source macos --display <1-999> [path]` for macOS. An explicit current display index replaces device; no Flutter connection is required. PNG/JPEG, destinations, exclusive writes and deadlines use the shared contract. The whole display includes other applications.
+
+
+macOS still images use XCTest/XCUIScreen and require full Xcode. Allow `--timeout 120000` for the initial runner build. Non-main capture with more than two active displays is unsupported.

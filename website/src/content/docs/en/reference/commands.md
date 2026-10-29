@@ -134,3 +134,5 @@ Android screenshots: use `--source android-emulator --device <private-pairing-fi
 ## macOS screenshots
 
 For macOS, specify display instead of device. MCP uses `source: "macos"` and integer `display` too.
+
+macOS still images use XCTest/XCUIScreen and require full Xcode. Allow `--timeout 120000` for the initial runner build. Non-main capture with more than two active displays is unsupported.

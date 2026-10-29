@@ -8,3 +8,6 @@ the CLI selects implementations in `lib/src/platform/`.
 
 See [architecture](../../docs/ARCHITECTURE.md#internal-platform-services) and the
 [app integration guide](../../website/src/content/docs/en/getting-started/app-integration.md).
+
+
+Still screenshots use a bundled standalone macOS XCTest runner and XCUIScreen. Full Xcode and macOS 13+ are required; allow --timeout 120000 for the initial build. The runner is locally ad-hoc signed and is cleaned up with its private build storage. More than two active displays support main-screen capture only because public XCTest APIs expose no display identity.

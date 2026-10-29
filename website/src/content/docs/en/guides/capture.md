@@ -84,3 +84,5 @@ Select a display explicitly without a Flutter connection. The image includes the
 marionette-agent device list --platform macos
 marionette-agent screenshot --source macos --display 1 artifacts/native.png
 ```
+
+macOS still images use XCTest/XCUIScreen and require full Xcode. Allow `--timeout 120000` for the initial runner build. Non-main capture with more than two active displays is unsupported.

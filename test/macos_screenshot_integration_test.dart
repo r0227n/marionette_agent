@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:image/image.dart' as image;
 import 'package:marionette_agent/src/cli/common_options.dart';
 import 'package:marionette_agent/src/cli/parser.dart';
@@ -11,6 +9,10 @@ import 'package:marionette_agent/src/workflow/model.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
+
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
+
 import 'support/requests.dart';
 
 void main() {
@@ -48,34 +50,20 @@ void main() {
     'macOS standalone and workflow run without Flutter; errors never fall back',
     () async {
       final backend = FakeBackend();
-      final displays = <int>[];
-      AgentError? failure;
+      final capturer = FakeScreenCapturer(
+        image.encodePng(image.Image(width: 4, height: 2)),
+      );
       SessionManager makeManager() => SessionManager(
         () => backend,
-        coreCommands(
-          captureNative: (display, deadline) async {
-            displays.add(display);
-            if (failure != null) throw failure;
-            return {
-              'images': [
-                base64Encode(image.encodePng(image.Image(width: 4, height: 2))),
-              ],
-              'capture': {
-                'source': 'macos-screencapture',
-                'displayIndex': display,
-                'pixelWidth': 4,
-                'pixelHeight': 2,
-              },
-            };
-          },
-        ),
+        coreCommands(),
+        screenCapturer: capturer,
       );
       final manager = makeManager();
       addTearDown(manager.dispose);
       final native = {'source': 'macos', 'display': 2};
       final shot = await manager.handle(request('screenshot', params: native));
       expect(shot.error, isNull);
-      expect(shot.data!['capture'], containsPair('displayIndex', 2));
+      expect(shot.data!['capture'], containsPair('device', '2'));
       final workflow = {
         'schemaVersion': 1,
         'name': 'macos',
@@ -95,7 +83,7 @@ void main() {
       expect(result.error, isNull);
       expect(result.data!['completedSteps'], 1);
       expect((result.data!['screenshots'] as List).single['stepId'], 'proof');
-      failure = const AgentError(
+      capturer.failure = const PlatformException(
         'SCREEN_CAPTURE_PERMISSION_REQUIRED',
         'Permission missing',
       );
@@ -105,7 +93,8 @@ void main() {
         request('screenshot', params: native),
       );
       expect(denied.error!.code, 'SCREEN_CAPTURE_PERMISSION_REQUIRED');
-      expect(displays, [2, 2, 2]);
+      expect(capturer.devices, ['2', '2', '2']);
+      expect(capturer.sources, ['macos', 'macos', 'macos']);
       expect(backend.calls, isEmpty);
     },
   );

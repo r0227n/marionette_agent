@@ -147,3 +147,6 @@ Androidのscreenshot stepは`source: android-emulator`を選び、`device`へ私
 ## macOSのスクリーンショット
 
 macOSのscreenshot stepは `source: macos` と整数 `display`（1–999）を必須とし、device・target・annotateは受け付けない。保存と結果は上記のiOS/Androidと同じCLI側の処理を使う。
+
+
+macOSの静止画はXCTest/XCUIScreenで取得します。full Xcodeが必要で、初回ビルドを含め `--timeout 120000` を指定してください。3画面以上ではmain以外の撮影は未対応です。

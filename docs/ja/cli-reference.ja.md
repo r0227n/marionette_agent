@@ -133,3 +133,6 @@ screenshotとdiff screenshotでは`--source android-emulator`を明示する。`
 ## macOSのスクリーンショット
 
 macOSは `screenshot --source macos --display <1-999> [path]`。deviceの代わりに現在のdisplay番号を必須とし、Flutter接続は不要。PNG/JPEG・保存先・上書き拒否・deadlineは既存と共通。画面全体には他アプリも含まれる。
+
+
+macOSの静止画はXCTest/XCUIScreenで取得します。full Xcodeが必要で、初回ビルドを含め `--timeout 120000` を指定してください。3画面以上ではmain以外の撮影は未対応です。

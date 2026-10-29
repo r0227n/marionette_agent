@@ -23,7 +23,7 @@ final class _Rect extends Struct {
   external _Size size;
 }
 
-/// A display number is the explicit screencapture -D ordinal (main = 1).
+/// A display number is the explicit main-first active-display ordinal (main = 1).
 /// Keep the complete ordered topology to detect disappearance/reordering.
 class MacosDisplay {
   const MacosDisplay(

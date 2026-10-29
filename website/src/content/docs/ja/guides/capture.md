@@ -84,3 +84,5 @@ Flutter接続なしで画面番号を明示して撮影できます。他アプ�
 marionette-agent device list --platform macos
 marionette-agent screenshot --source macos --display 1 artifacts/native.png
 ```
+
+macOSの静止画はXCTest/XCUIScreenで取得します。full Xcodeが必要で、初回ビルドを含め `--timeout 120000` を指定してください。3画面以上ではmain以外の撮影は未対応です。

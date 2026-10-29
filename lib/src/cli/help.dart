@@ -62,7 +62,7 @@ String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'keyboard press|type|inserttext <input> | clipboard read|write <text>|copy|paste\n'
     'drag <from-ref> <to-ref> | drag --from-key <key> --to-key <key>\n'
     'wait <milliseconds|ref>\n'
-    'screenshot --source macos --display <1-999> [path]\n'
+    'screenshot --source macos --display <1-999> [path] (XCTest; first build: --timeout 120000)\n'
     'diff snapshot --baseline <path> | diff screenshot --device <UDID> --baseline <path> [--threshold <0-255> --output <path>]\n'
     'record restart <path> --platform <platform> --device <id> | record start/restart --fps <1-60>\n'
     'device list [--platform ios|android|macos] | batch <JSON-file|->\n'

@@ -1,6 +1,5 @@
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
-import '../platform/screenshot_service.dart';
 import 'screenshot_request.dart';
 
 export 'screenshot_request.dart';
@@ -48,24 +47,13 @@ Future<Json> handleSnapshot(CommandContext context, Json params) =>
     );
 
 /// Images cross IPC; the CLI owns local path resolution and writing.
-Future<Json> handleScreenshot(
-  CommandContext context,
-  Json params, {
-  NativeScreenshotCapture captureNative = captureMacosScreenshot,
-}) async {
+Future<Json> handleScreenshot(CommandContext context, Json params) async {
   validateScreenshotRequest(params);
-  if (params['source'] == 'macos') {
-    context.check();
-    final result = await captureNative(
-      params['display'] as int,
-      context.deadline,
-    );
-    context.check();
-    return result;
-  }
   return context.captureDeviceScreen(
     params['source'] as String? ?? 'ios-simulator',
-    params['device'] as String,
+    params['source'] == 'macos'
+        ? '${params['display']}'
+        : params['device'] as String,
   );
 }
 

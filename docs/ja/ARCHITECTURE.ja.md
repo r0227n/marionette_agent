@@ -417,6 +417,8 @@ UiServiceは必要な取得が成功してから両取得元を公開し、失�
 <a id="native-screenshot-boundary"></a>
 ## ネイティブ撮影と共通artifact境界
 
-`commands/screenshot_request.dart`はexecution/CLI grammarに依存せずsource・display・座標互換性を検証します。`commands/observations.dart`は`platform/screenshot_service.dart`経由で注入可能なnative取得を呼びます。OSのdisplay列挙・権限診断・子process寿命・私有stagingは`marionette_agent_macos`へ集約します。`marionette_agent_platform_interface/host_support.dart`がWeb録画とread-only権限probeを共有し、兄弟packageへ依存しません。native取得にbackend adapter・Flutter captureは使いません。device列挙も同じdisplay情報を公開します。
+`commands/screenshot_request.dart`でsource/displayを検証し、全OSの撮影を`CommandContext.captureDeviceScreen`と`platform/screen_capture.dart`へ集約します。`marionette_agent_macos`が独立XCTest runnerの同梱assets・ローカル署名build・要求別test plan・PNG添付回収・直列化・終了処理を所有します。UI操作や対象アプリ起動は行いません。要求別test planはbuild productsと同じ場所に置き、XCTestの相対pathを維持します。shared ScreenCapturerのdisposeで自分のrunner実行pathだけを照合して終了し、build領域を削除します。共有のhost_support権限preflightはWeb録画にも使います。
 
 macOS exampleにdebug専用のAppKit file panel・alert・menu・別display移動操作を固定MethodChannelで公開します。Debug専用のUser Selected File Read entitlementで標準panelを許可し、アプリ一時領域にダミーデータを用意して初期directoryに指定します。macOSが別のpanel表示位置を復元する場合があるため、検証時はダミーフォルダを明示的に選び、共有前に画像を確認します。alertはfixtureでありOS権限dialogではありません。OS権限設定は変更しません。対象選択・pixel geometry・権限の制約は[native撮影契約](SPEC.ja.md#native-macos-screenshots)を参照してください。
+
+debugのmove fixtureはwindow移動後に検証アプリを明示的にactivateします。撮影処理自身はwindowやSpaceを操作しません。

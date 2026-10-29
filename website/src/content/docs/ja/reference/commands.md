@@ -134,3 +134,5 @@ Androidの撮影は`--source android-emulator --device <私有pairingファイ�
 ## macOSのスクリーンショット
 
 macOSではdeviceの代わりにdisplayを指定します。MCPでも `source: "macos"` と整数 `display` を使います。
+
+macOSの静止画はXCTest/XCUIScreenで取得します。full Xcodeが必要で、初回ビルドを含め `--timeout 120000` を指定してください。3画面以上ではmain以外の撮影は未対応です。

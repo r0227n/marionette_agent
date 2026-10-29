@@ -55,6 +55,7 @@ class MainFlutterWindow: NSWindow {
                 let screen = NSScreen.screens.first(where: { $0 != self.screen }) else { return }
           self.setFrame(screen.visibleFrame.insetBy(dx: 30, dy: 30), display: true)
           self.makeKeyAndOrderFront(nil)
+          NSApp.activate(ignoringOtherApps: true)
         default: break
         }
       }
