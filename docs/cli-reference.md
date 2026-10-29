@@ -97,42 +97,7 @@ Accepted extensions are `.png` for PNG and `.jpg/.jpeg` for JPEG, case-insensiti
 Parent directories must exist. A symlink at the specified directory itself is rejected; ancestor symlinks are allowed. All images are validated/converted and all destinations reserved exclusively before writing. Existing files, directories, and symlinks are never overwritten. The deadline includes capture, conversion, and persistence. Failures attempt to remove created images; OS deletion refusal and immediate cancellation of active I/O cannot be guaranteed. Failures never return successful paths.
 
 <a id="recording"></a>
-## Recording lifetime and recovery
-
-Each session owns at most one recording; each device/display can have at most one recording in the same daemon. Recording-only sessions can show a disconnected connection state; inspect them with `record status`. Recording does not change operation refs.
-
-States are `starting/recording/stopping/stopped/failed`, or `idle` without a recording. Repeated stop returns the same final result. `elapsedMs` measures wall-clock time including finalization, not media duration. Inspect `failure` and `recoveryPath` when recording fails.
-
-Startup waits at most 30 seconds. A startup timeout still cleans up owned processes and reservations, blocking another recording on that device until termination is confirmed. Finalization continues after a stop timeout; inspect status. Restart does not atomically finalize the old recording and start the new one. Static arguments and existing paths are checked before stopping, but a failed new start does not resume the old recording.
-
-Flutter recording starts after the first PNG and converts to H.264 MP4 at stop, with up to 30 seconds for conversion. ffmpeg needs the PNG decoder, libx264 encoder, concat demuxer, and setts bitstream filter. It waits the requested fps interval after each capture and uses actual timestamps for VFR output. Dimension changes, capture connection loss, and conversion failures are not reported as success. Fast animation, host sleep, and hot restart continuity are not guaranteed.
-
-Device recording uses MP4 for iOS/Android and MOV for macOS/Web. Android screenrecord stops and retrieves at 180 seconds without automatic splitting. Startup checks the first frame on iOS, the header on Android, and one second of process survival on macOS. OS-mode `--fps` accepts 1–60 and controls the saved video frame rate, not acquisition cadence. ffmpeg is checked before startup; conversion runs after stopping.
-
-Normal shutdown and SIGINT/SIGTERM allow up to 60 seconds for finalization and five more seconds for cleanup. Unfinalized video may remain in `.marionette-record-*` beside the destination for recovery. Automatic recovery after SIGKILL/host shutdown, stopping a disconnected Android device, and recording through Android rotation are not guaranteed.
-
 <a id="web-recording"></a>
-## Web display targeting
+## Recording lifetime and targeting
 
-Start visible Chrome on macOS with a dedicated profile and a loopback remote-debugging port. Select the intended page from `/json/list`. The device is not just a display number: use the format below, replacing ACTUALID with the ID from the selected `webSocketDebuggerUrl`.
-
-```sh
-marionette-agent --session web-demo record start ./web.mov --platform web \
-  --device 'display:1@ws://127.0.0.1:9222/devtools/page/ACTUALID' --json
-```
-
-Displays range from 1–999. Screen recording permission is required. The entire display, including other visible apps and OS dialogs, is captured. Chrome placement is neither checked nor followed when it moves. Device strings cannot contain localhost, remote hosts, credentials, queries, or fragments. Headless Chrome is unsupported in this mode.
-
-Web/macOS recordings on the same display are mutually exclusive. Tab closure, crashes, or debug disconnection produce CONNECTION_LOST, failed status, and an error from stop. Inspect the recovery path. See the [Web recording design](web-recording.md) for the implementation rationale and startup examples.
-
-### Android acquisition
-
-Select `--source android-emulator` explicitly for screenshot or diff screenshot. `--device` is a private pairing file, not a serial; relative paths resolve in the caller's cwd. MCP and workflow use the same source/device fields and save path. Result method is uiautomator; dimensions and orientation use the existing physical-pixel fields. The paired agent must already be running. See [Android capture constraints](SPEC.md#android-emulator-screenshots).
-
-
-## macOS screenshots
-
-Use `screenshot --source macos --display <1-999> [path]` for macOS. An explicit current display index replaces device; no Flutter connection is required. PNG/JPEG, destinations, exclusive writes and deadlines use the shared contract. The whole display includes other applications.
-
-
-macOS still images use XCTest/XCUIScreen and require full Xcode. Allow `--timeout 120000` for the initial runner build. Non-main capture with more than two active displays is unsupported.
+The [native recording contract](SPEC.md#device-screen-recording) defines platform APIs, target syntax, formats, sampling intervals, startup deadlines, ownership and recovery. `--platform flutter` is removed. Android uses a private pairing file, Web an explicit Chromium page endpoint; both differ from the former target syntax. Web records the viewport to MP4 and does not require macOS display permission. See the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/) for commands and setup.

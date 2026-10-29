@@ -68,7 +68,7 @@ class RecordingManager {
       entry.stagingPath = '${entry.staging!.path}/capture${target.extension}';
       _checkActive(entry);
       _check(deadline);
-      final startupLimit = DateTime.now().add(const Duration(seconds: 30));
+      final startupLimit = DateTime.now().add(const Duration(seconds: 120));
       final startDeadline = deadline.isBefore(startupLimit)
           ? deadline
           : startupLimit;
@@ -94,7 +94,7 @@ class RecordingManager {
       _check(deadline);
       entry.started = DateTime.now();
       entry.state = 'recording';
-      // Automatic Android limit or unexpected recorder exit is finalized too.
+      // Capture failure or unexpected recorder exit is finalized too.
       unawaited(
         entry.handle!.ended
             .catchError((Object _) {})
@@ -348,9 +348,6 @@ void validateTarget(RecordingTarget target, String path) {
     );
   }
   final valid = switch (target.platform) {
-    RecordingPlatform.flutter => RegExp(
-      r'^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$',
-    ).hasMatch(target.device),
     RecordingPlatform.linux ||
     RecordingPlatform.windows => throw const PlatformException(
       'UNSUPPORTED_CAPABILITY',
@@ -360,9 +357,8 @@ void validateTarget(RecordingTarget target, String path) {
     RecordingPlatform.ios => RegExp(
       r'^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$',
     ).hasMatch(target.device),
-    RecordingPlatform.android => RegExp(
-      r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$',
-    ).hasMatch(target.device),
+    RecordingPlatform.android =>
+      target.device.startsWith('/') && !target.device.contains('\u0000'),
     RecordingPlatform.macos => RegExp(
       r'^[1-9][0-9]{0,2}$',
     ).hasMatch(target.device),
@@ -376,7 +372,7 @@ void validateTarget(RecordingTarget target, String path) {
       'INVALID_ARGUMENT',
       'Invalid recording target or output path',
       hint:
-          'Specify a Simulator UDID, adb serial or positive display index, or Web display/page pair and an absolute $extension path.',
+          'Specify a Simulator UDID, private Android pairing file, positive display index, or Chromium page endpoint and an absolute $extension path.',
     );
   }
 }

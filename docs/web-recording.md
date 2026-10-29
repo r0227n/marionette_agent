@@ -1,5 +1,8 @@
 # Web録画方式（Issue #16）
 
+> Historical investigation. The current native API recording contract supersedes the selected command-based implementation; see [SPEC](SPEC.md#device-screen-recording).
+
+
 2026-09-13にAPIを確認。利用者の要件はブラウザーUIとOSダイアログも含む証跡である。初回対応はmacOS上の可視Google Chromeとし、録画範囲は利用者が明示したディスプレイ全体、出力は音声なしMOVとする。
 
 | 方式 | 範囲・操作と権限 | 判断 |

@@ -117,7 +117,12 @@ void main() {
       'drag': {'from': '@e1', 'to': '@e2'},
       'workflow_run': {'path': 'test.yaml', 'inputs': 'inputs.json'},
       'workflow_validate': {'path': 'test.yaml', 'checkInputs': true},
-      'record_start': {'path': 'movie.mp4', 'platform': 'flutter', 'fps': 10},
+      'record_start': {
+        'path': 'movie.mp4',
+        'platform': 'android',
+        'device': '/tmp/pairing.json',
+        'fps': 10,
+      },
       'record_restart': {
         'path': 'movie.mp4',
         'platform': 'ios',

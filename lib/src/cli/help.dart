@@ -41,8 +41,7 @@ String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'wait observes only; run snapshot before the next UI operation.\n'
     'launch <project> --platform tester|ios|android|macos|web (headless; close stops owned app)\n'
     'record start <path> --platform ios|android|macos|web --device <id>\n'
-    'web: --device display:<index>@ws://127.0.0.1:<port>/devtools/page/<id> (.mov; whole display, visible Chrome on macOS)\n'
-    'record start <path.mp4> --platform flutter [--fps 10] (connected app frames; headless compatible)\n'
+    'web: --device ws://127.0.0.1:<port>/devtools/page/<id> (.mp4; Chromium viewport)\n'
     'record stop | record status (close finalizes recording)\n'
     'workflow schema [action] | workflow validate <path> | workflow run <path>\n'
     'workflow: --format json|yaml --inputs <path> --inputs-format json|yaml\n'
@@ -64,7 +63,7 @@ String cliUsage(ArgParser parser, Iterable<String> commands) =>
     'wait <milliseconds|ref>\n'
     'screenshot --source macos --display <1-999> [path] (XCTest; first build: --timeout 120000)\n'
     'diff snapshot --baseline <path> | diff screenshot --device <UDID> --baseline <path> [--threshold <0-255> --output <path>]\n'
-    'record restart <path> --platform <platform> --device <id> | record start/restart --fps <1-60>\n'
+    'record restart <path> --platform <platform> --device <id> | record start/restart --fps <1-60> (capture interval, not guaranteed rate)\n'
     'device list [--platform ios|android|macos] | batch <JSON-file|->\n'
     'state save|load <path> (connection only) | confirm|deny <confirmation-id>\n'
     'doctor --quick|--offline|--fix | install|upgrade [--source <package-directory>] <bin-directory>';

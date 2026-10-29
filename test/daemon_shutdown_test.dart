@@ -81,7 +81,7 @@ void main() {
           owner: 'recording',
           target: const RecordingTarget(
             RecordingPlatform.android,
-            'emulator-5556',
+            '/tmp/pairing.json',
           ),
           path: '${directory.path}/video.mp4',
           deadline: readyDeadline,

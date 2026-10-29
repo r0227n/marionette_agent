@@ -1,6 +1,6 @@
 ---
 title: headlessで操作・録画する
-description: tester・iOS・Android・macOS・Webの選び方、非表示起動、Flutter描画の録画、終了と復旧の手順。
+description: tester・iOS・Android・macOS・Webの選び方、非表示起動、終了と復旧の手順。
 ---
 
 headlessでは、アプリのウィンドウを表示せずにFlutter UIを観測・操作します。`launch`は選んだ環境でdebugアプリをビルド・起動し、VM Serviceへの接続と最初の観測まで行います。起動後は通常と同じsnapshot・tap・fill・workflowを使い、画像や動画で結果を確認できます。
@@ -38,8 +38,6 @@ marionette-agent --session fast tap --key tap_button
 marionette-agent --session fast get text --key tap_result
 marionette-agent --session fast fill --key text_input 'headless check'
 marionette-agent --session fast snapshot
-marionette-agent --session fast record start rendered.mp4 --platform flutter
-marionette-agent --session fast record stop
 ```
 
 `tap_result`のカウントが増え、入力欄の値が変わったことを観測と保存動画で照合します。成功応答だけでは意図した画面変化を保証しません。refを使う場合は操作後にsnapshotを取り直します。
@@ -52,24 +50,6 @@ marionette-agent --session fast workflow run \
 ```
 
 `finalSnapshot`の`page_result`が`Current page: 2`であることを確認します。これらの距離はexample向けで、他アプリの既定値ではありません。[workflowガイド](/marionette_agent/ja/guides/workflows/)で失敗時の進捗と再観測も確認してください。
-
-## Flutter描画を動画へ保存する
-
-上で起動したsessionを使います。出力先は毎回新しいpathを選びます。
-
-```sh
-mkdir -p artifacts
-marionette-agent --session fast record start artifacts/headless.mp4 --platform flutter --fps 10
-marionette-agent --session fast tap --key tap_button
-marionette-agent --session fast snapshot
-marionette-agent --session fast record status --json
-marionette-agent --session fast --timeout 60000 record stop --json
-marionette-agent --session fast --timeout 60000 close
-```
-
-動画は単一Flutter viewの無音H.264 MP4です。`--device`は指定しません。OS keyboard/dialog、ブラウザーのUI、platform viewの収録は保証せず、macOSの画面収録許可は不要です。OS全体の画面が必要なら[端末録画](/marionette_agent/ja/guides/capture/)の方式を選びます。
-
-fpsは1〜60、既定10です。各PNG取得後に指定間隔を待ち、実際の取得時刻に基づくVFR動画を作るため、一定fpsや高速アニメーションの全frameは保証しません。stopは動画変換まで待ちます。TIMEOUTなら`record status`で最終結果を確認し、失敗時は`failure/recoveryPath`を調べます。画像寸法の変化・接続断・変換失敗を白い成功動画へ置き換えることはありません。
 
 ## iOSとAndroidで確認する
 
@@ -96,8 +76,6 @@ marionette-agent --session android snapshot
 marionette-agent --session android --timeout 60000 close
 ```
 
-iOSは既定setから分離した専用device setを使います。Androidのportは5554〜5682の未使用の偶数です。既存AVDをread-only・no-snapshot・no-windowで起動し、保存済み状態へ変更を書き戻しません。AVD自体は作成・削除しません。録画は両方とも`--platform flutter`を使えます。
-
 ## macOSとWebで確認する
 
 ```sh
@@ -111,8 +89,6 @@ marionette-agent --session web --timeout 60000 close
 ```
 
 macOSではexampleのように、native側でNSWindowの表示を抑えてFlutterEngineを起動し、Dart側の`enableHeadlessRendering()`で非表示時の描画を維持する対応が必要です。launchは環境変数`MARIONETTE_HEADLESS=1`とDart defineを渡しますが、任意のアプリを自動で改変しません。WindowServerのないホストでの動作を前提にしないでください。
-
-WebはChromeをheadless起動します。非表示のFlutter Web録画にも`record --platform flutter`を使います。`record --platform web`はmacOSの可視displayを録画する別方式です。
 
 ## 起動オプションと所有権
 
@@ -135,3 +111,5 @@ closeは録画を確定してから、そのsessionが所有するアプリ・�
 | iOSのwindowが表示される            | 専用device setを使っているか。手動でSimulator.appに開いていないか                          |
 | 録画が低fps・停止する              | PNG取得時間、空き容量、host sleep、寸法変更、接続断を確認する                              |
 | screenshotやrecordの保存に失敗する | 親directoryが存在し、出力pathが新しいか                                                    |
+
+録画には明示したnative端末またはChromium pageが必要です。Flutter/tester描画録画は削除しました。[captureガイド](/marionette_agent/ja/guides/capture/)を参照してください。非表示のmacOS windowはdisplay録画に映りません。

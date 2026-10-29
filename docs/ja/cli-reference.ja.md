@@ -97,42 +97,7 @@ install/upgradeはローカルsourceをAOTコンパイルし、隣接する専�
 親directoryは事前作成が必要です。指定directory自身のsymlinkは拒否し、祖先のsymlinkは利用できます。全画像を検証・変換し、全保存先を排他的に予約してから書き込みます。既存file/directory/symlinkは上書きしません。期限には取得・変換・保存を含み、途中失敗では作成した画像の削除を試みます。OSの削除拒否や進行中I/Oの即時取消しは保証できず、失敗時は成功pathsを返しません。
 
 <a id="recording"></a>
-## 録画の寿命と復旧
-
-1 sessionにつき1録画、同じdaemon内では1端末/displayにつき1録画です。録画だけのsessionは接続状態disconnectedでも、`record status`で確認できます。recordは操作用refを変更しません。
-
-stateは`starting/recording/stopping/stopped/failed`、未録画は`idle`です。stopは重複しても同じ最終結果を返します。`elapsedMs`は確定処理を含む壁時計時間で、再生時間ではありません。失敗時の`failure`と`recoveryPath`を確認してください。
-
-開始待ちは最大30秒です。開始timeout後も所有processと予約を回収し、終了確認まで次の同一端末録画を拒否します。停止timeoutでも確定処理は続くのでstatusで確認します。restartは旧動画の確定と新規開始が原子的ではありません。引数・既存pathは停止前に検査しますが、新規開始に失敗しても旧録画を再開しません。
-
-Flutter方式はPNG取得後にstart成功となり、停止時に最大30秒でH.264 MP4へ変換します。ffmpegのPNG decoder、libx264 encoder、concat demuxer、setts bitstream filterが必要です。取得完了後にfps相当の間隔を待つVFR方式です。寸法変更・取得用接続断・変換失敗を成功に置換しません。高速アニメーション、host sleep、hot restart中の継続は保証しません。
-
-端末方式ではiOS/AndroidはMP4、macOS/WebはMOVです。Android screenrecordは180秒で停止・回収し、自動分割しません。iOSは最初のframe、Androidはheader、macOSはprocessの1秒生存で開始を確認します。OS方式の`--fps`は1〜60で保存動画のfpsを指定し、取得cadenceではありません。事前にffmpegを検査し、停止後に変換します。
-
-通常終了とSIGINT/SIGTERMでは確定を最大60秒待ち、追加後処理は最大5秒です。未確定動画は保存先の親にある`.marionette-record-*`へ復旧用として残す場合があります。SIGKILL・host停止後の自動復元、切断Android端末の停止、Android回転中の録画は保証しません。
-
 <a id="web-recording"></a>
-## Webのdisplay指定
+## 録画の生存期間と対象指定
 
-macOS上の可視Chromeを専用profileとloopback remote-debugging portで起動し、`/json/list`から対象pageを選びます。deviceはdisplay番号だけではなく、以下の形式です。ACTUALIDを選んだ`webSocketDebuggerUrl`のIDへ置き換えます。
-
-```sh
-marionette-agent --session web-demo record start ./web.mov --platform web \
-  --device 'display:1@ws://127.0.0.1:9222/devtools/page/ACTUALID' --json
-```
-
-displayは1〜999です。画面収録許可が必要で、指定display全体に映る他アプリやOSダイアログも含みます。Chromeの配置確認・移動追従はしません。localhost、remote host、認証情報、query、fragmentはdeviceに使えません。headless Chromeはこの方式では非対応です。
-
-同一displayのWeb/macOS録画は排他です。対象tabの終了・crash・debug接続断はCONNECTION_LOSTとなり、statusはfailed、stopはエラーを返します。復旧pathを確認してください。方式と起動例の詳細は[Web録画設計](../web-recording.md)を参照してください。
-
-### Androidの取得元
-
-screenshotとdiff screenshotでは`--source android-emulator`を明示する。`--device`はserialではなく私有pairingファイルで、相対pathは呼出元cwdで解決する。MCPとworkflowは同じsource/deviceと保存経路を使う。methodはuiautomatorとなり、寸法と向きは既存の物理pixel fieldを使う。pairing先のagentは事前起動する。[Android撮影の制限](SPEC.ja.md#android-emulator-screenshots)を参照。
-
-
-## macOSのスクリーンショット
-
-macOSは `screenshot --source macos --display <1-999> [path]`。deviceの代わりに現在のdisplay番号を必須とし、Flutter接続は不要。PNG/JPEG・保存先・上書き拒否・deadlineは既存と共通。画面全体には他アプリも含まれる。
-
-
-macOSの静止画はXCTest/XCUIScreenで取得します。full Xcodeが必要で、初回ビルドを含め `--timeout 120000` を指定してください。3画面以上ではmain以外の撮影は未対応です。
+[native録画契約](SPEC.ja.md#device-screen-recording)がplatform API・対象構文・形式・取得間隔・開始期限・所有権・復旧を定義します。`--platform flutter`は削除しました。Androidは非公開ペアリングファイル、Webは明示したChromium page endpointを使い、旧対象構文から変更しています。WebはviewportをMP4へ保存し、macOS displayの許可は不要です。コマンドと準備は[captureガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。

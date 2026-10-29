@@ -89,7 +89,10 @@ void main() {
   late Directory directory;
   late Recorder backend;
   late RecordingManager manager;
-  const target = RecordingTarget(RecordingPlatform.android, 'emulator-5556');
+  const target = RecordingTarget(
+    RecordingPlatform.android,
+    '/tmp/pairing.json',
+  );
   DateTime deadline([int ms = 2000]) =>
       DateTime.now().add(Duration(milliseconds: ms));
   Future<Map<String, Object?>> start(

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:marionette_agent_flutter/marionette_agent_flutter.dart';
+import 'package:marionette_agent_video/marionette_agent_video.dart';
 import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
 import 'package:test/test.dart';
 

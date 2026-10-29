@@ -45,7 +45,7 @@ void main() {
     final xcrun = File('${root.path}/xcrun');
     await xcrun.writeAsString(
       r'''#!/usr/bin/python3
-import base64,json,os,pathlib,sys,time
+import base64,json,os,pathlib,plistlib,socket,sys,time
 root=pathlib.Path(__file__).parent
 args=sys.argv[1:]
 with (root/'calls').open('a') as f:f.write(json.dumps(args)+'\n')
@@ -59,10 +59,23 @@ elif args[0]=='simctl':pass
 elif args[:2]==['xcodebuild','build-for-testing']:
     if mode=='build-fail':print('PRIVATE BUILD',file=sys.stderr);sys.exit(1)
     products=pathlib.Path(args[args.index('-derivedDataPath')+1])/'Build/Products'
-    products.mkdir(parents=True);(products/'ScreenCapture.xctestrun').write_text('fixture')
+    products.mkdir(parents=True);(products/'ScreenCapture.xctestrun').write_bytes(plistlib.dumps({'ScreenCapture':{'TestBundlePath':'fixture'}}))
 elif args[:2]==['xcodebuild','test-without-building']:
     if mode=='fail':print('PRIVATE TEST',file=sys.stderr);sys.exit(1)
     if mode=='stall':(root/'pid').write_text(str(os.getpid()));time.sleep(60)
+    if '-only-testing:ScreenCapture/Capture/testStream' in args:
+        (root/'pid').write_text(str(os.getpid()))
+        plan=plistlib.loads(pathlib.Path(args[args.index('-xctestrun')+1]).read_bytes())
+        env=plan['ScreenCapture']['EnvironmentVariables']
+        server=socket.socket();server.bind(('127.0.0.1',int(env['MRA_RECORD_PORT'])));server.listen(2)
+        frame=0
+        while True:
+            conn,_=server.accept()
+            with conn:
+                request=conn.makefile('rb').readline().strip().decode()
+                if request!=env['MRA_RECORD_TOKEN']:continue
+                frame+=1
+                conn.sendall(base64.b64decode('PNG') if frame==1 else b'invalid frame')
     pathlib.Path(args[args.index('-resultBundlePath')+1]).mkdir()
 elif args[:3]==['xcresulttool','export','attachments']:
     if mode=='export-fail':sys.exit(1)
@@ -90,6 +103,31 @@ else:sys.exit(2)
     await capture.dispose();
     await root.delete(recursive: true);
   });
+
+  test(
+    'failed recording frames terminate the owned runner without explicit stop',
+    () async {
+      final recording = await capture.record(
+        const RecordingTarget(RecordingPlatform.ios, selected, fps: 10),
+        '${root.path}/capture.mp4',
+        DateTime.now().add(const Duration(seconds: 10)),
+      );
+      try {
+        await recording.ended.timeout(const Duration(seconds: 10));
+        expect(recording.isRunning, isFalse);
+        await expectLater(recording.stop(), errorCode('IO_ERROR'));
+        final child = int.parse(await File('${root.path}/pid').readAsString());
+        expect(Process.killPid(child, ProcessSignal.sigcont), isFalse);
+        expect(await File('${root.path}/capture.mp4').exists(), isFalse);
+        expect(
+          operations().where((args) => args.contains('test-without-building')),
+          hasLength(1),
+        );
+      } finally {
+        await recording.abort();
+      }
+    },
+  );
 
   test('pins UDID among multiple booted devices and returns untouched PNG/provenance', () async {
     final result = await capture.capture(selected.toLowerCase(), deadline());

@@ -20,7 +20,7 @@ Define syntax in `cli/commands/` and the catalog, with shared types in `cli/comm
 
 Internal handlers directly import necessary backend/protocol/commands/snapshot definitions, without depending on CLI/args or the public barrel. External composition uses `marionette_agent.dart`. Restrict upstream `marionette_mcp/src/` imports to `backend/marionette_backend.dart`; handlers must not consume raw upstream maps or connector exceptions. See [probe_cli.dart](../integration_test/support/probe_cli.dart) for an executable registration example.
 
-Recording delegates from the shared session queue to RecordService and util. OS screen recording can run without a VM Service connection; Flutter rendering recording requires one. Platform operations and shutdown signals belong in util and do not change operation refs or connection generations.
+Recording delegates from the shared session queue to RecordService and util. All recording is independent of VM Service and uses platform APIs. Platform operations and shutdown signals belong in util and do not change operation refs or connection generations.
 
 <a id="validation"></a>
 ## Validate before mutation

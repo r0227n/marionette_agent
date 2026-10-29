@@ -34,19 +34,17 @@ CliCommand recordCommand() => CliCommand(
           'Usage: record start <path> --platform <platform> --device <id>',
         );
       }
-      final flutter = action.option('platform') == 'flutter';
-      if (flutter && action.wasParsed('device')) {
-        invalid('Flutter recording uses the connected session; omit --device');
-      }
       if (action.option('platform') == null ||
-          (!flutter && action.option('device') == null)) {
+          action.option('device') == null) {
         invalid('record start requires --platform and --device');
       }
       final params = <String, Object?>{
         'action': action.name,
         if (action.wasParsed('fps')) 'fps': int.tryParse(action.option('fps')!),
         'platform': action.option('platform'),
-        'device': flutter ? 'session' : action.option('device'),
+        'device': action.option('platform') == 'android'
+            ? File(action.option('device')!).absolute.path
+            : action.option('device'),
         'path': File(action.rest.single).absolute.path,
       };
       validateRecordStart(params);

@@ -1,6 +1,6 @@
 # marionette_agent_macos
 
-Hidden Flutter application runner configuration and whole-display native recording.
+Hidden Flutter application runner configuration and whole-display recording through ScreenCaptureKit SCStream/SCRecordingOutput (macOS 15+, full Xcode, Screen Recording permission).
 
 Internal, unpublished member of the root Pub workspace. Resolve dependencies once
 from the repository root. Target implementations depend on the platform interface;
