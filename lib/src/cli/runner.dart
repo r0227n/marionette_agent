@@ -144,7 +144,8 @@ Future<int> runCli(
           for (final raw in normalized['steps'] as List)
             {
               ...asJson(raw),
-              if (asJson(raw)['action'] == 'screenshot')
+              if (asJson(raw)['action'] == 'screenshot' &&
+                  asJson(raw)['source'] != 'macos')
                 'device': resolveScreenshotDevice(asJson(raw)),
             },
         ];

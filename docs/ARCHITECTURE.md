@@ -411,3 +411,13 @@ The existing ScreenCapturer contract accepts an optional acquisition source. The
 UiService publishes both sources after successful reads, invalidates both on failure, preserves source/coordinateSpace, and retains only delivered refs after output limiting. SnapshotService owns publication generations. Normal tap/swipe route by ref or explicit source without retry/fallback; unsupported native actions fail before input. Execution keeps the single-send guard and deadline/outcome rules. Known native modal checks run before Flutter input; unknown occlusion remains a limitation. Bind is explicitly declared, not verified VM/device identity, so native input retains conservative daemon-wide Flutter ref invalidation.
 
 The public native command/MCP tools are removed. `session bind`, snapshot, tap and swipe serve connected and device-only sessions. CLI/MCP/parser, policy, mixed-ref, queue, timeout and real-device tests own the acceptance contract. See [SPEC](SPEC.md#native-ui) for source selection, unsupported operations and runner setup.
+
+
+<a id="native-screenshot-boundary"></a>
+## Native screenshot and shared artifact boundary
+
+`commands/screenshot_request.dart` validates source/display. All OS capture routes use `CommandContext.captureDeviceScreen` and `platform/screen_capture.dart`. `marionette_agent_macos` owns embedded XCTest assets, locally signed builds, per-request test plans, PNG attachment extraction, serialization and cleanup. It performs no UI actions or observed-app launch. Request plans remain beside build products to preserve XCTest relative paths. The shared ScreenCapturer disposal stops only the runner matching its owned executable path, then removes build storage. The host_support permission preflight remains shared with Web recording.
+
+The macOS example exposes debug-only AppKit file-panel, alert, menu and cross-display move controls via a fixed MethodChannel. Debug-only User Selected File Read entitlement permits the standard panel; the fixture prepares dummy data in its temporary folder and requests it as the initial directory. macOS may restore another panel location, so verification must explicitly select the dummy folder and inspect the image before sharing. The alert is explicitly a fixture, not a system permission dialog. The controls do not change OS permission settings. See [native screenshot contract](SPEC.md#native-macos-screenshots) for selection, pixel geometry and permission limitations.
+
+The debug move fixture makes its verification window floating across Spaces and explicitly activates the app. Its native alert uses a floating modal window for verification. The capture implementation itself never moves windows or changes Spaces.

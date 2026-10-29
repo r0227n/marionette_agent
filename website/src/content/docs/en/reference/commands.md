@@ -130,3 +130,9 @@ Batch stops at the first failure and cannot contain connection-lifetime operatio
 For provider behavior, matching rules, and action limits, see the [advanced operation details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-parity.md).
 
 Android screenshots: use `--source android-emulator --device <private-pairing-file>`. The iOS default and other commands are unchanged.
+
+## macOS screenshots
+
+For macOS, specify display instead of device. MCP uses `source: "macos"` and integer `display` too.
+
+macOS still images use XCTest/XCUIScreen and require full Xcode. Allow `--timeout 120000` for the initial runner build. Non-main capture with more than two active displays is unsupported.

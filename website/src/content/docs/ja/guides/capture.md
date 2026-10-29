@@ -75,3 +75,14 @@ Androidは端末serial、macOSはディスプレイ番号を指定します。We
 `record restart`は現在の録画を確定してから別の保存先で再開します。新規開始が失敗しても、以前の録画へ戻るわけではありません。`stop`は動画の確定まで待つため、長い録画には十分なtimeoutを指定してください。
 
 [画像・録画の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#capture)に命名・排他保存・期限・確定・復旧の条件をまとめています。
+
+## macOSのスクリーンショット
+
+Flutter接続なしで画面番号を明示して撮影できます。他アプリを含む画面全体が保存されるため、共有前に画像を確認してください。呼出元terminal/host appの画面収録権限が必要です。表示中のpanel・menuも含みますが、保護されたUI・別Space・他画面は保証しません。ウィンドウの移動を追跡せず、権限不足・画面変更・timeout時はエラーになります。
+
+```sh
+marionette-agent device list --platform macos
+marionette-agent screenshot --source macos --display 1 artifacts/native.png
+```
+
+macOSの静止画はXCTest/XCUIScreenで取得します。full Xcodeが必要で、初回ビルドを含め `--timeout 120000` を指定してください。3画面以上ではmain以外の撮影は未対応です。

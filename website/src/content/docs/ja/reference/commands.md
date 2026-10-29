@@ -130,3 +130,9 @@ batchは最初の失敗で止まり、接続寿命の変更、録画、ファイ
 providerの観測範囲・照合規則・操作の制約は[追加操作の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-parity.ja.md)を参照してください。
 
 Androidの撮影は`--source android-emulator --device <私有pairingファイル>`を指定します。iOSの既定と他のコマンドは維持します。
+
+## macOSのスクリーンショット
+
+macOSではdeviceの代わりにdisplayを指定します。MCPでも `source: "macos"` と整数 `display` を使います。
+
+macOSの静止画はXCTest/XCUIScreenで取得します。full Xcodeが必要で、初回ビルドを含め `--timeout 120000` を指定してください。3画面以上ではmain以外の撮影は未対応です。

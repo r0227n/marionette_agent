@@ -51,7 +51,9 @@ Future<Json> handleScreenshot(CommandContext context, Json params) async {
   validateScreenshotRequest(params);
   return context.captureDeviceScreen(
     params['source'] as String? ?? 'ios-simulator',
-    params['device'] as String,
+    params['source'] == 'macos'
+        ? '${params['display']}'
+        : params['device'] as String,
   );
 }
 

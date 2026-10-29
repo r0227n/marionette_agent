@@ -75,3 +75,14 @@ Android uses a device serial; macOS uses a display number. Web requires a displa
 `record restart` finalizes the current recording before starting a new destination. A failed new recording does not restore the previous one. `stop` waits for video finalization, so allow a sufficient timeout for longer recordings.
 
 See [capture and recording details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#capture) for naming, exclusive writes, deadlines, finalization, and recovery.
+
+## macOS screenshots
+
+Select a display explicitly without a Flutter connection. The image includes the whole display and other apps; inspect it before sharing. The invoking terminal/host app needs Screen Recording permission. Visible panels and menus are included; protected UI, other Spaces and displays are not guaranteed. Capture does not follow moving windows. Missing permission, topology changes and timeout return errors.
+
+```sh
+marionette-agent device list --platform macos
+marionette-agent screenshot --source macos --display 1 artifacts/native.png
+```
+
+macOS still images use XCTest/XCUIScreen and require full Xcode. Allow `--timeout 120000` for the initial runner build. Non-main capture with more than two active displays is unsupported.

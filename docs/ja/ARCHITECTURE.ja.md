@@ -412,3 +412,13 @@ closeは既存RecordingManagerによる確定後にRunningApplication.stopを呼
 UiServiceは必要な取得が成功してから両取得元を公開し、失敗時は両方を失効する。source/coordinateSpaceを保持し、出力上限後に公開したrefだけ残す。SnapshotServiceが公開generationを所有する。通常tap/swipeはrefまたは明示sourceで振り分け、再送/fallbackしない。未対応native操作は送信前に拒否する。Executionのsingle-send guard・期限・outcomeを共用する。Flutter入力前に既知のnative modalを確認するが、未知の遮蔽は制限として残す。bindは宣言された対応でVM/device同一性の証明ではないため、native入力時のdaemon全体のFlutter ref失効を維持する。
 
 公開nativeコマンド/MCP toolsは廃止する。session bind、snapshot、tap、swipeがFlutter接続済み・端末のみのsessionを扱う。CLI/MCP/parser、policy、混在ref、queue、timeout、実環境テストで検証する。取得元指定・未対応操作・runner準備は[SPEC](SPEC.ja.md#native-ui)を参照。
+
+
+<a id="native-screenshot-boundary"></a>
+## ネイティブ撮影と共通artifact境界
+
+`commands/screenshot_request.dart`でsource/displayを検証し、全OSの撮影を`CommandContext.captureDeviceScreen`と`platform/screen_capture.dart`へ集約します。`marionette_agent_macos`が独立XCTest runnerの同梱assets・ローカル署名build・要求別test plan・PNG添付回収・直列化・終了処理を所有します。UI操作や対象アプリ起動は行いません。要求別test planはbuild productsと同じ場所に置き、XCTestの相対pathを維持します。shared ScreenCapturerのdisposeで自分のrunner実行pathだけを照合して終了し、build領域を削除します。共有のhost_support権限preflightはWeb録画にも使います。
+
+macOS exampleにdebug専用のAppKit file panel・alert・menu・別display移動操作を固定MethodChannelで公開します。Debug専用のUser Selected File Read entitlementで標準panelを許可し、アプリ一時領域にダミーデータを用意して初期directoryに指定します。macOSが別のpanel表示位置を復元する場合があるため、検証時はダミーフォルダを明示的に選び、共有前に画像を確認します。alertはfixtureでありOS権限dialogではありません。OS権限設定は変更しません。対象選択・pixel geometry・権限の制約は[native撮影契約](SPEC.ja.md#native-macos-screenshots)を参照してください。
+
+debugのmove fixtureは検証windowを全Spaceでfloating表示し、アプリを明示的にactivateします。native alertも検証用のfloating modal windowで表示します。撮影処理自身はwindowやSpaceを操作しません。

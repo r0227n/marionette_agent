@@ -14,7 +14,10 @@ CliCommand diffCommand() => CliCommand(
       'screenshot',
       ArgParser()
         ..addOption('baseline', mandatory: true)
-        ..addOption('source', allowed: screenshotSources)
+        ..addOption(
+          'source',
+          allowed: screenshotSources.where((source) => source != 'macos'),
+        )
         ..addOption('device')
         ..addOption('output')
         ..addOption('threshold', defaultsTo: '0'),

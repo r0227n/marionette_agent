@@ -205,7 +205,7 @@ class WorkflowPlan {
             );
       final params = <String, Object?>{...target};
       if (action == 'screenshot') {
-        for (final key in ['source', 'device', 'path']) {
+        for (final key in ['source', 'device', 'path', 'display']) {
           if (step.containsKey(key)) params[key] = step[key];
         }
         validateScreenshotRequest(params);

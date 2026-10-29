@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:marionette_agent_flutter/flutter.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
@@ -66,7 +67,23 @@ class _MarionetteAgentExampleScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Marionette Agent Example')),
+      appBar: AppBar(
+        title: const Text('Marionette Agent Example'),
+        actions: [
+          if (kDebugMode &&
+              !kIsWeb &&
+              defaultTargetPlatform == TargetPlatform.macOS)
+            for (final action in ['panel', 'alert', 'menu', 'move'])
+              TextButton(
+                key: ValueKey('native_$action'),
+                onPressed: () {
+                  const MethodChannel('marionette_agent/native_capture_fixture')
+                      .invokeMethod<void>(action);
+                },
+                child: Text(action),
+              ),
+        ],
+      ),
       bottomNavigationBar: BottomAppBar(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,

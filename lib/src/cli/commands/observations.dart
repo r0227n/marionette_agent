@@ -37,7 +37,8 @@ CliCommand snapshotCommand() {
 CliCommand screenshotCommand() => CliCommand(
   ArgParser()
     ..addOption('source', allowed: screenshotSources)
-    ..addOption('device'),
+    ..addOption('device')
+    ..addOption('display'),
   (args) {
     if (args.rest.length > 1) {
       invalid('Usage: screenshot --device <UDID> [path]');
@@ -48,13 +49,21 @@ CliCommand screenshotCommand() => CliCommand(
         'Screenshot ref/crop targets have been removed; specify an output path',
       );
     }
+    if (args.wasParsed('display') &&
+        !RegExp(r'^[1-9][0-9]{0,2}$').hasMatch(args.option('display') ?? '')) {
+      invalid('Display must be an integer from 1 to 999');
+    }
     final params = <String, Object?>{
-      'device': args.option('device'),
+      if (args.wasParsed('device')) 'device': args.option('device'),
+      if (args.wasParsed('display'))
+        'display': int.tryParse(args.option('display') ?? ''),
       if (args.wasParsed('source')) 'source': args.option('source'),
       if (args.rest.isNotEmpty) 'path': args.rest.single,
     };
     validateScreenshotRequest(params);
-    params['device'] = resolveScreenshotDevice(params);
+    if (params.containsKey('device')) {
+      params['device'] = resolveScreenshotDevice(params);
+    }
     return params;
   },
 );

@@ -142,3 +142,11 @@ Workflow content, inputs, resolved params, and fill values are not copied into d
 - [workflow_model_test.dart](../test/workflow_model_test.dart), [workflow_cli_test.dart](../test/workflow_cli_test.dart), [workflow_execution_test.dart](../test/workflow_execution_test.dart): boundary verification.
 
 For Android screenshot steps, select `source: android-emulator` and set `device` to a private UI Automator pairing file. Relative pairing paths resolve against the invoking CLI's cwd before IPC. The agent must already be running; screenshot-only workflows still need no Flutter connection. Existing result, image limits and all-or-nothing saving apply.
+
+
+## macOS screenshots
+
+A macOS screenshot step requires `source: macos` and integer `display` (1–999), instead of device. Targets and annotations are rejected. Capture results and caller-side persistence follow the same iOS/Android workflow rules above.
+
+
+macOS still images use XCTest/XCUIScreen and require full Xcode. Allow `--timeout 120000` for the initial runner build. Non-main capture with more than two active displays is unsupported.

@@ -372,9 +372,11 @@ const _schema = r'''{
           "enum": [
             "ios-simulator",
             "ios-device",
-            "android-emulator"
+            "android-emulator",
+            "macos"
           ]
         },
+        "display": {"type":"integer","minimum":1,"maximum":999},
         "device": {
           "type": "string",
           "minLength": 1
@@ -386,8 +388,7 @@ const _schema = r'''{
       },
       "required": [
         "id",
-        "action",
-        "device"
+        "action"
       ],
       "additionalProperties": false
     }

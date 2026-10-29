@@ -9,3 +9,4 @@ export 'src/recording/process_recording.dart';
 export 'src/device_inventory.dart';
 export 'src/native/native_runner.dart';
 export 'src/termination_signals.dart';
+export 'src/screen_capture_permission.dart';

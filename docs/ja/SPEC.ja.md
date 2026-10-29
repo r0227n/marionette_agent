@@ -523,3 +523,21 @@ daemonは`MARIONETTE_AGENT_NATIVE_RUNNERS`を最大64 KiBのJSONファイルのp
 wire protocolはTCP接続ごとに有界のJSON 1行と応答1件を使う。要求にはversion=1・platform・device・token・元のUnix-millisecond deadline・action・必要な座標を含める。両runnerはidentity/tokenを認証し、OS呼出前に期限を確認する。応答にはversion/platform/device/okとsnapshotのelementsまたは汎用error codeを含め、clientは応答のidentityを検証する。要求は16 KiB、観測は10,000要素、応答は8 MiBまでとする。timeoutはclient socketを閉じるが、開始済みOS操作は完了し得るため結果はunknownのままとする。runnerは外部所有で、要求を直列化する。iOSの端末identityはSIMULATOR_UDID、Androidはinstrumentation起動時に転送先の明示serialを渡す。
 
 native操作経路にはidb・adb・xcrun・subprocess・XML dumpの実装を持たない。iOS platform packageにXCUITest bundle、Androidに独立したUI Automator instrumentation APK projectを置く。インストール・テストrunner起動・Androidのport転送は明示的な準備手順とする。既存のdevice/application/recording機能はそれぞれの実装を維持する。iOS実機・任意shell実行・一括権限付与・native文字入力・永続native IDは契約外。準備と観測ループは[ネイティブUIガイド](https://r0227n.github.io/marionette_agent/ja/guides/native-ui/)を参照。
+
+
+<a id="native-macos-screenshots"></a>
+## macOSネイティブスクリーンショット（Issue #58）
+
+`screenshot --source macos --display <1-999> [path]` はFlutter接続なしで有効な画面全体を選択する。sourceの既定値は `ios-simulator`。Flutter撮影・crop・注釈は廃止されたままとし、CLI・MCP・workflowは共通handlerを使う。失敗時のfallbackは行わない。
+
+macOSは同梱の独立したXCTest UI-test runnerをXcodeでビルドし、`XCUIScreen.screens[index - 1].screenshot()`を`XCTAttachment`として保存します。`xcresulttool export attachments`でPNGを回収します。旧screencapture静止画経路は削除しました。macOS 13以降・ログイン済みWindowServer・full Xcodeが必要です。runnerはローカルad-hoc署名を使い、開発者証明書は不要です。初回のビルド・起動も同じ絶対deadlineに含むため `--timeout 120000` を推奨します。ビルド結果はdaemon内で再利用し、要求を直列化し、終了時に所有runnerとbuild/stagingを回収します。
+
+`device list --platform macos`は現在のactive display順序、CoreGraphics ID・geometryを返します。index 1はmain displayで、番号は現在の順番であり永続的なhardware識別子ではありません。毎回明示的に選択します。撮影前後のID・順序・geometry・mode・rotationを比較し、変化したら`TARGET_NOT_FOUND`として画像を破棄します。別displayへの切替は行いません。XCTestとの間はatomicではないため撮影中にdisplay構成を変更しないでください。hardware mirrorは描画元のprimaryを公開します。標準panel・menu・権限UIは別window/processの場合があるためwindow単体の撮影は提供しません。 公開XCTest APIはmainが先頭の配列のみでdisplay IDを公開しません。3画面以上の構成ではmain以外をUNSUPPORTED_CAPABILITYとして拒否し、CoreGraphics IDを推測しません。main画面と2画面構成の両画面を対象とします。
+
+選択displayの見えている内容全体を取得し、**他アプリも含みます**。対象displayで現在表示中のSpace・全画面Spaceのみです。移動したアプリには追従せず、別displayへ移動したアプリは写りません。遮蔽物は写り、最小化・非表示window、別Space・displayのUIは写りません。保護UI・secure contentはOSにより除外される場合があります。dialogを閉じる、Spaceを切り替える、windowを前面へ出す、保護UIを回避する操作は行いません。アプリ終了後もdisplayは存在し、Flutter接続なしで撮影できます。対象displayの切断は対象消失です。
+
+成功時は`paths`に加え`capture:{source:"macos-xcuiscreen",method:"xcuiscreen",scope:"display",displayIndex,displayId,pixelWidth,pixelHeight,bounds:{x,y,width,height,unit:"macos_global_points"},scaleX,scaleY,includesOtherApplications:true}`を返します。pixel寸法はPNG実データから読み共通decoderで検証します。scaleは取得pixel寸法÷display boundsでRetinaも含みます。Flutter座標ではありません。text出力にも同じmetadataを含めます。nativeと注釈やref/selector cropの併用は撮影前に拒否します。`diff screenshot`は既存のiOS/Android device撮影契約を使います。
+
+[CGPreflightScreenCaptureAccess](https://developer.apple.com/documentation/coregraphics/cgpreflightscreencaptureaccess())を権限要求なしに呼びます。falseは`SCREEN_CAPTURE_PERMISSION_REQUIRED` / exit 1 / `not_sent`で、対象消失・変更（`TARGET_NOT_FOUND` / exit 4）、timeout（exit 5）、取得失敗（`IO_ERROR` / exit 1）と区別します。公開preflightはBooleanしか返さないため、**一度も要求していない状態と明示的拒否は区別できません**。TCC状態を推測せず両者を含む旨を返します。daemon実行元のterminal/host appに画面収録権限が必要です。TCC database読取り、権限要求API、OS設定変更は行いません。Web録画も同じread-only probeを再利用し、従来の`IO_ERROR`契約を維持します。
+
+native取得は私有一時領域を使い、子processのstdout/stderrを破棄します。timeout時は子processを停止・回収してからcleanupし、遅れた成功を公開しません。PNGを共通writerへ渡し、PNG/JPEG変換・排他的保存・その要求の失敗時rollbackを再利用します。元の絶対deadlineにnative取得・IPC・保存を含みます。40 MiB超はbase64転送前に拒否します。path/directoryの優先順位と命名規則は維持します。
