@@ -1,6 +1,6 @@
 # marionette_agent_ios
 
-iOS Simulator inventory, private device-set application launch/cleanup, XCUIScreen screenshots, and simctl screen recording on macOS.
+iOS Simulator inventory, private device-set application launch/cleanup, and XCUIScreen screenshots and timestamped recordings on macOS.
 
 Internal, unpublished member of the root Pub workspace. Resolve dependencies once
 from the repository root. Target implementations depend on the platform interface;

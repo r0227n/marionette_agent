@@ -103,7 +103,15 @@ Future<void> main() async {
     }
     await cli(['launch', p.join(root, 'example'), '--platform', 'tester']);
     final recording = p.join(private.path, 'rendered.mp4');
-    await cli(['record', 'start', recording, '--platform', 'flutter']);
+    await cli([
+      'record',
+      'start',
+      recording,
+      '--platform',
+      'flutter',
+      '--device',
+      'session',
+    ], expectedExit: 2);
     final before = await cli(['snapshot']);
     check(text(before, 'tap_result') == 'Tap count: 0', 'Fixture is not fresh');
     await cli(['tap', '--key', 'tap_button']);
@@ -132,18 +140,8 @@ Future<void> main() async {
       'Removed source accepted',
     );
     check(!File(screenshot).existsSync(), 'Removed source created an image');
-    final stopped = await cli(['record', 'stop']);
-    check(
-      stopped['data']['recordingState'] == 'stopped',
-      'Recording did not finalize',
-    );
-    check(File(recording).lengthSync() > 0, 'Recording empty');
-    check(
-      !externalCall.existsSync(),
-      'Recording invoked a host ffmpeg executable',
-    );
-    final videoEvidence = Platform.environment['MARIONETTE_RELEASE_RECORDING'];
-    if (videoEvidence != null) File(recording).copySync(videoEvidence);
+    check(!File(recording).existsSync(), 'Removed recording created a file');
+    check(!externalCall.existsSync(), 'Unexpected external encoder invocation');
     await cli(['close']);
     for (
       var i = 0;
@@ -157,7 +155,7 @@ Future<void> main() async {
       'Owned daemon did not stop',
     );
     stdout.writeln(
-      'Release smoke passed: ${steps.join(' -> ')}; tap=1, input=5 characters, removed screenshot rejected, video nonempty, daemon stopped.',
+      'Release smoke passed: ${steps.join(' -> ')}; tap=1, input=5 characters, removed screenshot rejected, removed recording rejected, daemon stopped.',
     );
   } finally {
     if (File(binary).existsSync() &&

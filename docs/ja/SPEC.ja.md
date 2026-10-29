@@ -370,7 +370,7 @@ ref注釈と論理座標の対象cropは削除しました。OS画面撮影は�
 - `skills path`は探索対象ディレクトリを1行ずつ、`skills path <name>`は名前に対応するSkillディレクトリを返す。ディレクトリ名ではなくfrontmatterのnameで検索する。
 - `skills --help` / `-h`で専用help。`--json`はコマンドの前後で使用可能。共通契約の未知オプション・重複・余剰引数の検証を使用する。
 
-`skills/marionette-agent/SKILL.md`は`hidden: true`の導入用stub。`skill-data/core/`と`skill-data/simulator-verify/`が実行時ガイドで、それぞれ補助reference/templateも同梱する。直下サブディレクトリのSKILL.mdからname・description・hiddenを簡易パースする。descriptionのインデント継続行は空白で連結、hiddenはtrue/yesを認識する。name欠損・空文字、frontmatter不正、読取不能なエントリは無視。frontmatterの開始・終了は独立した`---`行とし、LFとCRLFを受理する。hiddenはlist/--allから除外するが明示名でget/pathできる。空一覧は成功、get対象なしや未知名は失敗。重複nameは両方を一覧に残し、明示名では探索順の先頭を使う。
+`skills/marionette-agent/SKILL.md`は`hidden: true`の導入用stub。`skill-data/core/`・`skill-data/dogfood/`・`skill-data/simulator-verify/`が実行時ガイドで、それぞれ補助reference/templateも同梱する。英語のdogfoodガイドはFlutterの探索的QAを扱い、問題の分類基準と再現可能なレポートのテンプレートを含む。直下サブディレクトリのSKILL.mdからname・description・hiddenを簡易パースする。descriptionのインデント継続行は空白で連結、hiddenはtrue/yesを認識する。name欠損・空文字、frontmatter不正、読取不能なエントリは無視。frontmatterの開始・終了は独立した`---`行とし、LFとCRLFを受理する。hiddenはlist/--allから除外するが明示名でget/pathできる。空一覧は成功、get対象なしや未知名は失敗。重複nameは両方を一覧に残し、明示名では探索順の先頭を使う。
 
 保存先の解決は、既存の`MARIONETTE_AGENT_SKILLS_DIR`（単独のSkill親ディレクトリ）を最優先する。不正・不存在のoverrideは通常探索へ戻す。通常は実行ファイルのsymlinkを解決し、親の親にskills/がある配布root、または実行ファイルから上方のskills/を持つrootのskills/とskill-data/を使う。Dart起動では実行package URIからpackage rootを解決するfallbackを持ち、呼出元cwdから別packageを選ばない。install/upgrade済みCLIは、実行ファイルのbinディレクトリに隣接するmarkerで版別bundleを識別する。そのbundle内のガイドが失われた場合に別版へfallbackしない。
 
@@ -419,66 +419,30 @@ IPC protocolVersionは7（管理対象アプリのlaunchとclose時終了を追�
 <a id="device-screen-recording"></a>
 <a id="端末画面録画"></a>
 
-## 端末画面録画
-
-`record --platform ios/android/macos/web`は端末／ディスプレイ全体を収録する。VM ServiceやMarionette bindingに依存せず、releaseアプリやアプリ外の画面も対象にできる。OSが保護するコンテンツは保証しない。音声は収録しない。
-
-| platform | device | 形式・前提 |
-| --- | --- | --- |
-| ios | 起動済みiOS SimulatorのUDID | `.mp4`、macOSとXcode。iOS実機・`booted`のような曖昧な別名は未対応 |
-| android | オンライン・認証済みadb serial | `.mp4`、Android platform-tools。Emulator／実機の標準screenrecord |
-| macos | 1から始まるディスプレイ番号 | `.mov`、macOS標準screencaptureと実行元アプリの画面収録許可 |
-| web | `display:<index>@ws://127.0.0.1:<port>/devtools/page/<id>` | `.mov`、macOSと可視Chrome、専用debug profileと画面収録許可。明示したディスプレイ全体 |
-| flutter | CLIでは省略、結果はsession名 | `.mp4`、接続済みMarionette debugアプリと同梱FFmpegKit。アプリ内の描画を保存。非表示の実行環境でも利用可能 |
-| linux / windows | 任意 | 未対応。内部APIがUNSUPPORTED_CAPABILITYをthrowし、CLIは終了コード6を返す |
-
-- platform/pathは必須。flutterではdeviceを指定できず、その他はdeviceも必須。未知platform、deviceの構文不正、拡張子不一致はINVALID_ARGUMENT。未対応platformはCLI側でも検証し、daemon起動前に拒否する。
-- 相対pathは呼出元CLIのcwdで絶対pathへ変換する。親directoryは既存かつ書込可能であること。既存file/directory/symlinkはIO_ERRORとして拒否し、自動上書きしない。
-- sessionごとに同時に1録画、同一daemon内の端末ごとに1録画。開始中・停止処理中も予約し、競合はSESSION_CONFLICT。同じsessionで停止後に新しい保存先へ録画を開始できる。
-- startはdaemonを必要に応じて起動し、録画所有者としてsessionを保持する。未接続の録画sessionの接続状態はdisconnected、URIはnull。録画開始が成功したsessionはcloseまで保持する。
-- startは開始確認後に返り、録画自体はsession queueを占有しない。iOSは最初のフレームの通知、Androidは出力headerの生成を確認する。macOS標準コマンドにはfirst-frame通知がないため起動後1秒の生存を確認し、実際の動画生成はstopで検証する。
-- `--timeout`は開始・停止要求の期限で、録画時間の上限ではない。開始のbackend待ちは最大30秒。開始が期限切れになった場合も、遅れて生成されたhandleの停止・予約回収を継続し、終了確認までは同じ端末を再利用しない。停止要求が期限切れになっても有界な停止・回収は続き、statusで結果を確認する。TIMEOUTはoutcome:unknownとなる。UI操作や録画を自動再送しない。
-- Androidは180秒で自動停止し、ホストへ動画を回収して状態を更新する。分割・自動再開・結合は行わない。回転中の正しい収録は保証しない。
-- stopは録画プロセス終了・動画確定・必要な回収・保存まで待つ。確定した停止・保存失敗はoutcome:failed、期限切れはoutcome:unknownとする。重複stopは同じ結果を返す。録画がなければ`{recordingState: idle}`。daemonがないstatus/stopでは新daemonを起動しない。
-- recordの開始・停止・照会はrefを失効させず、VM Service接続を変更しない。hot restartや接続断でも端末録画は継続できる。
-- closeは録画を確定してから接続を破棄し、data.recordingに最終状態を含める。既に録画が失敗していてもcloseは所有者を解放し、recordingState:failedと失敗情報を返す。
-- daemon正常終了（SIGINT/SIGTERMを含む）は録画確定を最大60秒待つ。期限超過時は所有する録画プロセスを強制停止し、追加の後処理待ちは最大5秒で打ち切る。未確定動画と予約先は復旧用に保持し、成功扱いにしない。遅れて返った開始handleも強制停止する。OS内で進行中のファイルI/Oの取り消しや、切断されたAndroid端末の強制停止は保証できない。SIGKILL、ホスト停止後の自動復元は対象外。
-
-成功dataはrecordingState（idle/starting/recording/stopping/stopped/failed）、platform、device、path、startedAt、elapsedMs、bytesを持つ。idleはrecordingStateのみ。startedAtは開始確認時のUTC日時、elapsedMsはそこから確定までの壁時計経過時間であり動画のメディアdurationではない。bytesは確定時の動画サイズ。失敗時のstatusにはfailureとrecoveryPathを含める。stopは失敗を非0終了で返す。
-
-保存は内部パッケージがdaemon内で担当し、動画はIPCで転送しない。出力先を排他的に予約して同じ親directoryのprivate stagingへ録画し、確定後に予約先へ書き込む。開始失敗時はこの要求の予約を回収し、確定失敗時はstagingを復旧用に保持する。予約後に別プロセスが意図的に保存先を差し替える競合までは保証しない。
-
-検証状況: iOS Simulator／Android Emulator／macOSメインディスプレイを製品CLIで確認済み。macOSではstart・status・stop・重複stop・既存file拒否・closeによる確定と、生成MOVの全フレーム復号・画面変化を確認した。
-
 <a id="headless-flutter-app-recording-issue-20"></a>
 <a id="flutterアプリのヘッドレス録画issue-20"></a>
-
-### Flutterアプリのヘッドレス録画（Issue #20）
-
-`record start <new.mp4> --platform flutter [--fps 1..60]`は、選択sessionのVM Serviceへ先にconnectして使う。未接続はNOT_CONNECTED、対応していないbackend・複数viewはUNSUPPORTED_CAPABILITY。CLIに`--device`を渡すとINVALID_ARGUMENT。結果のplatformはflutter、deviceはsession名。同一sessionの録画を排他にし、同じアプリを別sessionで明示的に録画することは妨げない。restart、status、stop、close、保存保護、要求期限は共通契約を使う。
-
-録画専用の読み取り接続から実アプリのPNGを連続取得する。最初のPNGを確認してからstartを返す。既定fpsは10で、1〜60は各取得完了後の待機間隔を指定する。取得・保存にかかる時間は別に加わるため、指定fpsの取得は保証しない。実際の取得時刻でVFR（可変フレームレート）の無音H.264 MP4へ確定する。高速アニメーションを取りこぼす場合がある。画像はprivate stagingへ逐次保存し、停止時の同梱FFmpegKit変換は最大30秒。録画時間に応じた一時ディスク容量が必要。同梱nativeライブラリの欠落はUNSUPPORTED_CAPABILITY、不正PNGや変換失敗はIO_ERROR、取得失敗は失敗状態とし、白画像へ置換して成功にしない。画像サイズ変更はUNSUPPORTED_CAPABILITYで停止する。
-
-対象はFlutterが描画した単一viewで、OSのキーボード・ダイアログ・ブラウザーUIやplatform viewの収録を保証しない。画面収録許可は不要だが、アプリ側のMarionette debug bindingが必要。録画停止は操作用接続・ref・押下中キーに作用しない。録画用接続が失われると失敗して再接続・再送しない。操作用接続だけの切断は録画用接続を閉じない。hot restart中の継続は保証しない。
-
-ヘッドレスは各プラットフォームの実行環境を画面表示せず起動する意味とする。iOSは専用device setでSimulatorをboot・install・launchし、Simulator.appから分離して表示ウィンドウを開かない。AndroidはEmulatorの`-no-window`、WebはFlutterの`--web-run-headless`を使う。macOSは非表示NSWindowに実FlutterEngineを保持し、debug時のみ明示指定した`enableHeadlessRendering()`で非表示時のフレーム生成を有効にする。macOSではログイン済みGUIセッションを前提とし、WindowServerのないホストは検証対象外。手動起動へのconnectではアプリ・端末を所有しない。launchではutilを通して起動し、closeで所有環境を終了する。手順は[ヘッドレスガイド](headless.ja.md)を参照する。
-
 <a id="web-recording-scope-and-connection"></a>
 <a id="web録画の範囲と接続"></a>
+## プラットフォームAPIによる録画
 
-### Web録画の範囲と接続
+録画はMarionetteやVM Service接続を使いません。`--platform flutter`と録画専用接続を削除しました。取得失敗時にFlutterへフォールバックしません。ホストは同梱native動画ライブラリを利用できるmacOSです。
 
-`--platform web`はmacOS上の可視Google Chromeを対象とする。Flutter Webの非表示録画には上記の`--platform flutter`を使う。deviceは1〜999のdisplay番号と、Chromeの`/json/list`から選んだpageのWebSocket endpointを`display:1@ws://127.0.0.1:9222/devtools/page/<ID>`形式で結ぶ。ポートは1〜65535、IDは大文字英数字。localhost、remote host、認証情報、query、fragment、browser/worker endpoint、先頭ゼロは受理しない。Chromeに専用`--user-data-dir`とloopbackの`--remote-debugging-port`を指定して利用者が起動する。Chrome以外・headless・macOS以外は未対応で、protocolの機能不足はUNSUPPORTED_CAPABILITY。debugging無効・接続拒否はCONNECTION_LOST、protocol拒否はIO_ERROR。サーバーの生メッセージは出力しない。
+| platform | device | 取得方法と出力 |
+| --- | --- | --- |
+| ios | 起動済みSimulatorのUDID | 同梱の常駐XCTest runnerが`XCUIScreen.main.screenshot()`を呼ぶ。H.264 MP4 |
+| android | 非公開のUI Automatorペアリングファイル | 既存のcapture instrumentationが`UiDevice.takeScreenshot`を呼ぶ。Emulatorのdisplay 0。H.264 MP4 |
+| macos | 1始まりのactive display番号 | ScreenCaptureKitの`SCStream`と`SCRecordingOutput`。macOS 15以上・Xcode・画面収録許可。H.264 MOV |
+| web | `ws://127.0.0.1:<port>/devtools/page/<ID>` | Chromium CDPの`Page.captureScreenshot`。headlessを含むpage viewport。H.264 MP4 |
 
-利用者が選んだディスプレイ全体を標準screencaptureでMOVへ録画する。Chromeのアドレスバー・タブ・設定画面、同じdisplayのOSダイアログや他アプリを含む。タブだけの映像、Flutter描画の録画、音声ではない。Chromeを指定displayへ配置するのは利用者の責任であり、CLIはウインドウ位置を変更・追従しない。別displayへ移動しても録画先は変わらない。隠れた／最小化したウインドウや別displayのdialogは写らず、覆っている画面が写る。保護コンテンツの録画は保証しない。
+platform・device・新規出力pathを必須とします。相対pathとAndroidのペアリングpathは呼出元cwd基準です。既存file・directory・symlinkを拒否します。録画はsessionを所有し、同一daemonの明示対象を終了確認まで予約します。Web pageはmacOS displayを予約しません。Android instrumentationはスクリーンショットと同じ手順で別途起動し、録画停止では終了させません。iOSはrunnerをbuild・所有しますが、観測対象アプリを起動しません。端末一覧とrunnerの後処理にsimctlを使う場合がありますが、画像・動画取得には使いません。adb screenrecordとscreencaptureによる録画も削除しています。
 
-Chromeのpage identityをCDPで確認し、Inspector終了通知とWebSocket切断を監視する。captureはmacOS backendの開始確認・停止・権限と同じ契約。macOSの実行元アプリに画面収録許可が必要で、拒否や無効displayはIO_ERRORと設定確認hintを返す。許可を自動変更したり、権限dialogを迂回したりしない。Webの通常操作は利用者または既存ブラウザー操作手段で行い、Web向けtap/fillを追加しない。VM Serviceに依存せず、record中の通常CLI操作も妨げない。
+iOS/Android/WebはプラットフォームAPIからPNGを連続取得し、単調時計による実取得時刻でVFR動画へ変換します。native動画streamのfpsを保証する方式ではありません。`--fps 1..60`は取得後の待機間隔（既定10）で、取得・転送時間が加わり、高速アニメーションを取りこぼす場合があります。録画時間に応じた一時ディスク容量が必要です。寸法変更は失敗にします。macOSは最小フレーム間隔を指定（既定30fps）します。すべて無音で、保護コンテンツは保証しません。Webはbrowser chromeとOS dialogを含まず、iOS/Androidは端末画面を含みます。macOSは他アプリも含む選択displayを記録し、windowを追従しません。
 
-対象タブの終了・クラッシュ・debug接続断はCONNECTION_LOSTとして録画を終了し、statusをfailedへ更新する。stopは非0、closeはfailureを含む最終状態を返す。部分動画はrecoveryPathに保持し、別タブへ切り替えて成功扱いにはしない。明示的なstop/closeは通常確定する。開始・停止中の競合と期限超過は共通契約に従う。同一daemonの同一displayはWebの別タブとmacos録画を含めて排他。別daemonや外部レコーダーとの排他は保証しない。
+開始は最初の有効PNGまたはScreenCaptureKitの録画開始callbackを確認します。要求期限はrunnerのbuild/startを含み、backendの開始待ちは最大120秒です。iOS初回は`--timeout 120000`を指定してください。stop/closeは確定・保存を待ち、重複stopは同じ結果を返します。restartは旧動画を確定してから新規保存先へ開始します。自動再開・取得元fallback・UI再送は行いません。取得エラーとChromium切断は録画失敗です。変換期限は30秒です。要求timeout後も有界cleanupを継続します。
 
-API比較・選定理由と参照元は[Web録画方式](../web-recording.md)を参照。
+状態はidle/starting/recording/stopping/stopped/failed。成功dataはplatform・device・path・startedAt・elapsedMs・bytesを含み、elapsedMsは再生時間ではなく壁時計時間です。失敗statusはfailureとrecoveryPathを含みます。排他的に予約した出力先と同じ親のprivate stagingへ書き込み、確定失敗では復旧データを保持します。shutdownは最大60秒待ち、強制cleanupを追加5秒で制限します。SIGKILL/host停止後の自動復元は対象外。操作ref・VM接続世代を変更しません。
 
-Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。
+Chromiumは専用debug profileとloopback remote debuggingを使い、`/json/list`の正確なpage endpointを指定します。portは1〜65535、IDは大文字英数字です。remote host・認証情報・query・browser endpoint・旧`display:N@`形式・MOV出力を拒否します。機能不足はUNSUPPORTED_CAPABILITY、切断はCONNECTION_LOST、拒否・不正画像はIO_ERROR。サーバーの生メッセージを公開しません。WebにmacOSの画面収録許可は不要です。Android実機・iOS実機は今回の対象外です。
 
 <a id="hybrid-execution-environments-issue-20-extension"></a>
 <a id="ハイブリッド実行環境issue-20追加仕様"></a>
@@ -495,7 +459,7 @@ launchはdaemon自動起動対象で、session queueとaction policyを共有す
 
 closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
 
-testerの対応SDKはFlutter 3.47.8、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作と録画は既存session/record --platform flutterを共用する。手順と制約は[日本語ガイド](headless.ja.md)を参照。
+testerの対応SDKはFlutter 3.47.8、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作は既存sessionを共用する。録画には明示したnative対象が必要で、tester描画録画は削除した。手順と制約は[日本語ガイド](headless.ja.md)を参照。
 
 <a id="android-emulator-screenshots"></a>
 ## Android Emulatorのスクリーンショット

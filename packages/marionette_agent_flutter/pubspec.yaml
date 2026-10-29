@@ -13,8 +13,6 @@ dependencies:
   flutter:
     sdk: flutter
   marionette_flutter: 0.6.0
-  ffmpeg_kit_extended_flutter: 1.0.0
-  ffi: 2.2.0
 
 dev_dependencies:
   lints: ^6.0.0

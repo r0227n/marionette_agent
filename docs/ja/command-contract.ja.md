@@ -20,7 +20,7 @@ CliParser / CliCommand
 
 内部handlerは必要なbackend/protocol/commands/snapshot定義を直接importし、CLI/argsや公開barrelには依存しません。外部の組立用は`marionette_agent.dart`から公開します。上流`marionette_mcp/src/`のimportは`backend/marionette_backend.dart`へ限定し、handlerへ生response mapやconnector例外を渡しません。登録の実行可能な例は[probe_cli.dart](../../integration_test/support/probe_cli.dart)です。
 
-recordは共通session queueからRecordServiceとutilへ委譲します。OS画面録画はVM Service接続なしでも動きますが、Flutter描画録画には接続が必要です。OS処理・終了シグナルはutilへ集約し、操作用refや接続世代を変更しません。
+recordは共通session queueからRecordServiceとutilへ委譲します。全録画はVM Serviceに依存せずプラットフォームAPIを使います。OS処理・終了シグナルはutilへ集約し、操作用refや接続世代を変更しません。
 
 <a id="validation"></a>
 ## mutation前の入力検証

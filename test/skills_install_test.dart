@@ -57,7 +57,25 @@ void main() {
     );
     expect((original['data'] as List).map((s) => s['name']), [
       'core',
+      'dogfood',
       'simulator-verify',
+    ]);
+    final dogfood = (original['data'] as List).singleWhere(
+      (s) => s['name'] == 'dogfood',
+    );
+    expect(
+      dogfood['content'],
+      File('skill-data/dogfood/SKILL.md').readAsStringSync(),
+    );
+    expect(dogfood['files'], [
+      for (final path in [
+        'references/issue-taxonomy.md',
+        'templates/dogfood-report-template.md',
+      ])
+        {
+          'path': path,
+          'content': File('skill-data/dogfood/$path').readAsStringSync(),
+        },
     ]);
     final oldPath =
         body(

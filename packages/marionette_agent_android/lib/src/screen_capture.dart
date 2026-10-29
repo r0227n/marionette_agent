@@ -11,6 +11,7 @@ import 'package:marionette_agent_platform_interface/marionette_agent_platform_in
 /// No host device command, shell, forwarding, or image-capture fallback.
 class AndroidScreenCapturer implements ScreenCapturer {
   const AndroidScreenCapturer();
+  static final _captures = <String, Future<void>>{};
 
   @override
   Future<DeviceScreenshot> capture(
@@ -18,7 +19,16 @@ class AndroidScreenCapturer implements ScreenCapturer {
     DateTime deadline, {
     String? source,
   }) async {
-    final result = await _request(device, deadline, 'capture');
+    final previous = _captures[device] ?? Future<void>.value();
+    final request = previous.then((_) => _request(device, deadline, 'capture'));
+    final settled = request.then<void>((_) {}, onError: (Object _) {});
+    _captures[device] = settled;
+    unawaited(
+      settled.whenComplete(() {
+        if (identical(_captures[device], settled)) _captures.remove(device);
+      }),
+    );
+    final result = await request;
     return DeviceScreenshot(
       png: result.png,
       source: 'android-emulator',

@@ -21,6 +21,8 @@ import sys
 
 name = Path(sys.argv[0]).name
 args = sys.argv[1:]
+if name == 'flutter' and any(key in os.environ for key in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_PREFIX')):
+    sys.exit(98)
 with open(os.environ['QUALITY_LOG'], 'a') as log:
     log.write(json.dumps([name, args, str(Path.cwd())]) + '\n')
 if os.environ.get('QUALITY_FAIL') == name + ' ' + ' '.join(args):
@@ -71,7 +73,8 @@ class QualityHooks(unittest.TestCase):
                           'packages/marionette_agent_android',
                           'packages/marionette_agent_macos',
                           'packages/marionette_agent_web',
-                          'packages/marionette_agent_flutter/test'):
+                          'packages/marionette_agent_flutter/test',
+                          'packages/marionette_agent_video/test'):
             self.write(f'{directory}/fixture.dart', 'void main() {}\n')
         self.git('add', '.')
         self.git('commit', '-qm', 'fixture')
@@ -118,6 +121,11 @@ class QualityHooks(unittest.TestCase):
                 self.assertIn(['dart', ['run', 'tool/license_notices.dart', '--check']], calls)
                 self.assertIn(['dart', ['test', '--concurrency=1', '--timeout=2m']], calls)
                 self.assertIn(['dart', ['test', '--concurrency=1']], calls)
+                self.assertTrue(any(
+                    name == 'dart' and args == ['test', '--concurrency=1']
+                    and Path(cwd).name == 'marionette_agent_video'
+                    for name, args, cwd in map(json.loads, self.log.read_text().splitlines())
+                ))
                 self.assertIn(['flutter', ['test', 'flutter_test']], calls)
                 self.assertIn(['flutter', ['test']], calls)
                 self.assertEqual(calls[-1], ['dart', ['run', 'integration_test/release_smoke.dart']])
@@ -206,6 +214,7 @@ class QualityHooks(unittest.TestCase):
             'packages/marionette_agent_platform_interface',
             'packages/marionette_agent_ios',
             'packages/marionette_agent_flutter',
+            'packages/marionette_agent_video',
         ])
         provider = [Path(cwd).resolve().relative_to(self.root.resolve()).as_posix()
                     for name, args, cwd in rows

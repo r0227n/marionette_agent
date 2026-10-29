@@ -1,6 +1,6 @@
 ---
 title: Operate and record headless apps
-description: Choose tester, iOS, Android, macOS, or Web, launch without a window, record Flutter rendering, and clean up or recover.
+description: Choose tester, iOS, Android, macOS, or Web, launch without a window, and clean up or recover.
 ---
 
 Headless execution lets you observe and operate Flutter UI without displaying the app window. `launch` builds and starts a debug app in the selected environment, connects to its VM Service, and completes the first observation. Then use the same snapshot, tap, fill, and workflow commands, checking results through images or video.
@@ -38,11 +38,9 @@ marionette-agent --session fast tap --key tap_button
 marionette-agent --session fast get text --key tap_result
 marionette-agent --session fast fill --key text_input 'headless check'
 marionette-agent --session fast snapshot
-marionette-agent --session fast record start rendered.mp4 --platform flutter
-marionette-agent --session fast record stop
 ```
 
-Compare observations and the saved video: `tap_result` should increase and the input should change. A successful command response alone does not guarantee the intended visual effect. When using refs, take a fresh snapshot after each action.
+Compare observations: `tap_result` should increase and the input should change. A successful command response alone does not guarantee the intended visual effect. When using refs, take a fresh snapshot after each action.
 
 In the verified SDK, tester is debug-only with an 800×600 logical viewport and DPR 3. Scroll off-screen elements into view and choose swipe distances for that viewport. This example workflow opens Controls, scrolls up by 200px, then swipes left by 500px.
 
@@ -52,24 +50,6 @@ marionette-agent --session fast workflow run \
 ```
 
 Check that `page_result` in `finalSnapshot` is `Current page: 2`. These distances are specific to the example, not defaults for other apps. See the [workflow guide](/marionette_agent/en/guides/workflows/) for failure progress and reobservation.
-
-## Record Flutter rendering
-
-Use the session launched above. Choose a new output path for every recording.
-
-```sh
-mkdir -p artifacts
-marionette-agent --session fast record start artifacts/headless.mp4 --platform flutter --fps 10
-marionette-agent --session fast tap --key tap_button
-marionette-agent --session fast snapshot
-marionette-agent --session fast record status --json
-marionette-agent --session fast --timeout 60000 record stop --json
-marionette-agent --session fast --timeout 60000 close
-```
-
-The video is a silent H.264 MP4 of one Flutter view. Omit `--device`. OS keyboards/dialogs, browser UI, and platform views are not guaranteed to appear; macOS screen recording permission is unnecessary. For a full OS screen, choose a [device recording](/marionette_agent/en/guides/capture/) mode.
-
-Fps accepts 1–60 and defaults to 10. The recorder waits the requested interval after each PNG capture and uses actual timestamps for VFR output. A fixed frame rate or every fast-animation frame is not guaranteed. Stop waits for video conversion. On TIMEOUT, inspect `record status` for the final state; on failure, inspect `failure/recoveryPath`. Dimension changes, connection loss, and conversion failure are not replaced with a successful blank video.
 
 ## Check iOS and Android
 
@@ -96,8 +76,6 @@ marionette-agent --session android snapshot
 marionette-agent --session android --timeout 60000 close
 ```
 
-iOS uses a dedicated device set isolated from the default set. Android ports must be unused even numbers from 5554–5682. The existing AVD runs read-only with no-snapshot and no-window, without persisting changes to its saved state. The AVD itself is not created or deleted. Both environments support `--platform flutter` recording.
-
 ## Check macOS and Web
 
 ```sh
@@ -111,8 +89,6 @@ marionette-agent --session web --timeout 60000 close
 ```
 
 On macOS, the native side must hide NSWindow and start FlutterEngine, while Dart’s `enableHeadlessRendering()` keeps hidden rendering active, as implemented in the example. Launch passes `MARIONETTE_HEADLESS=1` and the Dart define but does not modify arbitrary apps. Do not assume support on a host without WindowServer.
-
-Web starts Chrome headlessly. Use `record --platform flutter` for hidden Flutter Web rendering as well. `record --platform web` is a separate mode that records a visible macOS display.
 
 ## Launch options and ownership
 
@@ -135,3 +111,5 @@ Apps you start yourself and attach through connect remain running after close. S
 | Visible iOS window                    | Use a dedicated device set and avoid opening it in Simulator.app                             |
 | Slow or stopped recording             | Check PNG capture time, disk space, host sleep, dimension changes, and connection loss       |
 | Screenshot/record persistence failure | Ensure the parent directory exists and the output path is new                                |
+
+Recording requires an explicit native device or Chromium page. Flutter/tester rendering recording has been removed; see the [capture guide](/marionette_agent/en/guides/capture/). Hidden macOS windows are not captured by display recording.

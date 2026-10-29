@@ -21,6 +21,9 @@ Future<void> main() async {
     throw ArgumentError('MARIONETTE_TEST_PLATFORM must be ios or android');
   }
   final device = required('MARIONETTE_TEST_DEVICE');
+  final recordingDevice = platform == 'android'
+      ? required('MARIONETTE_RECORD_DEVICE')
+      : device;
   final uri = File(required('MARIONETTE_TEST_VM_URI_FILE'))
       .readAsStringSync()
       .trim();
@@ -212,7 +215,7 @@ Future<void> main() async {
       '--platform',
       platform,
       '--device',
-      device,
+      recordingDevice,
     ]);
     check(recording['recordingState'] == 'recording', 'Recording starts');
     await cli(['tap', buttonRef]);

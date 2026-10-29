@@ -18,6 +18,20 @@ marionette-agent skills path core
 
 `--full` includes supporting references and templates. Let the agent read the Skill and follow the [observation loop](/marionette_agent/en/concepts/observation-loop/). The `skills` command has its own output format; handle it separately from the normal JSON envelope.
 
+### Explore app quality with dogfood
+
+Use the English `dogfood` guide for exploratory QA of a Marionette-enabled Flutter app on iOS Simulator:
+
+```sh
+marionette-agent skills get dogfood
+marionette-agent skills get dogfood --full
+marionette-agent skills path dogfood
+```
+
+Give the agent the target debug app, its private VM Service URI file, the matching Simulator UDID, and the journeys to explore. The guide uses the same connection and observation rules as `core`; load `simulator-verify` for launch and device setup when needed.
+
+`--full` includes an issue taxonomy and a report template. Findings record expected and actual behavior, reset and reproduction steps, screenshots, and recordings for behavioral issues. The report also tracks coverage gaps and unconfirmed observations. Keep authentication URIs and sensitive data out of shared evidence. The guide produces a local report; publishing issues or changing app code requires a separate request.
+
 ## Register with an MCP client
 
 This example is for a client that uses the `mcpServers` format. Adapt the configuration location and structure to your client. If a GUI client cannot find the executable, set `command` to its absolute installation path.

@@ -1,5 +1,8 @@
 # iOS録画方式の比較（2026-09-10）
 
+> Historical investigation. The current native API recording contract supersedes the selected command-based implementation; see [SPEC](SPEC.md#device-screen-recording).
+
+
 ## 結論
 
 端末画面の証跡を残すrecordには、現在の`xcrun simctl io <UDID> recordVideo --codec=h264`を維持する。日本語ソフトウェアキーボードと変換候補を含むことを実動画で確認した。marionette_mcpの録画は入力結果とFlutterのレイアウト変化を収録するが、キーボードの領域が空白となる。

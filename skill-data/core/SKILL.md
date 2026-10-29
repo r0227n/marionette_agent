@@ -77,6 +77,8 @@ selected runtime, so use it only when you own all of them.
 - For a reusable connect/observe/cleanup shell example, read
   [templates/observe-session.sh](templates/observe-session.sh).
 - For real Simulator verification, load `marionette-agent skills get simulator-verify`.
+- For exploratory QA and a reproducible findings report, load
+  `marionette-agent skills get dogfood --full`.
 
 Locate these files with `marionette-agent skills path core`, or include them in
 the command output with `marionette-agent skills get core --full`.

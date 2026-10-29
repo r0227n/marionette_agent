@@ -97,14 +97,14 @@ marionette-agent wait --key loading --state gone --poll-interval 100
 
 ## 画像・動画・差分
 
-| 構文                                                    | 用途                                                |
-| ------------------------------------------------------- | --------------------------------------------------- |
-| `screenshot --device UDID [PATH]`                       | 画像を新規保存                                      |
-| `record start PATH --platform PLATFORM [--device ID]`   | 動画開始。Flutter描画はdevice不要                   |
-| `record restart PATH --platform PLATFORM [--device ID]` | 現在の録画を確定後、新規開始                        |
-| `record status` / `record stop`                         | 状態取得／確定して停止                              |
-| `diff snapshot --baseline PATH`                         | 保存したsnapshotとの差分                            |
-| `diff screenshot --device UDID --baseline PATH`         | 保存画像との差分。`--threshold`・`--output`も使用可 |
+| 構文                                                  | 用途                                                |
+| ----------------------------------------------------- | --------------------------------------------------- |
+| `screenshot --device UDID [PATH]`                     | 画像を新規保存                                      |
+| `record start PATH --platform PLATFORM --device ID`   | 動画開始。native対象のdevice必須                    |
+| `record restart PATH --platform PLATFORM --device ID` | 現在の録画を確定後、新規開始                        |
+| `record status` / `record stop`                       | 状態取得／確定して停止                              |
+| `diff snapshot --baseline PATH`                       | 保存したsnapshotとの差分                            |
+| `diff screenshot --device UDID --baseline PATH`       | 保存画像との差分。`--threshold`・`--output`も使用可 |
 
 保存条件とプラットフォーム差は[画像と動画](/marionette_agent/ja/guides/capture/)を参照してください。
 

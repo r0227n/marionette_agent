@@ -18,7 +18,7 @@ chmod 700 "$MRA_HEADLESS_ROOT"
 flutter pub get
 ```
 
-Store authenticated URIs and logs in this private directory. Parallel runs need separate runtimes, sessions, devices, and output paths without concurrent builds in the same checkout. Flutter recording uses the CLI’s bundled FFmpegKit (PNG/VideoToolbox/concat/setts) and requires space for temporary PNGs and conversion time at stop. Keep the host awake.
+Store authenticated URIs and logs in this private directory. Parallel runs need separate runtimes, sessions, devices, and output paths without concurrent builds in the same checkout. Native frame recording uses the CLI’s bundled FFmpegKit (PNG/VideoToolbox/concat/setts) and requires space for temporary PNGs and conversion time at stop. Keep the host awake.
 
 <a id="ios"></a>
 
@@ -105,18 +105,12 @@ mkdir -m 700 "$MRA_HEADLESS_ROOT/runtime-ios"
 export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_HEADLESS_ROOT/runtime-ios"
 marionette-agent --session manual-ios connect "$(cat "$MRA_HEADLESS_ROOT/ios-uri")"
 marionette-agent --session manual-ios snapshot
-marionette-agent --session manual-ios record start "$MRA_HEADLESS_ROOT/ios.mp4" --platform flutter
 marionette-agent --session manual-ios tap --key tap_button
 marionette-agent --session manual-ios fill --key text_input 'headless demo'
 marionette-agent --session manual-ios snapshot
 marionette-agent --session manual-ios screenshot "$MRA_HEADLESS_ROOT/ios-after.png"
-marionette-agent --session manual-ios --timeout 60000 record stop
 marionette-agent --session manual-ios close
 ```
-
-Compare counter and input changes in the video and screenshot. Recording covers one Flutter view, excluding OS keyboards/dialogs. See [recording details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-reference.md#recording) for fps, VFR, deadlines, and recovery.
-
-For an automated smoke check, use [integration_test/record_smoke.dart](https://github.com/r0227n/marionette_agent/blob/develop/integration_test/record_smoke.dart) from the CLI package. Set `MARIONETTE_RECORD_PLATFORM=flutter`, `MARIONETTE_TEST_VM_URI_FILE`, and a new `MARIONETTE_RECORD_EVIDENCE` output path each time. Existing Android verification used `MARIONETTE_RECORD_FPS=2`. These instructions are not evidence that a new run has been performed.
 
 <a id="cleanup"></a>
 
@@ -130,3 +124,5 @@ xcrun simctl --set "$MRA_HEADLESS_ROOT/ios-devices" delete "$MRA_IOS_UDID"
 ```
 
 Stop Android with `adb -s emulator-5586 emu kill` using the port from this run. Leave shared Simulators and the adb server running. Remove unneeded URI/log files and retain verified video/results. See the [headless guide](/marionette_agent/en/guides/headless/) for the tester viewport and managed-launch limitations.
+
+Recording requires an explicit native device or Chromium page. Flutter/tester rendering recording has been removed; see the [capture guide](/marionette_agent/en/guides/capture/). Hidden macOS windows are not captured by display recording.

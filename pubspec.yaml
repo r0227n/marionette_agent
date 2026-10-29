@@ -8,6 +8,7 @@ environment:
   sdk: ^3.13.7
 
 workspace:
+  - packages/marionette_agent_video
   - packages/marionette_agent_platform_interface
   - packages/marionette_agent_ios
   - packages/marionette_agent_android
@@ -17,6 +18,8 @@ workspace:
   - example
 
 dependencies:
+  marionette_agent_video:
+    path: packages/marionette_agent_video
   marionette_agent_platform_interface:
     path: packages/marionette_agent_platform_interface
   marionette_agent_ios:

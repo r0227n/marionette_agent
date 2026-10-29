@@ -1,6 +1,6 @@
 # marionette_agent_android
 
-Android SDK discovery, adb device inventory, owned emulator launch, and screenrecord capture/retrieval.
+Android SDK discovery, adb device inventory, owned emulator launch, and paired UI Automator screenshot/frame recording APIs.
 
 Internal, unpublished member of the root Pub workspace. Resolve dependencies once
 from the repository root. Target implementations depend on the platform interface;

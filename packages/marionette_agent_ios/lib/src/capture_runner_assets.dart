@@ -395,7 +395,47 @@ const captureRunnerFiles = <String, String>{
 </Scheme>
 ''',
   'Capture.swift': r'''import XCTest
+import Darwin
+import Foundation
 final class Capture: XCTestCase {
+    @MainActor func testStream() throws {
+        let env = ProcessInfo.processInfo.environment
+        guard let token = env["MRA_RECORD_TOKEN"], token.count == 64,
+              let port = UInt16(env["MRA_RECORD_PORT"] ?? "") else { throw NSError(domain: "config", code: 1) }
+        let listener = socket(AF_INET, SOCK_STREAM, 0)
+        guard listener >= 0 else { throw NSError(domain: "socket", code: 1) }
+        defer { close(listener) }
+        var addr = sockaddr_in()
+        addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = port.bigEndian
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+        let result = withUnsafePointer(to: &addr) { p in p.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(listener, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) } }
+        guard result == 0, listen(listener, 2) == 0 else { throw NSError(domain: "bind", code: 1) }
+        while true {
+            let client = accept(listener, nil, nil)
+            if client < 0 { return }
+            defer { close(client) }
+            var timeout = timeval(tv_sec: 5, tv_usec: 0)
+            setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+            setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+            var noSignal: Int32 = 1
+            setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noSignal, socklen_t(MemoryLayout<Int32>.size))
+            var request = Data(), byte: UInt8 = 0
+            while request.count < 65 && recv(client, &byte, 1, 0) == 1 {
+                if byte == 10 { break }; request.append(byte)
+            }
+            guard String(data: request, encoding: .utf8) == token else { continue }
+            let pixels = XCUIScreen.main.screenshot().pngRepresentation
+            pixels.withUnsafeBytes { buffer in
+                var offset = 0
+                while offset < buffer.count {
+                    let sent = send(client, buffer.baseAddress!.advanced(by: offset), buffer.count - offset, 0)
+                    if sent <= 0 { break }; offset += sent
+                }
+            }
+        }
+    }
     @MainActor func testCapture() throws {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = "marionette-screen"

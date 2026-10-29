@@ -65,14 +65,11 @@ marionette-agent get text --key tap_result
 marionette-agent snapshot
 marionette-agent fill --key text_input 'hello'
 marionette-agent snapshot
-marionette-agent record start rendered.mp4 --platform flutter
-marionette-agent record stop
 marionette-agent close
 unset MARIONETTE_AGENT_SESSION
 ```
 
-Verify `Tap count: 1` and `5 characters`, then play the saved recording and
-confirm the input displays `hello`. Flutter tester covers shared Flutter UI;
+Verify `Tap count: 1` and `5 characters` in the observations. Flutter tester covers shared Flutter UI;
 native plugins and OS behavior need the corresponding target platform.
 
 For an externally started Marionette-enabled debug app, obtain its authenticated
@@ -115,7 +112,6 @@ For your own app, follow [app integration](https://r0227n.github.io/marionette_a
 | Connect and manage sessions | `connect`, `launch`, `session list`, `session show`, `close` |
 | Observe | `snapshot`, `get text/box/count/value`, `is visible/enabled/checked`, `logs` |
 | Interact | `tap`, `fill`, `type`, `swipe`, `scroll`, `find`, `wait` |
-| Capture and compare | `screenshot`, `record start/status/stop/restart`, `diff snapshot/screenshot` |
 | Automate | `workflow schema/validate/run`, `batch`, `confirm`, `deny` |
 | Diagnose and integrate | `doctor`, `device list`, `skills`, `mcp` |
 
@@ -160,12 +156,10 @@ The MCP server uses stdio. Choose additional tool profiles when needed; the [age
 ```sh
 marionette-agent --session headless --timeout 600000 launch ./example --platform tester
 marionette-agent --session headless snapshot
-marionette-agent --session headless record start headless.mp4 --platform flutter
-marionette-agent --session headless record stop
 marionette-agent --session headless --timeout 60000 close
 ```
 
-Flutter tester is useful for shared Flutter UI; verify native plugins and OS behavior on the relevant platform. A session created by `launch` owns its runner, so `close` also shuts down that app. See [headless execution](https://r0227n.github.io/marionette_agent/en/guides/headless/) for platform options and [capture](https://r0227n.github.io/marionette_agent/en/guides/capture/) for Flutter rendering versus device recordings. Flutter rendering recordings use the bundled FFmpegKit library and capture a single Flutter view without audio.
+Flutter tester is useful for shared Flutter UI; verify native plugins and OS behavior on the relevant platform. A session created by `launch` owns its runner, so `close` also shuts down that app. See [headless execution](https://r0227n.github.io/marionette_agent/en/guides/headless/) for platform options and [capture](https://r0227n.github.io/marionette_agent/en/guides/capture/) for native platform recording. Recording requires an explicit iOS Simulator, Android capture pairing, macOS display or Chromium page; the Flutter/tester recording route has been removed.
 
 ## Support, troubleshooting, and removal
 

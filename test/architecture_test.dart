@@ -89,6 +89,7 @@ void main() {
       'macos',
       'web',
       'flutter',
+      'video',
     ]) {
       final root = Directory('packages/marionette_agent_$name');
       final spec = loadYaml(
@@ -100,7 +101,11 @@ void main() {
         if ((dependency as String).startsWith('marionette_agent_')) {
           expect(
             dependency,
-            'marionette_agent_platform_interface',
+            isIn([
+              'marionette_agent_platform_interface',
+              if (['ios', 'android', 'web'].contains(name))
+                'marionette_agent_video',
+            ]),
             reason: name,
           );
         }
@@ -122,10 +127,12 @@ void main() {
             final package = imported.substring(8).split('/').first;
             expect(
               package,
-              anyOf(
+              isIn([
                 'marionette_agent_platform_interface',
                 'marionette_agent_$name',
-              ),
+                if (['ios', 'android', 'web'].contains(name))
+                  'marionette_agent_video',
+              ]),
               reason: file.path,
             );
           }
