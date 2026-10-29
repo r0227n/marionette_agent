@@ -13,7 +13,7 @@
 The project toolchain is pinned in `.mise.toml`: Flutter 3.47.8 and its bundled Dart 3.13.7. All workspace packages require Dart >=3.13.7 <4.0.0; doctor checks the same range.
 
 `cli/runner.dart` dispatches doctor locally before `RuntimeDirectory.prepare`.
-`cli/doctor.dart` owns read-only host/runtime checks, comparisons between fixed dependency declarations and lockfiles, Simulator enumeration, and aggregation of check statuses and exit codes. External processes and probes can be replaced with fixtures.
+`cli/doctor.dart` owns read-only host/runtime checks, comparisons between dependency constraints and locked versions, Simulator enumeration, and aggregation of check statuses and exit codes. External processes and probes can be replaced with fixtures.
 It connects to a daemon socket only after checking directory ownership and mode 0700, then reads only the handshake through the existing protocol decoder.
 It does not call DaemonClient, SessionManager, runtime preparation, or command dispatch.
 When a client that only reads the handshake disconnects, DaemonServer reuses the original idle deadline. Only a dispatched request starts a new idle interval, so doctor does not extend the daemon's lifetime.
@@ -120,9 +120,9 @@ The dedicated `SkillsOutput` boundary produces compatibility JSON without changi
 
 ## Marionette adapter
 
-The adapter reuses VmServiceConnector from `package:marionette_mcp/src/vm_service/vm_service_connector.dart`. Internal API dependencies remain confined to the adapter. The pub dependency `marionette_mcp: 0.6.0` is pinned exactly, and its lockfile is tracked. Contract tests verify response fixtures from the pinned connector and binding.
+The adapter reuses VmServiceConnector from `package:marionette_mcp/src/vm_service/vm_service_connector.dart`. Internal API dependencies remain confined to the adapter. The pub dependency is `marionette_mcp: ^0.7.0`, with the resolved version tracked in the shared lockfile. The Flutter provider and default example use `marionette_flutter: ^0.7.0`. External apps may use older bindings; they do not share the CLI workspace resolution. Contract tests cover their distinct response formats.
 
-The neighboring `../marionette_mcp` is reference source and may differ from the resolved pub version. The pinned connector reports success through structured status and provides both swipe modes. It lacks an identifier matcher, which yields UNSUPPORTED_CAPABILITY. Distribution does not require a path dependency on a neighboring repository.
+The neighboring `../marionette_mcp` is reference source and may differ from the resolved pub version. Bindings from 0.2 use structured status. Flutter overwrites 0.1's type discriminator, so the adapter requires its exact VM method envelope, no error/stackTrace fields, and the expected result shape. It never parses success from message text. The adapter discovers missing pre-0.4 version/extension-list endpoints without rejecting the connection, and uses read-only inspection for their health checks. It requests compaction:none so 0.7 supplies explicit visibility, restores only Text.data for 0.2/0.3, and enables identifier matching from 0.7. Missing operations still yield UNSUPPORTED_CAPABILITY; actions are never retried. Distribution does not require a path dependency on a neighboring repository.
 
 | Local operation | Upstream call |
 | --- | --- |

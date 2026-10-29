@@ -16,7 +16,7 @@ patchは既存契約に合わせる修正、minorは互換性のある機能追�
 
 ## CLI・daemon・アプリの版
 
-CLIと`marionette_agent_flutter`は**同じリリースcheckout**から使用してください。これがサポートする組合せで、任意の異なるリリースの混在は保証しません。CLIは`marionette_agent_platform_interface`と`marionette_agent_{ios,android,macos,web,flutter}`の実装パッケージでworkspaceを構成します。旧`marionette_agent_util`は削除しました。アプリの依存は`marionette_agent_flutter`、providerのimportは`package:marionette_agent_flutter/flutter.dart`へ移してください。現在の上流は`marionette_mcp: 0.6.0`と`marionette_flutter: 0.6.0`です。stock bindingは基本capabilityを、任意のFlutter providerは追加capabilityを提供します。不足extensionは推測による代替でなく`UNSUPPORTED_CAPABILITY`を返します。
+CLIと`marionette_agent_flutter`は**同じリリースcheckout**から使用してください。これがサポートする組合せで、任意の異なるリリースの混在は保証しません。CLIは`marionette_agent_platform_interface`と`marionette_agent_{ios,android,macos,web,flutter}`の実装パッケージでworkspaceを構成します。旧`marionette_agent_util`は削除しました。アプリの依存は`marionette_agent_flutter`、providerのimportは`package:marionette_agent_flutter/flutter.dart`へ移してください。現在の上流は`marionette_mcp: ^0.7.0`と`marionette_flutter: ^0.7.0`です。stock bindingは基本capabilityを、任意のFlutter providerは追加capabilityを提供します。不足extensionは推測による代替でなく`UNSUPPORTED_CAPABILITY`を返します。
 
 CLI package version、JSON `schemaVersion`、内部IPC `protocolVersion`、workflow schema version、app extension versionは独立しています。この版ではJSON/workflowは1、IPCは7、app extensionは1を維持します。内部IPCは1.xの途中でも変更できます。更新前にsessionをcloseし、新binaryでdaemonを新規起動してください。snapshot、session、再接続、変更操作をまたいでrefを使い回さないでください。
 
@@ -27,3 +27,20 @@ CLI package version、JSON `schemaVersion`、内部IPC `protocolVersion`、workf
 CLIの対応ホストはmacOSで、検証の基準はmacOS arm64、Flutter 3.47.8、Dart 3.13.7です。SDK制約はDart >=3.13.7 <4.0.0ですが、全SDK組合せの保証ではありません。Linux/Windowsホストは対応しません。iOS SimulatorにはXcode、AndroidにはSDK/adb、macOSとChromeには各runtimeが必要です。testerはFlutter UI向けで、native pluginやOS動作の確認には使えません。端末録画の権限と範囲はbackendごとに異なり、iOS実機録画には対応しません。
 
 公開後は最新1.xへのbest-effort修正を対象とし、応答時間や有償サポートのSLAは約束しません。通常の不具合は秘匿済みの再現手順、版、ホスト、対象runtimeを添えて[GitHub Issues](https://github.com/r0227n/marionette_agent/issues)へ報告してください。脆弱性の報告もこの**公開**Issuesを窓口とし、秘匿済みの概要だけを投稿してください。秘密情報・個人情報・認証トークン・悪用可能な詳細は投稿しません。機微な再現詳細を共有する前に、メンテナーへ非公開での追加連絡の調整を依頼してください。非公開窓口は事前に約束せず、GitHubの非公開報告も現在無効です。報告方法と安全な利用条件は[SECURITY.md](https://github.com/r0227n/marionette_agent/blob/develop/SECURITY.md)にあります。復旧時は[出力](/marionette_agent/ja/reference/output/)と[トラブルシューティング](/marionette_agent/ja/reference/troubleshooting/)を参照してください。
+
+## アプリのbindingバージョン
+
+外部アプリはCLIとは独立して`marionette_flutter`の依存を解決します。互換性マトリクスの対象は、公開済みの全版（0.1.0、0.2.0、0.2.1、0.2.2、0.2.3、0.2.4、0.3.0、0.4.0、0.5.0、0.6.0、0.7.0）です。接続、snapshot、key指定のtap、文字入力・クリア、logs、再接続は各版のプロトコルを使います。これらの基本操作に任意のagent providerは不要です。このcheckoutの任意providerは^0.7.0を必要とします。
+
+| Binding      | 追加機能と制約                                              |
+| ------------ | ----------------------------------------------------------- |
+| 0.1.0        | key/text selector。type selectorと座標tapは非対応           |
+| 0.2.0〜0.3.0 | type selectorと座標tap。Text.dataからsnapshotのtextを取得   |
+| 0.4.0        | version取得とcustom-extension一覧                           |
+| 0.5.0        | swipeとdouble tap                                           |
+| 0.6.0        | ハードウェアキー入力                                        |
+| 0.7.0        | identifier selector。compaction:noneでvisibleを明示的に取得 |
+
+古いbindingに存在しない操作は、再送せず`UNSUPPORTED_CAPABILITY`を返します。0.4未満ではfillが入力欄のcontrollerを更新しますが、上流bindingは`onChanged`を呼びません。このcallbackだけに依存するアプリには新しいbindingが必要です。未公開の将来版の動作確認を保証するものではありません。
+
+リポジトリの`tool/verify_binding_compatibility.py`は版ごとに独立したFlutterアプリを作成し、割り当てたiOS Simulatorで製品CLIから操作します。操作後の画面状態、古いref、対象不存在、再接続を確認し、秘匿済みJSONとSimulatorの画面を保存します。共有workspaceのlockfileは標準の0.7.0解決を維持します。

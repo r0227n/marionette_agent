@@ -28,7 +28,7 @@ check IDと対象:
 - `runtime.directory`: symlink不可、現在user所有、0700。不存在はskippedで作成しない。
 - `daemon.ipc`: 安全確認済みdirectoryのsocketに受動接続、protocolVersion一致とreadyを確認。
   不在はskipped、拒否/不一致はfailure、無応答はunknown。最大1秒か残り期限の短い方。
-- `dependencies.fixed`: CLI packageのpubspec/lockのmarionette_mcp、image、yaml固定version比較。
+- `dependencies.fixed`: CLI packageのmarionette_mcp、image、yamlのlock済みversionがpubspec制約（caret範囲を含む）を満たすか検査する。
   ファイル不在/取得不可はunknown。実bindingやインストール済み実体のversion保証ではない。
 - `simulators.ios`: `xcrun simctl list devices available --json`でiOS端末の名前/UDID/runtime/stateを観測。
   0台はfailure、照会失敗はunknown。起動/修復はしない。
@@ -165,7 +165,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `workflow validate <path>` | JSON／YAML workflowを読んで構文・schema・意味制約を検証。daemon・接続は不要 |
 | `workflow run <path>` | 接続済みsessionでworkflowを1要求として直列実行 |
 
-`<selector>` は `--key <value>`、`--identifier <value>`、`--text <value>`、`--type <value>` のいずれか1つ。例: `fill --key email 'a@example.com'`、`swipe --key pager left`。ref、selector、座標の混在はエラー。`wait`はselectorに加え、[Flutter向け拡張](#flutter向け拡張)のref待機・時間待機を受理する。座標は受理しない。workflow v1の対象はselectorだけである。固定依存のbinding 0.6.0はidentifier matcherを提供しないため、identifier指定はUNSUPPORTED_CAPABILITYを返す。
+`<selector>` は `--key <value>`、`--identifier <value>`、`--text <value>`、`--type <value>` のいずれか1つ。例: `fill --key email 'a@example.com'`、`swipe --key pager left`。ref、selector、座標の混在はエラー。`wait`はselectorに加え、[Flutter向け拡張](#flutter向け拡張)のref待機・時間待機を受理する。座標は受理しない。workflow v1の対象はselectorだけである。identifier指定はbinding 0.7.0以降で対応し、それより古い版はUNSUPPORTED_CAPABILITYを返す。binding 0.1.0のselectorはkey/textのみで、座標tapも非対応である。
 
 scrollは初版では指定領域を既存swipe機構で操作する。directionはswipeと同じく指の移動方向であり、コンテンツの移動先や到達保証ではない。画面外要素へのscroll-toは後続とする。
 
@@ -279,7 +279,7 @@ ref番号はdaemonの生存期間を通して単調増加し、sessionをまた�
 
 key、identifierを優先し、text・typeはバックエンドの照合との対応を確認できる場合に使う。表示用Semanticsテキストは照合用textと同義ではない。一意に操作できるselectorを構成できない要素は情報を表示するが、操作用refを付けず理由を返す。
 
-固定binding 0.6.0ではtextの由来を区別する属性がないため、text照合は確認済みの型名Text・RichText・EditableText・TextField・TextFormFieldに限定する。Semanticsの派生型やその他の独自型のtextは表示情報として扱い、操作にはkeyまたは一意なtypeを使用する。
+stock bindingではtextの由来を区別する属性がないため、text照合は確認済みの型名Text・RichText・EditableText・TextField・TextFormFieldに限定する。Semanticsの派生型やその他の独自型のtextは表示情報として扱い、操作にはkeyまたは一意なtypeを使用する。
 
 一意性の判定には由来未確認のtextも含める。同じtextを持つ未知の型が観測された場合、既知の型へのtext指定・text由来のref・wait existsもAMBIGUOUS_TARGETとして拒否する。snapshotは安全なkey/typeがあればそちらでrefを発行する。
 

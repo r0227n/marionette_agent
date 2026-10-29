@@ -80,6 +80,7 @@ Future<void> main() async {
         ['--key', 'missing-issue-4'],
         ['--key', 'tap_button'],
         ['--type', 'Text'],
+        ['--identifier', 'tap_button'],
       ]) {
         final count = await cli(['get', 'count', ...target], json: json);
         final kind = target.first.substring(2);
@@ -97,11 +98,6 @@ Future<void> main() async {
       );
       await cli(['get', 'box', '--type', 'Text'], json: json, expected: 4);
       await cli(['get', 'count', button['ref']], json: json, expected: 2);
-      await cli(
-        ['get', 'count', '--identifier', 'tap_button'],
-        json: json,
-        expected: 6,
-      );
     }
     await cli(['screenshot', p.join(evidence.path, 'before.png')]);
     await cli(['tap', button['ref']]);

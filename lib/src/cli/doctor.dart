@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:path/path.dart' as p;
+import 'package:pub_semver/pub_semver.dart';
 import 'package:yaml/yaml.dart';
 
 import '../backend/doctor_probe.dart';
@@ -299,14 +300,14 @@ class Doctor {
             matches &&
             declared is String &&
             resolved is String &&
-            declared == resolved;
+            VersionConstraint.parse(declared).allows(Version.parse(resolved));
         pins[name] = {'declared': declared, 'locked': resolved};
       }
       add(
         'dependencies.fixed',
         matches ? 'success' : 'failure',
         'Package declarations compared with lockfile; these are not observed binding versions.',
-        'Run flutter pub get in the CLI package and check fixed dependency declarations.',
+        'Run flutter pub get in the CLI package and check dependency constraints.',
         pins,
       );
     });

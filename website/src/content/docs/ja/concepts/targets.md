@@ -11,7 +11,7 @@ description: ref・key・text・typeを使い分け、曖昧な対象や古い�
 | `--key`        | 固定手順やworkflow       | 観測された対象のkeyと完全一致                                          |
 | `--text`       | 表示文言から探す         | 大文字小文字を含め完全一致。全ての表示textが操作用に使えるとは限らない |
 | `--type`       | widget種別から探す       | 操作には一意な対象が必要                                               |
-| `--identifier` | identifierによる指定     | 固定binding 0.6.0の操作matcherでは未対応                               |
+| `--identifier` | identifierによる指定     | binding 0.7.0以降で対応                                                |
 
 ref・selector・座標を混ぜず、そのコマンドが受理する方法から1つを選びます。
 

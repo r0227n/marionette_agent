@@ -13,7 +13,7 @@
 開発toolchainは`.mise.toml`でFlutter 3.47.8と同梱Dart 3.13.7に固定する。全workspace packageのDart SDK制約は>=3.13.7 <4.0.0で、doctorも同じ範囲を検査する。
 
 `cli/runner.dart`はdoctorを`RuntimeDirectory.prepare`より前にローカル配送する。
-`cli/doctor.dart`がhost/runtimeのread-only検査、固定依存の宣言/lock比較、Simulator列挙、
+`cli/doctor.dart`がhost/runtimeのread-only検査、依存制約とlock済みversionの比較、Simulator列挙、
 check状態と終了コード集計を所有する。外部processとprobeはfixtureへ差し替え可能。
 daemon socketは所有者/0700確認後に接続し、既存protocol decoderでhandshakeだけを読む。
 DaemonClient、SessionManager、runtime準備、command dispatchを呼ばない。
@@ -122,9 +122,9 @@ Skillの互換JSONは`SkillsOutput`の専用境界で生成し、protocolのResu
 
 ## Marionette adapter
 
-`package:marionette_mcp/src/vm_service/vm_service_connector.dart` のVmServiceConnectorを再利用する。内部API依存はadapterに限定する。pubの `marionette_mcp: 0.6.0` を完全固定し、lockfileも管理する。固定版connectorとbindingのresponse fixtureを契約テストで検証する。
+`package:marionette_mcp/src/vm_service/vm_service_connector.dart` のVmServiceConnectorを再利用する。内部API依存はadapterに限定する。pubの `marionette_mcp: ^0.7.0` を使い、解決版を共有lockfileで管理する。Flutter providerと標準exampleは `marionette_flutter: ^0.7.0` を使う。外部アプリはCLIと依存解決を共有せず、旧bindingでも接続できる。版ごとの応答形式を契約テストで検証する。
 
-隣の `../marionette_mcp` は参考ソースであり、pubの解決済みバージョンと一致するとは限らない。固定版は構造化statusで成功を返し、swipeの両方式を提供する。identifier matcherは未対応のためUNSUPPORTED_CAPABILITYを返す。配布時に隣接リポジトリへのpath依存を要求しない。
+隣の `../marionette_mcp` は参考ソースであり、pubの解決済みバージョンと一致するとは限らない。0.2以降は構造化statusで成功を判定する。0.1のtypeはFlutterに上書きされるため、VM method envelopeの一致、error/stackTrace fieldの欠如、操作に対応する結果形式を検証する。messageの文言から成功を推測しない。0.4未満にないversion/extension一覧endpointは接続を拒否せず検出し、health確認はread-onlyのinspectで行う。0.7にはcompaction:noneを指定して明示的なvisibleを取得し、0.2/0.3のText.dataだけをtextへ復元する。identifier matcherは0.7以降で有効にする。存在しない操作はUNSUPPORTED_CAPABILITYを返し、UI操作を再送しない。配布時に隣接リポジトリへのpath依存を要求しない。
 
 | ローカル操作 | 上流呼び出し |
 | --- | --- |

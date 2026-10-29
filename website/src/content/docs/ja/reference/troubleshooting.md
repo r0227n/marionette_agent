@@ -45,7 +45,7 @@ probeは独立した接続で確認し、通常sessionのrefは変更しませ�
 
 ## 機能が利用できない
 
-`UNSUPPORTED_CAPABILITY`では、bindingと補助providerの登録状況を確認します。`--identifier`による操作は固定binding 0.6.0では未対応です。型付き状態や追加入力には対応するFlutter拡張が必要です。
+`UNSUPPORTED_CAPABILITY`では、bindingと補助providerの登録状況を確認します。`--identifier`による操作はbinding 0.7.0以降で対応です。型付き状態や追加入力には対応するFlutter拡張が必要です。
 
 ## 画像・動画を保存できない
 

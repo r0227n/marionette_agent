@@ -27,7 +27,7 @@ Check IDs and targets:
 - `runtime.socketPath`: the same absolute path and 80 UTF-8 byte limit as the existing runtime; measures bytes including socket `/s`.
 - `runtime.directory`: no symlink, owned by the current user, mode 0700. Absence is skipped without creating it.
 - `daemon.ipc`: passively connects to a socket in a verified-safe directory and checks protocolVersion compatibility and ready state. Absence is skipped; rejection/mismatch is failure; no response is unknown. Limit: one second or the remaining deadline, whichever is shorter.
-- `dependencies.fixed`: compares pinned marionette_mcp, image, and yaml versions in the CLI package's pubspec/lock. Missing or unreadable files are unknown. This does not guarantee the version of the actual binding or installed artifacts.
+- `dependencies.fixed`: checks that locked marionette_mcp, image, and yaml versions satisfy the CLI package's pubspec constraints (including caret ranges). Missing or unreadable files are unknown. This does not guarantee the version of the actual binding or installed artifacts.
 - `simulators.ios`: observes iOS device name/UDID/runtime/state through `xcrun simctl list devices available --json`. Zero devices is failure; query failure is unknown. It neither boots nor repairs devices.
 - `probe.vmService`: creates an independent VM client only when `--probe-uri` is supplied, querying getVersion/getVM/getIsolate and only the registered `ext.flutter.marionette.getVersion` extension. Omission is skipped; connection/RPC errors are failure; timeout is unknown. The binding version is reported only from a valid response; capabilities include only actually registered extension names. Unobserved versions are null/unknown and an unobserved binding is unknown. Registration does not guarantee action success.
 
@@ -158,7 +158,7 @@ Idle time starts only after all session queues and request deliveries are idle; 
 | `workflow validate <path>` | Reads JSON/YAML and validates syntax, schema, and semantic constraints; no daemon/connection needed |
 | `workflow run <path>` | Serially executes a workflow as one request on a connected session |
 
-`<selector>` is exactly one of `--key <value>`, `--identifier <value>`, `--text <value>`, or `--type <value>`. Examples: `fill --key email 'a@example.com'`, `swipe --key pager left`. Mixing refs, selectors, and coordinates is an error. In addition to selectors, `wait` accepts ref and duration waits described under [Flutter extensions](#flutter-extensions), but never coordinates. Workflow v1 accepts selectors only. Pinned binding 0.6.0 has no identifier matcher, so identifier selection yields UNSUPPORTED_CAPABILITY.
+`<selector>` is exactly one of `--key <value>`, `--identifier <value>`, `--text <value>`, or `--type <value>`. Examples: `fill --key email 'a@example.com'`, `swipe --key pager left`. Mixing refs, selectors, and coordinates is an error. In addition to selectors, `wait` accepts ref and duration waits described under [Flutter extensions](#flutter-extensions), but never coordinates. Workflow v1 accepts selectors only. Identifier selection requires binding 0.7.0 or later; older bindings return UNSUPPORTED_CAPABILITY. Binding 0.1.0 supports key/text selectors only and rejects coordinate taps.
 
 Initial scroll support operates the specified region through the existing swipe mechanism. As with swipe, direction means finger movement, not content destination or guaranteed arrival. Scroll-to for off-screen elements is deferred.
 
@@ -271,7 +271,7 @@ Immediately before an action, re-observation checks that the stored selector mat
 
 Prefer key and identifier; use text/type when their correspondence to backend matching is verified. Semantics display text is not equivalent to matcher text. Elements without a uniquely actionable selector still expose information and a reason, but no action ref.
 
-Pinned binding 0.6.0 exposes no text-origin attribute, so text matching is limited to verified type names Text, RichText, EditableText, TextField, and TextFormField. Text from Semantics-derived or other custom types is display information; use a key or unique type for actions.
+Stock bindings expose no text-origin attribute, so text matching is limited to verified type names Text, RichText, EditableText, TextField, and TextFormField. Text from Semantics-derived or other custom types is display information; use a key or unique type for actions.
 
 Uniqueness includes unverified-origin text. If an unknown type has the same text, text selection of a known type, text-derived refs, and wait exists also yield AMBIGUOUS_TARGET. Snapshot uses a safe key/type for ref issuance when available.
 

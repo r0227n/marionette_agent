@@ -46,7 +46,7 @@ JSONはescape後に同名となるduplicate key、trailing comma、非有限numb
 | swipe / scroll | target、direction、任意distance |
 | wait | target、state、任意timeoutMs/pollIntervalMs |
 
-targetはkey/identifier/text/typeのどれか1つを持つobjectで、値は空でないstring、照合は完全一致です。binding 0.6.0のidentifierは非対応で、含まれていれば最初のUIアクセス前にUNSUPPORTED_CAPABILITYです。ref、座標操作、snapshot filterはv1にありません。条件分岐、loop、並列、shell、include、接続寿命操作、logsもありません。
+targetはkey/identifier/text/typeのどれか1つを持つobjectで、値は空でないstring、照合は完全一致です。binding 0.7未満のidentifierは非対応で、含まれていれば最初のUIアクセス前にUNSUPPORTED_CAPABILITYです。ref、座標操作、snapshot filterはv1にありません。条件分岐、loop、並列、shell、include、接続寿命操作、logsもありません。
 
 swipe/scrollのdirectionはleft/right/up/downで指の移動方向です。distanceは有限の正数、既定200 logical pixelsです。scrollは同じswipe primitiveを使います。成功はgesture処理完了で、到達位置を保証しません。
 

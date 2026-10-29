@@ -46,7 +46,7 @@ Every step requires a unique id (`^[A-Za-z][A-Za-z0-9_-]{0,63}$`) and an action.
 | swipe / scroll | target, direction, optional distance |
 | wait | target, state, optional timeoutMs/pollIntervalMs |
 
-Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Binding 0.6.0 does not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, and logs.
+Target is an object containing exactly one of key/identifier/text/type with a nonempty string value, matched exactly. Bindings before 0.7 do not support identifier; any such target yields UNSUPPORTED_CAPABILITY before the first UI access. V1 excludes refs, coordinates, snapshot filters, conditionals, loops, parallel steps, shell execution, includes, connection-lifetime operations, and logs.
 
 Swipe/scroll direction is left/right/up/down and describes finger movement. Distance is finite and positive, defaulting to 200 logical pixels. Scroll uses the same swipe primitive. Success means gesture completion, not arrival at a particular content position.
 

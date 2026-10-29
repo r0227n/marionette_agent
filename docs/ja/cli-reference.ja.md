@@ -38,7 +38,7 @@ idle期限はdaemon起動時に固定されます。省略した要求は既存�
 <a id="doctor"></a>
 ## doctorの判定
 
-通常は読み取りだけでhost、runtime所有者・0700・path長、daemon protocol、固定依存、iOS Simulatorを確認します。未作成runtimeは正常な未実施扱いです。`--probe-uri`を明示した場合だけ専用接続でアプリを調べ、終了時に解放します。実応答がなければbinding versionを推測しません。
+通常は読み取りだけでhost、runtime所有者・0700・path長、daemon protocol、依存制約とlock済みversion、iOS Simulatorを確認します。未作成runtimeは正常な未実施扱いです。`--probe-uri`を明示した場合だけ専用接続でアプリを調べ、終了時に解放します。実応答がなければbinding versionを推測しません。
 
 checkは`success`、`failure`、`unknown`、`skipped`です。診断を返せれば`ok:true`でも、failure/unknownがあれば`data.exitCode`とprocess終了値は1です。doctor内のtimeoutはunknown/終了1、引数エラーは終了2です。全体期限を過ぎた未着手checkもunknownとなり、daemon handshake待ちは最大1秒です。
 

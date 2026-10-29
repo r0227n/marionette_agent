@@ -10,7 +10,7 @@ description: Flutterのdebug起動でMarionette bindingを初期化し、観測�
 アプリのディレクトリで依存を追加します。
 
 ```sh
-flutter pub add marionette_flutter:0.6.0
+flutter pub add 'marionette_flutter:^0.7.0'
 ```
 
 次の初期化を`runApp`より前に組み込みます。`MyApp`は既存アプリのroot widgetに置き換えてください。
