@@ -14,11 +14,13 @@ import 'package:marionette_agent/src/daemon/runtime.dart';
 import 'package:marionette_agent/src/daemon/server.dart';
 import 'package:marionette_agent/src/mcp/catalog.dart';
 import 'package:marionette_agent/src/mcp/executor.dart';
+import 'package:marionette_agent/src/platform/native/native_service.dart';
 import 'package:marionette_agent/src/protocol/protocol.dart' as agent;
 import 'package:marionette_agent/src/session/session_manager.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/native_backend.dart';
 import 'support/fake_screen_capturer.dart';
 
 void main() {
@@ -97,6 +99,10 @@ void main() {
         'deviceType': 'com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro',
         'runtime': 'com.apple.CoreSimulator.SimRuntime.iOS-26-2',
       },
+      'session_bind': {'platform': 'android', 'device': 'emulator-5554'},
+      'tap': {
+        'target': {'ref': '@n1'},
+      },
       'swipe': {'startX': 20, 'startY': 50, 'endX': 200, 'endY': 50},
       'wait': {
         'target': {'text': 'done'},
@@ -152,6 +158,7 @@ void main() {
     late MCPClient client;
     late ServerConnection server;
     late _InputBackend backend;
+    late FakeNativeBackend native;
     late List<int> png;
 
     Future<CallToolResult> call(
@@ -166,6 +173,7 @@ void main() {
     setUp(() async {
       temp = await Directory('/tmp').createTemp('mcp-test-');
       png = image.encodePng(image.Image(width: 3, height: 2));
+      native = FakeNativeBackend();
       backend = _InputBackend()
         ..elements = [
           ElementInfo(key: 'button', type: 'Button', visible: true),
@@ -182,6 +190,7 @@ void main() {
         SessionManager(
           () => backend,
           coreCommands(),
+          native: NativeService(backends: {'android': native}),
           screenCapturer: FakeScreenCapturer(png),
         ),
       );
@@ -366,6 +375,28 @@ void main() {
       },
       timeout: const Timeout(Duration(minutes: 2)),
     );
+
+    test('native tools operate without VM and reject stale refs', () async {
+      const targetDevice = {'platform': 'android', 'device': 'emulator-5554'};
+      expect((await call('session_bind', targetDevice)).isError, false);
+      final snapshot = await call('snapshot');
+      expect(snapshot.isError, false);
+      final ref = response(snapshot)['data']['elements'][0]['ref'];
+      final tapArgs = {
+        'target': {'ref': ref},
+      };
+      expect((await call('tap', tapArgs)).isError, false);
+      expect(native.taps, [(60.0, 40.0)]);
+      final stale = await call('tap', tapArgs);
+      expect(response(stale)['error']['code'], 'STALE_REF');
+      expect(native.taps, hasLength(1));
+      expect(
+        mcpToolCatalog().any((tool) => tool.name == 'native_screenshot'),
+        isFalse,
+      );
+      expect(backend.calls, isEmpty);
+      expect((await call('close')).isError, false);
+    }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('schema errors do not execute or echo private input', () async {
       final result = await call('fill', {

@@ -3,6 +3,7 @@ import 'package:args/args.dart';
 import '../../commands/interaction_request.dart'
     show targetInteractions, keyboardInteractions;
 import '../../protocol/protocol.dart';
+import '../../commands/native_request.dart';
 import '../command.dart';
 import 'actions.dart';
 import 'batch.dart';
@@ -108,11 +109,26 @@ Map<String, CliCommand> builtInCommands() => {
   'session': CliCommand(
     ArgParser()
       ..addCommand('list')
-      ..addCommand('show'),
+      ..addCommand('show')
+      ..addCommand(
+        'bind',
+        ArgParser()
+          ..addOption('platform', allowed: ['ios', 'android'])
+          ..addOption('device'),
+      ),
     (args) {
       final action = args.command;
       if (action == null || action.rest.isNotEmpty) {
-        invalid('Usage: session list|show');
+        invalid('Usage: session list|show|bind');
+      }
+      if (action.name == 'bind') {
+        final params = <String, dynamic>{
+          'action': 'snapshot',
+          'platform': action.option('platform'),
+          'device': action.option('device'),
+        };
+        validateNative(params);
+        return {...params, 'action': 'bind'};
       }
       return {'action': action.name};
     },

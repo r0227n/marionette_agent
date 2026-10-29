@@ -5,6 +5,7 @@ import 'package:marionette_agent/src/platform/platform_services.dart';
 import '../backend/backend.dart';
 import '../backend/connection_uri.dart';
 import '../commands/batch.dart';
+import '../commands/native_request.dart';
 import '../commands/screenshot_request.dart';
 import '../platform/screen_capture.dart';
 import '../commands/command_context.dart';
@@ -13,7 +14,9 @@ import '../diagnostics/diagnostic_logging.dart';
 import '../output/content.dart';
 import '../protocol/protocol.dart';
 import '../recording/record_service.dart';
+import '../platform/native/native_service.dart';
 import '../snapshot/snapshot_service.dart';
+import '../snapshot/ui_service.dart';
 import '../workflow/model.dart';
 import '../workflow/workflow_runner.dart';
 import 'session.dart';
@@ -25,16 +28,21 @@ class SessionManager {
     this.commands, {
     RecordService? recordings,
     ApplicationLauncher? launcher,
+    NativeService? native,
     ScreenCapturer? screenCapturer,
   }) : recordings = recordings ?? RecordService(),
+       native = native ?? NativeService(),
        launcher = launcher ?? PlatformApplicationLauncher(),
        screenCapturer = screenCapturer ?? platformScreenCapturer();
+  final NativeService native;
   final ScreenCapturer screenCapturer;
   final RecordService recordings;
   final ApplicationLauncher launcher;
   final BackendFactory factory;
   final CommandRegistry commands;
   final snapshots = SnapshotService();
+  late final ui = UiService(snapshots, native, () => sessions.values);
+  final _deviceQueues = <String, SerialQueue>{};
   final sessions = <String, Session>{};
   final _owners = <String, String>{};
   bool stopping = false;
@@ -47,6 +55,10 @@ class SessionManager {
     'state': session.status,
     'uri': session.uri == null ? null : redactUri(session.uri!),
     'snapshotValid': session.observation != null,
+    if (session.nativeTarget != null) ...{
+      'nativeTarget': session.nativeTarget,
+      'nativeSnapshotValid': session.nativeObservation != null,
+    },
     'connectionGeneration': session.epoch,
     if (session.application != null)
       'application': session.application!.description,
@@ -101,6 +113,14 @@ class SessionManager {
           ],
         });
       }
+      if (request.command == 'native') {
+        invalid(
+          'native was removed; use session bind, snapshot, tap and swipe',
+        );
+      }
+      final binding =
+          request.command == 'session' && request.params['action'] == 'bind';
+      if (binding) validateNative({...request.params, 'action': 'snapshot'});
       final existing = sessions[request.session];
       if (existing == null && request.command == 'close') {
         if (request.params.isNotEmpty) invalid();
@@ -113,6 +133,7 @@ class SessionManager {
       if (existing == null &&
           request.command != 'connect' &&
           request.command != 'launch' &&
+          !binding &&
           request.command != 'record' &&
           !isNativeScreenshot(request.command, request.params) &&
           !(request.command == 'workflow' &&
@@ -149,13 +170,19 @@ class SessionManager {
               incoming,
               session.epoch,
             );
-            return _runAuthorized(authorized, session);
+            final target = session.nativeTarget;
+            if (target == null) return _runAuthorized(authorized, session);
+            return (_deviceQueues[target] ??= SerialQueue()).run(() {
+              authorized.checkDeadline();
+              return _runAuthorized(authorized, session);
+            });
           })
           .whenComplete(() {
             session.pending--;
             if (!hasPending) onQueueIdle?.call();
             if ((session.closed ||
                     (session.uri == null &&
+                        !session.nativeActive &&
                         !session.actionPolicy.hasPending &&
                         session.application == null)) &&
                 session.pending == 0 &&
@@ -219,7 +246,7 @@ class SessionManager {
     }
     Json data;
     if (request.command == 'batch') {
-      data = await executeBatch(request, session, snapshots, commands);
+      data = await executeBatch(request, session, snapshots, commands, ui: ui);
     } else if (request.command == 'workflow') {
       data = await WorkflowExecution(
         request,
@@ -227,6 +254,7 @@ class SessionManager {
         snapshots,
         commands,
         screenCapturer: screenCapturer,
+        ui: ui,
       ).run();
     } else {
       final execution = Execution(request, session);
@@ -234,6 +262,7 @@ class SessionManager {
     }
     data = limitContent(data, request.maxOutput, request.outputJson);
     if (request.maxOutput != null) {
+      native.retainPublished(session, data);
       snapshots.retainPublished(session, data);
     }
     return data;
@@ -364,8 +393,19 @@ class SessionManager {
         context.requireConnected();
         return {'uri': session.uri.toString()};
       case 'session':
+        if (request.params['action'] == 'bind') {
+          validateNative({...request.params, 'action': 'snapshot'});
+          session.epoch++;
+          context.epoch = session.epoch;
+          session.invalidate();
+          session.actionPolicy.invalidate();
+          session.nativeTarget =
+              '${request.params['platform']}:${request.params['device']}';
+          session.nativeActive = true;
+          return show(session);
+        }
         if (request.params.length != 1 || request.params['action'] != 'show') {
-          invalid('Usage: session list|show');
+          invalid('Usage: session list|show|bind');
         }
         if (session.status == 'connected') {
           try {
@@ -377,11 +417,17 @@ class SessionManager {
         }
         return show(session);
       default:
-        if (!isNativeScreenshot(request.command, request.params)) {
+        if (!isNativeScreenshot(request.command, request.params) &&
+            !['snapshot', 'tap', 'click', 'swipe'].contains(request.command)) {
           context.requireConnected();
         }
         return commands.dispatch(
-          CommandContext(context, snapshots, screenCapturer: screenCapturer),
+          CommandContext(
+            context,
+            snapshots,
+            screenCapturer: screenCapturer,
+            ui: ui,
+          ),
           request.command,
           request.params,
         );

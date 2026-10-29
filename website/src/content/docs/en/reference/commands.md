@@ -46,6 +46,19 @@ Successful get and is queries read observations without issuing new refs. Do not
 
 Directions are `left`, `right`, `up`, and `down`, describing **finger movement**. Verify the resulting content position or page in a subsequent snapshot.
 
+## Native device UI
+
+Bind once with `session bind --platform ios|android --device ID`, then use the ordinary commands. No VM is required for native-only use. See the [native UI guide](/marionette_agent/en/guides/native-ui/) for runner setup, mixed observations and limitations.
+
+| Syntax                                                                | Behavior                                              |
+| --------------------------------------------------------------------- | ----------------------------------------------------- |
+| `snapshot [--source flutter\|native\|all]`                            | Observe configured sources and publish refs           |
+| `tap REF`                                                             | Reobserve and route `@e` to Flutter or `@n` to native |
+| `tap --source native --text TEXT`                                     | Native exact text; identifier/type are alternatives   |
+| `tap --source native --x X --y Y`                                     | Native screen coordinates                             |
+| `swipe REF DIRECTION --distance N`                                    | Gesture in the ref's source coordinate space          |
+| `swipe --source native --start-x X --start-y Y --end-x X2 --end-y Y2` | Native screen-coordinate gesture                      |
+
 ## Additional interactions
 
 Most of these operations need a compatible app-side provider; dblclick and press can use binding APIs directly. Try supported interactions on the example app’s Advanced screen.

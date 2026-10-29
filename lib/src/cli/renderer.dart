@@ -132,18 +132,28 @@ String render(
     final source = field == 'elements' ? 'snapshot' : 'logs';
     final filter = data['filter'] as Map?;
     return [
-      field == 'elements' ? 'Snapshot ${data['generation']}' : 'Logs',
+      field == 'elements'
+          ? data['source'] == 'native'
+                ? 'Native snapshot ${data['generation']} (${data['platform']}, ${data['device']}; ${data['coordinateSpace']})'
+                : 'Snapshot ${data['generation']}'
+          : 'Logs',
       if (filter != null)
         'Filter: ${filter['kind']}=${jsonEncode(filter['value'])}; matchedCount: ${filter['matchedCount']}; totalCount: ${filter['totalCount']}',
       if (field == 'entries' && data['configured'] != null)
         'Configured: ${data['configured']}',
       if (field == 'entries' && data['limitation'] != null)
         '${data['limitation']}',
+      if (data['sources'] != null) 'Sources: ${jsonEncode(data['sources'])}',
+      if (data['occlusion'] != null) 'Occlusion: ${data['occlusion']}',
+      if (data['limitation'] != null && data['elements'] is List)
+        '${data['limitation']}',
       if (boundary != null)
         '--- BEGIN UNTRUSTED $source ${boundary['nonce']} ---',
       ...items.map((item) => contentItem(item, field, false)),
       if (boundary != null)
         '--- END UNTRUSTED $source ${boundary['nonce']} ---',
+      if (data['sourceCounts'] != null)
+        'Source counts: ${jsonEncode(data['sourceCounts'])}',
       if (data.containsKey('truncated'))
         'Truncated: ${data['truncated']}; originalCount: ${data['originalCount']}; omittedCount: ${data['omittedCount']}',
     ].join('\n');

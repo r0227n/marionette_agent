@@ -53,6 +53,8 @@ Dart製CLIから、Marionette対応FlutterアプリをAI Agentが観測・操作
 
 stdio MCPサーバーを提供し、MCPクライアントからも既存CLIの操作体系を利用できる。`marionette_mcp` のDart接続実装をライブラリーとして利用し、VM Service経由でFlutter拡張を呼び出す。MCPクライアント製品とHTTP transportの提供は対象外。
 
+native端末コマンドは、iOS SimulatorとAndroidの前面OS UIを観測・操作し、権限ダイアログや写真ピッカーにも対応する。VM接続は不要。[ネイティブ端末UI](#native-ui)を参照。
+
 <a id="terminology"></a>
 <a id="用語"></a>
 
@@ -143,6 +145,7 @@ idle timeoutは起動時に確定しdaemonの寿命中は変更しない。`10s`
 | `session show` | 選択sessionの状態、秘匿済み接続先、snapshotの有効性を返す |
 | `close [--all]` | 録画があれば確定し、選択session（--allは全session）を切断・破棄。対象不在も成功。Flutterアプリは終了しない |
 | `snapshot` | 観測を更新し、要素一覧とrefを返す |
+| `session bind --platform ios\|android --device <id>` | 明示端末のnative前面画面を観測・操作する。Flutter接続は不要 |
 | `get text <ref\|selector>` | 単一要素の観測textを返す |
 | `get box <ref\|selector>` | 単一要素のboundsをFlutter論理座標で返す |
 | `get count <selector>` | 完全一致する観測候補の件数を返す（ref不可） |
@@ -500,3 +503,23 @@ testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS 
 `--source android-emulator --device <私有pairingファイル>`でUI Automatorの`UiDevice.takeScreenshot(File)`を選択する。既定はios-simulatorのままとする。CLI・MCP・screenshot workflow step・画像diffは既存の撮影serviceとartifact writerを使い、`native`操作コマンド・ref・UI操作は追加しない。pairing pathはIPC前に呼出元CLIのcwdで絶対化する。別途起動するInstrumentationがEmulatorの10.0.2.2から一時的なhost loopback listenerへ接続し、nonceを使う相互HMAC-SHA256で要求を認証する。撮影実装はADBコマンド・shell・port forwardingを実行しない。配布とInstrumentation起動はAndroid Studio／Gradleの別のテスト環境で行い、その環境はAndroid debugging transportを内部利用する。
 
 ranchu/goldfishのEmulatorで、単一display 0だけを対象とする。pairingが明示的な論理端末identityを固定する。結果にはsource:android-emulator、method:uiautomator、pairingの端末名、runtime:android-emulator、display:0、scope:device-screen、mask:system-defaultと共通decoderが得た物理pixel寸法を返す。権限ダイアログ・picker・IME・system barを含む。AndroidはFLAG_SECUREの対象を隠すか撮影を拒否する場合があり、黒pixelだけで保護を確定しない。agent不在・期限切れ、認証、接続断、破損・過大出力は明示的に失敗し、別の取得元やUI再送へ切り替えない。PNGは32 MiBまで。準備は[captureガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照する。
+
+<a id="native-ui"></a>
+
+## ネイティブ端末UI
+
+`session bind --platform ios|android --device <id>`で選択sessionにnative端末を明示的に紐付ける。iOSはSimulator UUID、Androidはエミュレータserialを受け付ける。`connect <uri>`の前後どちらでもbindできるが、利用者が宣言した対応であり、VMとrunnerが同じアプリを対象とする証明ではない。再bindで両観測と承認待ち要求を失効する。VMなしでも利用でき、close/idle終了で外部管理の端末・runnerを停止しない。`native`コマンドとMCP native profile/toolsは廃止し、core MCPのsession_bind、snapshot、tap、swipeに統合する。
+
+`snapshot`は端末未登録ならFlutterのみ、VMなしならnativeのみ、bindとconnectの両方があれば両方を観測する。`--source flutter|native|all`で明示選択できる。公開snapshotは毎回両方の前回観測を置換する。混在結果はelements、公開generation、各行のsource/coordinateSpace、取得元別status/limitationを持つ。短い出力でもmodalを確認しやすいようnative行を先に出し、両取得元とも未公開refは使えない。要求した取得が両方成功してから公開し、失敗時は両方の観測を失効する。nativeの空/rootのみはlimitedであり、画面が空だという保証ではない。取得元をまたぐ同時性は保証せず、重複要素は統合しない。nativeのinteractive/depth/key filterは非対応で、compactと完全一致text/identifier/type filterに対応する。
+
+通常の`tap`と`swipe`がFlutterの`@eN`とnativeの`@nN`を受け付ける。取得元はsessionのref登録情報で決まり、上書きできない。nativeのselector・座標には`--source native`を指定し、指定なしのselector・座標は従来のFlutterの意味を維持する。native tapはref、完全一致text/identifier/type selector、x/yのいずれか1つを受け付ける。native ref/selector操作はboundsを含む正規化要素全体を再観測・照合する。refが0件ならSTALE_REF、selectorが0件ならTARGET_NOT_FOUND、複数ならAMBIGUOUS_TARGET、無効bounds/disabledならUNRESOLVABLE_TARGET。同一内容の重複要素とアプリrootにはrefを出さない。自動再送・別取得元への切替は行わず、fill等の未対応native操作は入力前に拒否する。
+
+native座標はiOSがscreen_points、Androidがscreen_pixels。明示座標swipeは--start-x/--start-y/--end-x/--end-yを使う。ref/selector swipeは観測矩形の中心を始点に指定方向へ--distance（既定200、取得元の座標単位）だけ動かす。端点は有限・非負・相互に異なり10,000,000以下で、暗黙のclampや座標fallbackは行わない。明示座標入力はアクセシビリティ取得を要求しない。iOSはplatform既定のdrag速度、Androidは整数丸めと60 swipe stepsを使う。scale・回転は呼出側が考慮する。
+
+session queueと共通device queueで、同daemon内の紐付け済みFlutter/nativeコマンドを直列化する。native入力は同端末のnative refsとdaemon全体のFlutter refsを失効する。宣言されたVM/device対応を証明とみなさないためである。Flutter入力は自sessionの両refと同端末に紐付く別sessionのrefsを失効する。既知のiOS Alert/Android permission-controller観測があればFlutter refを抑止し、入力前にも拒否する。それ以外の遮蔽はunknown。native入力にはtap（clickはtapの別名）またはswipeに加えnative policyを適用し、通常コマンド経由でもnative deny/confirmを迂回できない。snapshotは読み取り扱い。bind変更で承認待ちを失効する。batchも共通router/policyを使う。workflow v1の操作selectorはFlutter限定のままだがfinalSnapshotには両方を含められる。get/is/find/wait/diffは従来のFlutter限定の意味を維持する。出力制限・未信頼content boundariesは両取得元へ適用する。送信後の失敗/timeoutはunknownで、自動再送しない。
+
+daemonは`MARIONETTE_AGENT_NATIVE_RUNNERS`を最大64 KiBのJSONファイルのpathとして読む。形式は`{ "ios": { "UUID": { "port": 18741, "token": "..." } }, "android": { "SERIAL": { "port": 18742, "token": "..." } } }`とし、portは1〜65535の整数、tokenは`[A-Za-z0-9_-]`に一致する32〜128文字だけを許可する。接続先はIPv4 loopbackに固定し、remote hostは設定できない。端末設定の欠落はUNSUPPORTED_CAPABILITY、設定読取・接続失敗はIO_ERROR、不正wire dataはBACKEND_ERROR、期限超過はTIMEOUTとする。診断にtoken・画面文言・runnerの例外詳細を出力しない。
+
+wire protocolはTCP接続ごとに有界のJSON 1行と応答1件を使う。要求にはversion=1・platform・device・token・元のUnix-millisecond deadline・action・必要な座標を含める。両runnerはidentity/tokenを認証し、OS呼出前に期限を確認する。応答にはversion/platform/device/okとsnapshotのelementsまたは汎用error codeを含め、clientは応答のidentityを検証する。要求は16 KiB、観測は10,000要素、応答は8 MiBまでとする。timeoutはclient socketを閉じるが、開始済みOS操作は完了し得るため結果はunknownのままとする。runnerは外部所有で、要求を直列化する。iOSの端末identityはSIMULATOR_UDID、Androidはinstrumentation起動時に転送先の明示serialを渡す。
+
+native操作経路にはidb・adb・xcrun・subprocess・XML dumpの実装を持たない。iOS platform packageにXCUITest bundle、Androidに独立したUI Automator instrumentation APK projectを置く。インストール・テストrunner起動・Androidのport転送は明示的な準備手順とする。既存のdevice/application/recording機能はそれぞれの実装を維持する。iOS実機・任意shell実行・一括権限付与・native文字入力・永続native IDは契約外。準備と観測ループは[ネイティブUIガイド](https://r0227n.github.io/marionette_agent/ja/guides/native-ui/)を参照。

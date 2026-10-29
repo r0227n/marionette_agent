@@ -1,6 +1,7 @@
 import '../protocol/protocol.dart';
 import '../session/session.dart';
 import '../snapshot/snapshot_service.dart';
+import '../snapshot/ui_service.dart';
 import '../output/content.dart';
 import 'command_context.dart';
 import 'registry.dart';
@@ -14,8 +15,9 @@ Future<Json> executeBatch(
   Request request,
   Session session,
   SnapshotService snapshots,
-  CommandRegistry commands,
-) async {
+  CommandRegistry commands, {
+  UiService? ui,
+}) async {
   final steps = validateBatch(request.params);
   final results = <Json>[];
   for (var index = 0; index < steps.length; index++) {
@@ -35,7 +37,7 @@ Future<Json> executeBatch(
       final data = limitContent(
         await execution.bound(
           () => commands.dispatch(
-            CommandContext(execution, snapshots),
+            CommandContext(execution, snapshots, ui: ui),
             child.command,
             child.params,
           ),
@@ -44,6 +46,7 @@ Future<Json> executeBatch(
         request.outputJson,
       );
       snapshots.retainPublished(session, data);
+      ui?.native.retainPublished(session, data);
       results.add({'command': child.command, 'data': data});
     } on AgentError catch (error) {
       throw AgentError(

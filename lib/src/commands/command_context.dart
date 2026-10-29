@@ -8,6 +8,7 @@ import '../protocol/protocol.dart';
 import '../session/session.dart';
 import '../snapshot/snapshot_service.dart';
 import '../snapshot/target.dart';
+import '../snapshot/ui_service.dart';
 
 /// Shared execution boundary used by individual command implementations.
 ///
@@ -17,10 +18,14 @@ class CommandContext {
   CommandContext(
     this._execution,
     this._snapshots, {
+    this.ui,
     ScreenCapturer? screenCapturer,
   }) : _screenCapturer = screenCapturer ?? platformScreenCapturer();
   final ScreenCapturer _screenCapturer;
   final Execution _execution;
+  final UiService? ui;
+  Future<Json?> route(String command, Json params) async =>
+      ui?.route(_execution, command, params);
   final SnapshotService _snapshots;
 
   /// Absolute caller deadline. Use this deadline when adding file or similar operations.
@@ -110,6 +115,7 @@ class CommandContext {
     TargetQuery query,
     Future<void> Function(Backend, Selector) operation,
   ) async {
+    await ui?.beforeFlutter(_execution);
     final selector = await _snapshots.resolve(_execution, query);
     await _execution.mutate((backend) => operation(backend, selector));
     return {'requiresSnapshot': true};
@@ -120,6 +126,7 @@ class CommandContext {
     List<TargetQuery> queries,
     Future<void> Function(Backend, List<Selector>) operation,
   ) async {
+    await ui?.beforeFlutter(_execution);
     final targets = await _snapshots.resolveAll(_execution, queries);
     if (targets.any((target) => target.element.visible == false)) {
       throw const AgentError('UNRESOLVABLE_TARGET', 'Targets must be visible');
@@ -139,6 +146,7 @@ class CommandContext {
   Future<Json> performCoordinates(
     Future<void> Function(Backend) operation,
   ) async {
+    await ui?.beforeFlutter(_execution);
     await _execution.mutate(operation);
     return {'requiresSnapshot': true};
   }

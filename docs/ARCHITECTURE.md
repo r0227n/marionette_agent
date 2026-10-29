@@ -401,3 +401,13 @@ Close finalizes through the existing RecordingManager, calls RunningApplication.
 ### Android screenshot source
 
 The existing ScreenCapturer contract accepts an optional acquisition source. The CLI composition root selects AndroidScreenCapturer only for android-emulator and retains IosScreenCapturer and its lifecycle for the default iOS route. Android's platform package owns private pairing validation, mutual HMAC and bounded PNG transport from a separate UiDevice instrumentation. CommandContext still returns pixels and metadata through the existing screenshot path; the common writer owns PNG/JPEG conversion and persistence. No native UI operation service, action protocol or reference state is introduced.
+
+<a id="native-ui-boundary"></a>
+
+## Native UI boundary
+
+`snapshot/ui_service.dart` composes Flutter SnapshotService and platform NativeService. SessionManager owns session binding, policy, and session→device queue ordering; CommandContext and the command registry share the router with batch/workflow. NativeService owns normalized native matching and OS dispatch but no longer owns a nested device queue. Platform adapters and standalone XCUITest/UI Automator runners retain their existing authenticated loopback transport.
+
+UiService publishes both sources after successful reads, invalidates both on failure, preserves source/coordinateSpace, and retains only delivered refs after output limiting. SnapshotService owns publication generations. Normal tap/swipe route by ref or explicit source without retry/fallback; unsupported native actions fail before input. Execution keeps the single-send guard and deadline/outcome rules. Known native modal checks run before Flutter input; unknown occlusion remains a limitation. Bind is explicitly declared, not verified VM/device identity, so native input retains conservative daemon-wide Flutter ref invalidation.
+
+The public native command/MCP tools are removed. `session bind`, snapshot, tap and swipe serve connected and device-only sessions. CLI/MCP/parser, policy, mixed-ref, queue, timeout and real-device tests own the acceptance contract. See [SPEC](SPEC.md#native-ui) for source selection, unsupported operations and runner setup.

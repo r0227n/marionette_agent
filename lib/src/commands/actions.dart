@@ -2,6 +2,7 @@ import '../backend/backend.dart';
 import '../protocol/protocol.dart';
 import '../snapshot/target.dart';
 import 'arguments.dart';
+import 'native_request.dart';
 import 'command_context.dart';
 
 Future<Json> handleTap(CommandContext context, Json params) {
@@ -40,6 +41,10 @@ class ActionRequest {
   final String? input;
 
   static ActionRequest parse(Json params, {required bool fill}) {
+    if (fill && params.containsKey('source')) {
+      invalid('Fill does not accept a source');
+    }
+    params = validateUiSource(params);
     final allowed = {
       'ref',
       ...SelectorKind.values.map((k) => k.name),

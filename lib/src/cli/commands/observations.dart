@@ -8,6 +8,7 @@ import '../target_options.dart';
 
 CliCommand snapshotCommand() {
   final parser = ArgParser()
+    ..addOption('source', allowed: ['flutter', 'native', 'all'])
     ..addFlag('interactive', negatable: false)
     ..addFlag('compact', negatable: false)
     ..addOption('depth');
@@ -27,6 +28,7 @@ CliCommand snapshotCommand() {
       }
       params['depth'] = depth;
     }
+    if (args.wasParsed('source')) params['source'] = args.option('source');
     snapshotFilter(params);
     return params;
   });

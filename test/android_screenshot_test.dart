@@ -39,7 +39,7 @@ void main() {
       throwsA(isA<AgentError>()),
     );
     expect(
-      mcpToolCatalog().any((tool) => tool.name.startsWith('native_')),
+      mcpToolCatalog().any((tool) => tool.name == 'native_screenshot'),
       isFalse,
     );
   });

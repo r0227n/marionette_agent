@@ -7,4 +7,5 @@ export 'src/application/managed_application.dart';
 export 'src/application/owned_process.dart';
 export 'src/recording/process_recording.dart';
 export 'src/device_inventory.dart';
+export 'src/native/native_runner.dart';
 export 'src/termination_signals.dart';

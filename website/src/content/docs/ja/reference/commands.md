@@ -46,6 +46,19 @@ description: 接続、観測、操作、ファイル保存、管理の目的別�
 
 directionは`left`・`right`・`up`・`down`で、**指の移動方向**です。コンテンツの到達位置やページ切替は次のsnapshotで確認します。
 
+## ネイティブUI
+
+`session bind --platform ios|android --device ID`で一度登録し、通常のコマンドを使います。nativeのみの利用にVM接続は不要です。runner・混在観測・制限は[native UIガイド](/marionette_agent/ja/guides/native-ui/)を参照してください。
+
+| Syntax                                                                | 動作                                            |
+| --------------------------------------------------------------------- | ----------------------------------------------- |
+| `snapshot [--source flutter\|native\|all]`                            | 設定済みの取得元を観測しrefを発行               |
+| `tap REF`                                                             | 再観測し`@e`をFlutter、`@n`をnativeへ送る       |
+| `tap --source native --text TEXT`                                     | nativeの完全一致text。identifier/typeも利用可能 |
+| `tap --source native --x X --y Y`                                     | nativeの画面座標                                |
+| `swipe REF DIRECTION --distance N`                                    | refの取得元の座標系で指を移動                   |
+| `swipe --source native --start-x X --start-y Y --end-x X2 --end-y Y2` | nativeの画面座標による移動                      |
+
 ## 追加の入力・操作
 
 多くの操作は対応するアプリ側providerが必要ですが、dblclickとpressはbinding APIで実行できます。exampleのAdvanced画面で対応する操作を試せます。

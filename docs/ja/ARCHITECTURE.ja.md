@@ -402,3 +402,13 @@ closeは既存RecordingManagerによる確定後にRunningApplication.stopを呼
 ### Androidのスクリーンショット取得元
 
 既存のScreenCapturer契約へ任意の取得元を追加する。CLIのcomposition rootはandroid-emulatorだけでAndroidScreenCapturerを選び、既定のiOS経路とIosScreenCapturerのlifecycleを維持する。Androidのplatform packageが私有pairing検証、相互HMAC、別のUiDevice Instrumentationからの有界PNG転送を担当する。CommandContextは既存のscreenshot経路へ画像とmetadataを返し、共通writerがPNG/JPEG変換と保存を担当する。native UI操作service、操作protocol、ref状態は追加しない。
+
+<a id="native-ui-boundary"></a>
+
+## ネイティブUI境界
+
+`snapshot/ui_service.dart`がFlutterのSnapshotServiceとplatformのNativeServiceを組み合わせる。SessionManagerはsessionの端末紐付け・policy・session→deviceのqueue順を所有する。CommandContextとcommand registryの共通routerをbatch/workflowにも渡す。NativeServiceは正規化要素の照合とOS入力を担当し、入れ子のdevice queueは持たない。platform adapterと独立したXCUITest/UI Automator runnerの認証付きloopback transportは維持する。
+
+UiServiceは必要な取得が成功してから両取得元を公開し、失敗時は両方を失効する。source/coordinateSpaceを保持し、出力上限後に公開したrefだけ残す。SnapshotServiceが公開generationを所有する。通常tap/swipeはrefまたは明示sourceで振り分け、再送/fallbackしない。未対応native操作は送信前に拒否する。Executionのsingle-send guard・期限・outcomeを共用する。Flutter入力前に既知のnative modalを確認するが、未知の遮蔽は制限として残す。bindは宣言された対応でVM/device同一性の証明ではないため、native入力時のdaemon全体のFlutter ref失効を維持する。
+
+公開nativeコマンド/MCP toolsは廃止する。session bind、snapshot、tap、swipeがFlutter接続済み・端末のみのsessionを扱う。CLI/MCP/parser、policy、混在ref、queue、timeout、実環境テストで検証する。取得元指定・未対応操作・runner準備は[SPEC](SPEC.ja.md#native-ui)を参照。
