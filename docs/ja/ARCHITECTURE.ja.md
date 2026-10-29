@@ -10,6 +10,8 @@
 
 ## doctor境界 (Issue #9)
 
+開発toolchainは`.mise.toml`でFlutter 3.47.8と同梱Dart 3.13.7に固定する。全workspace packageのDart SDK制約は>=3.13.7 <4.0.0で、doctorも同じ範囲を検査する。
+
 `cli/runner.dart`はdoctorを`RuntimeDirectory.prepare`より前にローカル配送する。
 `cli/doctor.dart`がhost/runtimeのread-only検査、固定依存の宣言/lock比較、Simulator列挙、
 check状態と終了コード集計を所有する。外部processとprobeはfixtureへ差し替え可能。

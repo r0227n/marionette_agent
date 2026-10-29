@@ -23,7 +23,7 @@ statusは`success`(条件確認済み)、`failure`(不適合を確認)、`unknow
 `--timeout`は全checkを含む全体期限。期限切れcheckと残りはunknownとして終了1。
 
 check IDと対象:
-- `host.os`: macOS。`host.dart`: 実行SDKが>=3.13.2 <4.0.0。
+- `host.os`: macOS。`host.dart`: 実行SDKが>=3.13.7 <4.0.0。
 - `runtime.socketPath`: 既存runtimeと同じ絶対path/80 UTF-8 bytes上限、socket `/s` のbyte数。
 - `runtime.directory`: symlink不可、現在user所有、0700。不存在はskippedで作成しない。
 - `daemon.ipc`: 安全確認済みdirectoryのsocketに受動接続、protocolVersion一致とreadyを確認。
@@ -459,7 +459,7 @@ launchはdaemon自動起動対象で、session queueとaction policyを共有す
 
 closeは録画を確定し、launchした環境を終了して接続を破棄する。外部アプリへのconnectは接続だけを閉じる。close --allとdaemon終了も所有資源を回収する。アプリ終了で接続世代とrefを失効する。起動・準備失敗やtimeout時は自己所有プロセス・端末・URIを回収する。回収は要求期限を越えて継続することがある。各processの終了は通常要求8秒、TERM3秒、KILL3秒、iOS端末回収は30秒以内。終了を確認できない場合は成功扱いにせず、一時領域を保持する。共有端末・adb serverには作用しない。SIGKILL・ホスト停止後の自動復元は対象外。
 
-testerの対応SDKはFlutter 3.47.2、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作は既存sessionを共用する。録画には明示したnative対象が必要で、tester描画録画は削除した。手順と制約は[日本語ガイド](headless.ja.md)を参照。
+testerの対応SDKはFlutter 3.47.8、debugのみ。論理800×600、DPR 3。OS native機能・Webの実行意味・実機性能の同等性を保証せず、各実行環境で確認する。全環境の操作は既存sessionを共用する。録画には明示したnative対象が必要で、tester描画録画は削除した。手順と制約は[日本語ガイド](headless.ja.md)を参照。
 
 <a id="android-emulator-screenshots"></a>
 ## Android Emulatorのスクリーンショット

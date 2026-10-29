@@ -16,6 +16,7 @@ STUB = r'''#!/usr/bin/env python3
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 name = Path(sys.argv[0]).name
@@ -26,6 +27,12 @@ with open(os.environ['QUALITY_LOG'], 'a') as log:
     log.write(json.dumps([name, args, str(Path.cwd())]) + '\n')
 if os.environ.get('QUALITY_FAIL') == name + ' ' + ' '.join(args):
     sys.exit(1)
+if name in ('dart', 'flutter') and os.environ.get('QUALITY_SDK_REPO'):
+    actual = subprocess.run(['git', '-C', os.environ['QUALITY_SDK_REPO'],
+                             'rev-parse', 'HEAD'], capture_output=True, text=True)
+    if actual.returncode or actual.stdout.strip() != os.environ['QUALITY_SDK_REVISION']:
+        print('SDK revision lookup inherited the hook repository', file=sys.stderr)
+        sys.exit(1)
 if name == 'dart' and args and args[0] == 'format':
     for arg in args[1:]:
         file = Path(arg)
@@ -57,7 +64,8 @@ class QualityHooks(unittest.TestCase):
         self.git('config', 'user.name', 'Hook test')
         self.git('config', 'user.email', 'hook@example.test')
         self.git('config', 'commit.gpgsign', 'false')
-        for name in ('lefthook.yml', '.mise.toml', 'tool/quality.sh'):
+        for name in ('lefthook.yml', '.mise.toml', 'tool/quality.sh',
+                     'tool/with-sdk-env.sh'):
             self.write(name, (SOURCE / name).read_text())
         for directory in ('lib', 'example',
                           'packages/marionette_agent_platform_interface/test',
@@ -175,6 +183,23 @@ class QualityHooks(unittest.TestCase):
 
     def test_all_files_runs_complete_gate_with_clean_index(self):
         self.run_process([LEFTHOOK, 'run', 'pre-commit', '--all-files'])
+        self.assertEqual(self.calls()[-1],
+                         ['dart', ['run', 'integration_test/release_smoke.dart']])
+
+    def test_linked_worktree_hook_keeps_sdk_git_lookups_independent(self):
+        sdk = self.root / 'sdk'
+        self.git('init', '-q', '--template=', str(sdk))
+        self.git('-C', str(sdk), '-c', 'user.name=SDK', '-c',
+                 'user.email=sdk@example.test', 'commit', '-q', '--allow-empty',
+                 '-m', 'SDK revision')
+        self.env['QUALITY_SDK_REPO'] = str(sdk)
+        self.env['QUALITY_SDK_REVISION'] = self.git(
+            '-C', str(sdk), 'rev-parse', 'HEAD').stdout.strip()
+        checkout = self.root / 'linked'
+        self.git('worktree', 'add', '-qb', 'linked', str(checkout))
+        self.root = checkout
+        self.stage('lib/fixture.dart', '// changed\n')
+        self.git('commit', '-qm', 'verify SDK lookup in a linked worktree')
         self.assertEqual(self.calls()[-1],
                          ['dart', ['run', 'integration_test/release_smoke.dart']])
 

@@ -60,7 +60,7 @@ for setup, file selection, and full verification. Documentation checks remain in
 CI; release preparation and handoff assume workspace quality was verified locally.
 
 The supported CLI host is macOS; the tested baseline is macOS arm64 with Flutter
-3.47.2 and Dart 3.13.2. The SDK constraint is Dart >=3.13.2 <4.0.0, but it is not an
+3.47.8 and Dart 3.13.7. The SDK constraint is Dart >=3.13.7 <4.0.0, but it is not an
 exhaustive guarantee for every SDK combination. Linux/Windows hosts are not
 supported. iOS Simulator needs Xcode; Android needs SDK/adb; macOS and Chrome
 need their respective app runtimes. Tester covers Flutter UI, not native plugin

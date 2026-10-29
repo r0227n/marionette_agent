@@ -15,8 +15,9 @@ provide the release notes and source archives; pub.dev publication is disabled.
 The documentation site tracks development on `develop`, while this installation
 uses the released source revision.
 
-You need Flutter and Dart **3.13.2 or newer, below 4.0.0**. The example pins Flutter
-3.47.2; platform SDKs such as Xcode are needed for the corresponding app runtime.
+Use Flutter **3.47.8** and its bundled Dart **3.13.7**, pinned in `.mise.toml`
+for development checkouts. The workspace requires Dart >=3.13.7 <4.0.0;
+platform SDKs such as Xcode are needed for the corresponding app runtime.
 
 ```sh
 git clone --branch v1.0.0 https://github.com/r0227n/marionette_agent.git
@@ -162,8 +163,8 @@ Flutter tester is useful for shared Flutter UI; verify native plugins and OS beh
 
 ## Support, troubleshooting, and removal
 
-The supported CLI host is macOS. The verification baseline is Flutter 3.47.2 /
-Dart 3.13.2 on macOS arm64; other SDKs satisfying the constraint are not an
+The supported CLI host is macOS. The verification baseline is Flutter 3.47.8 /
+Dart 3.13.7 on macOS arm64; other SDKs satisfying the constraint are not an
 exhaustive compatibility promise. iOS Simulator needs Xcode, Android needs its
 SDK/adb, and Chrome/macOS launch needs the corresponding runtime. Linux/Windows
 host support and iOS device recording are not promised. Recordings need platform

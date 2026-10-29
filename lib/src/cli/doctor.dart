@@ -118,12 +118,12 @@ class Doctor {
         match != null &&
         int.parse(match[1]!) == 3 &&
         (int.parse(match[2]!) > 13 ||
-            (int.parse(match[2]!) == 13 && int.parse(match[3]!) >= 2));
+            (int.parse(match[2]!) == 13 && int.parse(match[3]!) >= 7));
     add(
       'host.dart',
       supported ? 'success' : 'failure',
-      'Required Dart range: >=3.13.2 <4.0.0.',
-      'Use a Flutter/Dart SDK satisfying ^3.13.2.',
+      'Required Dart range: >=3.13.7 <4.0.0.',
+      'Use a Flutter/Dart SDK satisfying ^3.13.7.',
       {'version': match?.group(0)},
     );
     String? directory;

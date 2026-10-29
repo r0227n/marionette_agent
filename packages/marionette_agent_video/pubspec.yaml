@@ -4,7 +4,7 @@ version: 1.0.0
 publish_to: none
 resolution: workspace
 environment:
-  sdk: ^3.13.2
+  sdk: ^3.13.7
 dependencies:
   marionette_agent_platform_interface:
     path: ../marionette_agent_platform_interface

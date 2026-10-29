@@ -1,6 +1,6 @@
 # Marionette Agent Example
 
-`marionette_flutter: 0.6.0`を固定したdebug専用の検証fixture。Flutter 3.47.2を使用する。起動時にMarionetteBindingとPrintLogCollectorを設定し、操作結果を画面・snapshot・logsで観測できる。入力内容はログへ記録せず文字数だけを画面に表示する。
+`marionette_flutter: 0.6.0`を固定したdebug専用の検証fixture。Flutter 3.47.8を使用する。起動時にMarionetteBindingとPrintLogCollectorを設定し、操作結果を画面・snapshot・logsで観測できる。入力内容はログへ記録せず文字数だけを画面に表示する。
 
 | key | 検証対象 |
 | --- | --- |

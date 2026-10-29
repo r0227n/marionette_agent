@@ -11,7 +11,7 @@ The host is macOS. Hiding the app window does not remove the need for a GUI envi
 
 | Platform  | How it runs without a window               | Suitable checks and requirements                                        |
 | --------- | ------------------------------------------ | ----------------------------------------------------------------------- |
-| `tester`  | Flutter test engine                        | Repeated shared Flutter UI checks; verified with Flutter 3.47.2         |
+| `tester`  | Flutter test engine                        | Repeated shared Flutter UI checks; verified with Flutter 3.47.8         |
 | `ios`     | Dedicated Simulator device set             | iOS behavior; requires Xcode and installed device type/runtime          |
 | `android` | Existing AVD with `-no-window`             | Android behavior; requires Android SDK, an AVD, and an unused even port |
 | `macos`   | Hidden NSWindow with rendering kept active | macOS app; requires app support and a logged-in GUI session             |
