@@ -524,17 +524,16 @@ List<McpToolDefinition> mcpToolCatalog() => [
   for (final action in ['start', 'restart'])
     McpToolDefinition(
       'record_$action',
-      '$action a recording. Non-Flutter '
-          'platforms require a device; Flutter uses the connected session.',
+      '$action a native platform recording. An explicit device is required.',
       ['record', action],
       profile: 'record',
       properties: {
         'path': _string,
-        'platform': _enum(['ios', 'android', 'macos', 'web', 'flutter']),
+        'platform': _enum(['ios', 'android', 'macos', 'web']),
         'device': _string,
         'fps': Schema.int(minimum: 1, maximum: 60),
       },
-      required: ['path', 'platform'],
+      required: ['path', 'platform', 'device'],
       positionals: ['path'],
       options: {'platform': 'platform', 'device': 'device', 'fps': 'fps'},
     ),

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:marionette_agent_video/marionette_agent_video.dart';
+
 import 'package:marionette_agent_platform_interface/host_support.dart';
 
 const _lost = PlatformException(
@@ -10,15 +12,9 @@ const _lost = PlatformException(
   hint: 'Keep the selected tab open; no replacement tab or display is selected automatically.',
 );
 
-/// Records the explicitly selected whole display via the native backend, while
-/// supervising the selected Chrome tab. It never renders/captures Flutter frames.
+/// Samples the selected Chromium viewport through CDP, including headless tabs.
 class WebScreenRecorder implements ScreenRecorder {
-  const WebScreenRecorder(
-    this.displayRecorder, {
-    this.captureAllowed = screenCaptureAllowed,
-  });
-  final bool Function() captureAllowed;
-  final ScreenRecorder displayRecorder;
+  const WebScreenRecorder();
 
   @override
   Future<RecordingHandle> start(
@@ -30,20 +26,7 @@ class WebScreenRecorder implements ScreenRecorder {
     if (selected == null) {
       throw const PlatformException(
         'INVALID_ARGUMENT',
-        'Expected display:<index>@ws://127.0.0.1:<port>/devtools/page/<target-id>',
-      );
-    }
-    if (!Platform.isMacOS) {
-      throw const PlatformException(
-        'UNSUPPORTED_CAPABILITY',
-        'Web display recording currently supports macOS hosts only',
-      );
-    }
-    if (!captureAllowed()) {
-      throw const PlatformException(
-        'IO_ERROR',
-        'macOS screen recording permission is not granted',
-        hint: 'Enable Screen Recording for the terminal/host app in macOS System Settings, then explicitly start a new recording.',
+        'Expected ws://127.0.0.1:<port>/devtools/page/<target-id>',
       );
     }
     _ChromeDisplayRecording? handle;
@@ -76,12 +59,6 @@ class WebScreenRecorder implements ScreenRecorder {
           'This Web backend requires Google Chrome',
         );
       }
-      if ((version['product'] as String).startsWith('Headless')) {
-        throw const PlatformException(
-          'UNSUPPORTED_CAPABILITY',
-          'Whole-display Web recording requires visible Chrome',
-        );
-      }
       final info = await handle.command('Target.getTargetInfo', deadline);
       final targetInfo = info['targetInfo'];
       if (targetInfo is! Map ||
@@ -94,13 +71,26 @@ class WebScreenRecorder implements ScreenRecorder {
       }
       await handle.command('Inspector.enable', deadline);
       handle.check();
-      // All OS permissions, tool startup and movie finalization stay in the
-      // existing native backend; never fall back to a narrower tab screencast.
-      final native = await displayRecorder.start(
-        RecordingTarget(RecordingPlatform.macos, selected.display),
-        stagingPath,
-        deadline,
-      );
+      final feed = handle;
+      final native = await PngScreenRecorder(
+        capture: () async {
+          final result = await feed.command(
+            'Page.captureScreenshot',
+            DateTime.now().add(const Duration(seconds: 5)),
+            {
+              'format': 'png',
+              'captureBeyondViewport': false,
+              'fromSurface': true,
+            },
+          );
+          final data = result['data'];
+          if (data is! String) {
+            throw const PlatformException('IO_ERROR', 'Invalid Chromium frame');
+          }
+          return base64Decode(data);
+        },
+        close: () async {},
+      ).start(target, stagingPath, deadline);
       handle.native = native;
       if (handle.failed) {
         await native.stop().catchError((Object _) {});
@@ -126,7 +116,7 @@ class WebScreenRecorder implements ScreenRecorder {
       throw const PlatformException(
         'CONNECTION_LOST',
         'Cannot attach to the selected Chrome page',
-        hint: 'Start visible Chrome with a separate --user-data-dir and loopback --remote-debugging-port; use its exact page endpoint. Check debugging policy and access permissions.',
+        hint: 'Start Chrome with a separate --user-data-dir and loopback --remote-debugging-port; use its exact page endpoint. Check debugging policy and access permissions.',
       );
     }
   }
@@ -167,15 +157,17 @@ class _ChromeDisplayRecording implements RecordingHandle {
     if (_failure != null) throw _failure!;
   }
 
-  Future<Map<String, dynamic>> command(String method, DateTime deadline) async {
+  Future<Map<String, dynamic>> command(
+    String method,
+    DateTime deadline, [
+    Map<String, Object?> params = const {},
+  ]) async {
     check();
     final id = ++_nextId;
     final done = Completer<Map<String, dynamic>>();
     _pending[id] = done;
     try {
-      socket.add(
-        jsonEncode({'id': id, 'method': method, 'params': <String, Object?>{}}),
-      );
+      socket.add(jsonEncode({'id': id, 'method': method, 'params': params}));
       return await done.future.timeout(_remaining(deadline));
     } finally {
       _pending.remove(id);
@@ -184,7 +176,7 @@ class _ChromeDisplayRecording implements RecordingHandle {
 
   void _message(dynamic raw) {
     try {
-      if (raw is! String || raw.length > 1024 * 1024) throw _lost;
+      if (raw is! String || raw.length > 64 * 1024 * 1024) throw _lost;
       final message = jsonDecode(raw) as Map<String, dynamic>;
       final pending = _pending[message['id']];
       if (pending != null && !pending.isCompleted) {
@@ -222,7 +214,7 @@ class _ChromeDisplayRecording implements RecordingHandle {
           _fail(
             const PlatformException(
               'IO_ERROR',
-              'Native display recording failed',
+              'Chromium page recording failed',
             ),
           );
         },
@@ -253,7 +245,7 @@ class _ChromeDisplayRecording implements RecordingHandle {
     } catch (_) {
       _failure ??= const PlatformException(
         'IO_ERROR',
-        'Cannot finalize Chrome display recording',
+        'Cannot finalize Chromium page recording',
       );
     } finally {
       unawaited(socket.close().catchError((Object _) {}));
@@ -282,7 +274,7 @@ class _ChromeDisplayRecording implements RecordingHandle {
     _closing = true;
     _failure ??= const PlatformException(
       'TIMEOUT',
-      'Chrome display recording was aborted',
+      'Chromium page recording was aborted',
     );
     unawaited(socket.close().catchError((Object _) {}));
     client.close(force: true);

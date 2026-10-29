@@ -12,7 +12,11 @@ void main() {
   );
   late Directory dir;
   late FixtureEncoder encoder;
-  final target = RecordingTarget(RecordingPlatform.flutter, 'test', fps: 60);
+  final target = RecordingTarget(
+    RecordingPlatform.android,
+    '/tmp/pairing.json',
+    fps: 60,
+  );
   DateTime deadline() => DateTime.now().add(const Duration(seconds: 5));
 
   setUp(() async {
@@ -125,7 +129,7 @@ void main() {
     final manager = RecordingManager();
     addTearDown(manager.dispose);
     await manager.start(
-      owner: 'test',
+      owner: '/tmp/pairing.json',
       target: target,
       path: '${dir.path}/result.mp4',
       deadline: deadline(),
@@ -136,7 +140,7 @@ void main() {
       ),
     );
     await expectLater(
-      manager.stop('test', deadline()),
+      manager.stop('/tmp/pairing.json', deadline()),
       throwsA(
         isA<PlatformException>().having(
           (e) => e.message,
@@ -145,7 +149,7 @@ void main() {
         ),
       ),
     );
-    expect(manager.status('test')['recordingState'], 'failed');
+    expect(manager.status('/tmp/pairing.json')['recordingState'], 'failed');
     expect(File('${dir.path}/result.mp4').lengthSync(), 0);
   });
 
@@ -159,7 +163,7 @@ void main() {
       addTearDown(manager.dispose);
       await expectLater(
         manager.start(
-          owner: 'test',
+          owner: '/tmp/pairing.json',
           target: target,
           path: path,
           deadline: deadline(),

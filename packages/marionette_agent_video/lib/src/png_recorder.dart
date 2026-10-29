@@ -6,7 +6,7 @@ import 'package:marionette_agent_platform_interface/marionette_agent_platform_in
 
 import 'ffmpeg_kit_encoder.dart';
 
-/// Samples application PNGs without a display capture permission or a window.
+/// Samples platform PNGs acquired through native screen APIs.
 /// PNGs are persisted with monotonic acquisition times; encoding preserves those
 /// times instead of claiming that slow captures achieved the requested rate.
 class PngScreenRecorder implements ScreenRecorder {
@@ -132,7 +132,7 @@ class _PngRecording implements RecordingHandle {
             ? error
             : const PlatformException(
                 'CONNECTION_LOST',
-                'Application capture failed',
+                'Platform capture failed',
               );
         if (!_ended.isCompleted) _ended.complete();
       }

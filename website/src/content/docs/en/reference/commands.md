@@ -97,14 +97,14 @@ The default `wait` state is `exists`: a unique match with `visible != false` suc
 
 ## Images, recordings, and differences
 
-| Syntax                                                  | Purpose                                                          |
-| ------------------------------------------------------- | ---------------------------------------------------------------- |
-| `screenshot --device UDID [PATH]`                       | Save a new image                                                 |
-| `record start PATH --platform PLATFORM [--device ID]`   | Start recording; Flutter rendering needs no device argument      |
-| `record restart PATH --platform PLATFORM [--device ID]` | Finalize the current recording and start a new one               |
-| `record status` / `record stop`                         | Inspect recording state or finalize and stop                     |
-| `diff snapshot --baseline PATH`                         | Compare with a saved snapshot                                    |
-| `diff screenshot --device UDID --baseline PATH`         | Compare with a saved image; accepts `--threshold` and `--output` |
+| Syntax                                                | Purpose                                                          |
+| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| `screenshot --device UDID [PATH]`                     | Save a new image                                                 |
+| `record start PATH --platform PLATFORM --device ID`   | Start native recording with an explicit target                   |
+| `record restart PATH --platform PLATFORM --device ID` | Finalize the current recording and start a new one               |
+| `record status` / `record stop`                       | Inspect recording state or finalize and stop                     |
+| `diff snapshot --baseline PATH`                       | Compare with a saved snapshot                                    |
+| `diff screenshot --device UDID --baseline PATH`       | Compare with a saved image; accepts `--threshold` and `--output` |
 
 See [capture](/marionette_agent/en/guides/capture/) for file requirements and platform differences.
 

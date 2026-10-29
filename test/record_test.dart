@@ -68,7 +68,7 @@ void main() {
   Json start([String platform = 'android']) => {
     'action': 'start',
     'platform': platform,
-    'device': 'emulator-5556',
+    'device': '/tmp/pairing.json',
     'path': '${dir.path}/video.mp4',
   };
   setUp(() async {
@@ -203,8 +203,8 @@ void main() {
     () async {
       final params = {
         ...start('web'),
-        'device': 'display:1@ws://127.0.0.1:9222/devtools/page/ABC123',
-        'path': '${dir.path}/web.mov',
+        'device': 'ws://127.0.0.1:9222/devtools/page/ABC123',
+        'path': '${dir.path}/web.mp4',
       };
       expect((await call('record', params: params)).exitCode, 0);
       expect(
@@ -227,11 +227,7 @@ void main() {
       final conflict = await call(
         'record',
         session: 'b',
-        params: {
-          ...start('macos'),
-          'device': '1',
-          'path': '${dir.path}/conflict.mov',
-        },
+        params: {...params, 'path': '${dir.path}/conflict.mp4'},
       );
       expect(conflict.error!.code, 'SESSION_CONFLICT');
       expect(
@@ -244,23 +240,23 @@ void main() {
     'web parser accepts explicit display/page and rejects invalid targets',
     () {
       final parser = CliParser();
-      const device = 'display:1@ws://127.0.0.1:9222/devtools/page/ABC123';
+      const device = 'ws://127.0.0.1:9222/devtools/page/ABC123';
       final parsed = parser.parse([
         'record',
         'start',
-        'web.mov',
+        'web.mp4',
         '--platform',
         'web',
         '--device',
         device,
       ]);
       expect(parsed.params['device'], device);
-      expect(parsed.params['path'], File('web.mov').absolute.path);
+      expect(parsed.params['path'], File('web.mp4').absolute.path);
       expect(
         () => parser.parse([
           'record',
           'start',
-          'web.mp4',
+          'web.mov',
           '--platform',
           'web',
           '--device',

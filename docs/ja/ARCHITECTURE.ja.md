@@ -227,7 +227,7 @@ Marionetteの要素一覧は完全なツリーではなく、Semanticsの表示�
 
 `batch_loader`は全argvの構文・重複option・コマンドparamsだけを解析する。親の共通オプション解決は再実行せず、上書き済みの環境session/timeoutを再検証しない。snapshot差分は構造等価な行をhashで数え、重複件数を維持して比較する。逐次総当たりの二乗時間を避け、ループ内でも同じ期限を確認する。
 
-通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはSessionManagerの共通session queueでRecordServiceへ分岐する。platformがflutterの場合だけ接続済みbackendとURIを渡し、他の録画はVM Service非依存で扱う。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
+通常のアプリ操作コマンドはCLI parserとdaemonのCommandRegistryへ同じコマンド名を登録する。recordはSessionManagerの共通session queueでRecordServiceへ分岐する。録画にbackendやURIを渡さず、すべてVM Service非依存で扱う。handlerはIPC paramsを信頼せず、未知field、型、必須・排他条件をmutation開始前に再検証する。ref／selectorと有限数の共通検証は`commands/arguments.dart`へ集約する。
 
 CommandContextにsession実行、対象解決、期限確認、ref失効、mutationの1回送信を集約する。handlerは独自のqueue、retry、session生成、ref保存、接続破棄を実装しない。外部のCLI組立向けの型は`lib/marionette_agent.dart`から公開し、内部handlerは必要なファイルを直接importする。上流connectorやresponse mapをコマンド層へ漏らさない。
 
@@ -299,40 +299,37 @@ runnerはCLI開始時の共通絶対deadlineをそのままwriterへ渡す。復
 
 ## 内部プラットフォームサービス
 
-プラットフォームサービスは共通interfaceと対象別パッケージに分割する。`marionette_agent_platform_interface`が`PlatformException`、録画・起動契約、対象識別、`host_support.dart`の共通プロセス・期限・cleanup補助を所有する。各実装はinterfaceと自身のSDK依存だけを参照し、CLIや他の実装パッケージへ依存しない。
+プラットフォームサービスは共通interfaceと対象別パッケージに分割する。`marionette_agent_platform_interface`が`PlatformException`、録画・起動契約、対象識別、`host_support.dart`の共通プロセス・期限・cleanup補助を所有する。各実装はinterface・共通video package・自身のSDK依存を参照し、CLIや他の対象別実装に依存しない。
 
 | パッケージ | 責務 |
 | --- | --- |
-| `marionette_agent_ios` | Simulator列挙、private端末の起動・終了、simctl録画 |
-| `marionette_agent_android` | adb列挙、SDK探索、emulator起動、screenrecord回収 |
+| `marionette_agent_ios` | Simulator列挙、private端末の起動・終了、XCTest画面取得 |
+| `marionette_agent_android` | adb列挙、SDK探索、emulator起動、UI Automator画面取得 |
 | `marionette_agent_macos` | 非表示Flutter runner設定、native display録画 |
-| `marionette_agent_web` | headless Chrome起動、可視Chrome録画の終了監視・権限確認。display recorderは注入する |
-| `marionette_agent_flutter` | tester起動、PNG/ffmpeg録画、任意のFlutter debug provider |
+| `marionette_agent_web` | headless Chrome起動、CDP viewport録画 |
+| `marionette_agent_flutter` | tester起動、任意のFlutter debug provider |
+| `marionette_agent_video` | 時刻付きplatform PNG取得とnative H.264変換 |
 
-`lib/src/platform/`がhost OSと独立した明示的な**操作対象**platformに応じて実装を組み立てる。録画の予約・保存・FPS変換と、アプリ起動・disposeの共通調整を所有する。hostのプロセス補助は`host_support.dart`へ置き、`marionette_agent_flutter/flutter.dart`はアプリ側Flutter providerだけをexportする。CLIのimport経路にFlutter engineは不要。macOS CLIからiOS・Android・Web等を選ぶため、Flutter pluginの自動登録は使わない。
+`lib/src/platform/`がhost OSと独立した明示的な**操作対象**platformに応じて実装を組み立てる。録画の予約・保存と、アプリ起動・disposeの共通調整を所有する。hostのプロセス補助は`host_support.dart`へ置き、`marionette_agent_flutter/flutter.dart`はアプリ側Flutter providerだけをexportする。CLIのimport経路にFlutter engineは不要。macOS CLIからiOS・Android・Web等を選ぶため、Flutter pluginの自動登録は使わない。
 
-旧`marionette_agent_util`パッケージは削除する。Flutterアプリは依存先を`packages/marionette_agent_flutter`、importを`package:marionette_agent_flutter/flutter.dart`へ変更する。公開provider関数とextension名は維持する。CLIは同じPub workspaceの6パッケージへ直接依存し、すべて`publish_to: none`とする。ルートのlockfileを共有し、依存はルートで`flutter pub get`を一度実行する。配布には全パッケージを含むcheckoutまたはコンパイル済みCLIを使う。
+旧`marionette_agent_util`パッケージは削除する。Flutterアプリは依存先を`packages/marionette_agent_flutter`、importを`package:marionette_agent_flutter/flutter.dart`へ変更する。公開provider関数とextension名は維持する。CLIは同じPub workspaceのplatform・videoパッケージへ直接依存し、すべて`publish_to: none`とする。ルートのlockfileを共有し、依存はルートで`flutter pub get`を一度実行する。配布には全パッケージを含むcheckoutまたはコンパイル済みCLIを使う。
 
-record start、connect、launchがdaemonを自動起動できる。sessionは録画だけでも予約・保持でき、後からVM Serviceを接続できる。recordのstart/stop/statusとcloseは既存session queueで直列化し、長時間のフレーム処理はqueue外で継続する。録画にはUI mutationのExecution.boundを使わず、CLIの共通管理が開始期限・停止後の有界cleanup・状態を管理する。VM Serviceのepoch破棄は録画handleへ波及しない。Flutter録画用接続の取得失敗はその録画を失敗へ遷移させる。
+record start、connect、launchがdaemonを自動起動できる。sessionは録画だけでも予約・保持でき、後からVM Serviceを接続できる。recordのstart/stop/statusとcloseは既存session queueで直列化し、長時間のフレーム処理はqueue外で継続する。録画にはUI mutationのExecution.boundを使わず、CLIの共通管理が開始期限・停止後の有界cleanup・状態を管理する。VM Serviceのepoch破棄は録画handleへ波及しない。
 
-RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に返す。startのbackend待ちは要求期限と30秒上限で打ち切り、遅れて生成されたhandleの停止・予約回収は追跡付きcleanupとして継続する。start時の終了競合や停止失敗でも、handleの終了確認まではdevice予約を解放しない。stopの要求期限超過後も終了処理を保持し、終わるまで同じdeviceへ別録画を開始しない。Androidの自動終了も同じfinalizationへ合流する。closeでは録画を確定してから所有権を解放する。daemonのSIGINT/SIGTERMではRecordingManager.disposeが開始待ち・停止・保存・追跡cleanup全体を60秒に制限する。期限超過時はRecordingHandle.abortで所有プロセスを強制停止し、ファイル読込をキャンセルして出力を閉じる（追加待ちは最大5秒）。stagingと未確定の予約先を保持し、遅延完了で動画を公開しない。Androidは固有remote pathとPIDを照合して強制停止を試みるが、端末切断時の成功は保証しない。OSで進行中のI/Oは取り消しを保証できないため削除と競合させない。
+RecordingManagerは開始前にdeviceを予約し、backendの開始確認後に返す。startのbackend待ちは要求期限と120秒上限で打ち切り、遅れて生成されたhandleの停止・予約回収は追跡付きcleanupとして継続する。start時の終了競合や停止失敗でも、handleの終了確認まではdevice予約を解放しない。stopの要求期限超過後も終了処理を保持し、終わるまで同じdeviceへ別録画を開始しない。取得の予期しない終了も同じfinalizationへ合流する。closeでは録画を確定してから所有権を解放する。daemonのSIGINT/SIGTERMではRecordingManager.disposeが開始待ち・停止・保存・追跡cleanup全体を60秒に制限する。期限超過時はRecordingHandle.abortで所有プロセスを強制停止し、ファイル読込をキャンセルして出力を閉じる（追加待ちは最大5秒）。stagingと未確定の予約先を保持し、遅延完了で動画を公開しない。Androidはcapture socketを閉じ、外部所有のinstrumentationを終了しない。OSで進行中のI/Oは取り消しを保証できないため削除と競合させない。
 
-CLIのRecordingManagerが出力先予約とprivate stagingを所有し、iOS・Android・macOS実装が共通process補助を使ってnative起動・signal・回収を所有する。CLIのstdoutへ子プロセスの出力を流さず、失敗はPlatformException→AgentErrorへ変換する。未対応linux/windowsもCLIの実装選択層でthrowし、CLI parserとdaemonの両方で共通検証する。
+CLIのRecordingManagerが出力先予約とprivate stagingを所有し、対象別実装がnative起動・観測・cleanupを所有する。iOS/macOSは共通process補助を使う。CLIのstdoutへ子プロセスの出力を流さず、失敗はPlatformException→AgentErrorへ変換する。未対応linux/windowsもCLIの実装選択層でthrowし、CLI parserとdaemonの両方で共通検証する。
 
 単体テストは保存保護・端末排他・開始失敗・停止期限・異常終了・終了競合、CLIテストは未接続録画session・ref保持・通信断後の継続・close・未対応platformを検証する。`integration_test/record_smoke.dart`は製品CLIで開始→接続→操作→動画確定→重複stop→上書き拒否→close確定を確認する。実動画を復号して画面変化を確認する。
 
 <a id="recording-rendered-output-from-hidden-apps-issue-20"></a>
 <a id="非表示アプリの描画録画issue-20"></a>
 
-### 非表示アプリの描画録画（Issue #20）
+### native録画の境界
 
-`ScreenshotConnectionBackend`は任意のbackend能力で、録画専用`ScreenshotConnection`の作成だけを公開する。`MarionetteBackend`が上流connectorを別インスタンスで開き、captureとdisconnectを提供する。この接続ではinteraction providerをdiscoverせず、切断時にkeyboard.releaseを呼ばない。操作sessionの接続・epoch・refとは独立する。
+`RecordService`はbackendやURIを受け取らない。対象別packageが取得を所有する。iOSは常駐XCTest/XCUIScreen、Androidはペアリング済みUI Automator、macOSはScreenCaptureKit、WebはCDP viewport取得を使う。`marionette_agent_video`は対象別packageの下に置く共通encode依存で、platform契約と同梱FFmpegKit C ABIだけを参照する。時刻付きPNG staging・VFR encode・cancel・エラー確認を所有し、Marionette接続を持たない。platform interfaceは実装に依存しない。旧Flutter録画adapter・screenshot connection能力・CLI/MCP導線・コマンド式capture backend・録画後FPS変換を削除する。`RecordingManager`は予約・保存・遅延cleanupの所有権を維持する。
 
-`FlutterScreenRecorder`はこの接続の所有・開始期限・base64変換を扱うadapter。上流内部importは`marionette_backend.dart`に限定する。Flutterパッケージの`PngScreenRecorder`はcapture/closeコールバックだけに依存し、PNG寸法検証、逐次ファイル保存、単調時計の取得時刻、ffconcatによるVFR変換を所有する。RecordingManagerへ録画ごとにScreenRecorderを注入し、既存の保存保護・停止・close・遅延cleanupを共有する。`FfmpegKitVideoEncoder`が固定版`ffmpeg_kit_extended_flutter: 1.0.0`の生成C ABIを隔離し、CLIで公開Flutter barrelのdart:ui依存を避ける。Process実行をnative argvとsession単位のcancelへ置き換える。root hookはPNG decoderを含むvideo/LGPL/smallを選び、macOS H.264はsoftware fallbackを許可したVideoToolboxを使う。hostのffmpeg実行ファイルは不要。timeout後もnativeの終了確認までhandleの所有権を保つ。終了コードと構造化されたerror-levelログを併せて確認し、破損入力からの部分動画を成功として公開しない。個別captureは5秒、feedの終了は5秒、ffmpeg変換は30秒で制限する。取得エラーを成功動画に変えず、復旧用stagingにはPNGと生成途中の動画が残る場合がある。
-
-macOS fixtureのMainFlutterWindowは明示環境変数でNSWindowの表示を抑え、FlutterEngineを開始する。Flutter側はdebug限定の`enableHeadlessRendering()`でhidden/paused/detachedの通知を変更せず、16ms間隔のscheduleForcedFrameでフレーム生成を維持する。可視状態への復帰とdisposeでtimerを停止する。他のアプリは自分のnative windowを隠す処理を持つ必要がある。通常起動はopt-inなしで既存のlifecycleに従う。iOS/Android/Webはそれぞれの標準ヘッドレス起動手段を使い、testerによるプラットフォーム模倣はしない。
-
-`record_smoke.dart`はplatform=flutterの場合connectまたはlaunchを先に行い、testerを含む5環境共通で操作・録画保存・重複stop・既存出力保護・closeによる保存を検証する。PNG recorderの単体テストは取得失敗・寸法変更・途中abort・変換失敗・実取得間隔を扱い、widgetテストは描画維持のopt-inと解除を検証する。
+iOS録画中のスクリーンショットは同じdaemonの録画Runnerを共有する。Androidの画像取得はペアリング単位で直列化し、録画とスクリーンショットが一時listenerを競合しないようにする。
 
 <a id="common-options-issues-2-and-8"></a>
 <a id="共通オプションissue-28"></a>
@@ -361,15 +358,9 @@ Session.interruptは現在のExecutionだけを起こし、Execution.boundは自
 <a id="web-display-recording-issue-16"></a>
 <a id="webディスプレイ録画issue-16"></a>
 
-## Webディスプレイ録画（Issue #16）
+## Chromium pageの録画
 
-`web_target.dart`が`display:<index>@<local page endpoint>`の閉じた構文を定義する。RecordingTargetのkeyはWebも`macos:<display>`へ写し、RecordingManagerの同期予約でWeb同士・macosとの物理対象排他を共有する。extensionはRecordingTargetが持ち、Web/macOSはMOV、iOS/AndroidはMP4としてvalidationとstaging名を一致させる。
-
-`WebScreenRecorder`は専用HttpClient（proxyなし）で明示したloopback pageに接続し、Browser.getVersion・Target.getTargetInfo・Inspector.enableを期限内に確認する。CDPのrawエラーは公開せず、許可された説明へ変換する。遅延WebSocket upgradeは閉じる。Chromeとの接続は監視専用で、ページ操作・画像転送・VM Serviceには使わない。
-
-Chrome検証後に同じPlatformScreenRecorderのmacos backendへ明示したdisplayを渡す。wrapper handleはtab終了・crash・接続断を失敗としてnative stopへ合流させる。開始中切断時も後から返ったnative handleを停止する。nativeのisRunning/endedを保持して、終了未確認のdisplay予約を解放しない。通常stop/abortで自分のCDP接続だけを閉じ、Chromeや他のタブを終了しない。CLI側は従来のRecordServiceとsession queue、共通エラー変換をそのまま使う。
-
-Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読み取り、未許可ならChrome接続・native録画の前にIO_ERRORで拒否する。許可要求APIは呼ばない。APIを利用できない環境はUNSUPPORTED_CAPABILITYとする。
+`web_target.dart`はloopbackのpage endpointだけを受理する。Webのtarget keyはpage endpointで、macOS displayと独立する。Web/iOS/AndroidはMP4、macOSはMOV。`WebScreenRecorder`はBrowser.getVersion・Target.getTargetInfoを確認し、Inspectorの終了通知を監視し、Page.captureScreenshotでviewport PNGを取得する。stop/abortは所有するCDP接続だけを閉じる。接続断では再接続や対象切替をせず失敗する。共通video packageがPNG検証と取得時刻に基づくencodeを担当する。OSの画面収録許可は不要。
 
 <a id="additional-flutter-features"></a>
 <a id="flutter向け追加機能"></a>
@@ -384,7 +375,7 @@ Web開始時はCoreGraphicsの`CGPreflightScreenCaptureAccess`をDart FFIで読�
 - batchはsession queueを1枠占有し、各stepは別Executionで1回送信ガードを維持する。失敗時はそこで止まり、進捗を返す。workflow v1の構文は変更しない。
 - action policyはsession queue内の実行前に検査し、find/batch/workflowの内包操作も検査する。保留要求はsessionの接続世代と有効期限へ固定し、承認時に1回だけ取り出して通常の対象解決を実行する。close／切断は保留を破棄する。policyは同一ユーザーが変更できるopt-in機能で、IPCの認可境界ではない。
 - config、connection state、diff、install/upgradeはCLI側のファイル処理。接続stateの認証URIはprivate IPCから0600の新規ファイルへ書き、公開応答へ戻さない。namespaceはruntimeの名前を分離する。doctorは通常read-onlyで、fix指定時だけ自身所有runtime directoryのmodeを修復する。
-- iOS/Androidパッケージがdevice列挙のプロセスを所有し、CLIの実装選択層がFPS変換を所有する。FPSはprivate stagingでの録画確定後変換で、native取得頻度を保証しない。restartは同じ録画queue内でstop→startを行い、旧動画を確定する。新規開始の失敗時に旧録画を再開しない。
+- iOS/Androidパッケージがdevice列挙のプロセスを所有し、各platformが取得間隔を制御し、video packageが実取得時刻を保持する。restartは同じ録画queue内でstop→startを行い、旧動画を確定する。新規開始の失敗時に旧録画を再開しない。
 
 <a id="ownership-of-hybrid-execution-environments"></a>
 <a id="ハイブリッド実行環境の所有権"></a>

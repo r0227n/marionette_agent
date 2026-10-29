@@ -2,6 +2,11 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
+# Git hooks export checkout-specific context. Flutter probes its own SDK Git
+# repository, so do not let those variables redirect its version lookup here.
+while IFS= read -r quality_git_variable; do
+  unset "$quality_git_variable"
+done < <(git rev-parse --local-env-vars)
 export DART_SUPPRESS_ANALYTICS=true
 
 if [[ "$(uname -s)" != Darwin ]]; then
@@ -25,7 +30,7 @@ dart analyze
 dart run tool/check_release.dart
 dart run tool/license_notices.dart --check
 dart test --concurrency=1 --timeout=2m
-for package in platform_interface ios android macos web flutter; do
+for package in platform_interface ios android macos web flutter video; do
   if [[ -d "packages/marionette_agent_$package/test" ]]; then
     (
       cd "packages/marionette_agent_$package"

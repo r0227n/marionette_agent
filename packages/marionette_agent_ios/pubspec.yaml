@@ -8,6 +8,8 @@ environment:
   sdk: ^3.13.2
 
 dependencies:
+  marionette_agent_video:
+    path: ../marionette_agent_video
   marionette_agent_platform_interface:
     path: ../marionette_agent_platform_interface
 

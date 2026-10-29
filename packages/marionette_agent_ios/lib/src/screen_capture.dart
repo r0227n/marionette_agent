@@ -4,7 +4,9 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
+import 'package:marionette_agent_platform_interface/host_support.dart';
+
+import 'package:marionette_agent_video/marionette_agent_video.dart';
 
 import 'capture_runner_assets.dart';
 
@@ -17,6 +19,11 @@ class IosScreenCapturer implements ScreenCapturer {
     this.temporaryRoot,
   }) : _isMacOS = isMacOS ?? Platform.isMacOS;
 
+  static final _recordingFeeds =
+      <
+        String,
+        ({String token, String runtime, Future<List<int>> Function() capture})
+      >{};
   final String xcrun;
   final bool _isMacOS;
   final Directory? temporaryRoot;
@@ -120,6 +127,22 @@ class IosScreenCapturer implements ScreenCapturer {
       );
     }
     final selected = matches.single;
+    final feed = _recordingFeeds[selected.device.toUpperCase()];
+    if (feed != null) {
+      final png = await feed.capture().timeout(
+        deadline.difference(DateTime.now()),
+      );
+      return DeviceScreenshot(
+        png: Uint8List.fromList(png),
+        source: 'ios-simulator',
+        device: selected.device,
+        runtime: feed.runtime,
+        display: 'main',
+        mask: 'system-default',
+        method: 'xcuiscreen',
+      );
+    }
+
     await _prepare(deadline);
     final work = await _build!.createTemp('capture-');
     try {
@@ -207,6 +230,210 @@ class IosScreenCapturer implements ScreenCapturer {
     } finally {
       await _terminate(selected.device);
       await work.delete(recursive: true).catchError((Object _) => work);
+    }
+  }
+
+  /// One long-lived XCTest run supplies OS frames; no per-frame runner launch.
+  Future<RecordingHandle> record(
+    RecordingTarget target,
+    String path,
+    DateTime deadline,
+  ) async {
+    if (!_isMacOS || !_udid.hasMatch(target.device)) {
+      throw const PlatformException(
+        'UNSUPPORTED_CAPABILITY',
+        'Recording requires an iOS Simulator and Xcode',
+      );
+    }
+    Process? runner;
+    ServerSocket? reservation;
+    String? planPath;
+    final token = List.generate(
+      32,
+      (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
+    Future<void> close() async {
+      if (_recordingFeeds[target.device.toUpperCase()]?.token == token) {
+        _recordingFeeds.remove(target.device.toUpperCase());
+      }
+      runner?.kill(ProcessSignal.sigint);
+      if (runner != null) {
+        try {
+          await runner.exitCode.timeout(const Duration(seconds: 3));
+        } on TimeoutException {
+          runner.kill(ProcessSignal.sigkill);
+        }
+      }
+      await _terminate(target.device);
+      if (planPath != null) {
+        await File(planPath).delete().catchError((Object _) => File(planPath!));
+      }
+      await dispose();
+    }
+
+    try {
+      final inventory = jsonDecode(
+        utf8.decode(
+          await _run([
+            'simctl',
+            'list',
+            'devices',
+            'booted',
+            '--json',
+          ], deadline),
+        ),
+      ) as Map;
+      final matches = <String>[];
+      for (final entry in (inventory['devices'] as Map).entries) {
+        if (!(entry.key as String).startsWith(
+          'com.apple.CoreSimulator.SimRuntime.iOS-',
+        )) {
+          continue;
+        }
+        for (final item in entry.value as List) {
+          if ((item['udid'] as String).toUpperCase() ==
+                  target.device.toUpperCase() &&
+              item['state'] == 'Booted' &&
+              item['isAvailable'] != false) {
+            matches.add(entry.key as String);
+          }
+        }
+      }
+      if (matches.length != 1) {
+        throw PlatformException(
+          matches.isEmpty ? 'UNRESOLVABLE_TARGET' : 'AMBIGUOUS_TARGET',
+          'Select one available booted iOS Simulator',
+        );
+      }
+      await _prepare(deadline);
+      _devices.add(target.device);
+      reservation = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final port = reservation.port;
+      final plan = jsonDecode(
+        await runRecordingCommand('/usr/bin/plutil', [
+          '-convert',
+          'json',
+          '-o',
+          '-',
+          _testRun!,
+        ], deadline),
+      );
+      void configure(dynamic node) {
+        if (node is Map) {
+          if (node.containsKey('TestBundlePath')) {
+            (node['EnvironmentVariables'] ??= <String, dynamic>{}).addAll({
+              'MRA_RECORD_PORT': '$port',
+              'MRA_RECORD_TOKEN': token,
+            });
+          }
+          for (final value in node.values) {
+            configure(value);
+          }
+        } else if (node is List) {
+          for (final value in node) {
+            configure(value);
+          }
+        }
+      }
+
+      configure(plan);
+      planPath = '${File(_testRun!).parent.path}/record.xctestrun';
+      final jsonPath = '${_build!.path}/record.json';
+      await File(jsonPath).writeAsString(jsonEncode(plan));
+      await runRecordingCommand('/usr/bin/plutil', [
+        '-convert',
+        'xml1',
+        '-o',
+        planPath,
+        jsonPath,
+      ], deadline);
+      await reservation.close();
+      reservation = null;
+      runner = await Process.start(xcrun, [
+        'xcodebuild',
+        'test-without-building',
+        '-xctestrun',
+        planPath,
+        '-destination',
+        'platform=iOS Simulator,id=${target.device}',
+        '-parallel-testing-enabled',
+        'NO',
+        '-only-testing:ScreenCapture/Capture/testStream',
+      ]);
+      unawaited(runner.stdout.drain<void>());
+      unawaited(runner.stderr.drain<void>());
+      int? exit;
+      unawaited(
+        runner.exitCode.then((value) {
+          exit = value;
+        }),
+      );
+      var first = true;
+      Future<List<int>> capture() async {
+        final limit = first
+            ? deadline
+            : DateTime.now().add(const Duration(seconds: 5));
+        Socket? socket;
+        while (socket == null) {
+          _check(limit);
+          if (exit != null) {
+            throw const PlatformException(
+              'IO_ERROR',
+              'XCTest recording runner exited',
+            );
+          }
+          try {
+            socket = await Socket.connect(
+              InternetAddress.loopbackIPv4,
+              port,
+              timeout: const Duration(milliseconds: 200),
+            );
+          } on SocketException {
+            if (!first) {
+              throw const PlatformException(
+                'CONNECTION_LOST',
+                'XCTest recording disconnected',
+              );
+            }
+            await Future<void>.delayed(const Duration(milliseconds: 100));
+          }
+        }
+        first = false;
+        try {
+          socket.write('$token\n');
+          await socket.flush();
+          final bytes = BytesBuilder();
+          await socket
+              .forEach((chunk) {
+                if (bytes.length + chunk.length > 32 * 1024 * 1024) {
+                  throw const PlatformException(
+                    'IO_ERROR',
+                    'XCTest frame too large',
+                  );
+                }
+                bytes.add(chunk);
+              })
+              .timeout(limit.difference(DateTime.now()));
+          return bytes.takeBytes();
+        } finally {
+          socket.destroy();
+        }
+      }
+
+      final handle = await PngScreenRecorder(
+        capture: capture,
+        close: close,
+      ).start(target, path, deadline);
+      _recordingFeeds[target.device.toUpperCase()] = (
+        token: token,
+        runtime: matches.single,
+        capture: capture,
+      );
+      return _RunnerRecording(handle, runner);
+    } catch (_) {
+      await reservation?.close();
+      await close();
+      rethrow;
     }
   }
 
@@ -374,4 +601,34 @@ class IosScreenCapturer implements ScreenCapturer {
       await _build!.delete(recursive: true).catchError((Object _) => _build!);
     }
   }
+}
+
+/// Keep the device reserved until both acquisition and the owned test process end.
+class _RunnerRecording implements RecordingHandle {
+  _RunnerRecording(this.frames, Process runner) {
+    final exited = runner.exitCode.then((_) {
+      _running = false;
+    });
+    // A failed frame feed ends before its runner. Close it here so waiting for
+    // process termination cannot deadlock automatic finalization in the manager.
+    final finalized = frames.ended.then((_) async {
+      try {
+        await frames.stop();
+      } catch (_) {
+        // stop retains the original failure for the manager's later call.
+      }
+    });
+    ended = Future.wait([finalized, exited]).then((_) {});
+    unawaited(ended.catchError((Object _) {}));
+  }
+  final RecordingHandle frames;
+  bool _running = true;
+  @override
+  late final Future<void> ended;
+  @override
+  bool get isRunning => _running || frames.isRunning;
+  @override
+  Future<void> stop() => frames.stop();
+  @override
+  Future<void> abort() => frames.abort();
 }

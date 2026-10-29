@@ -33,7 +33,11 @@ Future<void> main() async {
             },
             close: () async {},
           ).start(
-            const RecordingTarget(RecordingPlatform.flutter, 'test', fps: 10),
+            const RecordingTarget(
+              RecordingPlatform.android,
+              '/tmp/pairing.json',
+              fps: 10,
+            ),
             output,
             DateTime.now().add(const Duration(seconds: 5)),
           );
@@ -112,10 +116,10 @@ Future<void> main() async {
       addTearDown(manager.dispose);
       final output = '${dir.path}/result.mp4';
       await manager.start(
-        owner: 'test',
+        owner: '/tmp/pairing.json',
         target: const RecordingTarget(
-          RecordingPlatform.flutter,
-          'test',
+          RecordingPlatform.android,
+          '/tmp/pairing.json',
           fps: 60,
         ),
         path: output,
@@ -135,12 +139,15 @@ Future<void> main() async {
       );
       await sampled.future;
       await expectLater(
-        manager.stop('test', DateTime.now().add(const Duration(seconds: 10))),
+        manager.stop(
+          '/tmp/pairing.json',
+          DateTime.now().add(const Duration(seconds: 10)),
+        ),
         throwsA(
           isA<PlatformException>().having((e) => e.code, 'code', 'IO_ERROR'),
         ),
       );
-      expect(manager.status('test')['recordingState'], 'failed');
+      expect(manager.status('/tmp/pairing.json')['recordingState'], 'failed');
       expect(File(output).lengthSync(), 0);
     },
     skip: available ? false : 'Requires local ffmpeg and ffprobe',

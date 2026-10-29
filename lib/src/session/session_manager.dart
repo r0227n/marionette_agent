@@ -229,11 +229,7 @@ class SessionManager {
     if (request.command == 'launch') return _launch(request, session);
     if (request.command == 'deny') return {'denied': true};
     if (request.command == 'record') {
-      return recordings.handle(
-        request,
-        backend: session.status == 'connected' ? session.backend : null,
-        uri: session.status == 'connected' ? session.uri : null,
-      );
+      return recordings.handle(request);
     }
     if (request.command == 'close') {
       if (request.params.isNotEmpty) invalid();

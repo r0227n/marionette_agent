@@ -12,6 +12,7 @@ void main() {
     'packages/marionette_agent_macos/pubspec.yaml',
     'packages/marionette_agent_web/pubspec.yaml',
     'packages/marionette_agent_flutter/pubspec.yaml',
+    'packages/marionette_agent_video/pubspec.yaml',
     'example/pubspec.yaml',
   ]) {
     final spec = loadYaml(File(path).readAsStringSync()) as YamlMap;
