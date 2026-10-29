@@ -370,7 +370,7 @@ ref注釈と論理座標の対象cropは削除しました。OS画面撮影は�
 - `skills path`は探索対象ディレクトリを1行ずつ、`skills path <name>`は名前に対応するSkillディレクトリを返す。ディレクトリ名ではなくfrontmatterのnameで検索する。
 - `skills --help` / `-h`で専用help。`--json`はコマンドの前後で使用可能。共通契約の未知オプション・重複・余剰引数の検証を使用する。
 
-`skills/marionette-agent/SKILL.md`は`hidden: true`の導入用stub。`skill-data/core/`と`skill-data/simulator-verify/`が実行時ガイドで、それぞれ補助reference/templateも同梱する。直下サブディレクトリのSKILL.mdからname・description・hiddenを簡易パースする。descriptionのインデント継続行は空白で連結、hiddenはtrue/yesを認識する。name欠損・空文字、frontmatter不正、読取不能なエントリは無視。frontmatterの開始・終了は独立した`---`行とし、LFとCRLFを受理する。hiddenはlist/--allから除外するが明示名でget/pathできる。空一覧は成功、get対象なしや未知名は失敗。重複nameは両方を一覧に残し、明示名では探索順の先頭を使う。
+`skills/marionette-agent/SKILL.md`は`hidden: true`の導入用stub。`skill-data/core/`・`skill-data/dogfood/`・`skill-data/simulator-verify/`が実行時ガイドで、それぞれ補助reference/templateも同梱する。英語のdogfoodガイドはFlutterの探索的QAを扱い、問題の分類基準と再現可能なレポートのテンプレートを含む。直下サブディレクトリのSKILL.mdからname・description・hiddenを簡易パースする。descriptionのインデント継続行は空白で連結、hiddenはtrue/yesを認識する。name欠損・空文字、frontmatter不正、読取不能なエントリは無視。frontmatterの開始・終了は独立した`---`行とし、LFとCRLFを受理する。hiddenはlist/--allから除外するが明示名でget/pathできる。空一覧は成功、get対象なしや未知名は失敗。重複nameは両方を一覧に残し、明示名では探索順の先頭を使う。
 
 保存先の解決は、既存の`MARIONETTE_AGENT_SKILLS_DIR`（単独のSkill親ディレクトリ）を最優先する。不正・不存在のoverrideは通常探索へ戻す。通常は実行ファイルのsymlinkを解決し、親の親にskills/がある配布root、または実行ファイルから上方のskills/を持つrootのskills/とskill-data/を使う。Dart起動では実行package URIからpackage rootを解決するfallbackを持ち、呼出元cwdから別packageを選ばない。install/upgrade済みCLIは、実行ファイルのbinディレクトリに隣接するmarkerで版別bundleを識別する。そのbundle内のガイドが失われた場合に別版へfallbackしない。
 
