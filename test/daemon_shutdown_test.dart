@@ -27,6 +27,17 @@ class _DelayedDispose extends SessionManager {
   }
 }
 
+class _FailingDispose extends SessionManager {
+  _FailingDispose() : super(FakeBackend.new, coreCommands());
+  final failure = StateError('cleanup failed');
+
+  @override
+  Future<void> dispose() async {
+    await super.dispose();
+    throw failure;
+  }
+}
+
 class _StalledRecorder implements ScreenRecorder, RecordingHandle {
   final done = Completer<void>();
   bool aborted = false;
@@ -50,6 +61,50 @@ class _StalledRecorder implements ScreenRecorder, RecordingHandle {
 }
 
 void main() {
+  for (final triggeredByCallback in [false, true]) {
+    test(
+      'cleanup failure releases daemon resources (callback: $triggeredByCallback)',
+      () async {
+        final directory = await Directory('/tmp').createTemp('mra-shutdown-');
+        final runtime = await RuntimeDirectory.prepare(
+          directory: directory.path,
+        );
+        final manager = _FailingDispose();
+        final server = DaemonServer(runtime, manager);
+        final running = expectLater(
+          server.run(),
+          throwsA(same(manager.failure)),
+        );
+        try {
+          final deadline = DateTime.now().add(const Duration(seconds: 5));
+          while (manager.onEmpty == null) {
+            if (DateTime.now().isAfter(deadline)) fail('Daemon did not start');
+            await Future<void>.delayed(const Duration(milliseconds: 5));
+          }
+          if (triggeredByCallback) {
+            manager.onEmpty!();
+          } else {
+            await expectLater(server.close(), throwsA(same(manager.failure)));
+          }
+          await running.timeout(const Duration(seconds: 2));
+          expect(File(runtime.metadata).existsSync(), isFalse);
+          expect(
+            FileSystemEntity.typeSync(runtime.socket),
+            FileSystemEntityType.notFound,
+          );
+          final lock = await runtime.lock('daemon.lock', deadline);
+          await lock.unlock();
+          await lock.close();
+          // Re-entry reports the same cleanup result without starting cleanup again.
+          await expectLater(server.close(), throwsA(same(manager.failure)));
+        } finally {
+          await server.close().catchError((Object _) {});
+          await directory.delete(recursive: true);
+        }
+      },
+    );
+  }
+
   test(
     'recording deadline lets daemon release metadata and lifetime lock',
     () async {

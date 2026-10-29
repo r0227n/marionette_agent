@@ -13,6 +13,8 @@ Future<ProcessResult> runProcessUntil(
   List<String> args,
   DateTime deadline,
 ) async {
+  // Reject expired work before it can create a process or produce side effects.
+  remaining(deadline);
   var expired = false;
   final starting = Process.start(executable, args);
   unawaited(
@@ -22,19 +24,28 @@ Future<ProcessResult> runProcessUntil(
   );
   final Process child;
   try {
-    child = await starting.timeout(remaining(deadline));
-  } finally {
+    child = await starting.timeout(deadline.difference(DateTime.now()));
+  } catch (_) {
     expired = true;
+    rethrow;
   }
-  final output = utf8.decoder.bind(child.stdout).join();
-  final error = utf8.decoder.bind(child.stderr).join();
+  // Observe all pipe failures immediately, including errors before exitCode.
+  // No caller supplies stdin, so EOF must not depend on the child exiting.
+  final completion = Future.wait<Object?>([
+    child.exitCode,
+    utf8.decoder.bind(child.stdout).join(),
+    utf8.decoder.bind(child.stderr).join(),
+    child.stdin.close(),
+  ], eagerError: true);
   try {
-    final code = await child.exitCode.timeout(remaining(deadline));
+    final values = await completion.timeout(
+      deadline.difference(DateTime.now()),
+    );
     return ProcessResult(
       child.pid,
-      code,
-      await output.timeout(remaining(deadline)),
-      await error.timeout(remaining(deadline)),
+      values[0] as int,
+      values[1] as String,
+      values[2] as String,
     );
   } finally {
     child.kill(ProcessSignal.sigkill);

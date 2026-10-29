@@ -563,8 +563,12 @@ class SessionManager {
       await recordings.dispose();
     } finally {
       try {
-        await launcher.dispose();
-        await screenCapturer.dispose();
+        // These owners are independent after recordings have stopped. A
+        // failure in either must not prevent the other from releasing resources.
+        await Future.wait([
+          Future<void>.sync(launcher.dispose),
+          Future<void>.sync(screenCapturer.dispose),
+        ]);
       } finally {
         for (final session in sessions.values) {
           session.discard();
