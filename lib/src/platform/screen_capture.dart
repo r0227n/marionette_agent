@@ -23,9 +23,9 @@ class _ScreenCapturer implements ScreenCapturer {
       : _ios.capture(device, deadline);
 
   @override
-  Future<void> dispose() async {
-    await _macos.dispose();
-    await _ios.dispose();
-    await _android.dispose();
-  }
+  Future<void> dispose() => Future.wait([
+    Future<void>.sync(_macos.dispose),
+    Future<void>.sync(_ios.dispose),
+    Future<void>.sync(_android.dispose),
+  ]);
 }

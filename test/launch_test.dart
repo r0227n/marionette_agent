@@ -8,6 +8,14 @@ import 'package:marionette_agent/src/platform/platform_services.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_backend.dart';
+import 'support/fake_screen_capturer.dart';
+
+class _DisposalCapturer extends FakeScreenCapturer {
+  _DisposalCapturer() : super([]);
+  bool disposed = false;
+  @override
+  Future<void> dispose() async => disposed = true;
+}
 
 class App implements RunningApplication {
   final done = Completer<int>();
@@ -192,16 +200,19 @@ void main() {
     'dispose retires backend sessions even when app cleanup fails',
     () async {
       final backend = FakeBackend();
+      final capturer = _DisposalCapturer();
       manager = SessionManager(
         () => backend,
         coreCommands(),
         launcher: launcher,
+        screenCapturer: capturer,
       );
       await call('launch', args: params);
       launcher.failDispose = true;
       try {
         await expectLater(manager.dispose(), throwsStateError);
         expect(manager.sessions, isEmpty);
+        expect(capturer.disposed, isTrue);
         await Future<void>.delayed(Duration.zero);
         expect(backend.connected, isFalse);
       } finally {
