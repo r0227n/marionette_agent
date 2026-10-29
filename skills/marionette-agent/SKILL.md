@@ -37,6 +37,17 @@ marionette-agent skills get simulator-verify
 marionette-agent skills get simulator-verify --full
 ```
 
+## Exploratory QA
+
+For a Flutter app bug hunt with a reproducible findings report, load:
+
+```sh
+marionette-agent skills get dogfood --full
+```
+
+The guide includes an issue taxonomy and report template, with iOS Simulator
+screenshots and recordings for evidence.
+
 Use `marionette-agent skills list` to discover the installed guides, and
 `marionette-agent skills path <name>` to locate their supplementary files.
 

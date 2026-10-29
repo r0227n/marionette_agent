@@ -68,7 +68,7 @@ marionette_agent/
   pubspec.lock  # Shared dependency resolution
   bin/marionette_agent.dart
   skills/       # Hidden stub for external discovery
-  skill-data/   # Runtime core/simulator-verify guides and supporting files
+  skill-data/   # Runtime core/dogfood/simulator-verify guides and supporting files
   lib/src/
     mcp/        # dart_mcp stdio server, typed tool catalog, CLI process execution
     cli/        # Caller-side parsing, output, file/process handling
