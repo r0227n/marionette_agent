@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -32,7 +34,7 @@ Future<void> main() async {
         cliPath,
         '--json',
         if (!args.contains('--timeout')) ...['--timeout', '30000'],
-        ...args,
+        ...nativeScreenshotArguments(args),
       ],
       environment: {
         'MARIONETTE_AGENT_RUNTIME_DIR': runtime,

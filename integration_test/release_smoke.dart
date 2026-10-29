@@ -6,19 +6,30 @@ import 'package:path/path.dart' as p;
 import 'package:marionette_agent/src/protocol/protocol.dart' as protocol;
 
 /// Source-only checkout -> AOT install -> owned tester -> observe/act -> shutdown.
-/// No Simulator, native build, credentials, or raw app output in the report.
+/// No Simulator, native app build, credentials, or raw app output in the report.
 Future<void> main() async {
   final root = Directory.current.path;
   final private = Directory('/tmp').createTempSync('mra-release-');
   await Process.run('chmod', ['700', private.path]);
   final runtime = p.join(private.path, 'runtime');
-  final destination = Directory(p.join(private.path, 'bin'))..createSync();
-  final binary = p.join(destination.path, 'marionette-agent');
-  final environment = {'MARIONETTE_AGENT_RUNTIME_DIR': runtime};
+  var destination = Directory(p.join(private.path, 'bin'))..createSync();
+  var binary = p.join(destination.path, 'marionette-agent');
+  final tools = Directory(p.join(private.path, 'tools'))..createSync();
+  final externalCall = File(p.join(private.path, 'external-ffmpeg-called'));
+  final trap = File(p.join(tools.path, 'ffmpeg'));
+  trap.writeAsStringSync(
+    '#!/bin/sh\nprintf used > "${externalCall.path}"\nexit 99\n',
+  );
+  await Process.run('chmod', ['700', trap.path]);
+  final environment = {
+    'MARIONETTE_AGENT_RUNTIME_DIR': runtime,
+    'PATH': '${tools.path}:${Platform.environment['PATH'] ?? ''}',
+  };
   final steps = <String>[];
   Future<Map<String, dynamic>> cli(
     List<String> args, {
     bool source = false,
+    int expectedExit = 0,
   }) async {
     final result = await Process.run(
       source ? Platform.resolvedExecutable : binary,
@@ -33,13 +44,13 @@ Future<void> main() async {
       ],
       environment: environment,
     ).timeout(const Duration(minutes: 4));
-    if (result.exitCode != 0) {
+    if (result.exitCode != expectedExit) {
       throw StateError(
         'Release smoke ${args.first} failed (exit ${result.exitCode}); raw output withheld',
       );
     }
     final body = jsonDecode(result.stdout as String) as Map<String, dynamic>;
-    if (body['ok'] != true) {
+    if (body['ok'] != (expectedExit == 0)) {
       throw StateError('Release smoke ${args.first} returned failure');
     }
     steps.add(args.first);
@@ -55,14 +66,34 @@ Future<void> main() async {
             (row) => row['key'] == key,
           )['text']
           as String;
+  Future<Map<String, dynamic>> observe(String key, String expected) async {
+    final limit = DateTime.now().add(const Duration(seconds: 5));
+    while (true) {
+      final snapshot = await cli(['snapshot']);
+      if (text(snapshot, key) == expected) return snapshot;
+      if (!DateTime.now().isBefore(limit)) {
+        throw StateError('Fixture label $key did not reach its expected state');
+      }
+      // Poll only observations; each UI operation above is sent exactly once.
+      await cli(['wait', '100ms']);
+    }
+  }
+
   try {
     await cli(['install', destination.path], source: true);
+    destination = destination.renameSync(p.join(private.path, 'relocated'));
+    binary = p.join(destination.path, 'marionette-agent');
     final version = await cli(['--version']);
     check(
       version['data']['version'] == protocol.version,
       'Installed version mismatch',
     );
-    final bundle = destination.listSync().whereType<Directory>().single;
+    final installation = destination.listSync().whereType<Directory>().single;
+    final bundle = Directory(p.join(installation.path, 'bundle'));
+    check(
+      Directory(p.join(bundle.path, 'lib')).existsSync(),
+      'Missing bundled native libraries',
+    );
     for (final name in ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt']) {
       check(
         File(p.join(bundle.path, name)).readAsStringSync() ==
@@ -71,25 +102,46 @@ Future<void> main() async {
       );
     }
     await cli(['launch', p.join(root, 'example'), '--platform', 'tester']);
+    final recording = p.join(private.path, 'rendered.mp4');
+    await cli([
+      'record',
+      'start',
+      recording,
+      '--platform',
+      'flutter',
+      '--device',
+      'session',
+    ], expectedExit: 2);
     final before = await cli(['snapshot']);
     check(text(before, 'tap_result') == 'Tap count: 0', 'Fixture is not fresh');
     await cli(['tap', '--key', 'tap_button']);
-    final afterTap = await cli(['snapshot']);
+    final afterTap = await observe('tap_result', 'Tap count: 1');
     check(
       text(afterTap, 'tap_result') == 'Tap count: 1',
       'Tap did not change app state',
     );
     await cli(['fill', '--key', 'text_input', 'hello']);
-    final afterFill = await cli(['snapshot']);
+    final afterFill = await observe('fill_result', '5 characters');
     check(
       text(afterFill, 'fill_result') == '5 characters',
       'Fill did not change app state',
     );
+    // The installed tester must reject the removed Flutter screenshot route.
+    // Native XCUIScreen capture is verified separately on iOS Simulator.
     final screenshot = p.join(private.path, 'screen.png');
-    await cli(['screenshot', screenshot]);
-    check(File(screenshot).lengthSync() > 0, 'Screenshot empty');
-    final evidence = Platform.environment['MARIONETTE_RELEASE_SCREENSHOT'];
-    if (evidence != null) File(screenshot).copySync(evidence);
+    final removed = await cli([
+      'screenshot',
+      screenshot,
+      '--source',
+      'flutter',
+    ], expectedExit: 2);
+    check(
+      removed['error']['code'] == 'INVALID_ARGUMENT',
+      'Removed source accepted',
+    );
+    check(!File(screenshot).existsSync(), 'Removed source created an image');
+    check(!File(recording).existsSync(), 'Removed recording created a file');
+    check(!externalCall.existsSync(), 'Unexpected external encoder invocation');
     await cli(['close']);
     for (
       var i = 0;
@@ -103,7 +155,7 @@ Future<void> main() async {
       'Owned daemon did not stop',
     );
     stdout.writeln(
-      'Release smoke passed: ${steps.join(' -> ')}; tap=1, input=5 characters, capture nonempty, daemon stopped.',
+      'Release smoke passed: ${steps.join(' -> ')}; tap=1, input=5 characters, removed screenshot rejected, removed recording rejected, daemon stopped.',
     );
   } finally {
     if (File(binary).existsSync() &&

@@ -2,6 +2,7 @@ import '../backend/backend.dart';
 import '../protocol/protocol.dart';
 import '../snapshot/target.dart';
 import 'arguments.dart';
+import 'native_request.dart';
 import 'command_context.dart';
 
 const swipeCoordinates = ['start-x', 'start-y', 'end-x', 'end-y'];
@@ -33,6 +34,7 @@ class SwipeRequest {
   final CoordinateSwipe? gesture;
 
   static SwipeRequest parse(Json params, {required bool coordinates}) {
+    params = validateUiSource(params);
     final allowed = {
       'ref',
       'direction',

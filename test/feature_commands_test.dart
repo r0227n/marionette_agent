@@ -60,7 +60,14 @@ void main() {
         ),
       ),
     );
-    expect(parser.parse(['screenshot', 'a.png']).params, {'path': 'a.png'});
+    expect(
+      parser.parse([
+        'screenshot',
+        '--device=11111111-2222-3333-4444-555555555555',
+        'a.png',
+      ]).params,
+      {'device': '11111111-2222-3333-4444-555555555555', 'path': 'a.png'},
+    );
     expect(parser.parse(['logs']).params, isEmpty);
   });
   test('bad arguments are rejected before IPC without exposing input', () {
@@ -200,10 +207,7 @@ void main() {
   );
   test('read commands preserve refs, log configuration and failures', () async {
     final target = await ref();
-    backend.screenshots = ['encoded'];
-    expect((await call('screenshot', {})).data, {
-      'images': ['encoded'],
-    });
+    expect((await call('screenshot', {})).error!.code, 'INVALID_ARGUMENT');
     expect((await call('logs', {})).data, {'entries': [], 'configured': true});
     backend.logs = const LogBatch([], configured: false);
     expect((await call('logs', {})).data!['configured'], false);

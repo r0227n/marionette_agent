@@ -10,8 +10,8 @@ sealed class TargetQuery {
 /// Short refs for the latest public snapshot; never reused across sessions.
 class RefQuery extends TargetQuery {
   RefQuery(this.ref) {
-    if (!RegExp(r'^@e[1-9][0-9]*$').hasMatch(ref)) {
-      invalid('Expected a ref such as @e1');
+    if (!RegExp(r'^@[en][1-9][0-9]*$').hasMatch(ref)) {
+      invalid('Expected a ref such as @e1 or @n1');
     }
   }
   final String ref;

@@ -8,3 +8,27 @@ Future<Directory> createEvidenceDirectory(String report, String prefix) async {
   await parent.create(recursive: true);
   return parent.createTemp('$prefix-');
 }
+
+/// Still screenshots observe a selected Simulator, independently of app URI.
+/// Manual smoke callers set this explicitly; a Flutter connection is insufficient.
+List<String> nativeScreenshotArguments(List<String> args) {
+  final index = args.isNotEmpty && args.first == 'screenshot'
+      ? 0
+      : args.length > 1 && args[0] == 'diff' && args[1] == 'screenshot'
+      ? 1
+      : -1;
+  if (index < 0 ||
+      args.contains('--device') ||
+      args.any((a) => a.startsWith('--device='))) {
+    return args;
+  }
+  final device =
+      Platform.environment['MARIONETTE_TEST_DEVICE'] ??
+      Platform.environment['SIMULATOR_UDID'];
+  if (device == null || device.isEmpty) {
+    throw ArgumentError(
+      'Set MARIONETTE_TEST_DEVICE to the selected booted iOS Simulator UDID',
+    );
+  }
+  return [...args.take(index + 1), '--device', device, ...args.skip(index + 1)];
+}

@@ -20,7 +20,7 @@ Define syntax in `cli/commands/` and the catalog, with shared types in `cli/comm
 
 Internal handlers directly import necessary backend/protocol/commands/snapshot definitions, without depending on CLI/args or the public barrel. External composition uses `marionette_agent.dart`. Restrict upstream `marionette_mcp/src/` imports to `backend/marionette_backend.dart`; handlers must not consume raw upstream maps or connector exceptions. See [probe_cli.dart](../integration_test/support/probe_cli.dart) for an executable registration example.
 
-Recording delegates from the shared session queue to RecordService and util. OS screen recording can run without a VM Service connection; Flutter rendering recording requires one. Platform operations and shutdown signals belong in util and do not change operation refs or connection generations.
+Recording delegates from the shared session queue to RecordService and util. All recording is independent of VM Service and uses platform APIs. Platform operations and shutdown signals belong in util and do not change operation refs or connection generations.
 
 <a id="validation"></a>
 ## Validate before mutation
@@ -53,7 +53,7 @@ One Execution sends at most one UI mutation; callbacks call a backend primitive 
 
 SessionManager serializes each session, includes queue time in the deadline, and never executes an expired queued request later. Pre-dispatch rejection is not_sent, confirmed mutation failure is failed, and post-dispatch timeout/disconnection/unclassified failure is unknown. A read timeout/disconnection is not_sent but still discards connection and refs. Late completion of old Futures cannot change a reconnected session.
 
-SnapshotService increases generations and ref numbers across the daemon without reusing numbers between sessions. Hidden elements receive reason:not_visible; elements without a safe unique selector receive reason:no_unique_supported_selector. Neither receives a ref. Binding 0.6.0 supports key/text/type action selectors, not identifier. Verified text origins are Text/RichText/EditableText/TextField/TextFormField.
+SnapshotService increases generations and ref numbers across the daemon without reusing numbers between sessions. Hidden elements receive reason:not_visible; elements without a safe unique selector receive reason:no_unique_supported_selector. Neither receives a ref. Binding 0.1.0 supports key/text, 0.2–0.6 add type, and 0.7 adds identifier action selectors. Verified text origins are Text/RichText/EditableText/TextField/TextFormField.
 
 Reobserve before mutation. Zero matches mean STALE_REF for refs or TARGET_NOT_FOUND for explicit selectors. Multiple matches, including hidden elements, mean AMBIGUOUS_TARGET. Changed ref attributes mean STALE_REF; a unique hidden element or unverified text origin means UNRESOLVABLE_TARGET. Observation and mutation are not atomic, and refs do not fall back to coordinates.
 

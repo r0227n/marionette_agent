@@ -1,3 +1,5 @@
+import 'support/evidence.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -27,7 +29,7 @@ Future<void> main() async {
       '--session',
       'p1-issue-4',
       if (json) '--json',
-      ...args,
+      ...nativeScreenshotArguments(args),
     ]);
     check(!(result.stderr as String).contains(uri), 'URI diagnostic leak');
     final command = args.first == 'connect'
@@ -78,6 +80,7 @@ Future<void> main() async {
         ['--key', 'missing-issue-4'],
         ['--key', 'tap_button'],
         ['--type', 'Text'],
+        ['--identifier', 'tap_button'],
       ]) {
         final count = await cli(['get', 'count', ...target], json: json);
         final kind = target.first.substring(2);
@@ -95,11 +98,6 @@ Future<void> main() async {
       );
       await cli(['get', 'box', '--type', 'Text'], json: json, expected: 4);
       await cli(['get', 'count', button['ref']], json: json, expected: 2);
-      await cli(
-        ['get', 'count', '--identifier', 'tap_button'],
-        json: json,
-        expected: 6,
-      );
     }
     await cli(['screenshot', p.join(evidence.path, 'before.png')]);
     await cli(['tap', button['ref']]);

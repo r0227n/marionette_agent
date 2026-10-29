@@ -9,15 +9,26 @@ class ConnectorFixture extends VmServiceConnector {
   Map<String, dynamic> args = {};
   Object? failure;
   bool extended = false;
+  String? version = '0.6.0';
+  bool hasExtensionRegistry = true;
+  int actionCalls = 0;
+  static final missingMethod = VmServiceExtensionException(
+    'missing',
+    errorCode: -32601,
+  );
+  @override
+  Future<String> getVersion() async => version ?? (throw missingMethod);
   @override
   Future<void> connect(String uri) async {}
   @override
-  Future<Map<String, dynamic>> listExtensions() async => {
-    'status': 'Success',
-    'extensions': [
-      if (extended) {'name': 'marionette_agent.inspect'},
-    ],
-  };
+  Future<Map<String, dynamic>> listExtensions() async => !hasExtensionRegistry
+      ? (throw missingMethod)
+      : {
+          'status': 'Success',
+          'extensions': [
+            if (extended) {'name': 'marionette_agent.inspect'},
+          ],
+        };
   Map<String, dynamic> response = {'status': 'Success', 'message': 'arbitrary'};
   Future<Map<String, dynamic>> call(Map<String, dynamic> input) async {
     args = input;
@@ -26,8 +37,11 @@ class ConnectorFixture extends VmServiceConnector {
   }
 
   @override
-  Future<Map<String, dynamic>> tap(Map<String, dynamic> matcher) =>
-      call(matcher);
+  Future<Map<String, dynamic>> tap(Map<String, dynamic> matcher) {
+    actionCalls++;
+    return call(matcher);
+  }
+
   @override
   Future<Map<String, dynamic>> swipe(Map<String, dynamic> args) => call(args);
   @override
@@ -36,7 +50,10 @@ class ConnectorFixture extends VmServiceConnector {
     String input,
   ) => call({...matcher, 'input': input});
   @override
-  Future<Map<String, dynamic>> getInteractiveElements() => call({});
+  Future<Map<String, dynamic>> getInteractiveElements({
+    List<String> ancestorKeys = const [],
+    String? compaction,
+  }) => call({'compaction': ?compaction});
   @override
   Future<Map<String, dynamic>> takeScreenshots() => call({});
   @override
@@ -49,6 +66,123 @@ class ConnectorFixture extends VmServiceConnector {
 }
 
 void main() {
+  group('published binding compatibility', () {
+    for (final legacyType in [false, true]) {
+      test(
+        'pre-0.4 discovery, health and ${legacyType ? 'VM envelope' : 'status'} responses',
+        () async {
+          final c = ConnectorFixture()
+            ..version = null
+            ..hasExtensionRegistry = false
+            ..response = {
+              if (legacyType) ...{
+                'type': '_extensionType',
+                'method': 'ext.flutter.marionette.interactiveElements',
+              } else
+                'status': 'Success',
+              'elements': [
+                {
+                  'type': 'Text',
+                  'key': 'result',
+                  if (legacyType) 'text': 'Count: 1' else 'data': 'Count: 1',
+                  'visible': true,
+                },
+              ],
+            };
+          final b = MarionetteBackend(connector: c);
+          await b.connect(Uri.parse('ws://localhost:1234/ws'));
+          expect((await b.inspect()).single.text, 'Count: 1');
+          await b.checkConnection();
+          expect(b.selectors.contains(SelectorKind.type), !legacyType);
+          c.response = {
+            if (legacyType) ...{
+              'type': '_extensionType',
+              'method': 'ext.flutter.marionette.tap',
+              'message': 'anything',
+            } else
+              'status': 'Success',
+          };
+          await b.tap(
+            const ElementTarget(Selector(SelectorKind.key, 'button')),
+          );
+          expect(c.actionCalls, 1);
+          c.response = {
+            if (legacyType) ...{
+              'type': '_extensionType',
+              'method': 'ext.flutter.marionette.tap',
+              'error': 'private',
+            } else
+              'status': 'Error',
+            'message': 'Success',
+          };
+          await expectLater(
+            b.tap(const ElementTarget(Selector(SelectorKind.key, 'button'))),
+            throwsA(isA<AgentError>()),
+          );
+          expect(
+            c.actionCalls,
+            2,
+            reason: 'Failed actions must never be resent',
+          );
+          if (legacyType) {
+            expect(
+              () => b.tap(CoordinateTarget(Point(1, 2))),
+              throwsA(
+                isA<AgentError>().having(
+                  (e) => e.code,
+                  'code',
+                  'UNSUPPORTED_CAPABILITY',
+                ),
+              ),
+            );
+            expect(c.actionCalls, 2);
+          }
+        },
+      );
+    }
+    test(
+      '0.7 requests explicit visibility and preserves identifier matcher data',
+      () async {
+        final c = ConnectorFixture()..version = '0.7.0';
+        final b = MarionetteBackend(connector: c);
+        await b.connect(Uri.parse('ws://localhost:1234/ws'));
+        c.response = {
+          'status': 'Success',
+          'elements': [
+            {
+              'type': 'Text',
+              'text': 'Save',
+              'identifier': 'save',
+              'visible': true,
+            },
+          ],
+        };
+        final e = (await b.inspect()).single;
+        expect(e.visible, true);
+        expect(e.identifier, 'save');
+        expect(c.args, {'compaction': 'none'});
+        c.response = {'status': 'Success'};
+        await b.tap(
+          const ElementTarget(Selector(SelectorKind.identifier, 'save')),
+        );
+        expect(c.args, {'identifier': 'save'});
+      },
+    );
+    test(
+      'discovery errors other than missing methods are not ignored',
+      () async {
+        final c = ConnectorFixture()..version = null;
+        c.failure = VmServiceExtensionException('private', errorCode: -32010);
+        await expectLater(
+          MarionetteBackend(connector: c)
+              .connect(Uri.parse('ws://localhost:1234/ws')),
+          throwsA(
+            isA<AgentError>().having((e) => e.code, 'code', 'CONNECTION_LOST'),
+          ),
+        );
+      },
+    );
+  });
   group('inspect provider contracts', () {
     late ConnectorFixture connector;
     late MarionetteBackend backend;
@@ -122,7 +256,7 @@ void main() {
           true,
           false,
         ]);
-        expect(connector.args, isEmpty);
+        expect(connector.args, {'compaction': 'none'});
       },
     );
 
@@ -218,77 +352,7 @@ void main() {
       await expectLater(backend.inspect(), backendError);
     });
   });
-  test('mapped capture validates capability at the adapter boundary', () async {
-    final connector = ConnectorFixture();
-    final backend = MarionetteBackend(connector: connector);
-    final geometry = <String, Object?>{
-      'version': 1,
-      'viewCount': 1,
-      'viewId': '0',
-      'rotation': 0,
-      'originX': 0,
-      'originY': 0,
-      'pixelWidth': 400,
-      'pixelHeight': 600,
-      'logicalWidth': 200,
-      'logicalHeight': 300,
-    };
-    connector.response = {
-      'status': 'Success',
-      'supported': true,
-      'screenshots': ['png'],
-      'geometry': geometry,
-    };
-    expect((await backend.captureMappedScreenshot()).geometry.width, 400);
-    expect(connector.args, {
-      'extension': 'marionette_agent.captureMappedScreenshot',
-    });
-    for (final change in <Map<String, dynamic>>[
-      {'supported': false},
-      {
-        'screenshots': ['one', 'two'],
-      },
-      {
-        'geometry': {...geometry, 'rotation': 90},
-      },
-      {'geometry': {}},
-    ]) {
-      connector.response = {...connector.response, ...change};
-      await expectLater(
-        backend.captureMappedScreenshot(),
-        throwsA(
-          isA<AgentError>().having(
-            (e) => e.code,
-            'code',
-            'UNSUPPORTED_CAPABILITY',
-          ),
-        ),
-      );
-      connector.response = {
-        'status': 'Success',
-        'supported': true,
-        'screenshots': ['png'],
-        'geometry': geometry,
-      };
-    }
-    connector.failure = VmServiceExtensionException(
-      'private',
-      errorCode: -32601,
-      error: 'private',
-    );
-    await expectLater(
-      backend.captureMappedScreenshot(),
-      throwsA(
-        isA<AgentError>()
-            .having((e) => e.code, 'code', 'UNSUPPORTED_CAPABILITY')
-            .having(
-              (e) => e.toString(),
-              'diagnostic',
-              isNot(contains('private')),
-            ),
-      ),
-    );
-  });
+
   test('URI preserves authentication and normalizes websocket suffix', () {
     expect(
       normalizeUri('https://localhost:123/token/?auth=secret').toString(),
@@ -364,20 +428,17 @@ void main() {
     c.failure = null;
     c.response = {
       'status': 'Success',
-      'screenshots': ['abc'],
-    };
-    expect(await b.captureScreenshots(), ['abc']);
-    c.response = {
-      'status': 'Success',
       'logs': ['one', 'two'],
     };
     expect((await b.readLogs()).entries, ['one', 'two']);
-    c.failure = VmServiceExtensionException(
-      'error',
-      errorCode: -32000,
-      error: 'Log collection is not configured.',
-    );
-    expect((await b.readLogs()).configured, false);
+    for (final code in [-32000, -32016]) {
+      c.failure = VmServiceExtensionException(
+        'error',
+        errorCode: code,
+        error: 'Log collection is not configured.',
+      );
+      expect((await b.readLogs()).configured, false);
+    }
   });
   test('Semantics text stays readable but not text-matchable', () {
     final elements = MarionetteBackend.decodeElements({

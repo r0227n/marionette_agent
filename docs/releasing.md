@@ -5,15 +5,16 @@
 ## Current route and scope
 
 Released versions use immutable Git tags and GitHub Releases with source archives.
-For 1.0.1, select `v1.0.1`, resolve the committed lockfile, and compile locally.
-Keep `publish_to: none` in CLI/util/example; global Pub activation and pub.dev
+For 1.1.0, select `v1.1.0`, resolve the committed lockfile, and compile locally.
+Keep `publish_to: none` in CLI/platform/example; global Pub activation and pub.dev
 publication are not supported. Development installations may select a reviewed
 `develop` commit and must record that SHA instead of assuming release behavior.
 
-The installer distributes the native executable and its matching sibling
-`.marionette-agent-*` directory with Skills and LICENSE/NOTICE/THIRD_PARTY_NOTICES.
+The installer distributes an executable launcher and its matching sibling
+`.marionette-agent-*` directory. That directory contains `bundle/bin/` (CLI),
+`bundle/lib/` (FFmpegKit native assets), Skills, and LICENSE/NOTICE/THIRD_PARTY_NOTICES.
 Retain all of these when moving or redistributing a binary. Upgrades preserve old
-bundles; remove only those no installed executable uses. App-side util is consumed
+bundles; remove only those no installed executable uses. App-side Flutter helpers is consumed
 from the same checkout. No prebuilt multi-platform assets are promised.
 
 ## Licensing audit
@@ -23,14 +24,14 @@ Original project code/docs use Apache-2.0, following
 (blob `261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`, checked 2026-10-01).
 NOTICE names this project's contributors without appropriating upstream ownership.
 The dependency files remain verbatim in THIRD_PARTY_NOTICES.txt. The generator
-walks **production** dependencies of CLI/util/example, including app-side Flutter/engine
+walks **production** dependencies of CLI/platform/example, including app-side Flutter/engine
 notices and the Dart runtime. It fails on missing licenses; `--check` rejects
 stale notices. It deliberately overincludes the declared closure instead of
 claiming every package is linked into the AOT executable.
 
 Runtime dependencies include Apache-2.0 Marionette, MIT image/archive libraries,
 and BSD Dart/Flutter packages. Preserve original notices. Resolve the committed
-lockfile with Flutter 3.47.2 before generating. Dependency/SDK changes require a
+lockfile with Flutter 3.47.8 before generating. Dependency/SDK changes require a
 fresh audit, including embedded assets and nested third-party notices in packages.
 The generated file is not an automated legal compatibility verdict.
 
@@ -45,24 +46,49 @@ redistribution of generated sites or new bundled assets needs its own scope audi
 
 ## Local gates
 
-Use the pinned baseline Flutter 3.47.2 / Dart 3.13.2 on macOS. Run from the root,
+Use the pinned baseline Flutter 3.47.8 / Dart 3.13.7 on macOS. Run from the root,
 then the indicated member directories. `--concurrency=1` avoids process-heavy
 test contention. The CLI test runner's `--timeout=2m` includes cold child-process
 JIT startup on hosted macOS; product deadlines and explicit test timeouts still
 apply. The tester smoke builds no native app and boots no Simulator.
 
-Install ffmpeg and ffprobe before these gates. Two real MP4 encoding tests skip
-when either tool is absent; both must execute for release verification. CI
-provides the tools on its macOS runner. They are not included in release assets.
+Install the `.mise.toml` pin of Lefthook (2.2.1) with mise and install ffmpeg
+(including ffprobe) separately, then enable hooks as described in
+[Contributing](../CONTRIBUTING.md). The hook fails when either
+encoder tool is missing, so real MP4 tests cannot silently skip. Prepare these
+tools locally; release automation assumes the local gate passed and does not
+install or run Lefthook. These external tools independently validate recordings and are not included in
+release assets. Runtime encoding uses the FFmpegKit native library bundled with
+each installation.
+
+`mise exec -- lefthook run pre-commit --all-files` runs all workspace gates below through
+`tool/quality.sh`; website verification remains separate. Ordinary commits select
+the workspace gate for `.dart`, `.yaml`, `.yml`, `.json`, and `.lock` files outside
+`website/`, as well as `.mise.toml`, CHANGELOG, license notices, bundled Skills,
+and hook tooling. Dart formatting first checks only staged surviving Dart paths;
+the workspace gate also checks the complete source tree, analysis, release metadata,
+notices, all tests, and the install/tester smoke. Deletions trigger workspace checks
+too. Lefthook temporarily hides unstaged edits to partially staged files and
+restores them afterward. Checks neither fix nor stage files automatically.
+SDK commands run with repository-local Git variables cleared so a worktree hook
+cannot make Flutter read the project's revision as its SDK version.
+Other Markdown and website-only commits skip the Dart gate; always run the full
+gate before release. After editing hook tooling, run its isolated Git integration
+tests with `python3 tool/test_quality_hooks.py`.
 
 ```sh
 flutter pub get --enforce-lockfile
-dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test
+dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages example/lib example/test
 dart analyze
 dart run tool/check_release.dart
 dart run tool/license_notices.dart --check
 dart test --concurrency=1 --timeout=2m
-(cd packages/marionette_agent_util && dart test --concurrency=1 && flutter test flutter_test)
+for package in platform_interface ios android macos web flutter; do
+  if [ -d "packages/marionette_agent_$package/test" ]; then
+    (cd "packages/marionette_agent_$package" && dart test --concurrency=1)
+  fi
+done
+(cd packages/marionette_agent_flutter && flutter test flutter_test)
 (cd example && flutter test)
 dart run integration_test/release_smoke.dart
 (cd website && bun install --frozen-lockfile && bun run verify)
@@ -88,8 +114,8 @@ Simulator resources before native acceptance checks.
       against posting secrets, personal information, tokens, or abuse-enabling
       details. GitHub private reporting was disabled at the 2026-10-01 read-only
       check; no private route or setting change is promised.
-- [ ] CLI/util pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.0.1.
-- [ ] Installation examples use `v1.0.1`; verify the tag after publishing.
+- [ ] CLI/platform pubspec, CLI/MCP version, CHANGELOG, tag, and Release agree on 1.1.0.
+- [ ] Installation examples use `v1.1.0`; verify the tag after publishing.
 - [ ] Keep the site as development documentation published from `develop`; stable
       installation instructions select the release tag. The banner SHA is the
       site build revision, not a promise of the latest release.
@@ -110,10 +136,12 @@ needs workspace/path dependency design and a separate package-content dry run.
 The default branch is intended to be `main`. Normal development PRs still target
 `develop`, including compatibility fixes. Only same-repository
 `release/MAJOR.MINOR.PATCH` PRs target `main`; same-repository `fix/*` branches may
-stabilize a release branch. Git flow, Quality, and Documentation verify PRs into
-these branches. Git flow also reruns on base edits. Configure these as required
-checks (`Git flow policy`, `Quality checks`, `Documentation checks`) before relying
-on them to block merges; workflow files alone cannot do so.
+stabilize a release branch. Git flow and Documentation verify PRs into these
+branches; workspace quality runs locally before commits using Lefthook. Git flow
+also reruns on base edits. Configure `Git flow policy` and `Documentation checks`
+as required checks before relying on them to block merges. Remove the retired
+`Quality checks` requirement if configured, or it will wait for a check that no
+longer runs. Local hooks can be bypassed and do not enforce a remote merge gate.
 Keep Pages deployment on `develop` under the existing environment policy.
 
 1. Review version changes on `develop` before starting a release. Align all three
@@ -122,19 +150,20 @@ Keep Pages deployment on `develop` under the existing environment policy.
    stable version must exceed `main`, and its tag must not exist. Version edits
    and release notes are deliberately reviewed development changes.
 2. In Actions, select **Prepare release**, choose **main**, and enter the version
-   without `v`. The default **dry_run=true** validates the fixed develop SHA and
-   runs the existing macOS Quality workflow without writing branches or PRs.
-   With dry run disabled, successful checks create `release/<version>` at that
+   without `v`. The default **dry_run=true** validates the version, ancestry, and
+   release metadata at the fixed develop SHA without writing branches or PRs.
+   It assumes workspace quality passed locally on that exact SHA.
+   With dry run disabled, successful validation creates `release/<version>` at that
    exact SHA and a Draft PR to `main`. If develop moves during verification, rerun.
    main must be an ancestor of develop; complete the previous back-sync first.
 3. Review and stabilize the candidate. Bot-created PR checks may require **Approve
    workflows to run**; if checks are absent, close/reopen the PR as a maintainer.
    Do not bypass missing checks or substitute the preparation run for final PR
    checks. No PAT or extra automation secret is required. Require current
-   Git flow, Quality, Documentation, and native acceptance before a human marks
+   Git flow, local Lefthook, Documentation, and native acceptance before a human marks
    the PR ready and merges it. Prefer merge commits to retain branch ancestry.
-4. A merged release PR runs Quality again on its exact merge SHA. **Release
-   handoff** then saves a source archive, reviewed notes, and a manifest with the
+4. **Release handoff** assumes the local quality checks passed and saves a source
+   archive, reviewed notes, and a manifest from the exact merge SHA with the
    proposed tag and SHA as a 30-day Actions artifact. It creates no remote tag,
    GitHub Release (including draft), or pub.dev publication. Download before
    expiry; a separately authorized human publication must use that exact SHA.

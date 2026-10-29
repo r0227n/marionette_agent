@@ -12,12 +12,12 @@ The CLI communicates with the app’s Marionette binding through the Dart VM Ser
 | Component                                | Requirement                                                              |
 | ---------------------------------------- | ------------------------------------------------------------------------ |
 | CLI host                                 | macOS. Linux and Windows hosts are currently outside the supported scope |
-| CLI build                                | Dart 3.13.2 or newer, below 4.0.0, and a Flutter SDK                     |
-| Target app                               | A debug app initialized with `marionette_flutter` 0.6.0                  |
+| CLI build                                | Dart 3.13.7 or newer, below 4.0.0, and a Flutter SDK                     |
+| Target app                               | A debug app initialized with `marionette_flutter` (0.1.0–0.7.0)          |
 | Connection to an externally launched app | The VM Service URI for that run                                          |
 | First check on iOS                       | Xcode, an available iOS Simulator, and the bundled example               |
 
-The example has been verified with Flutter 3.47.2. Starting with this combination helps separate SDK differences from app integration problems.
+The example has been verified with Flutter 3.47.8. Starting with this combination helps separate SDK differences from app integration problems.
 
 ## Available operations
 

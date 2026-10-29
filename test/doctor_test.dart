@@ -49,7 +49,7 @@ void main() {
     String? sdk,
   }) => Doctor(
     os: 'macos',
-    dartVersion: sdk ?? '3.13.2',
+    dartVersion: sdk ?? '3.13.7',
     runtimePath: runtime ?? dir.path,
     process: process,
     probe: probe,
@@ -112,6 +112,18 @@ void main() {
         .run(deadline());
     expect(check(long, 'runtime.socketPath')['status'], 'failure');
   });
+  for (final (sdk, status) in [
+    ('3.13.6', 'failure'),
+    ('3.13.7', 'success'),
+    ('3.13.8', 'success'),
+    ('3.14.0', 'success'),
+    ('4.0.0', 'failure'),
+  ]) {
+    test('Dart $sdk is $status for the workspace SDK range', () async {
+      final result = await doctor(sdk: sdk).run(deadline(), quick: true);
+      expect(check(result, 'host.dart')['status'], status);
+    });
+  }
   test(
     'unsafe permission blocks socket inspection and preserves files',
     () async {
@@ -119,7 +131,7 @@ void main() {
         ..writeAsString('unchanged');
       final result = await Doctor(
         os: 'macos',
-        dartVersion: '3.13.2',
+        dartVersion: '3.13.7',
         runtimePath: dir.path,
         process: (exe, args, end) async => exe.endsWith('/stat')
             ? ProcessResult(0, 0, '502:755', '')
@@ -202,7 +214,7 @@ void main() {
   test('missing dependency metadata is unknown, mismatched pins fail', () async {
     final diagnostic = Doctor(
       os: 'macos',
-      dartVersion: '3.13.2',
+      dartVersion: '3.13.7',
       runtimePath: dir.path,
       packageRoot: dir.uri,
       process: process,
@@ -221,6 +233,34 @@ void main() {
       check(await diagnostic.run(deadline()), 'dependencies.fixed')['status'],
       'failure',
     );
+  });
+  test('dependency constraints accept compatible locks and reject out-of-range versions', () async {
+    final diagnostic = Doctor(
+      os: 'macos',
+      dartVersion: '3.13.7',
+      runtimePath: dir.path,
+      packageRoot: dir.uri,
+      process: process,
+    );
+    await File('${dir.path}/pubspec.yaml').writeAsString(
+      'dependencies:\n  marionette_mcp: ^0.7.0\n  image: 4.9.1\n  yaml: 3.1.4\n',
+    );
+    for (final (version, image, status) in [
+      ('0.7.0', '4.9.1', 'success'),
+      ('0.7.1', '4.9.1', 'success'),
+      ('0.6.0', '4.9.1', 'failure'),
+      ('0.8.0', '4.9.1', 'failure'),
+      ('0.7.0', '4.9.2', 'failure'),
+    ]) {
+      await File('${dir.path}/pubspec.lock').writeAsString(
+        'packages:\n  marionette_mcp: {version: $version}\n  image: {version: $image}\n  yaml: {version: 3.1.4}\n',
+      );
+      expect(
+        check(await diagnostic.run(deadline()), 'dependencies.fixed')['status'],
+        status,
+        reason: '$version / $image',
+      );
+    }
   });
   test('refused VM endpoint fails without exposing URI', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);

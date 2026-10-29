@@ -18,7 +18,7 @@ chmod 700 "$MRA_HEADLESS_ROOT"
 flutter pub get
 ```
 
-認証URIとログはこのprivate directoryへ保存します。並行実行ではruntime・session・端末・出力先を分離し、同じcheckoutのbuildを競合させません。Flutter録画にはffmpeg（PNG/libx264/concat/setts）、一時PNG用の空き容量、停止時の変換時間が必要です。ホストをスリープさせないでください。
+認証URIとログはこのprivate directoryへ保存します。並行実行ではruntime・session・端末・出力先を分離し、同じcheckoutのbuildを競合させません。Flutter録画はCLI同梱のFFmpegKit（PNG/VideoToolbox/concat/setts）を使い、一時PNG用の空き容量と停止時の変換時間が必要です。ホストをスリープさせないでください。
 
 <a id="ios"></a>
 
@@ -105,18 +105,12 @@ mkdir -m 700 "$MRA_HEADLESS_ROOT/runtime-ios"
 export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_HEADLESS_ROOT/runtime-ios"
 marionette-agent --session manual-ios connect "$(cat "$MRA_HEADLESS_ROOT/ios-uri")"
 marionette-agent --session manual-ios snapshot
-marionette-agent --session manual-ios record start "$MRA_HEADLESS_ROOT/ios.mp4" --platform flutter
 marionette-agent --session manual-ios tap --key tap_button
 marionette-agent --session manual-ios fill --key text_input 'headless demo'
 marionette-agent --session manual-ios snapshot
 marionette-agent --session manual-ios screenshot "$MRA_HEADLESS_ROOT/ios-after.png"
-marionette-agent --session manual-ios --timeout 60000 record stop
 marionette-agent --session manual-ios close
 ```
-
-動画と画像でカウンタ・入力の変化を照合します。収録範囲は単一Flutter viewで、OS keyboard/dialogは含みません。fps・VFR・timeout・復旧は[録画の詳細](https://github.com/r0227n/marionette_agent/blob/develop/docs/ja/cli-reference.ja.md#recording)を参照してください。
-
-自動smoke確認はCLI package内の[integration_test/record_smoke.dart](https://github.com/r0227n/marionette_agent/blob/develop/integration_test/record_smoke.dart)を使います。環境変数は`MARIONETTE_RECORD_PLATFORM=flutter`、`MARIONETTE_TEST_VM_URI_FILE`、毎回新しい`MARIONETTE_RECORD_EVIDENCE`を指定します。Androidの既存検証は`MARIONETTE_RECORD_FPS=2`を使っています。新たに実行していない検証結果を、この手順だけで実施済みとしないでください。
 
 <a id="cleanup"></a>
 
@@ -130,3 +124,5 @@ xcrun simctl --set "$MRA_HEADLESS_ROOT/ios-devices" delete "$MRA_IOS_UDID"
 ```
 
 Androidは今回のportの`adb -s emulator-5586 emu kill`で終了します。共有Simulatorやadb serverを止めず、不要なURI/logを削除し、確認済みの動画・結果を残します。testerのviewportと管理起動の制約は[headlessガイド](/marionette_agent/ja/guides/headless/)を参照してください。
+
+録画には明示したnative端末またはChromium pageが必要です。Flutter/tester描画録画は削除しました。[captureガイド](/marionette_agent/ja/guides/capture/)を参照してください。非表示のmacOS windowはdisplay録画に映りません。

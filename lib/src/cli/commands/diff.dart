@@ -1,9 +1,7 @@
 import 'package:args/args.dart';
-// ignore: implementation_imports
-// ignore: implementation_imports
-// ignore: implementation_imports
 
 import '../../protocol/protocol.dart';
+import '../../commands/screenshot_request.dart';
 import '../command.dart';
 
 CliCommand diffCommand() => CliCommand(
@@ -16,6 +14,11 @@ CliCommand diffCommand() => CliCommand(
       'screenshot',
       ArgParser()
         ..addOption('baseline', mandatory: true)
+        ..addOption(
+          'source',
+          allowed: screenshotSources.where((source) => source != 'macos'),
+        )
+        ..addOption('device')
         ..addOption('output')
         ..addOption('threshold', defaultsTo: '0'),
     ),
@@ -26,10 +29,21 @@ CliCommand diffCommand() => CliCommand(
     }
     final path = child.option('baseline')!;
     if (path.isEmpty) invalid('Baseline path must not be empty');
+    if (child.name == 'screenshot') {
+      validateScreenshotRequest({
+        'device': child.option('device'),
+        if (child.wasParsed('source')) 'source': child.option('source'),
+      });
+    }
     return {
       'action': child.name,
       'baseline': path,
       if (child.name == 'screenshot') ...{
+        'device': resolveScreenshotDevice({
+          'device': child.option('device'),
+          'source': child.option('source'),
+        }),
+        if (child.wasParsed('source')) 'source': child.option('source'),
         'output': child.option('output'),
         'threshold': parseThreshold(child.option('threshold')!),
       },

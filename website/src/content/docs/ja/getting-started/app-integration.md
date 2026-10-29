@@ -10,7 +10,7 @@ description: Flutterのdebug起動でMarionette bindingを初期化し、観測�
 アプリのディレクトリで依存を追加します。
 
 ```sh
-flutter pub add marionette_flutter:0.6.0
+flutter pub add 'marionette_flutter:^0.7.0'
 ```
 
 次の初期化を`runApp`より前に組み込みます。`MyApp`は既存アプリのroot widgetに置き換えてください。
@@ -50,15 +50,17 @@ marionette-agent snapshot
 
 ## 追加providerを使う
 
-`get value`、`is checked`、追加の入力操作などには`marionette_agent_util`のFlutter拡張を登録します。現状はこのリポジトリ内のローカルパッケージです。アプリの依存にcheckout内の`packages/marionette_agent_util`へのpathを設定し、bindingの初期化後に登録します。
+`get value`、`is checked`、追加の入力操作などには`marionette_agent_flutter`のFlutter拡張を登録します。現状はこのリポジトリ内のローカルパッケージです。アプリの依存にcheckout内の`packages/marionette_agent_flutter`へのpathを設定し、bindingの初期化後に登録します。
 
 ```dart
-import 'package:marionette_agent_util/flutter.dart';
+import 'package:marionette_agent_flutter/flutter.dart';
 
 // After MarionetteBinding.ensureInitialized(), in the debug branch:
 registerAgentExtensions();
 ```
 
-exampleには登録済みです。注釈付きスクリーンショットには、これとは別にboundsを画像へ対応付けるmapped screenshot providerが必要です。
+このパッケージはFFmpegKitのnative assetsを含みます。nativeアプリはAndroid API 26以上・iOS 13以上・macOS 13以上が必要なため、下回るdeployment targetはbuild前に引き上げてください。録画変換はCLI側で設定したvideo/LGPL runtimeを使います。debug providerの登録時にアプリ側でFFmpegを初期化する必要はありません。
 
-[exampleの初期化コード](https://github.com/r0227n/marionette_agent/blob/develop/example/lib/main.dart)と[補助パッケージ](https://github.com/r0227n/marionette_agent/tree/develop/packages/marionette_agent_util)で実装例を確認できます。登録していない機能は`UNSUPPORTED_CAPABILITY`となる場合があり、未観測の値は空文字やfalseとは区別されます。
+exampleには登録済みです。OS画面のスクリーンショットは独立したXCUIScreen runnerで取得し、アプリ側の画像providerは不要です。
+
+[exampleの初期化コード](https://github.com/r0227n/marionette_agent/blob/develop/example/lib/main.dart)と[補助パッケージ](https://github.com/r0227n/marionette_agent/tree/develop/packages/marionette_agent_flutter)で実装例を確認できます。登録していない機能は`UNSUPPORTED_CAPABILITY`となる場合があり、未観測の値は空文字やfalseとは区別されます。

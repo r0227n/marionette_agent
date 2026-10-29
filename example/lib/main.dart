@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:marionette_agent_util/flutter.dart';
+import 'package:flutter/services.dart';
+import 'package:marionette_agent_flutter/flutter.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
-import 'mapped_screenshot.dart';
 import 'advanced_controls.dart';
+import 'native_capture_fixture.dart';
 
 final PrintLogCollector operationLogCollector = PrintLogCollector();
 
@@ -18,9 +19,6 @@ void main() {
     }
     if (!const bool.fromEnvironment('DISABLE_AGENT_EXTENSIONS')) {
       registerAgentExtensions();
-    }
-    if (!const bool.fromEnvironment('DISABLE_MAPPED_SCREENSHOT')) {
-      registerMappedScreenshot();
     }
   } else {
     WidgetsFlutterBinding.ensureInitialized();
@@ -69,7 +67,23 @@ class _MarionetteAgentExampleScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Marionette Agent Example')),
+      appBar: AppBar(
+        title: const Text('Marionette Agent Example'),
+        actions: [
+          if (kDebugMode &&
+              !kIsWeb &&
+              defaultTargetPlatform == TargetPlatform.macOS)
+            for (final action in ['panel', 'alert', 'menu', 'move'])
+              TextButton(
+                key: ValueKey('native_$action'),
+                onPressed: () {
+                  const MethodChannel('marionette_agent/native_capture_fixture')
+                      .invokeMethod<void>(action);
+                },
+                child: Text(action),
+              ),
+        ],
+      ),
       bottomNavigationBar: BottomAppBar(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -100,9 +114,7 @@ class _MarionetteAgentExampleScreenState
       body: _tab == 2
           ? const AdvancedControls()
           : _tab == 1
-          ? const Center(
-              child: Text('Workflow fixture', key: ValueKey('about_content')),
-            )
+          ? const NativeCaptureFixture()
           : ListView(
               key: const ValueKey('operation_scroll_area'),
               padding: const EdgeInsets.all(16),

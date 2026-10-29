@@ -18,6 +18,20 @@ marionette-agent skills path core
 
 `--full`には補助資料やテンプレートも含まれます。取得したSkillをエージェントに読み込ませ、[観測・操作・確認](/marionette_agent/ja/concepts/observation-loop/)の流れで進めます。`skills`は独自の出力形式を使うため、通常コマンドのJSON包絡とは分けて扱ってください。
 
+### dogfoodでアプリの品質を探索する
+
+Marionette対応のFlutterアプリをiOS Simulatorで探索的に検証するには、英語の`dogfood`ガイドを使います。
+
+```sh
+marionette-agent skills get dogfood
+marionette-agent skills get dogfood --full
+marionette-agent skills path dogfood
+```
+
+対象のdebugアプリ、非公開のVM Service URIファイル、対応するSimulatorのUDID、探索する利用フローをエージェントへ渡します。接続と観測のルールは`core`と共通です。起動やデバイスの準備が必要な場合は`simulator-verify`も読み込みます。
+
+`--full`には問題の分類基準とレポートのテンプレートが含まれます。各発見について期待結果と実際の結果、初期化・再現手順、スクリーンショット、挙動の問題を示す録画を記録し、未確認の範囲と再現未確認の観測も残します。認証URIや機密データは共有するエビデンスから除いてください。ガイドの成果物はローカルのレポートで、Issueへの投稿やアプリのコード変更は別途依頼が必要です。
+
 ## MCPクライアントへ登録する
 
 次は`mcpServers`形式を使うクライアントの設定例です。実際の設定場所・形式はクライアントに合わせます。GUIアプリからCLIが見つからない場合は、`command`をインストール先の絶対パスにしてください。

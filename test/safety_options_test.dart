@@ -30,7 +30,7 @@ void main() {
         ['fill', '@e1', 'hello'],
         ['swipe', '@e1', 'left'],
         ['scroll', '@e1', 'up'],
-        ['screenshot'],
+        ['screenshot', '--device=11111111-2222-3333-4444-555555555555'],
         ['workflow', 'schema'],
         ['workflow', 'validate', '/tmp/a.json'],
         ['workflow', 'run', '/tmp/a.json'],
@@ -83,7 +83,16 @@ void main() {
       expect(CliParser().usage, contains('--max-output'));
       expect(CliParser().usage, contains('--idle-timeout'));
       expect(CliParser().usage, contains('--screenshot-dir'));
-      expect(CliParser().parse(['screenshot']).options.screenshotDir, isNull);
+      expect(
+        CliParser()
+            .parse([
+              'screenshot',
+              '--device=11111111-2222-3333-4444-555555555555',
+            ])
+            .options
+            .screenshotDir,
+        isNull,
+      );
     },
   );
 
@@ -198,6 +207,7 @@ void main() {
       expect(recoveredJson, isFalse);
       final screenshot = CliParser().parse([
         'screenshot',
+        '--device=11111111-2222-3333-4444-555555555555',
         '--',
         '--screenshot-dir',
       ]);

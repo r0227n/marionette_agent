@@ -15,7 +15,7 @@ deadline in milliseconds; the default is 30000.
 | Keyboard | `press <combination>`, `keydown/keyup <key>`, `keyboard press/type/inserttext <input>` |
 | Search | `find role/label/placeholder/text/key/identifier/type <value> [action] [input]`, `find first/last/nth` |
 | Wait | `wait <selector> [--state exists/gone]`, `wait <milliseconds/ref>` |
-| Evidence | `screenshot [--annotate] [path]`, `logs`, `diff snapshot/screenshot --baseline <path>` |
+| Evidence | `screenshot --device <UDID> [path]`, `logs`, `diff snapshot --baseline <path>`, `diff screenshot --device <UDID> --baseline <PNG>` |
 | Recording | `record start/restart <path> --platform <platform> --device <id> [--fps <n>]`, `record status/stop` |
 | Structured operations | `workflow schema [action]`, `workflow validate/run <path>`, `batch <JSON-file/->` |
 | Clipboard | `clipboard read/write/copy/paste` |
@@ -24,16 +24,17 @@ deadline in milliseconds; the default is 30000.
 | Guides | `skills [list]`, `skills get <name> [name...] [--full]`, `skills get --all [--full]`, `skills path [name]` |
 
 Slash-separated words in this table are alternatives, not literal arguments.
-The optional `marionette_agent_util/flutter.dart` debug provider exposes typed state and
+The optional `marionette_agent_flutter/flutter.dart` debug provider exposes typed state and
 extended interactions. Stock binding may return `UNSUPPORTED_CAPABILITY`.
-Unknown state is not false. Screenshots with `--annotate` require a valid snapshot
-and mapped screenshot geometry from a compatible provider.
+Unknown state is not false. Still screenshots use XCUIScreen on a booted iOS
+Simulator, require its exact UDID, and do not require a Flutter connection.
 
 ## Evidence and output
 
 Use a new screenshot destination: existing files are refused. PNG is the default;
 JPEG requires `--screenshot-format jpeg` and accepts `--screenshot-quality 0..100`.
-With `--annotate`, verify the labels against the real controls in the image.
+Allow a longer `--timeout 120000` for the first bundled XCTest runner build.
+Flutter still screenshots, ref crop, and annotations have been removed.
 `--content-boundaries` marks snapshot/log entries as untrusted app content;
 `--max-output` limits those entries, not skill text or image data.
 

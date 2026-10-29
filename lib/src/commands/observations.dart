@@ -1,11 +1,16 @@
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
-import '../snapshot/target.dart';
-import 'arguments.dart';
+import 'screenshot_request.dart';
+
+export 'screenshot_request.dart';
 import 'command_context.dart';
 
 Selector? snapshotFilter(Json params) {
-  final options = {'interactive', 'compact', 'depth'};
+  final options = {'interactive', 'compact', 'depth', 'source'};
+  if (params.containsKey('source') &&
+      !['flutter', 'native', 'all'].contains(params['source'])) {
+    invalid('Invalid snapshot source');
+  }
   for (final flag in ['interactive', 'compact']) {
     if (params.containsKey(flag) && params[flag] is! bool) {
       invalid('Invalid snapshot flag');
@@ -41,75 +46,14 @@ Future<Json> handleSnapshot(CommandContext context, Json params) =>
       depth: params['depth'] as int?,
     );
 
-TargetQuery? screenshotTarget(Json params) {
-  final target = {...params}
-    ..remove('path')
-    ..remove('annotate');
-  if (target.isEmpty) return null;
-  if (params['annotate'] == true) {
-    invalid('Crop and annotation cannot be combined');
-  }
-  if (target.keys.any(
-    (key) =>
-        key != 'ref' && !SelectorKind.values.any((kind) => kind.name == key),
-  )) {
-    invalid('Invalid screenshot target');
-  }
-  return decodeTarget(target);
-}
-
 /// Images cross IPC; the CLI owns local path resolution and writing.
 Future<Json> handleScreenshot(CommandContext context, Json params) async {
-  final target = screenshotTarget(params);
-  if ((params.containsKey('annotate') && params['annotate'] is! bool) ||
-      (params.containsKey('path') &&
-          (params['path'] is! String || (params['path'] as String).isEmpty))) {
-    invalid('Usage: screenshot [--annotate] [path]');
-  }
-  if (target != null) {
-    final before = await context.observeTarget(target);
-    final capture = await context.read((backend) {
-      if (backend is! MappedScreenshotBackend) {
-        throw const AgentError(
-          'UNSUPPORTED_CAPABILITY',
-          'Crop requires screenshot geometry',
-        );
-      }
-      return (backend as MappedScreenshotBackend).captureMappedScreenshot();
-    });
-    final after = await context.observeTarget(target);
-    if (!before.sameAs(after)) {
-      throw const AgentError(
-        'STALE_REF',
-        'Target changed during screenshot capture',
-      );
-    }
-    return {
-      'images': [capture.image],
-      'geometry': capture.geometry.toJson(),
-      'crop': before.bounds,
-    };
-  }
-  if (params['annotate'] == true) {
-    final annotations = await context.annotationTargets();
-    final capture = await context.read((backend) {
-      if (backend is! MappedScreenshotBackend) {
-        throw const AgentError(
-          'UNSUPPORTED_CAPABILITY',
-          'Binding does not provide screenshot geometry',
-        );
-      }
-      return (backend as MappedScreenshotBackend).captureMappedScreenshot();
-    });
-    await context.annotationTargets();
-    return {
-      'images': [capture.image],
-      'geometry': capture.geometry.toJson(),
-      'annotations': annotations,
-    };
-  }
-  return context.read(
-    (backend) async => {'images': await backend.captureScreenshots()},
+  validateScreenshotRequest(params);
+  return context.captureDeviceScreen(
+    params['source'] as String? ?? 'ios-simulator',
+    params['source'] == 'macos'
+        ? '${params['display']}'
+        : params['device'] as String,
   );
 }
 

@@ -7,6 +7,7 @@ String snapshotLine(Object? value) {
   final element = asJson(value);
   return [
     element['ref'] ?? '-',
+    if (element['source'] != null) '[${element['source']}]',
     element['type'],
     if (element['key'] != null) 'key=${jsonEncode(element['key'])}',
     if (element['identifier'] != null)
@@ -49,6 +50,18 @@ Json limitContent(Json data, int? maximum, bool json) {
   return {
     ...data,
     field: selected,
+    if (data['sources'] is Map)
+      'sourceCounts': {
+        for (final source in (data['sources'] as Map).keys)
+          source: {
+            'original': items
+                .where((row) => (row as Map)['source'] == source)
+                .length,
+            'delivered': selected
+                .where((row) => (row as Map)['source'] == source)
+                .length,
+          },
+      },
     'truncated': selected.length < items.length,
     'originalCount': items.length,
     'omittedCount': items.length - selected.length,

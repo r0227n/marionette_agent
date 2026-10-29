@@ -46,6 +46,19 @@ Successful get and is queries read observations without issuing new refs. Do not
 
 Directions are `left`, `right`, `up`, and `down`, describing **finger movement**. Verify the resulting content position or page in a subsequent snapshot.
 
+## Native device UI
+
+Bind once with `session bind --platform ios|android --device ID`, then use the ordinary commands. No VM is required for native-only use. See the [native UI guide](/marionette_agent/en/guides/native-ui/) for runner setup, mixed observations and limitations.
+
+| Syntax                                                                | Behavior                                              |
+| --------------------------------------------------------------------- | ----------------------------------------------------- |
+| `snapshot [--source flutter\|native\|all]`                            | Observe configured sources and publish refs           |
+| `tap REF`                                                             | Reobserve and route `@e` to Flutter or `@n` to native |
+| `tap --source native --text TEXT`                                     | Native exact text; identifier/type are alternatives   |
+| `tap --source native --x X --y Y`                                     | Native screen coordinates                             |
+| `swipe REF DIRECTION --distance N`                                    | Gesture in the ref's source coordinate space          |
+| `swipe --source native --start-x X --start-y Y --end-x X2 --end-y Y2` | Native screen-coordinate gesture                      |
+
 ## Additional interactions
 
 Most of these operations need a compatible app-side provider; dblclick and press can use binding APIs directly. Try supported interactions on the example app’s Advanced screen.
@@ -84,16 +97,14 @@ The default `wait` state is `exists`: a unique match with `visible != false` suc
 
 ## Images, recordings, and differences
 
-| Syntax                                                  | Purpose                                                          |
-| ------------------------------------------------------- | ---------------------------------------------------------------- |
-| `screenshot [PATH]`                                     | Save a new image                                                 |
-| `screenshot TARGET [PATH]`                              | Capture the target region                                        |
-| `screenshot --annotate [PATH]`                          | Overlay refs; requires a provider and valid snapshot             |
-| `record start PATH --platform PLATFORM [--device ID]`   | Start recording; Flutter rendering needs no device argument      |
-| `record restart PATH --platform PLATFORM [--device ID]` | Finalize the current recording and start a new one               |
-| `record status` / `record stop`                         | Inspect recording state or finalize and stop                     |
-| `diff snapshot --baseline PATH`                         | Compare with a saved snapshot                                    |
-| `diff screenshot --baseline PATH`                       | Compare with a saved image; accepts `--threshold` and `--output` |
+| Syntax                                                | Purpose                                                          |
+| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| `screenshot --device UDID [PATH]`                     | Save a new image                                                 |
+| `record start PATH --platform PLATFORM --device ID`   | Start native recording with an explicit target                   |
+| `record restart PATH --platform PLATFORM --device ID` | Finalize the current recording and start a new one               |
+| `record status` / `record stop`                       | Inspect recording state or finalize and stop                     |
+| `diff snapshot --baseline PATH`                       | Compare with a saved snapshot                                    |
+| `diff screenshot --device UDID --baseline PATH`       | Compare with a saved image; accepts `--threshold` and `--output` |
 
 See [capture](/marionette_agent/en/guides/capture/) for file requirements and platform differences.
 
@@ -117,3 +128,11 @@ See [capture](/marionette_agent/en/guides/capture/) for file requirements and pl
 Batch stops at the first failure and cannot contain connection-lifetime operations, recording, or file-saving commands. See [configuration](/marionette_agent/en/reference/configuration/) for action policies and state files.
 
 For provider behavior, matching rules, and action limits, see the [advanced operation details](https://github.com/r0227n/marionette_agent/blob/develop/docs/cli-parity.md).
+
+Android screenshots: use `--source android-emulator --device <private-pairing-file>`. The iOS default and other commands are unchanged.
+
+## macOS screenshots
+
+For macOS, specify display instead of device. MCP uses `source: "macos"` and integer `display` too.
+
+macOS still images use XCTest/XCUIScreen and require full Xcode. Allow `--timeout 120000` for the initial runner build. Non-main capture with more than two active displays is unsupported.

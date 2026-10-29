@@ -3,24 +3,26 @@ title: Install the CLI
 description: Build and update marionette-agent from a local checkout.
 ---
 
-Install the CLI from the repository source. You need Dart SDK 3.13.2 or newer, below 4.0.0, and a Flutter SDK. The example uses Flutter 3.47.2.
+Install the CLI from the repository source. You need Dart SDK 3.13.7 or newer, below 4.0.0, and a Flutter SDK. The example uses Flutter 3.47.8.
 
-Install the released 1.0.1 source from its immutable tag and compile locally.
+Install the released 1.1.0 source from its immutable tag and compile locally.
 GitHub Releases provide notes and source archives; pub.dev remains disabled.
 The documentation site tracks `develop`; the release tag pins the installation.
 
 ## Get the source
 
 ```sh
-git clone --branch v1.0.1 https://github.com/r0227n/marionette_agent.git
+git clone --branch v1.1.0 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 ```
 
-Optional, for development revisions only: skip this step when installing released 1.0.1. To use the exact development revision described by these docs, open the commit link in the page banner, copy its full SHA, and replace `DOCUMENTED_COMMIT` below.
+Optional, for development revisions only: skip this step when installing released 1.1.0. To use the exact development revision described by these docs, open the commit link in the page banner, copy its full SHA, and replace `DOCUMENTED_COMMIT` below.
 
 ```sh
 git switch --detach DOCUMENTED_COMMIT
 ```
+
+For development checkouts, the root `.mise.toml` pins Flutter 3.47.8 with its bundled Dart 3.13.7. Install the pinned tools with `mise install`, then activate mise in your shell or prefix SDK commands with `mise exec --`. Use the bundled Dart so `flutter` and `dart` select the same SDK.
 
 ## Install the CLI and bundled Skills
 
@@ -34,7 +36,7 @@ export PATH="$HOME/.local/bin:$PATH"
 marionette-agent --version
 ```
 
-`install` compiles the CLI into the existing destination directory. It fails if the executable already exists. The adjacent `.marionette-agent-*` directory contains the bundled Skills and `LICENSE`, `NOTICE`, and `THIRD_PARTY_NOTICES.txt`. Move that directory together with the executable if you relocate the installation.
+`install` uses Dart’s native-assets build to compile the CLI and places an executable launcher in the existing destination directory. It fails if that executable already exists. The adjacent `.marionette-agent-*` directory contains the real CLI in `bundle/bin/`, bundled FFmpegKit in `bundle/lib/`, Skills, and `LICENSE`, `NOTICE`, and `THIRD_PARTY_NOTICES.txt`. Move that directory together with the launcher if you relocate the installation.
 
 Add the same PATH export to your shell configuration if you want it to persist across new shells.
 

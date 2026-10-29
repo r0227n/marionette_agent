@@ -1,0 +1,15 @@
+name: marionette_agent_video
+description: Native video encoding and timestamped platform frame recording.
+version: 1.1.0
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.7
+dependencies:
+  marionette_agent_platform_interface:
+    path: ../marionette_agent_platform_interface
+  ffmpeg_kit_extended_flutter: 1.0.0
+  ffi: 2.2.0
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

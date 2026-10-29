@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:marionette_agent_util/marionette_agent_util.dart';
+import 'package:marionette_agent/src/platform/platform_services.dart';
 
+import '../commands/screenshot_request.dart';
 import '../daemon/client.dart';
 import '../daemon/runtime.dart';
 import '../diagnostics/diagnostic_logging.dart';
@@ -12,6 +13,7 @@ import '../protocol/protocol.dart';
 import '../workflow/model.dart';
 import '../workflow/schema_catalog.dart';
 import 'artifact_writer.dart';
+import 'workflow_artifacts.dart';
 import 'batch_loader.dart';
 import 'common_options.dart';
 import 'connection_state.dart';
@@ -120,6 +122,13 @@ Future<int> runCli(
               );
         final bind = params['bind'] == true;
         final plan = WorkflowPlan.decode(document, inputs: inputs, bind: bind);
+        for (final step in plan.steps) {
+          if (step.action == 'screenshot' && step.params['path'] != null) {
+            invocation.options.screenshotFormat.destinationPath(
+              step.params['path'] as String,
+            );
+          }
+        }
         if (params['action'] == 'validate') {
           localData = {
             'workflow': plan.name,
@@ -130,7 +139,17 @@ Future<int> runCli(
             'inputsValidated': bind,
           };
         }
-        params = {'workflow': document, 'inputs': inputs};
+        final normalized = asJson(document);
+        normalized['steps'] = [
+          for (final raw in normalized['steps'] as List)
+            {
+              ...asJson(raw),
+              if (asJson(raw)['action'] == 'screenshot' &&
+                  asJson(raw)['source'] != 'macos')
+                'device': resolveScreenshotDevice(asJson(raw)),
+            },
+        ];
+        params = {'workflow': normalized, 'inputs': inputs};
       }
     }
     if (workflow && !deadline.isAfter(DateTime.now())) {
@@ -223,7 +242,15 @@ Future<int> runCli(
                     ? 'diff-snapshot'
                     : 'screenshot')
               : command,
-          params: command == 'diff' ? {} : requestParams,
+          params: command == 'diff'
+              ? (params['action'] == 'snapshot'
+                    ? {}
+                    : {
+                        'device': params['device'],
+                        if (params.containsKey('source'))
+                          'source': params['source'],
+                      })
+              : requestParams,
           maxOutput: command == 'diff' ? null : invocation.options.maxOutput,
           outputJson: invocation.json,
           deadline: deadline,
@@ -273,6 +300,16 @@ Future<int> runCli(
         result = Result.success(
           session,
           await compareObservation(params, baseline, result.data!, deadline),
+        );
+      }
+      if (invocation.command == 'workflow' && result.error == null) {
+        result = Result.success(
+          session,
+          await saveWorkflowScreenshots(
+            result.data!,
+            invocation.options,
+            deadline,
+          ),
         );
       }
       if (invocation.command == 'screenshot' && result.error == null) {

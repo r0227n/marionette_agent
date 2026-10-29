@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from git_flow import GitHub, candidate, check_files, prepare, route, sync, unpublished, version
+from git_flow import SPECS, GitHub, candidate, check_files, prepare, route, sync, unpublished, version
 
 REPO = 'owner/repo'
 SHA = 'a' * 40
@@ -15,7 +15,7 @@ MAIN = 'b' * 40
 def files(v='1.1.0'):
     return {
         **{p: f'version: {v}\npublish_to: none\n' for p in
-           ('pubspec.yaml', 'packages/marionette_agent_util/pubspec.yaml', 'example/pubspec.yaml')},
+           SPECS},
         'lib/src/protocol/protocol.dart': f"const version = '{v}';\n",
         'CHANGELOG.md': f'## {v}\n\n- Reviewed changes.\n\n## 1.0.0\nOld notes.\n',
     }
@@ -92,8 +92,7 @@ class PolicyTests(unittest.TestCase):
                     check_files(data.__getitem__, '1.1.0')
 
     def test_real_repository_pubspecs_remain_unpublished(self):
-        for name in ['pubspec.yaml', 'example/pubspec.yaml',
-                     'packages/marionette_agent_util/pubspec.yaml']:
+        for name in SPECS:
             with self.subTest(name=name):
                 self.assertTrue(unpublished(Path(name).read_text()))
 

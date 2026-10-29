@@ -1,0 +1,27 @@
+name: MarionetteNative
+options:
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGNING_ALLOWED: NO
+    GENERATE_INFOPLIST_FILE: YES
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+targets:
+  MarionetteNative:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [Sources]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.marionette.native.xcuitest
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Local native automation runner
+schemes:
+  MarionetteNative:
+    build:
+      targets:
+        MarionetteNative: [test]
+    test:
+      gatherCoverageData: false
+      targets: [MarionetteNative]

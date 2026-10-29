@@ -3,22 +3,24 @@ title: CLIをインストールする
 description: ローカルcheckoutからmarionette-agentをビルドし、更新する。
 ---
 
-現在はリポジトリのソースからCLIを導入します。Dart SDK 3.13.2以上・4.0.0未満とFlutter SDKを用意してください。exampleではFlutter 3.47.2を使用しています。
+現在はリポジトリのソースからCLIを導入します。Dart SDK 3.13.7以上・4.0.0未満とFlutter SDKを用意してください。exampleではFlutter 3.47.8を使用しています。
 
-1.0.1の固定タグからソースを取得し、手元でコンパイルします。GitHub Releaseはリリースノートとソースarchiveを提供し、pub.dev公開は無効のままです。文書サイトは`develop`を追跡しますが、導入はリリースタグで固定します。
+1.1.0の固定タグからソースを取得し、手元でコンパイルします。GitHub Releaseはリリースノートとソースarchiveを提供し、pub.dev公開は無効のままです。文書サイトは`develop`を追跡しますが、導入はリリースタグで固定します。
 
 ## ソースを取得する
 
 ```sh
-git clone --branch v1.0.1 https://github.com/r0227n/marionette_agent.git
+git clone --branch v1.1.0 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 ```
 
-開発版を使う場合だけの任意手順です。公開版1.0.1の導入では省略してください。この文書の開発基点と同じ内容を使う場合は、ページ上部のコミットから完全なSHAを取得し、`DOCUMENTED_COMMIT`を置き換えて実行します。
+開発版を使う場合だけの任意手順です。公開版1.1.0の導入では省略してください。この文書の開発基点と同じ内容を使う場合は、ページ上部のコミットから完全なSHAを取得し、`DOCUMENTED_COMMIT`を置き換えて実行します。
 
 ```sh
 git switch --detach DOCUMENTED_COMMIT
 ```
+
+開発checkoutでは、ルートの`.mise.toml`でFlutter 3.47.8と同梱Dart 3.13.7を固定しています。`mise install`で固定したtoolを導入し、シェルでmiseを有効にするかSDKコマンドの先頭に`mise exec --`を付けてください。同梱Dartを使い、`flutter`と`dart`で同じSDKを選択します。
 
 ## CLIと同梱Skillsを配置する
 
@@ -32,7 +34,7 @@ export PATH="$HOME/.local/bin:$PATH"
 marionette-agent --version
 ```
 
-`install`はCLIをコンパイルし、指定した既存ディレクトリへ配置します。同じ名前の実行ファイルが存在すると失敗します。バイナリの隣に作られる`.marionette-agent-*`ディレクトリは同梱Skillsと`LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.txt`を保持します。バイナリを移す場合は、このディレクトリも一緒に移してください。
+`install`はDartのnative assets対応ビルドでCLIをコンパイルし、指定した既存ディレクトリへ実行用launcherを配置します。同じ名前の実行ファイルが存在すると失敗します。隣の`.marionette-agent-*`ディレクトリには、`bundle/bin/`のCLI本体、`bundle/lib/`の同梱FFmpegKit、Skills、`LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.txt`を保持します。移動時はlauncherとこのディレクトリを一緒に運んでください。
 
 PATHの設定を次回のシェルでも使うには、利用しているシェルの設定ファイルに同じexportを追加します。
 

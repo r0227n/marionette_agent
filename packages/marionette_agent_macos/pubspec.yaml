@@ -1,0 +1,17 @@
+name: marionette_agent_macos
+description: Macos services for marionette_agent.
+version: 1.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.7
+
+dependencies:
+  ffi: ^2.1.4
+  marionette_agent_platform_interface:
+    path: ../marionette_agent_platform_interface
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

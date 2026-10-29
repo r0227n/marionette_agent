@@ -11,6 +11,7 @@ CliCommand actionCommand({bool fill = false}) {
   final parser = ArgParser();
   addSelectorOptions(parser);
   if (!fill) {
+    parser.addOption('source', allowed: ['flutter', 'native']);
     parser.addOption('x');
     parser.addOption('y');
   }
@@ -18,7 +19,7 @@ CliCommand actionCommand({bool fill = false}) {
     final params = <String, dynamic>{
       for (final name in [
         ...SelectorKind.values.map((k) => k.name),
-        if (!fill) ...['x', 'y'],
+        if (!fill) ...['x', 'y', 'source'],
       ])
         if (args.wasParsed(name)) name: args.option(name),
     };

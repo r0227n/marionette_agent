@@ -20,7 +20,7 @@ CliParser / CliCommand
 
 内部handlerは必要なbackend/protocol/commands/snapshot定義を直接importし、CLI/argsや公開barrelには依存しません。外部の組立用は`marionette_agent.dart`から公開します。上流`marionette_mcp/src/`のimportは`backend/marionette_backend.dart`へ限定し、handlerへ生response mapやconnector例外を渡しません。登録の実行可能な例は[probe_cli.dart](../../integration_test/support/probe_cli.dart)です。
 
-recordは共通session queueからRecordServiceとutilへ委譲します。OS画面録画はVM Service接続なしでも動きますが、Flutter描画録画には接続が必要です。OS処理・終了シグナルはutilへ集約し、操作用refや接続世代を変更しません。
+recordは共通session queueからRecordServiceとutilへ委譲します。全録画はVM Serviceに依存せずプラットフォームAPIを使います。OS処理・終了シグナルはutilへ集約し、操作用refや接続世代を変更しません。
 
 <a id="validation"></a>
 ## mutation前の入力検証
@@ -53,7 +53,7 @@ Pointは有限かつ非負、swipe distanceは有限かつ正数（既定200）�
 
 SessionManagerは同じsessionを直列化し、queue待ちも期限に含め、期限切れ要求を後から実行しません。送信前の拒否はnot_sent、確定mutation失敗はfailed、送信後timeout/切断/未分類失敗はunknownです。read中timeout/切断はnot_sentでも接続とrefを破棄します。古いFutureの完了は再接続後の状態を変更できません。
 
-SnapshotServiceはdaemon単位でgenerationとrefを単調増加させ、session間でも番号を再利用しません。非表示はreason:not_visible、安全な一意selectorがない場合はreason:no_unique_supported_selectorで、refを発行しません。binding 0.6.0の操作selectorはkey/text/typeでidentifierは非対応です。text由来を確認する型はText/RichText/EditableText/TextField/TextFormFieldです。
+SnapshotServiceはdaemon単位でgenerationとrefを単調増加させ、session間でも番号を再利用しません。非表示はreason:not_visible、安全な一意selectorがない場合はreason:no_unique_supported_selectorで、refを発行しません。操作selectorはbinding 0.1.0がkey/text、0.2〜0.6でtype、0.7でidentifierを追加します。text由来を確認する型はText/RichText/EditableText/TextField/TextFormFieldです。
 
 mutation前に再観測し、0件はrefならSTALE_REF、明示selectorならTARGET_NOT_FOUND、複数は非表示も数えてAMBIGUOUS_TARGETです。ref属性変更はSTALE_REF、一意でも非表示やtext由来不明ならUNRESOLVABLE_TARGETです。再観測と操作は原子的ではなく、refから座標へfallbackしません。
 

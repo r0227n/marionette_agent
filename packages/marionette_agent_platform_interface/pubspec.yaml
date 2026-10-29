@@ -1,0 +1,13 @@
+name: marionette_agent_platform_interface
+description: Platform interface services for marionette_agent.
+version: 1.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.7
+
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

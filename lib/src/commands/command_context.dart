@@ -1,16 +1,31 @@
+import 'dart:convert';
+
+import 'package:marionette_agent_platform_interface/marionette_agent_platform_interface.dart';
+
+import '../platform/screen_capture.dart';
 import '../backend/backend.dart';
 import '../protocol/protocol.dart';
 import '../session/session.dart';
 import '../snapshot/snapshot_service.dart';
 import '../snapshot/target.dart';
+import '../snapshot/ui_service.dart';
 
 /// Shared execution boundary used by individual command implementations.
 ///
 /// Handler validates args and calls one of [performTarget], [performCoordinates], or [read].
 /// Do not reimplement session queueing, deadline handling, ref invalidation, or indeterminate-result classification.
 class CommandContext {
-  CommandContext(this._execution, this._snapshots);
+  CommandContext(
+    this._execution,
+    this._snapshots, {
+    this.ui,
+    ScreenCapturer? screenCapturer,
+  }) : _screenCapturer = screenCapturer ?? platformScreenCapturer();
+  final ScreenCapturer _screenCapturer;
   final Execution _execution;
+  final UiService? ui;
+  Future<Json?> route(String command, Json params) async =>
+      ui?.route(_execution, command, params);
   final SnapshotService _snapshots;
 
   /// Absolute caller deadline. Use this deadline when adding file or similar operations.
@@ -57,7 +72,30 @@ class CommandContext {
   Future<ElementInfo> observeTarget(TargetQuery query) =>
       _snapshots.observeTarget(_execution, query);
 
-  Future<Json> annotationTargets() => _snapshots.annotationTargets(_execution);
+  /// OS observation shares the queue/deadline but never requires a Flutter backend.
+  Future<Json> captureDeviceScreen(String source, String device) async {
+    check();
+    if (source == 'ios-device') {
+      throw const AgentError(
+        'UNSUPPORTED_CAPABILITY',
+        'Physical iOS screenshots require a signed XCTest runner; not implemented or verified',
+      );
+    }
+    try {
+      final image = await _screenCapturer.capture(
+        device,
+        deadline,
+        source: source,
+      );
+      check();
+      return {
+        'images': [base64Encode(image.png)],
+        'capture': image.metadata,
+      };
+    } on PlatformException catch (error) {
+      throw AgentError(error.code, error.message, hint: error.hint);
+    }
+  }
 
   /// Read flow. Validate connection generation and deadline before and after await; do not invalidate refs.
   Future<T> read<T>(Future<T> Function(Backend) operation) =>
@@ -77,6 +115,7 @@ class CommandContext {
     TargetQuery query,
     Future<void> Function(Backend, Selector) operation,
   ) async {
+    await ui?.beforeFlutter(_execution);
     final selector = await _snapshots.resolve(_execution, query);
     await _execution.mutate((backend) => operation(backend, selector));
     return {'requiresSnapshot': true};
@@ -87,6 +126,7 @@ class CommandContext {
     List<TargetQuery> queries,
     Future<void> Function(Backend, List<Selector>) operation,
   ) async {
+    await ui?.beforeFlutter(_execution);
     final targets = await _snapshots.resolveAll(_execution, queries);
     if (targets.any((target) => target.element.visible == false)) {
       throw const AgentError('UNRESOLVABLE_TARGET', 'Targets must be visible');
@@ -106,6 +146,7 @@ class CommandContext {
   Future<Json> performCoordinates(
     Future<void> Function(Backend) operation,
   ) async {
+    await ui?.beforeFlutter(_execution);
     await _execution.mutate(operation);
     return {'requiresSnapshot': true};
   }

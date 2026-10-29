@@ -45,7 +45,7 @@ Issueに紐づくコード・文書・設定の変更には、Issueごとに git
 
 ## セットアップ結果
 
-`.gtrconfig` の `postCreate` は、各 worktree のルートで `flutter pub get` を一度実行する。CLI・`packages/marionette_agent_util`・`example`はPub workspaceとして依存を共有し、ルートのlockfileとpackage configを生成する。
+`.gtrconfig` の `postCreate` は、各 worktree のルートで `flutter pub get` を一度実行する。CLI・`packages/`内のplatformパッケージ・`example`はPub workspaceとして依存を共有し、ルートのlockfileとpackage configを生成する。
 
 `hook_status` は次のように扱う。
 

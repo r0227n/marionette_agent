@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:marionette_agent_util/marionette_agent_util.dart';
+import 'package:marionette_agent/src/platform/platform_services.dart';
 
 import '../diagnostics/diagnostic_logging.dart';
 import '../protocol/protocol.dart';
@@ -82,15 +82,13 @@ class DaemonServer {
         // finish draining the queue after the last client has disconnected.
         if (_idleTimer?.isActive != true) _armIdle();
       };
-      manager.onEmpty = () {
-        unawaited(close());
-      };
+      manager.onEmpty = _requestClose;
       _server!.listen(
         (client) {
           unawaited(_serve(client));
         },
         onError: (Object _) {
-          unawaited(close());
+          _requestClose();
         },
       );
       _timer = Timer.periodic(const Duration(seconds: 1), (_) async {
@@ -103,12 +101,18 @@ class DaemonServer {
         }
       });
       _armIdle();
-      _termination = terminationRequests().listen((_) => unawaited(close()));
+      _termination = terminationRequests().listen((_) => _requestClose());
       await _done.future;
     } finally {
-      await close();
-      await _lock?.unlock();
-      await _lock?.close();
+      try {
+        await close();
+      } finally {
+        try {
+          await _lock?.unlock();
+        } finally {
+          await _lock?.close();
+        }
+      }
     }
   }
 
@@ -233,8 +237,12 @@ class DaemonServer {
       _idleTimer = Timer(const Duration(milliseconds: 10), _expireIdle);
       return;
     }
-    unawaited(close());
+    _requestClose();
   }
+
+  // Event callbacks cannot await cleanup. run() observes the shared failure
+  // after shutdown, so do not also leak it as an unhandled asynchronous error.
+  void _requestClose() => unawaited(close().catchError((Object _) {}));
 
   /// Share the cleanup future and wait for file deletion completion even on re-entry.
   /// Even after final response completes _done, run's finally waits on this future
@@ -245,25 +253,35 @@ class DaemonServer {
     _closing = true;
     _timer?.cancel();
     _idleTimer?.cancel();
-    await _termination?.cancel();
-    await _server?.close();
-    await manager.dispose();
-    // Do not tear down the socket that is delivering the final close response.
-    for (final path in [runtime.socket, runtime.metadata]) {
+    try {
       try {
-        await File(path).delete();
-      } on FileSystemException {
-        /* Already absent. */
-      }
-    }
-    if (_clients.isNotEmpty) {
-      _shutdownTimer = Timer(ipcResponseGrace, () {
-        for (final client in _clients.toList()) {
-          client.destroy();
+        await _termination?.cancel();
+      } finally {
+        try {
+          await _server?.close();
+        } finally {
+          await manager.dispose();
         }
-      });
+      }
+    } finally {
+      // Failed platform cleanup must still retire IPC and release run().
+      // Do not tear down the socket delivering the final close response.
+      for (final path in [runtime.socket, runtime.metadata]) {
+        try {
+          await File(path).delete();
+        } on FileSystemException {
+          /* Already absent. */
+        }
+      }
+      if (_clients.isNotEmpty) {
+        _shutdownTimer = Timer(ipcResponseGrace, () {
+          for (final client in _clients.toList()) {
+            client.destroy();
+          }
+        });
+      }
+      _finishIfClosed();
     }
-    _finishIfClosed();
   }
 
   void _finishIfClosed() {

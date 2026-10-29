@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:marionette_agent_util/marionette_agent_util.dart';
+import 'package:marionette_agent/src/platform/platform_services.dart';
 
 import '../../protocol/protocol.dart';
 import '../command.dart';

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'command_scope.dart';
 
 /// IPC compatibility across CLIs. Update independently from public JSON schemaVersion.
-const protocolVersion = 7;
+const protocolVersion = 9;
 
 /// Default daemon idle lifetime in milliseconds; explicit 0 disables it.
 const defaultIdleTimeoutMs = 3600000;
@@ -18,7 +18,7 @@ const maxFrameBytes = 64 * 1024 * 1024;
 const ipcResponseGrace = Duration(milliseconds: 250);
 
 /// Public CLI version for this package.
-const version = '1.0.1';
+const version = '1.1.0';
 
 /// JSON object exchanged by protocol layer; do not carry upstream response types.
 typedef Json = Map<String, Object?>;

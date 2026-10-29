@@ -6,7 +6,13 @@ import 'package:marionette_agent/src/protocol/protocol.dart' as protocol;
 void main() {
   for (final path in [
     'pubspec.yaml',
-    'packages/marionette_agent_util/pubspec.yaml',
+    'packages/marionette_agent_platform_interface/pubspec.yaml',
+    'packages/marionette_agent_ios/pubspec.yaml',
+    'packages/marionette_agent_android/pubspec.yaml',
+    'packages/marionette_agent_macos/pubspec.yaml',
+    'packages/marionette_agent_web/pubspec.yaml',
+    'packages/marionette_agent_flutter/pubspec.yaml',
+    'packages/marionette_agent_video/pubspec.yaml',
     'example/pubspec.yaml',
   ]) {
     final spec = loadYaml(File(path).readAsStringSync()) as YamlMap;
@@ -23,6 +29,6 @@ void main() {
     throw StateError('Missing changelog for ${protocol.version}');
   }
   stdout.writeln(
-    'CLI/util/changelog aligned at ${protocol.version}; pub.dev disabled.',
+    'CLI/workspace/changelog aligned at ${protocol.version}; pub.dev disabled.',
   );
 }

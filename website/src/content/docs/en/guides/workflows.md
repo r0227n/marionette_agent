@@ -54,7 +54,13 @@ The final step takes a snapshot, so the successful result’s `finalSnapshot` le
 | `swipe` / `scroll` | Send a directional gesture                 |
 | `wait`             | Wait for an element to appear or disappear |
 
-A workflow contains 1–100 steps. Workflow v1 does not include branching, loops, shell execution, workflow includes, or image saving.
+A workflow contains 1–100 steps. Workflow v1 does not include branching, loops, shell execution, workflow includes, or parallel steps.
+
+## Save a screenshot step
+
+Add `action: screenshot` with a required literal Simulator UDID in `device`. Optional `source` defaults to `ios-simulator`; `path` is optional. Capture uses XCUIScreen. See [native capture](/marionette_agent/en/guides/capture/). A workflow with only native captures needs no connection. Paths resolve against the CLI caller's directory, and common screenshot format/quality/directory options apply. Crop and annotations are not workflow fields.
+
+Images are saved after successful workflow execution and returned under `screenshots`, paired with `stepId`. A failed step saves no images; a save failure removes new images and reports completed execution with `phase: screenshot-save`. Do not repeat UI actions to recover a save failure. Screenshots preserve the last valid snapshot. Large combined images remain subject to the IPC size limit.
 
 ## Separate input values
 

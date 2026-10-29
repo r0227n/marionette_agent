@@ -26,7 +26,9 @@ marionette-agent --session demo snapshot
 ```
 
 After each operation, confirm the state change in a fresh snapshot and, when
-checking visible behavior, a screenshot. A successful gesture response does not
+checking visible behavior on iOS Simulator, an XCUIScreen screenshot with
+`--device <UDID> --timeout 120000`. The first call builds the bundled XCTest
+runner. A successful gesture response does not
 prove that the intended page or state was reached.
 
 ## Targeting and input
@@ -75,6 +77,8 @@ selected runtime, so use it only when you own all of them.
 - For a reusable connect/observe/cleanup shell example, read
   [templates/observe-session.sh](templates/observe-session.sh).
 - For real Simulator verification, load `marionette-agent skills get simulator-verify`.
+- For exploratory QA and a reproducible findings report, load
+  `marionette-agent skills get dogfood --full`.
 
 Locate these files with `marionette-agent skills path core`, or include them in
 the command output with `marionette-agent skills get core --full`.

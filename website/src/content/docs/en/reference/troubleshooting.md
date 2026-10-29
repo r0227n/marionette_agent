@@ -45,13 +45,13 @@ When reconnecting to an external app, specify its current URI and the intended s
 
 ## Missing capabilities
 
-For `UNSUPPORTED_CAPABILITY`, check binding and auxiliary-provider registration. Identifier-based actions are unsupported by the pinned binding 0.6.0. Annotations need a mapped screenshot provider; typed state and additional input need their corresponding Flutter extensions.
+For `UNSUPPORTED_CAPABILITY`, check binding and auxiliary-provider registration. Identifier-based actions are supported from binding 0.7.0. Typed state and additional input need their corresponding Flutter extensions.
 
 ## Capture failures
 
 - Check that the parent directory exists and is writable, and choose a filename that does not already exist.
 - Select `--screenshot-format jpeg` explicitly when saving `.jpg` files.
-- Prepare a connected session and ffmpeg for recording Flutter rendering.
+- Recording requires an explicit platform and device with its API setup; no Marionette connection is required.
 - Use the correct UDID, serial, or display number for device capture and check required screen-recording permissions.
 - Allow enough time for stop or close; do not terminate the process while it finalizes video.
 

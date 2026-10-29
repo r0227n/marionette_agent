@@ -13,17 +13,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  quality:
+  artifacts:
     if: >-
       github.event.pull_request.merged == true &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       startsWith(github.event.pull_request.head.ref, 'release/')
-    uses: ./.github/workflows/quality.yml
-    with:
-      ref: ${{ github.event.pull_request.merge_commit_sha }}
-
-  artifacts:
-    needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

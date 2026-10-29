@@ -1,7 +1,8 @@
 # Example fixture and preparation
 
-For marionette_agent development, use the task checkout's `example/` app. It pins
-`marionette_flutter` 0.6.0 and uses Flutter 3.47.2. Its debug entrypoint initializes
+For marionette_agent development, use the task checkout's `example/` app. Read its
+`pubspec.yaml` for the binding constraint and `.mise.toml` for the Flutter SDK.
+Its debug entrypoint initializes
 MarionetteBinding and log collection. Read that checkout's `example/README.md`
 for changes to its fixture. Installed CLI users can use their own debug app with
 the binding initialized; this guide does not require a neighboring source repository.
@@ -17,6 +18,7 @@ umask 077
 MRA_VERIFY_DIR=$(mktemp -d /tmp/mra-check.XXXXXX)
 export MARIONETTE_AGENT_RUNTIME_DIR="$MRA_VERIFY_DIR/runtime"
 export MRA_VERIFY_SESSION=verify
+SIMULATOR_UDID="<booted-iOS-Simulator-UDID>"
 export MRA_VERIFY_URI_FILE="$MRA_VERIFY_DIR/uri"
 mkdir -m 700 "$MRA_VERIFY_DIR/evidence"
 ```
@@ -40,7 +42,7 @@ unset MRA_VERIFY_URI
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" snapshot
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" tap --key tap_button
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" snapshot
-dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" screenshot "$MRA_VERIFY_DIR/evidence/after-tap.png"
+dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" screenshot "$MRA_VERIFY_DIR/evidence/after-tap.png" --device "$SIMULATOR_UDID" --timeout 120000
 dart "$MRA_VERIFY_CLI" --session "$MRA_VERIFY_SESSION" close
 ```
 

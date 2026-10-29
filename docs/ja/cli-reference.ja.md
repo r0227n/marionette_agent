@@ -38,7 +38,7 @@ idle期限はdaemon起動時に固定されます。省略した要求は既存�
 <a id="doctor"></a>
 ## doctorの判定
 
-通常は読み取りだけでhost、runtime所有者・0700・path長、daemon protocol、固定依存、iOS Simulatorを確認します。未作成runtimeは正常な未実施扱いです。`--probe-uri`を明示した場合だけ専用接続でアプリを調べ、終了時に解放します。実応答がなければbinding versionを推測しません。
+通常は読み取りだけでhost、runtime所有者・0700・path長、daemon protocol、依存制約とlock済みversion、iOS Simulatorを確認します。未作成runtimeは正常な未実施扱いです。`--probe-uri`を明示した場合だけ専用接続でアプリを調べ、終了時に解放します。実応答がなければbinding versionを推測しません。
 
 checkは`success`、`failure`、`unknown`、`skipped`です。診断を返せれば`ok:true`でも、failure/unknownがあれば`data.exitCode`とprocess終了値は1です。doctor内のtimeoutはunknown/終了1、引数エラーは終了2です。全体期限を過ぎた未着手checkもunknownとなり、daemon handshake待ちは最大1秒です。
 
@@ -51,7 +51,7 @@ checkは`success`、`failure`、`unknown`、`skipped`です。診断を返せれ
 
 | Profile | Tool名の末尾 |
 | --- | --- |
-| `core`（既定） | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show |
+| `core`（既定） | connect, launch, snapshot, tap, fill, swipe, scroll, screenshot, get_text, get_box, get_count, is_visible, wait, close, session_list, session_show, session_bind |
 | `inspect` | get_value, is_enabled, is_checked, logs, doctor, device_list |
 | `actions` | dblclick, focus, hover, check, uncheck, scrollintoview, type, select, press, keydown, keyup, keyboard_press, keyboard_type, keyboard_inserttext, clipboard_read, clipboard_write, clipboard_copy, clipboard_paste, drag |
 | `workflow` | workflow_run, workflow_validate, workflow_schema, batch, confirm, deny |
@@ -61,6 +61,8 @@ checkは`success`、`failure`、`unknown`、`skipped`です。診断を返せれ
 `marionette_agent_tools_profiles`は常に利用できます。find/diff/state/skills/install/upgradeはMCPに公開していません。`tools/list`は20件ずつで、返却された`nextCursor`を次の`cursor`へ渡します。省略/nullは先頭、不正値・型はJSON-RPC `-32602`です。無効profileのtoolは呼べません。
 
 各toolの`inputSchema`を入力の正本として使用してください。`target`はref/key/identifier/text/typeのいずれか1つです。要求の`session`、`timeoutMs`、`maxOutput`、`contentBoundaries`は起動時指定より優先します。接続・対象解決・policy・ref失効はCLIと同じです。
+
+`session_bind`でplatform/deviceをsessionに紐付けます。通常のsnapshot/tap/swipeが設定済みの取得元を扱い、`@e` refをFlutter、`@n` refをnativeへ送ります。nativeのselector/座標には`source: native`を指定し、指定なしのselectorはFlutterです。nativeのkey対象は未対応です。native tap/swipeはtap/swipeに加えてaction policyの`native`を維持します。旧native tools/profileは廃止しました。
 
 CLI toolのtextと`structuredContent`には`{exitCode,response}`を返し、responseは通常のCLI包絡です。失敗は`isError:true`でcode/outcomeを保持します。tools_profilesはprofile情報を直接返します。screenshotのinline画像は合計16 MiBまでで、超過・読込失敗は保存pathと省略理由を返します。
 
@@ -84,7 +86,9 @@ listのdataはname/description、getはname/contentの配列です。fullは補�
 install/upgradeはローカルsourceをAOTコンパイルし、隣接する専用`.marionette-agent-*`bundleを配置します。新規配置失敗では新bundleを回収し、既存バイナリを維持します。upgrade後の旧bundleは旧プロセス用に残るため、不要になったことを確認して整理してください。`skills path`で使用中の場所を調べられます。
 
 <a id="capture"></a>
-## 画像保存と注釈の境界条件
+## 画像の取得と保存
+
+スクリーンショットの既定は`ios-simulator`で、`--device <UDID>`が必須です。同梱XCTest runnerの`XCUIScreen.main.screenshot()`からPNGを回収し、`capture.method:xcuiscreen`、`display:main`、`mask:system-default`と端末・寸法を返します。初回build/startには`--timeout 120000`などで時間を確保してください。接続不要です。Marionette静止画・crop・ref注釈は削除済みで、実機sourceは非対応です。[取得契約](SPEC.ja.md#native-ios-screenshots)を参照してください。MCPとworkflowもdeviceを必須とし、画像diffも同じXCUIScreen経路です。
 
 基本操作は[画像・動画ガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。明示pathがあれば`--screenshot-dir`を検査しません。directory指定時の自動名は`screen-<32桁hex>.png`または`.jpg`、両方省略時はprivate一時directoryの`screen.png`または`screen.jpg`です。複数画像は拡張子前に`-1`、`-2`を付けます。
 
@@ -92,33 +96,8 @@ install/upgradeはローカルsourceをAOTコンパイルし、隣接する専�
 
 親directoryは事前作成が必要です。指定directory自身のsymlinkは拒否し、祖先のsymlinkは利用できます。全画像を検証・変換し、全保存先を排他的に予約してから書き込みます。既存file/directory/symlinkは上書きしません。期限には取得・変換・保存を含み、途中失敗では作成した画像の削除を試みます。OSの削除拒否や進行中I/Oの即時取消しは保証できず、失敗時は成功pathsを返しません。
 
-注釈はmapped providerと有効snapshotが必要です。返却metadataは`annotated`、`generation`、`annotationCount`、`skippedAnnotations`です。省略理由は`missing_or_invalid_bounds`、`bounds_outside_view`、`label_space_exhausted`。capture前後の対象変更はSTALE_REF、複数画像・回転・不明な画像/view対応・PNG寸法不一致はUNSUPPORTED_CAPABILITYです。JPEGはPNGへ注釈後に変換します。refは更新しません。領域cropと注釈は併用できません。
-
 <a id="recording"></a>
-## 録画の寿命と復旧
-
-1 sessionにつき1録画、同じdaemon内では1端末/displayにつき1録画です。録画だけのsessionは接続状態disconnectedでも、`record status`で確認できます。recordは操作用refを変更しません。
-
-stateは`starting/recording/stopping/stopped/failed`、未録画は`idle`です。stopは重複しても同じ最終結果を返します。`elapsedMs`は確定処理を含む壁時計時間で、再生時間ではありません。失敗時の`failure`と`recoveryPath`を確認してください。
-
-開始待ちは最大30秒です。開始timeout後も所有processと予約を回収し、終了確認まで次の同一端末録画を拒否します。停止timeoutでも確定処理は続くのでstatusで確認します。restartは旧動画の確定と新規開始が原子的ではありません。引数・既存pathは停止前に検査しますが、新規開始に失敗しても旧録画を再開しません。
-
-Flutter方式はPNG取得後にstart成功となり、停止時に最大30秒でH.264 MP4へ変換します。ffmpegのPNG decoder、libx264 encoder、concat demuxer、setts bitstream filterが必要です。取得完了後にfps相当の間隔を待つVFR方式です。寸法変更・取得用接続断・変換失敗を成功に置換しません。高速アニメーション、host sleep、hot restart中の継続は保証しません。
-
-端末方式ではiOS/AndroidはMP4、macOS/WebはMOVです。Android screenrecordは180秒で停止・回収し、自動分割しません。iOSは最初のframe、Androidはheader、macOSはprocessの1秒生存で開始を確認します。OS方式の`--fps`は1〜60で保存動画のfpsを指定し、取得cadenceではありません。事前にffmpegを検査し、停止後に変換します。
-
-通常終了とSIGINT/SIGTERMでは確定を最大60秒待ち、追加後処理は最大5秒です。未確定動画は保存先の親にある`.marionette-record-*`へ復旧用として残す場合があります。SIGKILL・host停止後の自動復元、切断Android端末の停止、Android回転中の録画は保証しません。
-
 <a id="web-recording"></a>
-## Webのdisplay指定
+## 録画の生存期間と対象指定
 
-macOS上の可視Chromeを専用profileとloopback remote-debugging portで起動し、`/json/list`から対象pageを選びます。deviceはdisplay番号だけではなく、以下の形式です。ACTUALIDを選んだ`webSocketDebuggerUrl`のIDへ置き換えます。
-
-```sh
-marionette-agent --session web-demo record start ./web.mov --platform web \
-  --device 'display:1@ws://127.0.0.1:9222/devtools/page/ACTUALID' --json
-```
-
-displayは1〜999です。画面収録許可が必要で、指定display全体に映る他アプリやOSダイアログも含みます。Chromeの配置確認・移動追従はしません。localhost、remote host、認証情報、query、fragmentはdeviceに使えません。headless Chromeはこの方式では非対応です。
-
-同一displayのWeb/macOS録画は排他です。対象tabの終了・crash・debug接続断はCONNECTION_LOSTとなり、statusはfailed、stopはエラーを返します。復旧pathを確認してください。方式と起動例の詳細は[Web録画設計](../web-recording.md)を参照してください。
+[native録画契約](SPEC.ja.md#device-screen-recording)がplatform API・対象構文・形式・取得間隔・開始期限・所有権・復旧を定義します。`--platform flutter`は削除しました。Androidは非公開ペアリングファイル、Webは明示したChromium page endpointを使い、旧対象構文から変更しています。WebはviewportをMP4へ保存し、macOS displayの許可は不要です。コマンドと準備は[captureガイド](https://r0227n.github.io/marionette_agent/ja/guides/capture/)を参照してください。

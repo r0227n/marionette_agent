@@ -4,22 +4,23 @@ Flutter app automation for AI agents. Observe the UI, act on a target, and verif
 
 [English documentation](https://r0227n.github.io/marionette_agent/en/) · [日本語ドキュメント](https://r0227n.github.io/marionette_agent/ja/) · [Detailed references](docs/README.md)
 
-Version 1.0.1 runs on **macOS** and connects to **debug Flutter apps with Marionette enabled**. It supports named sessions, snapshot refs, text input, gestures, screenshots, recordings, and sequential workflows. Apps can run in iOS Simulator, Android Emulator, macOS, Chrome, or Flutter tester, subject to the selected platform’s requirements.
+Version 1.1.0 runs on **macOS** and connects to **debug Flutter apps with Marionette enabled**. It supports named sessions, snapshot refs, text input, gestures, screenshots, recordings, and sequential workflows. Apps can run in iOS Simulator, Android Emulator, macOS, Chrome, or Flutter tester, subject to the selected platform’s requirements. Still screenshots use XCUIScreen on iOS Simulator and require its explicit UDID; see the [capture guide](https://r0227n.github.io/marionette_agent/en/guides/capture/).
 
 The documentation site is deployed from `develop`. For offline reading, use the [English source](website/src/content/docs/en/getting-started/overview.md), [Japanese source](website/src/content/docs/ja/getting-started/overview.md), or [local preview](website/README.md).
 
 ## Installation
 
-Install 1.0.1 from the immutable Git tag and compile locally. GitHub Releases
+Install 1.1.0 from the immutable Git tag and compile locally. GitHub Releases
 provide the release notes and source archives; pub.dev publication is disabled.
 The documentation site tracks development on `develop`, while this installation
 uses the released source revision.
 
-You need Flutter and Dart **3.13.2 or newer, below 4.0.0**. The example pins Flutter
-3.47.2; platform SDKs such as Xcode are needed for the corresponding app runtime.
+Use Flutter **3.47.8** and its bundled Dart **3.13.7**, pinned in `.mise.toml`
+for development checkouts. The workspace requires Dart >=3.13.7 <4.0.0;
+platform SDKs such as Xcode are needed for the corresponding app runtime.
 
 ```sh
-git clone --branch v1.0.1 https://github.com/r0227n/marionette_agent.git
+git clone --branch v1.1.0 https://github.com/r0227n/marionette_agent.git
 cd marionette_agent
 flutter pub get --enforce-lockfile
 mkdir -p "$HOME/.local/bin"
@@ -28,11 +29,11 @@ export PATH="$HOME/.local/bin:$PATH"
 marionette-agent --version
 ```
 
-Expected version: `1.0.1`.
+Expected version: `1.1.0`.
 
 Add the PATH export to your shell configuration to keep it across terminals. `install` creates the executable and an adjacent `.marionette-agent-*` Skills and license notices bundle; keep them together if you move the installation. It requires an existing destination directory and refuses to overwrite an existing executable.
 
-The repository root is the CLI package and Pub workspace root. One `flutter pub get` resolves the CLI, `packages/marionette_agent_util`, and `example` into the root lockfile.
+The repository root is the CLI package and Pub workspace root. One `flutter pub get` resolves the CLI, the platform packages under `packages/`, and `example` into the root lockfile.
 
 To run directly from the repository root after resolving dependencies:
 
@@ -64,13 +65,11 @@ marionette-agent get text --key tap_result
 marionette-agent snapshot
 marionette-agent fill --key text_input 'hello'
 marionette-agent snapshot
-marionette-agent screenshot
 marionette-agent close
 unset MARIONETTE_AGENT_SESSION
 ```
 
-Verify `Tap count: 1` and `5 characters`, then open the returned screenshot and
-confirm the input displays `hello`. Flutter tester covers shared Flutter UI;
+Verify `Tap count: 1` and `5 characters` in the observations. Flutter tester covers shared Flutter UI;
 native plugins and OS behavior need the corresponding target platform.
 
 For an externally started Marionette-enabled debug app, obtain its authenticated
@@ -104,7 +103,7 @@ personal information, authentication tokens, or abuse-enabling details.
 
 Snapshots also return short refs such as `@e7`. Use only refs returned by the latest snapshot in the selected session. A new snapshot, a UI mutation, or reconnection expires earlier refs. Reobserve after each action; the CLI does not automatically resend UI operations.
 
-For your own app, follow [app integration](https://r0227n.github.io/marionette_agent/en/getting-started/app-integration/). Optional app-side providers add typed input state, semantic find operations, and mapped screenshots.
+For your own app, follow [app integration](https://r0227n.github.io/marionette_agent/en/getting-started/app-integration/). Optional app-side providers add typed input state, semantic find operations.
 
 ## Commands
 
@@ -113,7 +112,6 @@ For your own app, follow [app integration](https://r0227n.github.io/marionette_a
 | Connect and manage sessions | `connect`, `launch`, `session list`, `session show`, `close` |
 | Observe | `snapshot`, `get text/box/count/value`, `is visible/enabled/checked`, `logs` |
 | Interact | `tap`, `fill`, `type`, `swipe`, `scroll`, `find`, `wait` |
-| Capture and compare | `screenshot`, `record start/status/stop/restart`, `diff snapshot/screenshot` |
 | Automate | `workflow schema/validate/run`, `batch`, `confirm`, `deny` |
 | Diagnose and integrate | `doctor`, `device list`, `skills`, `mcp` |
 
@@ -158,26 +156,25 @@ The MCP server uses stdio. Choose additional tool profiles when needed; the [age
 ```sh
 marionette-agent --session headless --timeout 600000 launch ./example --platform tester
 marionette-agent --session headless snapshot
-marionette-agent --session headless screenshot
 marionette-agent --session headless --timeout 60000 close
 ```
 
-Flutter tester is useful for shared Flutter UI; verify native plugins and OS behavior on the relevant platform. A session created by `launch` owns its runner, so `close` also shuts down that app. See [headless execution](https://r0227n.github.io/marionette_agent/en/guides/headless/) for platform options and [capture](https://r0227n.github.io/marionette_agent/en/guides/capture/) for Flutter rendering versus device recordings. Flutter rendering recordings require ffmpeg and capture a single Flutter view without audio.
+Flutter tester is useful for shared Flutter UI; verify native plugins and OS behavior on the relevant platform. A session created by `launch` owns its runner, so `close` also shuts down that app. See [headless execution](https://r0227n.github.io/marionette_agent/en/guides/headless/) for platform options and [capture](https://r0227n.github.io/marionette_agent/en/guides/capture/) for native platform recording. Recording requires an explicit iOS Simulator, Android capture pairing, macOS display or Chromium page; the Flutter/tester recording route has been removed.
 
 ## Support, troubleshooting, and removal
 
-The supported CLI host is macOS. The verification baseline is Flutter 3.47.2 /
-Dart 3.13.2 on macOS arm64; other SDKs satisfying the constraint are not an
+The supported CLI host is macOS. The verification baseline is Flutter 3.47.8 /
+Dart 3.13.7 on macOS arm64; other SDKs satisfying the constraint are not an
 exhaustive compatibility promise. iOS Simulator needs Xcode, Android needs its
 SDK/adb, and Chrome/macOS launch needs the corresponding runtime. Linux/Windows
 host support and iOS device recording are not promised. Recordings need platform
-permissions or ffmpeg depending on the backend; none is needed for the quick start.
+permissions or bundled native libraries depending on the backend; none is needed for the quick start.
 
 - Compilation fails: confirm Flutter/Dart are on PATH and resolve the committed
   lockfile at the repository root. Increase install timeout for a slow machine.
 - Existing executable: use `upgrade --source .` from the desired checkout.
 - Missing target or stale ref: take a new snapshot and check the unique key.
-- Missing capabilities: use the fixed `marionette_flutter: 0.6.0`; optional util
+- Missing capabilities: use the fixed `marionette_flutter: 0.6.0`; optional Flutter
   providers must come from the same release checkout. Read the
   [1.x compatibility policy](website/src/content/docs/en/reference/compatibility.md).
 - Failed checks or connection: run `marionette-agent doctor --json`; include
@@ -204,7 +201,9 @@ separate [MIT notice](third_party/mattpocock-skills-LICENSE). See the
 | Location | Purpose |
 | --- | --- |
 | [Repository root](pubspec.yaml) | CLI, daemon, MCP server, and tests |
-| [packages/marionette_agent_util](packages/marionette_agent_util/) | Optional app providers and runtime helpers |
+| [packages/marionette_agent_platform_interface](packages/marionette_agent_platform_interface/) | Shared contracts and host lifecycle support |
+| `packages/marionette_agent_{ios,android,macos,web}` | Target-specific launch, inventory, and recording implementations |
+| [packages/marionette_agent_flutter](packages/marionette_agent_flutter/) | Optional app providers, tester launch, and PNG recording |
 | [samples/workflows](samples/workflows/README.md) | CLI workflow and input samples |
 | [example](example/README.md) | Flutter app for reproducible verification |
 | [website](website/README.md) | Starlight site, built and verified with Bun |
@@ -214,5 +213,7 @@ separate [MIT notice](third_party/mattpocock-skills-LICENSE). See the
 English is the primary public language; Japanese is maintained alongside it. Update paired pages in the same PR using the [documentation policy](docs/documentation.md). The website owns user guides; repository supplements cover details beyond those guides.
 
 Read [AGENTS.md](AGENTS.md) before making changes. CLI changes require formatting, analysis, relevant tests, and the full test suite at handoff; behavior changes also require verification against the example in iOS Simulator. The [product contract](docs/SPEC.md) and [architecture](docs/ARCHITECTURE.md) are available in English, with [Japanese specification](docs/ja/SPEC.ja.md) and [Japanese architecture](docs/ja/ARCHITECTURE.ja.md) counterparts.
+
+Follow [Contributing](CONTRIBUTING.md) to install Lefthook and enable the extension-filtered pre-commit quality checks before your first commit.
 
 For website development and the GitHub Pages deployment pipeline, follow [website/README.md](website/README.md).

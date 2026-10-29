@@ -4,32 +4,39 @@
 
 ## 現在の配布と対象
 
-公開版は固定Gitタグと、ソースarchiveを持つGitHub Releaseから導入します。1.0.1は`v1.0.1`を指定し、commit済みlockfileを解決して手元でコンパイルします。CLI/util/exampleの`publish_to: none`を維持し、Pub global activationとpub.dev公開は対象外です。開発版はレビュー済みdevelop commitを指定でき、そのSHAを記録し、リリース版と同じ動作を前提にしません。
+公開版は固定Gitタグと、ソースarchiveを持つGitHub Releaseから導入します。1.1.0は`v1.1.0`を指定し、commit済みlockfileを解決して手元でコンパイルします。CLI/platform/exampleの`publish_to: none`を維持し、Pub global activationとpub.dev公開は対象外です。開発版はレビュー済みdevelop commitを指定でき、そのSHAを記録し、リリース版と同じ動作を前提にしません。
 
-installerの配布物は実行ファイルと、対応する隣接`.marionette-agent-*`ディレクトリです。SkillsとLICENSE/NOTICE/THIRD_PARTY_NOTICESを含め、移設・再配布でも保持します。upgradeは旧bundleを残すので、実行ファイルが参照しなくなったものだけ削除してください。アプリ側utilも同じcheckoutを使います。複数platformのビルド済み配布物は約束しません。
+installerの配布物は実行用launcherと、対応する隣接`.marionette-agent-*`ディレクトリです。ディレクトリ内の`bundle/bin/`にCLI本体、`bundle/lib/`にFFmpegKit native assetsを置き、SkillsとLICENSE/NOTICE/THIRD_PARTY_NOTICESも含めて移設・再配布時に保持します。upgradeは旧bundleを残すので、実行ファイルが参照しなくなったものだけ削除してください。アプリ側Flutter補助も同じcheckoutを使います。複数platformのビルド済み配布物は約束しません。
 
 ## ライセンス確認
 
-本プロジェクトのコードと文書は[leancodepl/marionette_mcpのLICENSE](https://github.com/leancodepl/marionette_mcp/blob/main/LICENSE)を参考にApache-2.0としました。2026-10-01確認のblobは`261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`です。NOTICEには本プロジェクトの寄稿者を記載し、上流の権利を取り込みません。THIRD_PARTY_NOTICES.txtに依存の原文を保持します。generatorはCLI/util/exampleのproduction依存をたどり、アプリ側Flutter/engineとDart runtimeも含めます。ライセンス不足で失敗し、`--check`は更新漏れを検出します。宣言した依存全体を広めに含め、全てがAOTに組み込まれるとは主張しません。
+本プロジェクトのコードと文書は[leancodepl/marionette_mcpのLICENSE](https://github.com/leancodepl/marionette_mcp/blob/main/LICENSE)を参考にApache-2.0としました。2026-10-01確認のblobは`261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`です。NOTICEには本プロジェクトの寄稿者を記載し、上流の権利を取り込みません。THIRD_PARTY_NOTICES.txtに依存の原文を保持します。generatorはCLI/platform/exampleのproduction依存をたどり、アプリ側Flutter/engineとDart runtimeも含めます。ライセンス不足で失敗し、`--check`は更新漏れを検出します。宣言した依存全体を広めに含め、全てがAOTに組み込まれるとは主張しません。
 
-MarionetteはApache-2.0、image/archiveはMIT、Dart/Flutterの各packageはBSD等です。元の表示を保持してください。Flutter 3.47.2でcommit済みlockfileを解決して生成します。依存・SDK変更時は同梱素材やpackage内の入れ子の第三者表示も再確認します。生成結果は法的適合性の自動判定ではありません。
+MarionetteはApache-2.0、image/archiveはMIT、Dart/Flutterの各packageはBSD等です。元の表示を保持してください。Flutter 3.47.8でcommit済みlockfileを解決して生成します。依存・SDK変更時は同梱素材やpackage内の入れ子の第三者表示も再確認します。生成結果は法的適合性の自動判定ではありません。
 
 skills-lock.jsonの外部開発skillは[mattpocock/skills](https://github.com/mattpocock/skills)のMITで、`third_party/mattpocock-skills-LICENSE`に元の表示を保持しました。上流LICENSE blobは`f1dd2c09108dde1a5f56097cee8461b3ea834499`です。CLIにはインストールしません。同梱Skillsは本プロジェクトの素材です。exampleのFlutter scaffold/iconsを含むアプリ配布時はFlutter/engineとcupertino_iconsの表示も保持してください。websiteのビルドツールはCLI binaryに含めません。生成サイトや新素材の再配布は別途対象を確認します。
 
 ## ローカルの検証
 
-macOS、Flutter 3.47.2、Dart 3.13.2を基準に、ルートから以下を実行します。子directory指定は括弧内です。processを多用するtestの競合を避けて直列実行します。CLI test runnerの`--timeout=2m`はhosted macOSでの子processのcold JIT起動を含む待機枠です。製品のdeadlineとtestで明示したtimeoutは引き続き適用されます。tester smokeはnative appをビルドせず、Simulatorも起動しません。
+macOS、Flutter 3.47.8、Dart 3.13.7を基準に、ルートから以下を実行します。子directory指定は括弧内です。processを多用するtestの競合を避けて直列実行します。CLI test runnerの`--timeout=2m`はhosted macOSでの子processのcold JIT起動を含む待機枠です。製品のdeadlineとtestで明示したtimeoutは引き続き適用されます。tester smokeはnative appをビルドせず、Simulatorも起動しません。
 
-この検証の前にffmpegとffprobeを導入してください。どちらかがない場合、実MP4エンコードの2件はskipされます。リリース検証では両方を実行する必要があります。CIはmacOS runnerに両toolを用意します。Releaseの配布物には含めません。
+この検証の前にmiseで`.mise.toml`に固定したLefthook 2.2.1を導入し、ffmpeg（ffprobeを含む）は別途導入して、[Contributing](../../CONTRIBUTING.md)の手順でhookを有効化してください。どちらかのencoder toolがない場合はhookを失敗させ、実MP4テストのskipを防ぎます。これらのtoolはローカルに用意してください。リリース自動化はローカル検証済みを前提とし、Lefthookの導入・実行は行いません。これらの外部toolは動画の独立した検証用で、Releaseの配布物には含めません。実行時の変換にはCLIへ同梱するFFmpegKit nativeライブラリを使います。
+
+`mise exec -- lefthook run pre-commit --all-files`は`tool/quality.sh`経由で以下のworkspace検証をすべて実行します。website検証は別途実行します。通常のcommitでは`website/`外の`.dart`・`.yaml`・`.yml`・`.json`・`.lock`、`.mise.toml`、CHANGELOG、ライセンス表示、同梱Skills、hook用toolの変更でworkspace検証を選択します。最初にステージ済みの存在するDartファイルだけをformat確認し、workspace検証では全ソースのformat・解析・版数・表示・全テスト・install/tester smokeを実行します。削除もworkspace検証の対象です。Lefthookは部分ステージしたファイルの未ステージ編集を一時的に隠し、検証後に復元します。自動修正・自動stageは行いません。SDKコマンドの実行時はrepository固有のGit環境変数を解除し、worktree hookによってFlutterがプロジェクトのrevisionをSDKの版として参照することを防ぎます。他のMarkdownやwebsiteだけのcommitではDart検証を省略し、リリース前には必ず全検証を実行します。hook用toolの編集後は`python3 tool/test_quality_hooks.py`で分離したGit結合テストも実行してください。
 
 ```sh
 flutter pub get --enforce-lockfile
-dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages/marionette_agent_util/lib packages/marionette_agent_util/test packages/marionette_agent_util/flutter_test example/lib example/test
+dart format --output=none --set-exit-if-changed bin lib test tool integration_test packages example/lib example/test
 dart analyze
 dart run tool/check_release.dart
 dart run tool/license_notices.dart --check
 dart test --concurrency=1 --timeout=2m
-(cd packages/marionette_agent_util && dart test --concurrency=1 && flutter test flutter_test)
+for package in platform_interface ios android macos web flutter; do
+  if [ -d "packages/marionette_agent_$package/test" ]; then
+    (cd "packages/marionette_agent_$package" && dart test --concurrency=1)
+  fi
+done
+(cd packages/marionette_agent_flutter && flutter test flutter_test)
 (cd example && flutter test)
 dart run integration_test/release_smoke.dart
 (cd website && bun install --frozen-lockfile && bun run verify)
@@ -44,8 +51,8 @@ dart run integration_test/release_smoke.dart
 - [ ] 新規ソースcheckout、固定依存の解決、install、smokeが成功し、撮影画像を確認した。
 - [ ] 正確な依存・SDK・配布素材にライセンス表示が対応する。
 - [ ] SECURITYが指定された公開Issuesを窓口とし、秘密情報・個人情報・トークン・悪用可能な詳細の投稿を避けるよう案内している。GitHubの非公開報告は2026-10-01の読み取りで無効で、非公開窓口や設定変更を約束しない。
-- [ ] CLI/util pubspec、CLI/MCP表示、CHANGELOG、tag、Releaseが1.0.1で一致する。
-- [ ] 導入例は`v1.0.1`を指定し、公開後にタグを検証する。
+- [ ] CLI/platform pubspec、CLI/MCP表示、CHANGELOG、tag、Releaseが1.1.0で一致する。
+- [ ] 導入例は`v1.1.0`を指定し、公開後にタグを検証する。
 - [ ] サイトは`develop`から公開する開発文書を維持し、stable版の導入手順はリリースタグを指定する。bannerのSHAはサイトのビルド基点で、最新リリースの約束ではない。
 - [ ] push/PR/merge/tag/Releaseの許可を得る。hostingや権限の変更は別途対象を定める。
 - [ ] 許可後にPages deployとlive URLを確認する。run 35617308091ではbuild/check/uploadが成功し、GitHubのdeploy作成がHTTP 500を返した。既存workflowのgateとartifact/environment名は整合し、ログから構成欠陥は確認できなかった。ユーザーによるPR #48マージ後、[run 36854804049](https://github.com/r0227n/marionette_agent/actions/runs/36854804049)はverify/deployとも成功した。このタスクからredeployは要求していない。
@@ -54,12 +61,12 @@ dart run integration_test/release_smoke.dart
 
 ## Git-flow自動化
 
-既定ブランチは`main`を想定します。互換性修正を含む通常の開発PRは引き続き`develop`向けです。`main`は同一リポジトリの`release/MAJOR.MINOR.PATCH`からのみ受け入れ、releaseへの安定化修正は同一リポジトリの`fix/*`から行います。Git flow、Quality、Documentationが各PRを検証し、base変更時にはGit flowも再実行します。マージを確実に止めるにはrequired check（`Git flow policy`、`Quality checks`、`Documentation checks`）設定が必要で、workflowの追加だけでは強制されません。Pagesは既存environment方針に従い`develop`から公開し続けます。
+既定ブランチは`main`を想定します。互換性修正を含む通常の開発PRは引き続き`develop`向けです。`main`は同一リポジトリの`release/MAJOR.MINOR.PATCH`からのみ受け入れ、releaseへの安定化修正は同一リポジトリの`fix/*`から行います。Git flowとDocumentationが各PRを検証し、workspace品質はcommit前にローカルのLefthookで確認します。base変更時にはGit flowも再実行します。マージを止めるにはrequired check（`Git flow policy`、`Documentation checks`）設定が必要です。旧`Quality checks`を必須にしている場合は削除し、実行されないcheckの待機を防いでください。ローカルhookは迂回可能で、remoteのマージ条件を強制しません。Pagesは既存environment方針に従い`develop`から公開し続けます。
 
 1. 開始前にdevelopで版数変更をレビューします。3つのpubspecとprotocolの公開版数を揃え、CHANGELOGの先頭にレビュー済みの具体的な変更内容を記載します。`publish_to: none`を維持し、mainより大きい安定版番号を使い、同名タグが存在しないことを確認します。版数編集とリリースノートはレビューする開発差分です。
-2. Actionsの**Prepare release**で**main**を選択し、`v`なしの版数を入力します。既定の**dry_run=true**ではdevelopのSHAを固定し、既存macOS Qualityを実行するだけでbranch/PRを書き込みません。dry runを無効にすると成功後にそのSHAから`release/<version>`とmain向けDraft PRを作成します。検証中にdevelopが進んだ場合は再実行します。mainがdevelopの祖先である必要があるため、前回の逆同期を先に完了してください。
-3. 候補をレビュー・安定化します。bot作成PRの検証には**Approve workflows to run**が必要な場合があります。checkがない場合はmaintainerがPRをclose/reopenしてください。未実行checkを迂回したり、準備時の検証で最終PR検証を代替したりしません。PATや追加secretは不要です。最終候補のGit flow・Quality・Documentationとnative受入確認を満たしてから、人間がReady化・mainへのmergeを判断します。履歴維持のためmerge commitを推奨します。
-4. release PRのmerge後、そのmerge SHAでQualityを再実行します。**Release handoff**がソースarchive、レビュー済みノート、タグ候補とSHAのmanifestを30日保存のActions artifactとして生成します。remote tag、GitHub Release（draftを含む）、pub.devは作成・公開しません。期限前に取得し、別途許可された人間の公開ではそのSHAを指定してください。
+2. Actionsの**Prepare release**で**main**を選択し、`v`なしの版数を入力します。既定の**dry_run=true**ではdevelopのSHAを固定し、版数・祖先関係・リリースmetadataを確認するだけでbranch/PRを書き込みません。そのSHAでworkspace品質をローカル検証済みであることを前提とします。dry runを無効にすると確認成功後にそのSHAから`release/<version>`とmain向けDraft PRを作成します。確認中にdevelopが進んだ場合は再実行します。mainがdevelopの祖先である必要があるため、前回の逆同期を先に完了してください。
+3. 候補をレビュー・安定化します。bot作成PRの検証には**Approve workflows to run**が必要な場合があります。checkがない場合はmaintainerがPRをclose/reopenしてください。未実行checkを迂回したり、準備時の検証で最終PR検証を代替したりしません。PATや追加secretは不要です。最終候補のGit flow・ローカルLefthook・Documentationとnative受入確認を満たしてから、人間がReady化・mainへのmergeを判断します。履歴維持のためmerge commitを推奨します。
+4. release PRのmerge後、ローカル品質検証済みを前提に、**Release handoff**がそのmerge SHAからソースarchive、レビュー済みノート、タグ候補とSHAのmanifestを30日保存のActions artifactとして生成します。remote tag、GitHub Release（draftを含む）、pub.devは作成・公開しません。期限前に取得し、別途許可された人間の公開ではそのSHAを指定してください。
 5. handoffは`sync/main-<merge-SHA>`からdevelop向けDraft PRを冪等に作成します。developが既にcommitを含む場合は何もしません。競合とCIを確認して**merge commit**で取り込み、mainの祖先関係を維持します。逆同期をsquash/rebaseすると、祖先関係を復元するまで次の準備は失敗します。auto-mergeやforce-pushは行いません。
 
 準備は版数をまたいで直列化します。再実行では変更されていないbranchとopen PRを再利用し、変更済みbranchやclosed PRは拒否し、既存タグを上書きしません。安定化commit後のprepare再実行は意図的に拒否するため、既存release PRのレビューを続けてください。branch作成後にAPI権限で失敗した場合はbranchが残ります。権限問題を承認付きで解決して再実行するとPR作成から回復します。明示的な404以外は「存在しない」ではなく失敗として扱います。handoffの失敗jobは同じmerge eventで再実行でき、逆同期済みなら何もしません。

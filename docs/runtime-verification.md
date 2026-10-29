@@ -2,9 +2,9 @@
 
 [日本語](ja/runtime-verification.ja.md) · [Documentation index](README.md)
 
-[all-actions.yaml](../samples/workflows/all-actions.yaml) exercises all six workflow v1 actions in 16 steps: navigation to About and back, tap, fill, PageView swipe, scroll, wait, and snapshot. Its target is the repository's [example app](../example/README.md).
+[all-actions.yaml](../samples/workflows/all-actions.yaml) exercises the six Flutter workflow v1 actions in 16 steps: navigation to About and back, tap, fill, PageView swipe, scroll, wait, and snapshot. Its target is the repository's [example app](../example/README.md).
 
-Workflow v1 does not include connection, get, images, logs, or recording actions. [all_commands_smoke.dart](../integration_test/all_commands_smoke.dart) executes those through separate product CLI processes and also validates and runs the YAML workflow. The iOS and Android scenarios are the same except for the device and recording platform.
+The seventh workflow action, native screenshot, requires an iOS Simulator UDID and is tested separately. Workflow v1 does not include connection, get, logs, or recording actions. [all_commands_smoke.dart](../integration_test/all_commands_smoke.dart) executes those through separate product CLI processes and also validates and runs the YAML workflow. The scenarios share Flutter operations; still screenshots run only on iOS.
 
 ## Preparation
 
@@ -71,21 +71,21 @@ Do not publish the URI or raw Flutter logs, and do not enable shell tracing. The
 | `swipe` | Page 1→2 through a left gesture, then 2→1 through coordinates spanning 80% of the view |
 | `scroll` | Two upward gestures of 400px and 150px reach Bottom reached |
 | `wait` | Page/screen existence and About disappearance after navigating to Controls |
-| `screenshot` | Decodable PNG, JPEG, and annotated PNG; visually inspect content and annotation positions |
+| `screenshot` | XCUIScreen PNG/JPEG on iOS Simulator with matching UDID and physical dimensions; visually inspect OS UI |
 | `logs` | Add log entry produces `manual log entry added` |
-| `workflow schema` | Whole schema and each of the six action schemas |
+| `workflow schema` | Whole schema and each of the seven action schemas |
 | `workflow validate` | Validate the 16-step all-actions.yaml with input binding |
 | `workflow run` | All 16 steps complete, Bottom reached, finalSnapshot refs work in a separate CLI, total counter 3 |
 | `record start/status/stop` | Active recording, finalized MP4, and repeat stop returns the same artifact; visually inspect the video |
 | `close` / `close --all` | Reconnect after normal close, zero sessions after close-all, not-connected errors, and no daemon socket/metadata |
 
-Error checks compare exit and normalized error codes: disconnected is 3/NOT_CONNECTED, expired refs are 4/STALE_REF, missing targets are 4/TARGET_NOT_FOUND, and ambiguous targets are 4/AMBIGUOUS_TARGET. Binding 0.6.0 identifier operations should return 6/UNSUPPORTED_CAPABILITY. Rejected taps must not increment the counter.
+Error checks compare exit and normalized error codes: disconnected is 3/NOT_CONNECTED, expired refs are 4/STALE_REF, missing targets are 4/TARGET_NOT_FOUND, and ambiguous targets are 4/AMBIGUOUS_TARGET. Identifier operations on bindings before 0.7 should return 6/UNSUPPORTED_CAPABILITY; 0.7 supports them. Rejected taps must not increment the counter.
 
 ## Evidence and cleanup
 
 Every run creates a dedicated runtime and an `<evidence>/<platform>-<unique>/` directory. `results.json` records commands, expected/actual exits, redacted responses and diagnostics, state assertions, and failure reasons. On failure, the script still attempts to close its runtime's sessions and save results, then exits 1. The runtime is retained for diagnosis.
 
-Screenshots cover initial, initial-annotated, initial-jpeg, filled-page-two, scrolled, workflow-bottom, and about states. `operations.mp4` covers UI operations and the workflow. Script PASS means CLI and state assertions passed. Open the images and play or decode the video into chronological frames to inspect input, Page 2, scrolling, tab transitions, and annotation positions. The report's `visualReview` records that this additional check is still required.
+Screenshots cover initial, initial-jpeg, filled-page-two, scrolled, workflow-bottom, and about states. `operations.mp4` covers UI operations and the workflow. Script PASS means CLI and state assertions passed. Open the images and play or decode the video into chronological frames to inspect input, Page 2, scrolling, tab transitions, and OS UI. The report's `visualReview` records that this additional check is still required.
 
 Quit the Flutter runner with `q` and stop only devices started for this run. Confirm that owned recording, session, daemon, runner, and app have stopped before removing the URI and releasing the device.
 
