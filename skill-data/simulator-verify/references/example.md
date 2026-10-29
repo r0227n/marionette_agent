@@ -1,7 +1,8 @@
 # Example fixture and preparation
 
 For marionette_agent development, use the task checkout's `example/` app. It pins
-`marionette_flutter` 0.6.0 and uses Flutter 3.47.2. Its debug entrypoint initializes
+`marionette_flutter` 0.6.0 and uses the Flutter SDK pinned in `.mise.toml`.
+Its debug entrypoint initializes
 MarionetteBinding and log collection. Read that checkout's `example/README.md`
 for changes to its fixture. Installed CLI users can use their own debug app with
 the binding initialized; this guide does not require a neighboring source repository.

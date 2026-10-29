@@ -3,7 +3,7 @@ title: CLIをインストールする
 description: ローカルcheckoutからmarionette-agentをビルドし、更新する。
 ---
 
-現在はリポジトリのソースからCLIを導入します。Dart SDK 3.13.2以上・4.0.0未満とFlutter SDKを用意してください。exampleではFlutter 3.47.2を使用しています。
+現在はリポジトリのソースからCLIを導入します。Dart SDK 3.13.7以上・4.0.0未満とFlutter SDKを用意してください。exampleではFlutter 3.47.8を使用しています。
 
 1.0.0の固定タグからソースを取得し、手元でコンパイルします。GitHub Releaseはリリースノートとソースarchiveを提供し、pub.dev公開は無効のままです。文書サイトは`develop`を追跡しますが、導入はリリースタグで固定します。
 
@@ -19,6 +19,8 @@ cd marionette_agent
 ```sh
 git switch --detach DOCUMENTED_COMMIT
 ```
+
+開発checkoutでは、ルートの`.mise.toml`でFlutter 3.47.8と同梱Dart 3.13.7を固定しています。`mise install`で固定したtoolを導入し、シェルでmiseを有効にするかSDKコマンドの先頭に`mise exec --`を付けてください。同梱Dartを使い、`flutter`と`dart`で同じSDKを選択します。
 
 ## CLIと同梱Skillsを配置する
 

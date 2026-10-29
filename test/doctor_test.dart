@@ -49,7 +49,7 @@ void main() {
     String? sdk,
   }) => Doctor(
     os: 'macos',
-    dartVersion: sdk ?? '3.13.2',
+    dartVersion: sdk ?? '3.13.7',
     runtimePath: runtime ?? dir.path,
     process: process,
     probe: probe,
@@ -112,6 +112,18 @@ void main() {
         .run(deadline());
     expect(check(long, 'runtime.socketPath')['status'], 'failure');
   });
+  for (final (sdk, status) in [
+    ('3.13.6', 'failure'),
+    ('3.13.7', 'success'),
+    ('3.13.8', 'success'),
+    ('3.14.0', 'success'),
+    ('4.0.0', 'failure'),
+  ]) {
+    test('Dart $sdk is $status for the workspace SDK range', () async {
+      final result = await doctor(sdk: sdk).run(deadline(), quick: true);
+      expect(check(result, 'host.dart')['status'], status);
+    });
+  }
   test(
     'unsafe permission blocks socket inspection and preserves files',
     () async {
@@ -119,7 +131,7 @@ void main() {
         ..writeAsString('unchanged');
       final result = await Doctor(
         os: 'macos',
-        dartVersion: '3.13.2',
+        dartVersion: '3.13.7',
         runtimePath: dir.path,
         process: (exe, args, end) async => exe.endsWith('/stat')
             ? ProcessResult(0, 0, '502:755', '')
@@ -202,7 +214,7 @@ void main() {
   test('missing dependency metadata is unknown, mismatched pins fail', () async {
     final diagnostic = Doctor(
       os: 'macos',
-      dartVersion: '3.13.2',
+      dartVersion: '3.13.7',
       runtimePath: dir.path,
       packageRoot: dir.uri,
       process: process,

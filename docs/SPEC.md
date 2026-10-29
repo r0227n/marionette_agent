@@ -23,7 +23,7 @@ Any failure or unknown yields exit 1; otherwise exit 0. This aggregation is spec
 
 Check IDs and targets:
 
-- `host.os`: macOS. `host.dart`: the executing SDK is >=3.13.2 <4.0.0.
+- `host.os`: macOS. `host.dart`: the executing SDK is >=3.13.7 <4.0.0.
 - `runtime.socketPath`: the same absolute path and 80 UTF-8 byte limit as the existing runtime; measures bytes including socket `/s`.
 - `runtime.directory`: no symlink, owned by the current user, mode 0700. Absence is skipped without creating it.
 - `daemon.ipc`: passively connects to a socket in a verified-safe directory and checks protocolVersion compatibility and ready state. Absence is skipped; rejection/mismatch is failure; no response is unknown. Limit: one second or the remaining deadline, whichever is shorter.
@@ -486,7 +486,7 @@ Startup uses marionette_agent_platform_interface contracts and the ios/android/m
 
 Close finalizes recording, stops the launched environment, and discards the connection. Connect to an external app closes only the connection. Close --all and daemon shutdown also reclaim owned resources. App exit invalidates the connection generation and refs. Startup/readiness failure or timeout cleans up owned processes, devices, and URIs; cleanup may continue past the request deadline. Per-process shutdown allows eight seconds for normal exit, three for TERM, and three for KILL; iOS device cleanup is bounded to 30 seconds. Unconfirmed shutdown is not success, and temporary storage remains. Shared devices and the adb server are untouched. Automatic recovery after SIGKILL or host shutdown is out of scope.
 
-Tester's supported SDK is Flutter 3.47.2, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares existing session operations and record --platform flutter. See the [headless guide](headless.md) for procedures and limitations.
+Tester's supported SDK is Flutter 3.47.8, debug only, with logical size 800×600 and DPR 3. It does not guarantee equivalent OS-native features, Web execution semantics, or physical-device performance; verify those in each actual environment. Every environment shares existing session operations and record --platform flutter. See the [headless guide](headless.md) for procedures and limitations.
 
 <a id="android-emulator-screenshots"></a>
 ## Android Emulator screenshots

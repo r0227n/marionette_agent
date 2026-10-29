@@ -12,17 +12,17 @@ installerの配布物は実行用launcherと、対応する隣接`.marionette-ag
 
 本プロジェクトのコードと文書は[leancodepl/marionette_mcpのLICENSE](https://github.com/leancodepl/marionette_mcp/blob/main/LICENSE)を参考にApache-2.0としました。2026-10-01確認のblobは`261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`です。NOTICEには本プロジェクトの寄稿者を記載し、上流の権利を取り込みません。THIRD_PARTY_NOTICES.txtに依存の原文を保持します。generatorはCLI/platform/exampleのproduction依存をたどり、アプリ側Flutter/engineとDart runtimeも含めます。ライセンス不足で失敗し、`--check`は更新漏れを検出します。宣言した依存全体を広めに含め、全てがAOTに組み込まれるとは主張しません。
 
-MarionetteはApache-2.0、image/archiveはMIT、Dart/Flutterの各packageはBSD等です。元の表示を保持してください。Flutter 3.47.2でcommit済みlockfileを解決して生成します。依存・SDK変更時は同梱素材やpackage内の入れ子の第三者表示も再確認します。生成結果は法的適合性の自動判定ではありません。
+MarionetteはApache-2.0、image/archiveはMIT、Dart/Flutterの各packageはBSD等です。元の表示を保持してください。Flutter 3.47.8でcommit済みlockfileを解決して生成します。依存・SDK変更時は同梱素材やpackage内の入れ子の第三者表示も再確認します。生成結果は法的適合性の自動判定ではありません。
 
 skills-lock.jsonの外部開発skillは[mattpocock/skills](https://github.com/mattpocock/skills)のMITで、`third_party/mattpocock-skills-LICENSE`に元の表示を保持しました。上流LICENSE blobは`f1dd2c09108dde1a5f56097cee8461b3ea834499`です。CLIにはインストールしません。同梱Skillsは本プロジェクトの素材です。exampleのFlutter scaffold/iconsを含むアプリ配布時はFlutter/engineとcupertino_iconsの表示も保持してください。websiteのビルドツールはCLI binaryに含めません。生成サイトや新素材の再配布は別途対象を確認します。
 
 ## ローカルの検証
 
-macOS、Flutter 3.47.2、Dart 3.13.2を基準に、ルートから以下を実行します。子directory指定は括弧内です。processを多用するtestの競合を避けて直列実行します。CLI test runnerの`--timeout=2m`はhosted macOSでの子processのcold JIT起動を含む待機枠です。製品のdeadlineとtestで明示したtimeoutは引き続き適用されます。tester smokeはnative appをビルドせず、Simulatorも起動しません。
+macOS、Flutter 3.47.8、Dart 3.13.7を基準に、ルートから以下を実行します。子directory指定は括弧内です。processを多用するtestの競合を避けて直列実行します。CLI test runnerの`--timeout=2m`はhosted macOSでの子processのcold JIT起動を含む待機枠です。製品のdeadlineとtestで明示したtimeoutは引き続き適用されます。tester smokeはnative appをビルドせず、Simulatorも起動しません。
 
 この検証の前にmiseで`.mise.toml`に固定したLefthook 2.2.1を導入し、ffmpeg（ffprobeを含む）は別途導入して、[Contributing](../../CONTRIBUTING.md)の手順でhookを有効化してください。どちらかのencoder toolがない場合はhookを失敗させ、実MP4テストのskipを防ぎます。これらのtoolはローカルに用意してください。リリース自動化はローカル検証済みを前提とし、Lefthookの導入・実行は行いません。これらの外部toolは動画の独立した検証用で、Releaseの配布物には含めません。実行時の変換にはCLIへ同梱するFFmpegKit nativeライブラリを使います。
 
-`mise exec -- lefthook run pre-commit --all-files`は`tool/quality.sh`経由で以下のworkspace検証をすべて実行します。website検証は別途実行します。通常のcommitでは`website/`外の`.dart`・`.yaml`・`.yml`・`.json`・`.lock`、`.mise.toml`、CHANGELOG、ライセンス表示、同梱Skills、hook用toolの変更でworkspace検証を選択します。最初にステージ済みの存在するDartファイルだけをformat確認し、workspace検証では全ソースのformat・解析・版数・表示・全テスト・install/tester smokeを実行します。削除もworkspace検証の対象です。Lefthookは部分ステージしたファイルの未ステージ編集を一時的に隠し、検証後に復元します。自動修正・自動stageは行いません。他のMarkdownやwebsiteだけのcommitではDart検証を省略し、リリース前には必ず全検証を実行します。hook用toolの編集後は`python3 tool/test_quality_hooks.py`で分離したGit結合テストも実行してください。
+`mise exec -- lefthook run pre-commit --all-files`は`tool/quality.sh`経由で以下のworkspace検証をすべて実行します。website検証は別途実行します。通常のcommitでは`website/`外の`.dart`・`.yaml`・`.yml`・`.json`・`.lock`、`.mise.toml`、CHANGELOG、ライセンス表示、同梱Skills、hook用toolの変更でworkspace検証を選択します。最初にステージ済みの存在するDartファイルだけをformat確認し、workspace検証では全ソースのformat・解析・版数・表示・全テスト・install/tester smokeを実行します。削除もworkspace検証の対象です。Lefthookは部分ステージしたファイルの未ステージ編集を一時的に隠し、検証後に復元します。自動修正・自動stageは行いません。SDKコマンドの実行時はrepository固有のGit環境変数を解除し、worktree hookによってFlutterがプロジェクトのrevisionをSDKの版として参照することを防ぎます。他のMarkdownやwebsiteだけのcommitではDart検証を省略し、リリース前には必ず全検証を実行します。hook用toolの編集後は`python3 tool/test_quality_hooks.py`で分離したGit結合テストも実行してください。
 
 ```sh
 flutter pub get --enforce-lockfile

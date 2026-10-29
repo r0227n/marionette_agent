@@ -3,7 +3,7 @@ title: Install the CLI
 description: Build and update marionette-agent from a local checkout.
 ---
 
-Install the CLI from the repository source. You need Dart SDK 3.13.2 or newer, below 4.0.0, and a Flutter SDK. The example uses Flutter 3.47.2.
+Install the CLI from the repository source. You need Dart SDK 3.13.7 or newer, below 4.0.0, and a Flutter SDK. The example uses Flutter 3.47.8.
 
 Install the released 1.0.0 source from its immutable tag and compile locally.
 GitHub Releases provide notes and source archives; pub.dev remains disabled.
@@ -21,6 +21,8 @@ Optional, for development revisions only: skip this step when installing release
 ```sh
 git switch --detach DOCUMENTED_COMMIT
 ```
+
+For development checkouts, the root `.mise.toml` pins Flutter 3.47.8 with its bundled Dart 3.13.7. Install the pinned tools with `mise install`, then activate mise in your shell or prefix SDK commands with `mise exec --`. Use the bundled Dart so `flutter` and `dart` select the same SDK.
 
 ## Install the CLI and bundled Skills
 

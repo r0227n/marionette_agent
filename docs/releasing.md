@@ -31,7 +31,7 @@ claiming every package is linked into the AOT executable.
 
 Runtime dependencies include Apache-2.0 Marionette, MIT image/archive libraries,
 and BSD Dart/Flutter packages. Preserve original notices. Resolve the committed
-lockfile with Flutter 3.47.2 before generating. Dependency/SDK changes require a
+lockfile with Flutter 3.47.8 before generating. Dependency/SDK changes require a
 fresh audit, including embedded assets and nested third-party notices in packages.
 The generated file is not an automated legal compatibility verdict.
 
@@ -46,7 +46,7 @@ redistribution of generated sites or new bundled assets needs its own scope audi
 
 ## Local gates
 
-Use the pinned baseline Flutter 3.47.2 / Dart 3.13.2 on macOS. Run from the root,
+Use the pinned baseline Flutter 3.47.8 / Dart 3.13.7 on macOS. Run from the root,
 then the indicated member directories. `--concurrency=1` avoids process-heavy
 test contention. The CLI test runner's `--timeout=2m` includes cold child-process
 JIT startup on hosted macOS; product deadlines and explicit test timeouts still
@@ -70,6 +70,8 @@ the workspace gate also checks the complete source tree, analysis, release metad
 notices, all tests, and the install/tester smoke. Deletions trigger workspace checks
 too. Lefthook temporarily hides unstaged edits to partially staged files and
 restores them afterward. Checks neither fix nor stage files automatically.
+SDK commands run with repository-local Git variables cleared so a worktree hook
+cannot make Flutter read the project's revision as its SDK version.
 Other Markdown and website-only commits skip the Dart gate; always run the full
 gate before release. After editing hook tooling, run its isolated Git integration
 tests with `python3 tool/test_quality_hooks.py`.

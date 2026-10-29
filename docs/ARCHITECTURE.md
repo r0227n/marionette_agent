@@ -10,6 +10,8 @@
 
 ## Doctor boundary (Issue #9)
 
+The project toolchain is pinned in `.mise.toml`: Flutter 3.47.8 and its bundled Dart 3.13.7. All workspace packages require Dart >=3.13.7 <4.0.0; doctor checks the same range.
+
 `cli/runner.dart` dispatches doctor locally before `RuntimeDirectory.prepare`.
 `cli/doctor.dart` owns read-only host/runtime checks, comparisons between fixed dependency declarations and lockfiles, Simulator enumeration, and aggregation of check statuses and exit codes. External processes and probes can be replaced with fixtures.
 It connects to a daemon socket only after checking directory ownership and mode 0700, then reads only the handshake through the existing protocol decoder.

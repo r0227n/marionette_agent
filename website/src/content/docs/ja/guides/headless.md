@@ -11,7 +11,7 @@ headlessでは、アプリのウィンドウを表示せずにFlutter UIを観�
 
 | Platform  | 非表示にする方法            | 向いている確認と前提                                          |
 | --------- | --------------------------- | ------------------------------------------------------------- |
-| `tester`  | Flutterのテスト用エンジン   | 共通Flutter UIの反復確認。検証済みSDKはFlutter 3.47.2         |
+| `tester`  | Flutterのテスト用エンジン   | 共通Flutter UIの反復確認。検証済みSDKはFlutter 3.47.8         |
 | `ios`     | 専用Simulator device set    | iOS上の挙動。Xcode、インストール済みdevice type/runtimeが必要 |
 | `android` | 既存AVDを`-no-window`で起動 | Android上の挙動。Android SDK、AVD、未使用の偶数portが必要     |
 | `macos`   | 非表示NSWindowと描画維持    | macOSアプリ。アプリ側の対応とログイン済みGUI sessionが必要    |

@@ -1,3 +1,5 @@
 [tools]
+# Flutter also provides the matching Dart SDK (3.13.7).
+flutter = "3.47.8"
 bun = "1.4.2"
 "ubi:evilmartians/lefthook" = "2.2.1"

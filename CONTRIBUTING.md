@@ -10,10 +10,14 @@ Read [AGENTS.md](AGENTS.md), [SPEC](docs/SPEC.md), and
 follow the repository's branch/worktree rules and keep changes focused. The root Pub
 workspace resolves CLI, platform packages, and example together.
 
-Use [mise](https://mise.jdx.dev/) to manage [Lefthook](https://lefthook.dev/).
+Use [mise](https://mise.jdx.dev/) to manage Flutter, its bundled Dart SDK, Bun,
+and [Lefthook](https://lefthook.dev/).
 Run `mise install` at the repository root to install the pinned versions in
-`.mise.toml` (Lefthook 2.2.1 and Bun 1.4.2), and install ffmpeg separately
+`.mise.toml` (Flutter 3.47.8 with Dart 3.13.7, Lefthook 2.2.1, and Bun 1.4.2),
+and install ffmpeg separately
 (`brew install ffmpeg`).
+Activate mise in your shell, or prefix SDK commands with `mise exec --`, so both
+`flutter` and `dart` come from the pinned Flutter SDK.
 Run `mise exec -- lefthook install` once after cloning and in each new worktree.
 The installed Git hook also invokes Lefthook through mise, using the same pin.
 Resolve dependencies once at the root with
