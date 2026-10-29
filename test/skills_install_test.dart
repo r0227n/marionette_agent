@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+import 'package:marionette_agent/src/protocol/protocol.dart' as protocol;
 
 void main() {
   test('installed and upgraded AOT CLI retains a relocatable matching skill bundle', () async {
@@ -98,7 +99,7 @@ void main() {
       body(
         await product(['--version', '--json'], compiled: true),
       )['data']['version'],
-      '1.0.0',
+      protocol.version,
     );
 
     expect(

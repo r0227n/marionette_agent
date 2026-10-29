@@ -1,6 +1,6 @@
 name: marionette_agent_android
 description: Android services for marionette_agent.
-version: 1.0.0
+version: 1.1.0
 publish_to: none
 resolution: workspace
 

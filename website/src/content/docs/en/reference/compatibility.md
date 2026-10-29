@@ -6,6 +6,10 @@ description: The public contracts protected in 1.x and the supported environment
 Releases follow semantic versioning for the public 1.x surfaces below.
 The current source installation route remains in place; pub.dev is disabled.
 
+Version 1.1.0 is an explicitly approved exception to the 1.x compatibility policy
+below: it includes breaking changes to capture, native commands, and app helper
+packages. Read the [1.1.0 migration notes](https://github.com/r0227n/marionette_agent/blob/develop/CHANGELOG.md#110) before upgrading.
+
 ## Stable in 1.x
 
 - Documented command names, flags, aliases, accepted arguments, defaults, and
@@ -45,7 +49,7 @@ Flutter providers enable additional ones. Missing extensions return
 
 CLI package version, JSON `schemaVersion`, internal IPC `protocolVersion`,
 workflow schema version, and app extension version are independent. This release
-keeps JSON/workflow version 1, IPC version 7, and app extension version 1. IPC is
+keeps JSON/workflow version 1, IPC version 9, and app extension version 1. IPC is
 internal and may change between 1.x releases; close sessions before upgrading
 and start a fresh daemon with the new binary. Do not reuse refs across snapshots,
 sessions, reconnections, or mutations.
