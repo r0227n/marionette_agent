@@ -1,6 +1,6 @@
 name: marionette_agent_video
 description: Native video encoding and timestamped platform frame recording.
-version: 1.0.0
+version: 1.1.0
 publish_to: none
 resolution: workspace
 environment:
